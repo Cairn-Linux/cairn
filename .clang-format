@@ -1,0 +1,26 @@
+# Cairn C++ style. Boring on purpose; see CLAUDE.md "Language and toolkit".
+BasedOnStyle: LLVM
+Standard: c++20
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 100
+AccessModifierOffset: -4
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AlwaysBreakTemplateDeclarations: Yes
+BreakBeforeBraces: Attach
+PointerAlignment: Left
+ReferenceAlignment: Left
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: '^"'          # our own headers first
+    Priority: 1
+  - Regex: '^<Q'         # then Qt
+    Priority: 2
+  - Regex: '^<'          # then the standard library and everything else
+    Priority: 3
+SortIncludes: CaseSensitive
+SpaceAfterTemplateKeyword: true
+FixNamespaceComments: true

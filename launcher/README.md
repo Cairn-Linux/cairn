@@ -3,10 +3,10 @@
 The fullscreen tile launcher for L1 and L2 sessions. **The launcher is the
 product** (DESIGN §6.1); everything else is packaging.
 
-Nothing here yet. Phase 0 task **P0-5** builds v0. The technology decision is
-**ROADMAP D2**: prototype as web content in an embedded WebKitGTK view hosted
-by a small Python + GTK4 program, measure memory on the 2 GB tier, and fall
-back to Qt/QML if it's too heavy.
+Nothing here yet. Phase 0 task **P0-5** builds v0 as a **C++20 / Qt 6 / QML**
+application (ADR-0002). This is the first C++ in the repo, so P0-5 also sets
+up CMake, Qt Test, sanitizers and clang-format for everything that follows.
+Colours, type and radii come from the `Cairn.Brand.Tokens` QML singleton.
 
 ## Requirements carried from the design
 
@@ -14,7 +14,8 @@ back to Qt/QML if it's too heavy.
   filesystem view at L1. L2 adds a files view to the dock.
 - No reading required beyond app names, paired with distinct icons.
 - **Colour codes kind, never app**: ochre = make, moss = practice,
-  fjord = machine. Tokens come from `../brand/tokens.css` only.
+  fjord = machine. Use `Tokens.make` / `Tokens.onMake` and friends from
+  `../brand/qml/Cairn/Brand/Tokens.qml`, never a literal.
 - Watches launches. Slow or failed launches show "Something needs a
   grown-up", never whatever the app or Steam decided to display.
 - Keyboard and mouse both work fully. A child typing at one character per

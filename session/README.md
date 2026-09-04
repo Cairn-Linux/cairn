@@ -15,13 +15,14 @@ D6, D7**.
   the account's level group and execs either the kiosk compositor with the
   launcher (L1/L2) or `startplasma-wayland` (L3/L4, Guardian). The greeter
   offers only this session.
-- **Greeter.** greetd with a first-party greeter in the house style: large
-  avatar tiles, no password for `cairn-l1`/`cairn-l2` (PAM rule), Guardian
-  accounts hidden and password-protected. SDDM + QML theme is the fallback.
+- **Greeter.** SDDM with a Cairn QML theme (since ADR-0002 everything
+  first-party is QML, and SDDM themes are QML): large avatar tiles, no
+  password for `cairn-l1`/`cairn-l2` (PAM rule), Guardians hidden with
+  `HideUsers`. greetd with a custom greeter is the fallback.
 - **Kiosk compositor.** cage first; labwc if Steam's forced windows can't be
   contained under cage (D3, tested in P0-4).
 
 ## Files expected here
 
-`cairn-session`, `cairn.desktop`, `greetd/config.toml`, `pam.d/`, and the
-greeter once D2 settles the UI technology.
+`cairn-session`, `cairn.desktop`, `sddm.conf.d/`, `pam.d/`, and the SDDM
+theme under `theme/`.

@@ -6,7 +6,9 @@ guideline (a design canvas, v0.1); this directory is what programs import.
 | File | Use |
 |---|---|
 | `tokens.json` | Source of truth: palette, semantic roles, type scale, radii, mark geometry, measured contrast ratios. Edit this. |
-| `tokens.css` | CSS custom properties generated from `tokens.json`. Every first-party UI links this and nothing else for colour, type or radius. |
+| `tokens.css` | CSS custom properties generated from `tokens.json`, for web surfaces and docs. |
+| `qml/Cairn/Brand/Tokens.qml` | QML singleton generated from `tokens.json`. Every first-party Qt/QML surface uses this and nothing else for colour, type or radius: `import Cairn.Brand` with `brand/qml` on the QML import path, then `Tokens.ink`, `Tokens.onMake`, `Tokens.radiusTile`. |
+| `build.py` | The generator. Edit `tokens.json`, run `python3 brand/build.py`, commit everything it touched. |
 | `mark.svg` | The mark, variant C "Trail stack", in Ink. For light grounds. |
 | `mark-on-ink.svg` | The mark in Sand. For Ink grounds: terminal, login, boot splash. |
 | `mark-currentcolor.svg` | The mark filled with `currentColor` for inline use in HTML. |
@@ -29,6 +31,10 @@ guideline (a design canvas, v0.1); this directory is what programs import.
 
 ## Regenerating
 
-`tokens.css` and the SVGs are produced from `tokens.json` by the snippet in
-the git history of this directory. A small `brand/build.py` should replace it
-once the token set stabilises (brand v0.2).
+```sh
+python3 brand/build.py
+```
+
+Writes `tokens.css`, `qml/Cairn/Brand/Tokens.qml`, `qmldir` and the three
+SVGs. Standard library only. The QML singleton exposes the same semantic
+names as the CSS in camelCase (`onPractice` for `--cairn-on-practice`).

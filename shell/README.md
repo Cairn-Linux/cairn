@@ -4,8 +4,18 @@ The restricted, child-facing terminal (DESIGN §3.1). A purpose-built shell,
 not bash with a constrained `.bashrc`. Its name is **ROADMAP D9**; until
 then it is "the restricted shell".
 
-Nothing here yet. Phase 0 task **P0-6** builds v0 in Python for speed of
-iteration; the language for Phase 1 packaging is open.
+Nothing here yet. Phase 0 task **P0-6** builds v0 in **C++ / Qt / QML**
+(ADR-0002).
+
+## Proposed architecture (pending the D9 ADR)
+
+Not a PTY program running inside a terminal emulator. Instead: a pure C++
+command interpreter class with no GUI dependency, driven by a QML text
+surface. The interpreter is unit-tested on its own with Qt Test; the surface
+gives the design its large type, generous line height and icon-augmented
+`ls` directly. At L3 the child moves to a real shell in a real terminal
+emulator, and that hand-off is an explicit, visible step rather than a
+vocabulary cliff.
 
 ## Requirements carried from the design
 
