@@ -54,10 +54,18 @@ them. That is the design brief.
 
 ## Hardware
 
-x86_64 only. Two tiers: a **minimum** of ~2 GB RAM with Intel integrated
-graphics runs the launcher, shell, educational stack and ScummVM titles; the
-**recommended** 8 GB with a discrete or modern integrated GPU adds Steam,
-Proton and Minecraft Java. ARM and Raspberry Pi are out of scope for v1.
+x86_64 only. ARM and Raspberry Pi are out of scope for v1.
+
+| | Minimum | Recommended |
+|---|---|---|
+| Laptop age | About 2013 or newer | About 2015 or newer |
+| Memory | 4 GB | 8 GB |
+| Graphics | Intel HD 4000 or newer | Discrete, or modern integrated |
+| Storage | 64 GB | 128 GB |
+| Firmware | UEFI | UEFI |
+| Runs | Launcher, shell, educational apps, ScummVM titles, the L3/L4 desktop | Everything, plus Steam/Proton titles and Minecraft Java |
+
+Below Minimum the honest answer is "not this machine".
 
 ## Contributing
 

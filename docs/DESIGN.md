@@ -426,16 +426,26 @@ Do not attempt to reskin third-party applications.
 Raspberry Pi OS already serves that niche well, and a second architecture roughly
 doubles build, test, and support surface. Steam and Proton are x86 regardless.
 
-**Two documented tiers**, because the games decision (§8) raises the floor:
+**Two documented tiers**, presented the way the back of a PC game box did
+it — Minimum and Recommended — because that is a format parents already know
+how to read. The games decision (§8) is what separates them. Decided in
+ADR-0003; the previous 2 GB minimum contradicted the 2013–2018 target above.
 
-| Tier | Spec | Runs |
+| | Minimum | Recommended |
 |---|---|---|
-| Minimum | ~2 GB RAM, Intel integrated graphics | Launcher, shell, educational stack, ScummVM titles |
-| Recommended | 8 GB RAM, discrete or modern integrated GPU | Above, plus Steam/Proton titles and Minecraft Java |
+| Laptop age | About 2013 or newer | About 2015 or newer |
+| Processor | 64-bit Intel or AMD | Same |
+| Memory | 4 GB | 8 GB |
+| Graphics | Intel HD 4000 or newer integrated | Discrete, or modern integrated (Iris, Vega) |
+| Storage | 64 GB | 128 GB |
+| Firmware | UEFI | UEFI |
+| Runs | Launcher, shell, educational stack, ScummVM titles, Plasma at L3/L4 | Everything above, plus Steam/Proton titles and Minecraft Java |
 
-State this plainly in the documentation. A parent installing on a Core 2 Duo and
-concluding the system is broken is a worse outcome than a parent who reads the
-spec table and buys nothing.
+State this plainly in the documentation, in this form, everywhere it appears.
+Below Minimum the honest answer is "not this machine". A parent installing on
+a 2009 netbook and concluding the system is broken is a worse outcome than a
+parent who reads the table and buys nothing. BIOS-only machines are not
+supported in v1.
 
 ---
 

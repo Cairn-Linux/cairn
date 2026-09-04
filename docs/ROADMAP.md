@@ -1,7 +1,7 @@
 # Cairn Linux — Roadmap and working plan
 
 **Status:** living document
-**Last updated:** 2026-09-03 (D2 closed)
+**Last updated:** 2026-09-03 (D2, D11 closed)
 
 `DESIGN.md` is the specification. This document is the plan for building it:
 what has to be decided, in what order things get built, how we know a phase is
@@ -35,20 +35,21 @@ Each has a recommendation. None is final until an ADR lands in
 | **D1** | Project licence (DESIGN §12.3) | **Apache-2.0** for code, matching Universal Blue and its template so vendored pieces mix cleanly; **CC BY-SA 4.0** for docs and brand assets. GPL-3.0 is the defensible alternative if copyleft matters more than ecosystem fit. | Before the repo goes public. Nothing else blocks on it. |
 | **D2** | First-party language and UI toolkit (DESIGN §14 Q1) | **Closed 2026-09-03, ADR-0002: C++20 + Qt 6 + QML** for every first-party surface, including the restricted shell. Chosen by the maintainer to learn C++; the technical recommendation had been Python + PySide6 with the same QML. Fallback if a component proves unworkable is exactly that, and the QML carries over. | Closed |
 | **D3** | Kiosk compositor for L1/L2 (DESIGN §4.5) | Start with **cage**: it exists to run one fullscreen app and stacks spawned windows on top. **But** §8.3's "Steam goes to tray" has no tray in a kiosk, so Steam's forced windows would appear fullscreen. If cage can't hide them, move to **labwc** with window rules. Test both failure paths in P0-4. Whether Steam at L1/L2 is a v1 requirement at all is a scope question still open with the maintainer. | P0-4 |
-| **D4** | Base image (DESIGN §4.1 says Fedora/bootc, not which) | **`ghcr.io/ublue-os/bazzite:stable`** (KDE variant). Ships Plasma, Steam, Proton plumbing and hardware enablement that Phases 2–3 need; a kiosk session on it doesn't load Plasma, so the runtime cost on the 2 GB tier is disk, not RAM. Alternative: `kinoite-main` + layered Steam, if Bazzite's footprint or trademark policy is a problem. Check both in P1-1. | P1-1 |
+| **D4** | Base image (DESIGN §4.1 says Fedora/bootc, not which) | **`ghcr.io/ublue-os/bazzite:stable`** (KDE variant). Ships Plasma, Steam, Proton plumbing and hardware enablement that Phases 2–3 need; a kiosk session on it doesn't load Plasma, so the runtime cost on the 2 GB tier is disk, not RAM. Alternative: `kinoite-main` + layered Steam, if Bazzite's trademark policy is a problem; its disk footprint is acceptable at the 64 GB floor (ADR-0003). Check both in P1-1. | P1-1 |
 | **D5** | How "level" is stored and enforced (DESIGN §3, §4.3 name the property; nothing names the mechanism) | **Supplementary groups**: `cairn-l1` … `cairn-l4`, `cairn-guardian`; exactly one per account. Level change = group change. PAM, polkit, the session dispatcher and malcontent policy all key off groups, which is Unix-native, inspectable and legible (Principle 2). Per-child name/avatar/allowlists live in a small config the Guardian tool owns. | P0-2 |
 | **D6** | Display manager and greeter (DESIGN §4.3 describes the login screen, not the component) | **SDDM with a Cairn QML theme.** Since ADR-0002 the whole first-party layer is QML and SDDM themes are QML, so the login screen is a theme, not a program. `HideUsers` hides Guardians; a PAM rule grants passwordless login to `cairn-l1`/`cairn-l2` members. SDDM is also what Plasma expects. Alternative: greetd with a custom greeter, only if SDDM cannot do the avatar-tile login cleanly. Prototype in P0-3. | P0-3 |
 | **D7** | Session dispatch | **One Wayland session entry** (`cairn.desktop` → `cairn-session`) that reads the account's level group and execs either the kiosk compositor + launcher (L1/L2) or `startplasma-wayland` (L3/L4, Guardian). The greeter offers only this session, so a child cannot pick another. | P0-3 |
 | **D8** | Localisation and offline stance (DESIGN §14 Q4, Q5) | State them rather than default: **English-only for v1**, with strings externalised from day one so GCompris's translations aren't wasted later. **Offline-capable, not offline-first**: everything works without network except Flatpak/OS updates and the Steam/Minecraft integrations. | Phase 1 docs |
 | **D9** | Name and architecture of the restricted shell | Needs a real name before Phase 1 packaging; the child never types it, so it's a package name, not a brand. Architecture proposal since ADR-0002: a Qt/QML text surface with the command interpreter in C++, **not** a PTY program in a terminal emulator. That gives the large type and icon-augmented `ls` directly and makes the hand-off to a real shell at L3 an explicit step. | P1-2 |
 | **D10** | Content filtering (DESIGN §9.2 "TBD") | Two options, both local-config-only to honour §9.3: a **filtered upstream DNS resolver** (simple, but sends every query to a third party) or a **local resolver with blocklists** (private, needs list updates via the OS image). Decide in Phase 2 when the browser first appears at L2. | Phase 2 |
+| **D11** | Hardware floor (DESIGN §7 had a 2 GB minimum that contradicted its own 2013–2018 target) | **Closed 2026-09-03, ADR-0003.** Minimum: about 2013 or newer, 4 GB, Intel HD 4000+, UEFI, 64 GB. Recommended: 8 GB, discrete or modern integrated GPU, 128 GB. Published as a game-box Minimum/Recommended panel everywhere it appears. | Closed |
 
 ---
 
 ## 2. Phase 0 — validate the experience (no ISO)
 
-**Goal.** One child aged 5–8, on real 2013–2018 hardware, uses the L1 session
-unsupervised for twenty minutes.
+**Goal.** One child aged 5–8, on a Minimum-tier laptop (ADR-0003), uses the L1
+session unsupervised for twenty minutes.
 
 **Exit criterion.** The child: logs in from an avatar tile; launches and
 returns from at least two apps; uses the shell to open something; hits an

@@ -9,7 +9,7 @@ Package names and versions below were checked against the Fedora 44 repos on
 | Machine | Job | What it needs |
 |---|---|---|
 | **Dev PC** | Write and build the C++/QML code, run VMs, run `kidscan` against a real Steam library | x86_64, KVM, a mutable Fedora with the toolchain below, Steam with a few Humongous titles, ScummVM |
-| **Test laptop** | The thing a child actually uses in P0-9 | A 2013–2018 x86_64 laptop at whatever hardware floor ROADMAP §1 settles on. Stock Fedora Kinoite or Bazzite, then `provision/` |
+| **Test laptop** | The thing a child actually uses in P0-9 | A **Minimum**-tier machine (ADR-0003): about 2013 or newer, 4 GB RAM, Intel HD 4000-class graphics, UEFI, 64 GB. Test at the floor, not the comfortable case. Stock Fedora Kinoite or Bazzite, then `provision/` |
 
 Nothing in this project runs on ARM (DESIGN §7), so an ARM laptop is for
 editing documents only.
