@@ -7,6 +7,9 @@ import Cairn.Launcher
 Window {
     id: window
 
+    // Set from the command line (--manifest). Empty means the built-in tiles.
+    property string manifestPath: ""
+
     title: qsTr("Cairn")
     visibility: Window.Windowed
     color: Tokens.ground
@@ -14,6 +17,18 @@ Window {
     height: minimumHeight
     minimumWidth: Tokens.displaySize * 5 * 3 + Tokens.headingSize * 2
     minimumHeight: Tokens.displaySize * 4 * 2 + Tokens.headingSize * 2
+
+    TileModel {
+        id: tiles
+
+        manifestPath: window.manifestPath
+    }
+
+    AppLauncher {
+        id: launcher
+
+        objectName: "launcher"
+    }
 
     GridView {
         id: grid
@@ -24,11 +39,12 @@ Window {
         cellWidth: width / 3
         cellHeight: height / 2
         interactive: false
-        focus: true
+        focus: !grownUp.visible
+        visible: !grownUp.visible
         keyNavigationEnabled: true
         keyNavigationWraps: true
         currentIndex: 0
-        model: TileModel {}
+        model: tiles
 
         Keys.onTabPressed: event => {
             const step = (event.modifiers & Qt.ShiftModifier) ? count - 1 : 1;
@@ -42,6 +58,7 @@ Window {
 
         delegate: Tile {
             required property int index
+            required property list<string> exec
 
             width: grid.cellWidth - Tokens.headingSize
             height: grid.cellHeight - Tokens.headingSize
@@ -50,6 +67,22 @@ Window {
                 if (activeFocus)
                     grid.currentIndex = index;
             }
+            onActivated: launcher.launch(title, exec)
+        }
+    }
+
+    GrownUpScreen {
+        id: grownUp
+
+        objectName: "grownUpScreen"
+        anchors.fill: parent
+        visible: launcher.state === AppLauncher.Failed
+        appTitle: launcher.title
+        onDismissed: {
+            launcher.dismiss();
+            grid.forceActiveFocus();
+            if (grid.currentItem)
+                grid.currentItem.forceActiveFocus();
         }
     }
 }
