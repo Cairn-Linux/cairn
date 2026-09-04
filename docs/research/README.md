@@ -3,6 +3,12 @@
 Observations from real hardware and real children. Phase 0 exits on the
 strength of what is written here, not on what was built.
 
+Files:
+
+- `base-image-policy.md` — 2026-09-03 review of Bazzite, Universal Blue and
+  Fedora trademark and licence terms for building Cairn on Bazzite. No
+  blocker; compliance checklist for Phase 1.
+
 Planned files:
 
 - `kiosk-containment.md` — P0-4 checklist: what a child can and cannot reach
