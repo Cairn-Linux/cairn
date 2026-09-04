@@ -69,17 +69,21 @@ Below Minimum the honest answer is "not this machine".
 
 ## Contributing
 
-Too early for a contributing guide. If you are reading this and want to help,
-the highest-value independent workstream is ScratchJr on Linux — see
-`docs/ROADMAP.md` §6.
+See [`CONTRIBUTING.md`](CONTRIBUTING.md). The highest-value independent
+workstream is ScratchJr on Linux (`docs/ROADMAP.md` §6). Commits are signed
+off under the Developer Certificate of Origin.
 
 ## Licence
 
-Not yet chosen. See `docs/ROADMAP.md` decision D1. Until a licence file
-exists, this repository is all-rights-reserved by default and stays private.
+Code is licensed under the [Apache License 2.0](LICENSE). Documentation and
+brand assets are licensed under
+[CC BY-SA 4.0](LICENSE-CC-BY-SA-4.0). The name "Cairn Linux" and the
+stacked-stones mark are trademarks of the project and are not covered by
+either licence; a modified build may not call itself Cairn Linux. See
+`brand/README.md`.
 
 ---
 
-Cairn Linux · cairnlinux.com · Brand and design © 2026 the Cairn Linux project.
+Cairn Linux · cairnlinux.com · © 2026 Cairn Linux contributors.
 "Linux" is a registered trademark of Linus Torvalds; sublicence via the Linux
 Mark Institute is pending.

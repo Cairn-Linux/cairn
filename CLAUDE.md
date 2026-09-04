@@ -85,6 +85,17 @@ someone learning the language from it. That shapes every rule below.
   `brand/build.py` from `tokens.json`). Never a literal colour, size or font in
   QML or C++.
 
+## Licence and sign-off (ADR-0005)
+
+- Code is Apache-2.0; docs and brand are CC BY-SA 4.0; the name and mark are
+  trademarks (`brand/README.md`). Do not add code under another licence
+  without an ADR; record any vendored code in `NOTICE`.
+- Every source file starts with an SPDX line: `// SPDX-License-Identifier:
+  Apache-2.0` in C++ and QML, `# SPDX-License-Identifier: Apache-2.0` in
+  scripts and CMake.
+- Every commit carries a Developer Certificate of Origin sign-off. Use
+  `git commit -s`; the line is `Signed-off-by: Name <email>`.
+
 ## Other conventions
 
 - Commit messages: imperative, one line, optional body. Reference issues.

@@ -664,7 +664,8 @@ Getting creations out must be trivial and obvious.
 
 - **ScummVM is GPLv2**; the Steam releases note this explicitly. Redistribution
   of the engine is fine; game data is not ours to ship (§8.6).
-- **Project licence** — TBD.
+- **Project licence** — Apache-2.0 for code, CC BY-SA 4.0 for documentation
+  and brand assets, with the name and mark as project trademarks (ADR-0005).
 
 ---
 

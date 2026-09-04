@@ -1,0 +1,15 @@
+Cairn Linux
+Copyright 2026 Cairn Linux contributors
+
+Licensed under the Apache License, Version 2.0 (code) and Creative Commons
+Attribution-ShareAlike 4.0 International (documentation and brand assets).
+See LICENSE and LICENSE-CC-BY-SA-4.0.
+
+"Cairn Linux", "cairn" as the name of this project, and the stacked-stones
+mark are trademarks of the Cairn Linux project. See brand/README.md.
+
+"Linux" is a registered trademark of Linus Torvalds, used under a pending
+sublicence from the Linux Mark Institute.
+
+Image build layout and, in Phase 1, build scripts are adopted from
+ublue-os/image-template, Copyright Universal Blue contributors, Apache-2.0.

@@ -1,7 +1,7 @@
 # Cairn Linux — Roadmap and working plan
 
 **Status:** living document
-**Last updated:** 2026-09-03 (D2, D11, D12 closed)
+**Last updated:** 2026-09-03 (D1, D2, D11, D12 closed)
 
 `DESIGN.md` is the specification. This document is the plan for building it:
 what has to be decided, in what order things get built, how we know a phase is
@@ -15,7 +15,7 @@ done, and what could sink it. Decisions that change the design get an ADR in
 - Design document at draft, dated 2026-09-03. Brand guidelines v0.1 (mark,
   palette, type, voice) as a design canvas in `docs/brand-guide/`.
 - GitHub organisation `Cairn-Linux` created 2026-09-03. This repository is its
-  first.
+  first, and has been public since the same day (ADR-0005).
 - The `kidscan` scanner prototype is imported at `tools/kidscan/` with tests
   (2026-09-03). No other code yet.
 - Brand tokens and the mark have been extracted to `brand/` so code has a
@@ -32,7 +32,7 @@ Each has a recommendation. None is final until an ADR lands in
 
 | ID | Decision | Recommendation | Bites when |
 |---|---|---|---|
-| **D1** | Project licence (DESIGN §12.3) | **Apache-2.0** for code, matching Universal Blue and its template so vendored pieces mix cleanly; **CC BY-SA 4.0** for docs and brand assets. GPL-3.0 is the defensible alternative if copyleft matters more than ecosystem fit. | Before the repo goes public. Nothing else blocks on it. |
+| **D1** | Project licence (DESIGN §12.3) | **Closed 2026-09-03, ADR-0005.** Apache-2.0 for code; CC BY-SA 4.0 for docs and brand; name and mark are trademarks with a policy in `brand/README.md`; DCO sign-off; SPDX headers. Repository public from this date. | Closed |
 | **D2** | First-party language and UI toolkit (DESIGN §14 Q1) | **Closed 2026-09-03, ADR-0002: C++20 + Qt 6 + QML** for every first-party surface, including the restricted shell. Chosen by the maintainer to learn C++; the technical recommendation had been Python + PySide6 with the same QML. Fallback if a component proves unworkable is exactly that, and the QML carries over. | Closed |
 | **D3** | Kiosk compositor for L1/L2 (DESIGN §4.5) | **labwc** in kiosk configuration. ADR-0004 makes Steam at L1/L2 a v1 requirement, and a kiosk has no tray, so the compositor must hide Steam's forced windows with window rules and tell the launcher about them via wlr-foreign-toplevel-management. cage has neither and is kept only as a measurement baseline. Closes with the P0-10 spike. | P0-10 |
 | **D4** | Base image (DESIGN §4.1 says Fedora/bootc, not which) | **`ghcr.io/ublue-os/bazzite:stable`** (KDE variant). Ships Plasma, the Steam client, Proton plumbing and hardware enablement that Phase 1 now needs (ADR-0004); a kiosk session on it doesn't load Plasma, so the runtime cost on the 2 GB tier is disk, not RAM. Alternative: `kinoite-main` + layered Steam, if Bazzite's trademark policy is a problem; its disk footprint is acceptable at the 64 GB floor (ADR-0003). Check both in P1-1. | P1-1 |
