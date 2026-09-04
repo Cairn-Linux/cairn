@@ -19,8 +19,10 @@ D6, D7**.
   first-party is QML, and SDDM themes are QML): large avatar tiles, no
   password for `cairn-l1`/`cairn-l2` (PAM rule), Guardians hidden with
   `HideUsers`. greetd with a custom greeter is the fallback.
-- **Kiosk compositor.** cage first; labwc if Steam's forced windows can't be
-  contained under cage (D3, tested in P0-4).
+- **Kiosk compositor.** labwc in kiosk configuration (ADR-0004): window
+  rules keep Steam's forced windows off the screen and
+  wlr-foreign-toplevel-management tells the launcher when one appears. cage
+  is a measurement baseline only. Proven in P0-10.
 
 ## Files expected here
 

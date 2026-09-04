@@ -106,8 +106,8 @@ simultaneously with proper file separation and per-child controls.
 
 | Level | Age | Shell | Desktop | Games |
 |---|---|---|---|---|
-| L1 | 5–6 | ~5 commands, launches apps only | Launcher only, no filesystem | Curated tiles |
-| L2 | 7–8 | ~12 commands, sees own files | Launcher + own files | Curated tiles |
+| L1 | 5–6 | ~5 commands, launches apps only | Launcher only, no filesystem | Curated tiles, incl. allowlisted Steam titles |
+| L2 | 7–8 | ~12 commands, sees own files | Launcher + own files | Curated tiles, incl. allowlisted Steam titles |
 | L3 | 9–11 | Real shell, no sudo | Plasma, locked down | Steam, allowlisted |
 | L4 | 12+ | Full bash | Stock Plasma + controls | Full |
 
@@ -306,7 +306,7 @@ premise is that the child cannot get out of the launcher.
 
 | Level | Session |
 |---|---|
-| L1–L2 | Kiosk compositor (`cage`, `labwc`, or `sway` in kiosk config) running the launcher fullscreen |
+| L1–L2 | Kiosk compositor running the launcher fullscreen: `labwc` in kiosk configuration, because §8.3 needs window rules and foreign-toplevel notifications that a single-app compositor such as `cage` lacks (ADR-0004) |
 | L3–L4 | KDE Plasma |
 
 **L1/L2 use no desktop environment at all.** There is no panel, no window
@@ -475,11 +475,14 @@ solving, fully voice-acted, no reading required.
 ### 8.3 Steam and Proton: available, but never visible
 
 Steam titles are supported at all levels, including L1 and L2, because
-exploration games matter for adoption. But the **client UI** is never what a
-child touches.
+exploration games matter for adoption and because the library a family already
+owns is the point of §8.6. This is a **v1 requirement** (ADR-0004), not a
+stretch goal. But the **client UI** is never what a child touches.
 
 Mechanism:
-- Steam starts with `-silent` at session login, going to tray without a window.
+- Steam starts with `-silent` at session login, without a window. There is no
+  tray in the L1/L2 kiosk, so the compositor keeps the client's windows off the
+  screen (mitigation 3 below).
 - Each game is a tile running `steam -applaunch <appid>`.
 - Proton work happens in the background; the game comes up fullscreen.
 
@@ -492,6 +495,12 @@ updates, login expiry, Steam Guard prompts, and cloud save conflicts. Mitigation
    "something needs a grown-up" screen rather than leaving the child staring at
    whatever Steam decided to display. **Graceful failure matters more at this age
    than at any other.**
+3. The kiosk compositor enforces containment. Window rules keep Steam's own
+   windows (main client, login, update progress, Steam Guard) minimised or off
+   the screen, and the compositor's foreign-toplevel protocol tells the launcher
+   when one has appeared so it can show the grown-up screen instead. This is
+   why L1/L2 use `labwc` rather than a single-app kiosk compositor (§4.5). It
+   is proven in Phase 0 before the launcher is finished (§13).
 
 Combined with a child Steam account in a Steam Family with an explicit game
 allowlist, the exposed surface is small.
@@ -673,7 +682,8 @@ with a child.*
 ### Phase 1 — MVP image
 
 L1 only. Launcher, restricted shell, core educational apps via Flatpak, ScummVM
-integration. Guardian role with account creation and level management (§3.2),
+integration, Steam integration with the silent client and containment
+(§8.3, ADR-0004). Guardian role with account creation and level management (§3.2),
 first-boot wizard (§4.3.1), quick-actions overlay. Signed image, CI, ISO.
 
 *Note: the Guardian surface is not deferrable to a later phase. Without it there
@@ -686,8 +696,8 @@ shell vocabulary.
 
 ### Phase 3 — games and polish
 
-Steam integration with the silent-launch wrapper, Minecraft Java integration,
-`kidscan` GUI, icon system.
+Minecraft Java integration, `kidscan` GUI, icon system. (Steam integration
+moved to Phase 1 by ADR-0004.)
 
 ### Ongoing / parallel
 
