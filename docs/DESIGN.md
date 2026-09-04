@@ -278,6 +278,10 @@ property of that account and determines which session type launches at login.
 - File separation, per-child parental controls, and per-child app allowlists all
   fall out of standard Linux multi-user for free.
 
+The level is a supplementary group (ADR-0011), and one session entry
+dispatches on it (ADR-0012).
+The login screen component is decided by ROADMAP D6, which remains open.
+
 ### 4.3.1 First boot
 
 The first thing a parent sees after installation, and therefore the project's
@@ -310,6 +314,9 @@ premise is that the child cannot get out of the launcher.
 |---|---|
 | L1–L2 | Kiosk compositor running the launcher fullscreen: `labwc` in kiosk configuration, because §8.3 needs window rules and foreign-toplevel notifications that a single-app compositor such as `cage` lacks (ADR-0004) |
 | L3–L4 | KDE Plasma |
+
+Every first-party surface (launcher, greeter, shell, Guardian tool) is C++20
+with Qt 6 and QML (ADR-0002).
 
 **L1/L2 use no desktop environment at all.** There is no panel, no window
 management, no application menu — those are precisely what's being removed.
@@ -404,9 +411,11 @@ The brief is "creative workspace," not "toy." Concretely:
   colours, not rainbow.
 - **Flat.** No bevels, gloss, gradients, or skeuomorphism.
 - **Generous whitespace.** Large touch/click targets with real space around them.
-- **Typography:** a geometric sans with high legibility. Atkinson Hyperlegible
-  is a strong candidate — designed to disambiguate letterforms like I/l/1 and
-  O/0, which matters disproportionately for early readers.
+- **Typography:** Atkinson Hyperlegible Next (the name the Fedora package
+  ships), with Atkinson Hyperlegible Mono for the terminal, both OFL-1.1 and
+  defined in `brand/tokens.json`.
+  The typeface disambiguates letterforms like I/l/1 and O/0, which matters
+  disproportionately for early readers.
 - **No** sound effects on every interaction, sticker rewards, gamification
   streaks, or mascot characters.
 
@@ -452,6 +461,9 @@ ADR-0003; the previous 2 GB minimum contradicted the 2013–2018 target above.
 | Storage | 64 GB | 128 GB |
 | Firmware | UEFI | UEFI |
 | Runs | Launcher, shell, educational stack, ScummVM titles, Plasma at L3/L4 | Everything above, plus Steam/Proton titles and Minecraft Java |
+
+Nvidia graphics are unsupported in v1 (ADR-0006), so "Discrete" in the
+Recommended column means AMD or Intel.
 
 State this plainly in the documentation, in this form, everywhere it appears.
 Below Minimum the honest answer is "not this machine". A parent installing on
@@ -686,8 +698,11 @@ Getting creations out must be trivial and obvious.
 ### Phase 0 — validate the experience (no ISO)
 
 Build the launcher shell and a provisioning script that turns a stock install
-into this system. Put it on a real machine in front of a real 5–8 year-old and
-watch. Iterate on the design before investing in build tooling.
+into this system.
+Run the Steam containment spike (P0-10) and the malcontent-on-Plasma check
+(P0-7).
+Put it on a real machine in front of a real 5–8 year-old and watch.
+Iterate on the design before investing in build tooling.
 
 *The point: avoid months of image plumbing on a design that hasn't been tested
 with a child.*
@@ -698,6 +713,7 @@ L1 only. Launcher, restricted shell, core educational apps via Flatpak, ScummVM
 integration, Steam integration with the silent client and containment
 (§8.3, ADR-0004). Guardian role with account creation and level management (§3.2),
 first-boot wizard (§4.3.1), quick-actions overlay. Signed image, CI, ISO.
+High-contrast and large-text modes (P1-15, ADR-0008).
 
 *Note: the Guardian surface is not deferrable to a later phase. Without it there
 is no way to create a child account, so there is no product.*
@@ -711,6 +727,10 @@ shell vocabulary.
 
 Minecraft Java integration, `kidscan` GUI, icon system. (Steam integration
 moved to Phase 1 by ADR-0004.)
+Accessibility second tranche: screen reader, dwell click and specialist
+review (ADR-0008).
+Revisit the first-party app question with survey results and child-test
+findings (ADR-0009).
 
 ### Ongoing / parallel
 
@@ -724,7 +744,7 @@ parallel workstream.
 
 | # | Question | Notes |
 |---|---|---|
-| 1 | Launcher implementation | Web-based gives fastest iteration on the visual design, but Electron on a 2 GB machine is rough. WebKitGTK or QtWebEngine in a kiosk window gets most of the benefit at a fraction of the memory. Decide deliberately; don't default to Electron. |
+| 1 | Launcher implementation | **Decided (ADR-0002):** C++20 with Qt 6 and QML for every first-party surface. |
 | 2 | L1/L2 command vocabulary | Which ~5 and ~12 commands, exactly. Needs testing with an actual child. |
 | 3 | Icon art source | Steam caches capsule art under `appcache/librarycache`, but using it drags the store's visual language onto the home screen. First-party icon set? Commissioned? Generated? |
 | 4 | Offline-first? | **Decided (ADR-0007):** offline-capable, not offline-first. Everything a child does works without a network; updates and the Steam/Minecraft integrations need one and fail calmly. |

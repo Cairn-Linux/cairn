@@ -1,6 +1,7 @@
 # ADR-0010: ScratchJr is a desired feature; how to provide it is decided after Phase 0
 
 **Status:** accepted
+**Amends:** ADR-0001
 **Date:** 2026-09-03
 **Closes:** ROADMAP D15 (defers the implementation question)
 

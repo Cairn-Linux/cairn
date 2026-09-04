@@ -42,15 +42,20 @@ them. That is the design brief.
 |---|---|
 | `docs/DESIGN.md` | The specification. Authoritative for *what* and *why*. |
 | `docs/ROADMAP.md` | The plan: phases, decisions pending, tasks, risks. |
+| `docs/DEVELOPMENT.md` | The development setup, checked against the real dev PC. |
 | `docs/decisions/` | Architecture decision records (ADRs) for choices made after the design doc. |
+| `docs/research/` | Research notes, measurements and child-test observations. |
 | `docs/brand-guide/` | Brand guidelines v0.1 as a design canvas (`.dc.html`). |
 | `brand/` | Brand as code: colour/type tokens (`tokens.css`, `tokens.json`) and the mark as SVG. |
 | `Containerfile`, `build_files/`, `system_files/`, `disk_config/` | The bootc image, following the Universal Blue `image-template` layout. Not built until Phase 1. |
+| `cairn.env` | Universal Blue image-template variables; Phase 1, see issue #37. |
+| `CMakeLists.txt`, `CMakePresets.json` | The C++ build, first landed 2026-09-04. |
 | `launcher/` | The fullscreen tile launcher — the product. |
 | `shell/` | The restricted, child-facing terminal. |
 | `session/` | Login-to-session plumbing: one session entry that dispatches by account level. |
 | `provision/` | Phase 0 script that turns a stock install into a Cairn machine, for testing before any ISO exists. |
 | `tools/kidscan/` | Game library scanner: Steam + ScummVM detection → launcher manifest. |
+| `NOTICE` | Upstream attribution and notices. |
 
 ## Hardware
 
@@ -59,11 +64,15 @@ x86_64 only. ARM and Raspberry Pi are out of scope for v1.
 | | Minimum | Recommended |
 |---|---|---|
 | Laptop age | About 2013 or newer | About 2015 or newer |
+| Processor | 64-bit Intel or AMD | Same |
 | Memory | 4 GB | 8 GB |
-| Graphics | Intel HD 4000 or newer | Discrete, or modern integrated |
+| Graphics | Intel HD 4000 or newer integrated | Discrete, or modern integrated (Iris, Vega) |
 | Storage | 64 GB | 128 GB |
 | Firmware | UEFI | UEFI |
-| Runs | Launcher, shell, educational apps, ScummVM titles, the L3/L4 desktop | Everything, plus Steam/Proton titles and Minecraft Java |
+| Runs | Launcher, shell, educational stack, ScummVM titles, Plasma at L3/L4 | Everything above, plus Steam/Proton titles and Minecraft Java |
+
+Nvidia graphics are unsupported in v1 (ADR-0006), so "Discrete" in the
+Recommended column means AMD or Intel.
 
 Below Minimum the honest answer is "not this machine".
 
