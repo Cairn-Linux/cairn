@@ -35,3 +35,6 @@ Checks: >
 WarningsAsErrors: '*'
 HeaderFilterRegex: '(launcher|shell|session|brand)/.*\.h$'
 FormatStyle: file
+CheckOptions:
+  # Qt Test's QTRY_* macros expand to loops; count only the code a person wrote.
+  readability-function-cognitive-complexity.IgnoreMacros: true

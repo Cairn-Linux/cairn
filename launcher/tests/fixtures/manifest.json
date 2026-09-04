@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "entries": [
+    {"title": "Quits badly", "category": "make", "exec": ["/bin/sh", "-c", "exit 3"]},
+    {"title": "Quits cleanly", "category": "make", "exec": ["/bin/sh", "-c", "exit 0"]},
+    {"title": "Missing program", "category": "make", "exec": ["/nonexistent/cairn-app"]},
+    {"title": "Nothing set up", "category": "make", "exec": []},
+    {"title": "Practice", "category": "practice", "exec": ["/bin/sh", "-c", "exit 0"]},
+    {"title": "Terminal", "category": "machine", "exec": ["/bin/sh", "-c", "exit 0"]}
+  ]
+}

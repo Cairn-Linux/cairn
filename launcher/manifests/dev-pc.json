@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "entries": [
+    {"title": "Draw", "category": "make", "exec": ["tuxpaint", "--fullscreen"]},
+    {"title": "Music", "category": "make", "exec": []},
+    {"title": "Build", "category": "make", "exec": ["gcompris-qt"]},
+    {"title": "Story", "category": "make", "exec": []},
+    {"title": "Practice", "category": "practice", "exec": ["gcompris-qt"]},
+    {"title": "Terminal", "category": "machine", "exec": []}
+  ]
+}

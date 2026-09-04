@@ -10,6 +10,9 @@ Rectangle {
     required property int kind
     required property string accessibleName
 
+    // Enter, Space or a click. The launcher decides what happens next.
+    signal activated
+
     radius: Tokens.radiusTile
     color: {
         switch (kind) {
@@ -26,6 +29,11 @@ Rectangle {
     Accessible.role: Accessible.Button
     Accessible.name: accessibleName
     Accessible.focusable: true
+    Accessible.onPressAction: tile.activated()
+
+    Keys.onReturnPressed: tile.activated()
+    Keys.onEnterPressed: tile.activated()
+    Keys.onSpacePressed: tile.activated()
 
     Rectangle {
         anchors.fill: parent
@@ -57,6 +65,9 @@ Rectangle {
     }
 
     TapHandler {
-        onTapped: tile.forceActiveFocus(Qt.MouseFocusReason)
+        onTapped: {
+            tile.forceActiveFocus(Qt.MouseFocusReason);
+            tile.activated();
+        }
     }
 }
