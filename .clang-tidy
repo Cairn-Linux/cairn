@@ -1,0 +1,37 @@
+# SPDX-License-Identifier: Apache-2.0
+# Cairn clang-tidy config. Boring on purpose; see CLAUDE.md "Language and
+# toolkit". Only our own headers are checked (HeaderFilterRegex), never Qt's.
+#
+# Left out, and why:
+#   cppcoreguidelines-*, hicpp-*, google-*, fuchsia-*, abseil-*, llvm-*:
+#     style families that fight Qt idioms (parented raw pointers, macros,
+#     signals/slots) and drown a learner in noise.
+#   cert-*: mostly duplicates of bugprone-*, plus static-init rules that
+#     flag Qt's own patterns.
+#   misc-include-cleaner: wants transitive Qt includes spelled out.
+#   misc-non-private-member-variables-in-classes: Qt Test fixtures.
+#   modernize-use-trailing-return-type: pure style, harder to read.
+#   modernize-avoid-c-arrays, modernize-use-nodiscard: noise in Qt code.
+#   readability-magic-numbers, readability-identifier-length: UI code has
+#     sizes and short loop variables; the brand tokens cover the numbers
+#     that matter.
+Checks: >
+  -*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  clang-analyzer-*,
+  misc-*,
+  -misc-include-cleaner,
+  -misc-non-private-member-variables-in-classes,
+  modernize-*,
+  -modernize-use-trailing-return-type,
+  -modernize-avoid-c-arrays,
+  -modernize-use-nodiscard,
+  performance-*,
+  readability-*,
+  -readability-magic-numbers,
+  -readability-identifier-length,
+  -readability-uppercase-literal-suffix
+WarningsAsErrors: '*'
+HeaderFilterRegex: '(launcher|shell|session|brand)/.*\.h$'
+FormatStyle: file

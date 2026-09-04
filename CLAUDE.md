@@ -76,6 +76,12 @@ someone learning the language from it. That shapes every rule below.
   The trust boundaries (session dispatch, PAM, PIN overlay, what the shell
   refuses to run) get the most tests and the plainest code in the repo.
 - **Dependencies: Qt only.** Anything else needs an ADR.
+- **Every user-facing string is translatable from the first commit**
+  (ADR-0007): `tr()` in C++, `qsTr()` in QML, `.ts` files in the repo.
+  Translation later is a translation job, not a refactor.
+- **Every QML control has an `Accessible.name` from the first commit**
+  (ADR-0008). It costs nothing now and makes screen-reader support possible
+  in Phase 3.
 - **Explain the new thing once.** The first time a C++ or Qt concept appears
   in the repo (a signal/slot, a `Q_PROPERTY`, a lambda capture, RAII, a move),
   the commit message or PR body says in one or two sentences what it is and
@@ -107,8 +113,10 @@ someone learning the language from it. That shapes every rule below.
 
 ## Things that are not here
 
-- `tools/kidscan/` is the only code so far. It is standard-library-only by
-  design; run its tests with `python3 tools/kidscan/tests/test_kidscan.py`.
+- The only code so far is `tools/kidscan/` and the brand generator
+  `brand/build.py`; both are standard-library Python by design. Run the
+  tests with `python3 tools/kidscan/tests/test_kidscan.py` and
+  `python3 brand/build.py --check`.
 - The brand guide's `docs/brand-guide/_ds/` folder is an unrelated, auto-generated
   design system that conflicts with the Cairn palette. It is git-ignored;
   do not read tokens from it.

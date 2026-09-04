@@ -9,7 +9,7 @@ AccessModifierOffset: -4
 AllowShortFunctionsOnASingleLine: Empty
 AllowShortIfStatementsOnASingleLine: Never
 AllowShortLoopsOnASingleLine: false
-AlwaysBreakTemplateDeclarations: Yes
+BreakTemplateDeclarations: Yes
 BreakBeforeBraces: Attach
 PointerAlignment: Left
 ReferenceAlignment: Left
@@ -24,3 +24,18 @@ IncludeCategories:
 SortIncludes: CaseSensitive
 SpaceAfterTemplateKeyword: true
 FixNamespaceComments: true
+# Qt's class-body macros are statements, not expressions. Without this a
+# one-line class or a bad merge formats as `Q_OBJECT public : ...`.
+StatementMacros:
+  - Q_OBJECT
+  - Q_GADGET
+  - Q_PROPERTY
+  - Q_ENUM
+  - Q_ENUM_NS
+  - Q_NAMESPACE
+  - Q_INTERFACES
+  - Q_DECLARE_METATYPE
+  - QML_ELEMENT
+  - QML_NAMED_ELEMENT
+  - QML_SINGLETON
+  - QML_UNCREATABLE

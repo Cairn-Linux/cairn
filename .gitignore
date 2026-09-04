@@ -26,6 +26,11 @@ target/
 *.swp
 .idea/
 .vscode/
+# Qt Creator per-user project files and qmlls state
+*.user
+*.user.*
+*.autosave
+.qmlls.ini
 
 # --- brand guide canvas ------------------------------------------------------
 # `_ds/` is an unrelated "Organic" design system (terracotta/sage, Caprasimo)

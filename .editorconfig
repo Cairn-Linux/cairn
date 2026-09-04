@@ -24,3 +24,16 @@ indent_size = 4
 [Justfile]
 indent_style = space
 indent_size = 4
+
+# C++, QML and CMake indent at 4, the same as .clang-format and .qmlformat.ini.
+[*.{cpp,h}]
+indent_size = 4
+max_line_length = 100
+
+[*.qml]
+indent_size = 4
+max_line_length = 100
+
+[{CMakeLists.txt,*.cmake}]
+indent_size = 4
+max_line_length = 100
