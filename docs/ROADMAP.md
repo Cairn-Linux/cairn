@@ -1,7 +1,7 @@
 # Cairn Linux — Roadmap and working plan
 
 **Status:** living document
-**Last updated:** 2026-09-03 (D1, D2, D4, D11, D12 closed)
+**Last updated:** 2026-09-03 (D1, D2, D4, D8, D11, D12, D13 closed)
 
 `DESIGN.md` is the specification. This document is the plan for building it:
 what has to be decided, in what order things get built, how we know a phase is
@@ -39,11 +39,12 @@ Each has a recommendation. None is final until an ADR lands in
 | **D5** | How "level" is stored and enforced (DESIGN §3, §4.3 name the property; nothing names the mechanism) | **Supplementary groups**: `cairn-l1` … `cairn-l4`, `cairn-guardian`; exactly one per account. Level change = group change. PAM, polkit, the session dispatcher and malcontent policy all key off groups, which is Unix-native, inspectable and legible (Principle 2). Per-child name/avatar/allowlists live in a small config the Guardian tool owns. | P0-2 |
 | **D6** | Display manager and greeter (DESIGN §4.3 describes the login screen, not the component) | **SDDM with a Cairn QML theme.** Since ADR-0002 the whole first-party layer is QML and SDDM themes are QML, so the login screen is a theme, not a program. `HideUsers` hides Guardians; a PAM rule grants passwordless login to `cairn-l1`/`cairn-l2` members. SDDM is also what Plasma expects. Alternative: greetd with a custom greeter, only if SDDM cannot do the avatar-tile login cleanly. Prototype in P0-3. | P0-3 |
 | **D7** | Session dispatch | **One Wayland session entry** (`cairn.desktop` → `cairn-session`) that reads the account's level group and execs either the kiosk compositor + launcher (L1/L2) or `startplasma-wayland` (L3/L4, Guardian). The greeter offers only this session, so a child cannot pick another. | P0-3 |
-| **D8** | Localisation and offline stance (DESIGN §14 Q4, Q5) | State them rather than default: **English-only for v1**, with strings externalised from day one so GCompris's translations aren't wasted later. **Offline-capable, not offline-first**: everything works without network except Flatpak/OS updates and the Steam/Minecraft integrations. | Phase 1 docs |
+| **D8** | Localisation and offline stance (DESIGN §14 Q4, Q5) | **Closed 2026-09-03, ADR-0007.** English-only v1 with all strings externalised from the first commit; offline-capable, not offline-first. | Closed |
 | **D9** | Name and architecture of the restricted shell | Needs a real name before Phase 1 packaging; the child never types it, so it's a package name, not a brand. Architecture proposal since ADR-0002: a Qt/QML text surface with the command interpreter in C++, **not** a PTY program in a terminal emulator. That gives the large type and icon-augmented `ls` directly and makes the hand-off to a real shell at L3 an explicit step. | P1-2 |
 | **D10** | Content filtering (DESIGN §9.2 "TBD") | Two options, both local-config-only to honour §9.3: a **filtered upstream DNS resolver** (simple, but sends every query to a third party) or a **local resolver with blocklists** (private, needs list updates via the OS image). Decide in Phase 2 when the browser first appears at L2. | Phase 2 |
 | **D11** | Hardware floor (DESIGN §7 had a 2 GB minimum that contradicted its own 2013–2018 target) | **Closed 2026-09-03, ADR-0003.** Minimum: about 2013 or newer, 4 GB, Intel HD 4000+, UEFI, 64 GB. Recommended: 8 GB, discrete or modern integrated GPU, 128 GB. Published as a game-box Minimum/Recommended panel everywhere it appears. | Closed |
 | **D12** | Is Steam at L1/L2 a v1 requirement? (DESIGN §3 table said L3+, §8.3 said all levels) | **Closed 2026-09-03, ADR-0004: yes, all levels.** The maintainer's own kid-friendly Steam library is the use case. Steam integration moves from Phase 3 to Phase 1; containment is proven in Phase 0 (P0-10). | Closed |
+| **D13** | Accessibility scope for v1 (DESIGN §14 Q6) | **Closed 2026-09-03, ADR-0008.** High-contrast and large-text modes in v1 as token-set variants; screen reader, dwell click and specialist review in Phase 3. `Accessible.name` on every QML control from the start. | Closed |
 
 ---
 
@@ -98,6 +99,7 @@ first-boot wizard, quick-actions overlay, signed image, CI, ISO.
 | P1-12 | Guardian-loss recovery path (DESIGN §14 Q9) decided and documented. |
 | P1-13 | Steam integration (moved from Phase 3 by ADR-0004): client `-silent` at login, `steam -applaunch` tiles from the `kidscan` manifest, launch watchdog with the "needs a grown-up" screen, Family View PIN, Steam Families documented as the family's relationship with Valve, Flatpak-vs-RPM client decision. Builds on P0-10. |
 | P1-14 | Base image compliance: rewrite `os-release`, swap `fedora-logos` for `cairn-logos`, replace `fedora-release-notes`, Fedora "not provided or supported" notice on the About screen and website, own installer artwork, Bazzite and Universal Blue attribution in `NOTICE`. Checklist in `docs/research/base-image-policy.md`. Blocks publishing any image. |
+| P1-15 | High-contrast and large-text modes as per-child Guardian settings, driven by token-set variants from `brand/build.py` (ADR-0008). |
 
 ---
 
@@ -118,8 +120,8 @@ first-boot wizard, quick-actions overlay, signed image, CI, ISO.
 - `kidscan` GUI for category assignment; icon sourcing decided (DESIGN §14 Q3).
 - One first-party app in the house style (draw or music) so the aesthetic has
   somewhere to live (DESIGN §6.3).
-- Accessibility beyond typography (DESIGN §14 Q6): high-contrast mode, dwell
-  click, screen reader survey.
+- Accessibility, second tranche (ADR-0008): screen reader via AT-SPI/Orca,
+  dwell click, review with a specialist.
 
 ---
 

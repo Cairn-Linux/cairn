@@ -716,9 +716,9 @@ any time.
 | 1 | Launcher implementation | Web-based gives fastest iteration on the visual design, but Electron on a 2 GB machine is rough. WebKitGTK or QtWebEngine in a kiosk window gets most of the benefit at a fraction of the memory. Decide deliberately; don't default to Electron. |
 | 2 | L1/L2 command vocabulary | Which ~5 and ~12 commands, exactly. Needs testing with an actual child. |
 | 3 | Icon art source | Steam caches capsule art under `appcache/librarycache`, but using it drags the store's visual language onto the home screen. First-party icon set? Commissioned? Generated? |
-| 4 | Offline-first? | Endless built its whole architecture around working without internet. Adopting that changes the software catalog and storage budget significantly. Decide explicitly. |
-| 5 | Localization scope | English-only for v1 is defensible, but the core design constraint is *reading level* and GCompris is heavily translated. State the decision rather than defaulting. |
-| 6 | Accessibility beyond typography | Screen reader, high contrast mode, dwell click. Many children this age have undiagnosed vision issues. |
+| 4 | Offline-first? | **Decided (ADR-0007):** offline-capable, not offline-first. Everything a child does works without a network; updates and the Steam/Minecraft integrations need one and fail calmly. |
+| 5 | Localization scope | **Decided (ADR-0007):** English-only v1, every first-party string externalised from the first commit so translation later is a translation job. |
+| 6 | Accessibility beyond typography | **Decided (ADR-0008):** high-contrast and large-text modes in v1 as token variants; screen reader and dwell click in Phase 3; `Accessible.name` on every control from the start. |
 | 7 | Does malcontent work cleanly on Plasma? | If not, §4.5 and §9.1 need revisiting. Verify early — this is cheap to test and expensive to discover late. |
 | 8 | Guardian quick-actions: exact allowlist | §3.2 sets the constraint (small, non-persistent). The specific set needs deciding. "Extend time" in particular — by how much, how many times, and does it need a cap? |
 | 9 | Can a household have zero Guardians? | If the only Guardian account is lost or forgotten, what's the recovery path? Rescue via bootloader is the honest answer but needs documenting, and it's also a bypass a determined teenager will find. Full-disk encryption closes it and makes a forgotten password brick the family computer. |
