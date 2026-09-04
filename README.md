@@ -69,9 +69,8 @@ Below Minimum the honest answer is "not this machine".
 
 ## Contributing
 
-See [`CONTRIBUTING.md`](CONTRIBUTING.md). The highest-value independent
-workstream is ScratchJr on Linux (`docs/ROADMAP.md` §6). Commits are signed
-off under the Developer Certificate of Origin.
+See [`CONTRIBUTING.md`](CONTRIBUTING.md). Commits are signed off under the
+Developer Certificate of Origin.
 
 ## Licence
 

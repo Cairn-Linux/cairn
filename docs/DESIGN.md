@@ -375,9 +375,12 @@ official Linux build; the community Electron port targets Mac and Windows with
 Linux explicitly not implemented, and the AUR package builds from that repo with
 an external patch.
 
-This is real work, but it is also the most valuable upstream contribution this
-project could make, and it would benefit people far beyond this distro.
-Treat as a distinct workstream.
+It stays a **desired feature**, not a workstream (ADR-0010). How to provide it
+— port it, contribute a Linux patch upstream, or adopt a package if one
+appears — is decided after Phase 0, once the distribution is solid and the
+child test has shown whether a young child misses block coding at L1. Until
+then the "Build" tile is filled from software that already exists: GCompris's
+programming activities at L1, with Scratch 3 and KTurtle as candidates from L2.
 
 ---
 
@@ -711,8 +714,9 @@ moved to Phase 1 by ADR-0004.)
 
 ### Ongoing / parallel
 
-ScratchJr Linux packaging (§5.2). Independent of everything else; could start
-any time.
+The software catalogue survey (§5.2, ADR-0009). ScratchJr is a desired
+feature whose implementation is decided after Phase 0 (ADR-0010), not a
+parallel workstream.
 
 ---
 

@@ -8,8 +8,8 @@ ADR in `docs/decisions/` plus the edit, in one pull request.
 
 ## Where help is most useful right now
 
-- **ScratchJr on Linux** (ROADMAP §6). Independent of everything else and
-  useful far beyond this project.
+- **The software catalogue survey** (issue #26): finding existing, maintained
+  kid-oriented apps for music, writing, camera and coding.
 - **Verifying assumptions** listed as research tasks in the Phase 0
   milestone, especially the Steam containment spike and malcontent on Plasma.
 - **Reading the design doc as a parent or teacher** and opening an issue

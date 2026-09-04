@@ -1,7 +1,7 @@
 # Cairn Linux — Roadmap and working plan
 
 **Status:** living document
-**Last updated:** 2026-09-03 (D1, D2, D4, D8, D11–D14 closed)
+**Last updated:** 2026-09-03 (D1, D2, D4, D8, D11–D14 closed; D15 deferred)
 
 `DESIGN.md` is the specification. This document is the plan for building it:
 what has to be decided, in what order things get built, how we know a phase is
@@ -46,6 +46,7 @@ Each has a recommendation. None is final until an ADR lands in
 | **D12** | Is Steam at L1/L2 a v1 requirement? (DESIGN §3 table said L3+, §8.3 said all levels) | **Closed 2026-09-03, ADR-0004: yes, all levels.** The maintainer's own kid-friendly Steam library is the use case. Steam integration moves from Phase 3 to Phase 1; containment is proven in Phase 0 (P0-10). | Closed |
 | **D13** | Accessibility scope for v1 (DESIGN §14 Q6) | **Closed 2026-09-03, ADR-0008.** High-contrast and large-text modes in v1 as token-set variants; screen reader, dwell click and specialist review in Phase 3. `Accessible.name` on every QML control from the start. | Closed |
 | **D14** | Which first-party app carries the aesthetic (DESIGN §6.3) | **Closed 2026-09-03, ADR-0009: none in v1.** The frame, terminal and the launcher's creations gallery carry the identity; survey existing maintained kid software instead; revisit after Phase 2 (story maker leading, then music). | Closed |
+| **D15** | ScratchJr on Linux: now, later, never (DESIGN §5.2) | **Deferred 2026-09-03, ADR-0010.** Desired feature; the implementation question (port, contribute upstream, adopt a package) is taken after Phase 0 with child-test evidence. Meanwhile "Build" uses existing software via the survey. | After Phase 0 |
 
 ---
 
@@ -132,7 +133,7 @@ first-boot wizard, quick-actions overlay, signed image, CI, ISO.
 
 | Workstream | Where | Notes |
 |---|---|---|
-| **ScratchJr on Linux** | Separate repo `Cairn-Linux/scratchjr-linux` | Upstream-facing; the most valuable contribution this project can make. Independent of everything else. |
+| **ScratchJr on Linux** | Wish list (issue #23) | Desired feature, deferred by ADR-0010. No repository, no work until Phase 0 exits; then decide how: port, contribute a Linux patch to the community port, or adopt a package if one exists. |
 | **Linux Mark Institute sublicence** | Legal | Free and routine but has lead time. Start now. |
 | **Trademark reviews** | Legal | Universal Blue / Fedora / Bazzite derivative policies; Scratch Foundation branding; "Cairn" search in software classes. |
 | **Website** `cairnlinux.com` | Separate repo, later | Hold until Phase 1 has something a parent can install. |
