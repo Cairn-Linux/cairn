@@ -61,8 +61,8 @@ its Justfile and workflows can be adopted wholesale in Phase 1.
 
 ## Things that are not here
 
-- The `kidscan` prototype exists outside this repo and has not been imported
-  yet (ROADMAP P0-8).
+- `tools/kidscan/` is the only code so far. It is standard-library-only by
+  design; run its tests with `python3 tools/kidscan/tests/test_kidscan.py`.
 - The brand guide's `docs/brand-guide/_ds/` folder is an unrelated, auto-generated
   design system that conflicts with the Cairn palette. It is git-ignored;
   do not read tokens from it.

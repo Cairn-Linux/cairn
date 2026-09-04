@@ -16,7 +16,8 @@ done, and what could sink it. Decisions that change the design get an ADR in
   palette, type, voice) as a design canvas in `docs/brand-guide/`.
 - GitHub organisation `Cairn-Linux` created 2026-09-03. This repository is its
   first.
-- No code yet. The `kidscan` scanner exists as a prototype outside this repo.
+- The `kidscan` scanner prototype is imported at `tools/kidscan/` with tests
+  (2026-09-03). No other code yet.
 - Brand tokens and the mark have been extracted to `brand/` so code has a
   single source of truth from the first line.
 - **Phase 0 begins.** Its whole purpose is to put a launcher in front of a
@@ -66,7 +67,7 @@ a CLI stand in), first-boot wizard, quick-actions overlay, ISO, CI, signing.
 | **P0-5** | **Launcher v0** in `launcher/`: six tiles in the house style from `brand/tokens.css`, colour by kind; keyboard and mouse navigation; launches apps through the host bridge; shows "Something needs a grown-up" on launch failure or timeout; measures and logs its own idle RSS. | P0-4, D2 | Runs fullscreen under cage on the target laptop; RSS recorded against the D2 threshold. |
 | **P0-6** | **Restricted shell v0** in `shell/`: L1 vocabulary candidate of five real commands (`ls`, `cd`, `open`, `cat`, `help`), large type, aggressive completion, suggestion-style errors ("I don't know \"opn\" — did you mean open?"), icon-augmented `ls`. Nothing destructive reachable. | P0-5 | Child can open an app from it. Vocabulary written up for testing (DESIGN §14 Q2). |
 | **P0-7** | **malcontent-on-Plasma check** (DESIGN §14 Q7). In a VM: install malcontent, restrict a test user, log into Plasma, confirm restricted Flatpaks refuse to launch and the restriction UI is reachable. | — (parallel) | Result recorded as ADR-0002; if it fails, §4.5/§9.1 get revisited before Phase 2. |
-| **P0-8** | **Import `kidscan`** into `tools/kidscan/` with its README; no GUI yet. | — (parallel) | Runs against a Steam library on the dev machine and emits the JSON manifest. |
+| **P0-8** | **Import `kidscan`** into `tools/kidscan/` with its README; no GUI yet. | — (parallel) | **Done 2026-09-03.** Imported with a fixture-based test suite; still to run against a real Steam library. |
 | **P0-9** | **Child test.** Real hardware, real child, twenty minutes, observer takes notes and does not intervene unless asked. Iterate on P0-5/P0-6 and repeat at least once. | P0-2…P0-6 | Write-up in `docs/research/child-test-01.md`. Phase 0 exit criterion met. |
 
 ---
