@@ -7,10 +7,11 @@ FROM scratch AS ctx
 COPY build_files /
 COPY system_files /system_files
 
-# Base image: ROADMAP decision D4. Bazzite (KDE) is the recommendation because
-# Phases 2–3 need Plasma, Steam and Proton plumbing. Pin to a digest once CI
-# exists (P1-3). Alternative if footprint or trademark policy is a problem:
-#   ghcr.io/ublue-os/kinoite-main:latest
+# Base image: Bazzite, KDE variant (ADR-0006). A Universal Blue image derived
+# from Fedora; ships Plasma, the Steam client and Proton plumbing that Phase 1
+# needs (ADR-0004). One Intel/AMD image in v1; no Nvidia variants. Pin to a
+# digest once CI exists (P1-3). Compliance work before any image is published
+# is P1-14 (docs/research/base-image-policy.md). Fallback: kinoite-main.
 FROM ghcr.io/ublue-os/bazzite:stable
 
 RUN --mount=type=bind,from=ctx,source=/,target=/ctx \

@@ -1,6 +1,6 @@
 # provision
 
-Phase 0 only. A script that turns a stock Fedora Kinoite or Bazzite install
+Phase 0 only. A script that turns a stock Bazzite KDE install (ADR-0006)
 into a Cairn machine, so the experience can be tested on real hardware and
 with a real child **before** any image, ISO or CI exists (DESIGN §13 Phase 0).
 
@@ -11,8 +11,9 @@ Nothing here yet. Phase 0 task **P0-2** builds `cairn-provision.sh`.
 1. Create the level groups (`cairn-l1` … `cairn-guardian`).
 2. Create one Guardian account (password) and one L1 child account (no
    password, avatar).
-3. Install the kiosk compositor (cage) and the Phase 0 app set: Tux Paint,
-   GCompris (Qt), ScummVM — via Flatpak where available, dnf otherwise.
+3. Install the kiosk compositor (labwc, ADR-0004) and the Phase 0 app set:
+   Tux Paint, GCompris (Qt), ScummVM — via Flatpak where available,
+   `rpm-ostree`/`bootc` layering otherwise. Steam is already on Bazzite.
 4. Install the session entry, dispatcher, and greeter configuration from
    `../session/`.
 5. Install the launcher and shell prototypes from `../launcher/` and

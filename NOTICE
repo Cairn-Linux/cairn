@@ -13,3 +13,9 @@ sublicence from the Linux Mark Institute.
 
 Image build layout and, in Phase 1, build scripts are adopted from
 ublue-os/image-template, Copyright Universal Blue contributors, Apache-2.0.
+
+Cairn Linux is built on Bazzite (https://bazzite.gg), a Universal Blue image
+derived from Fedora. Bazzite and Universal Blue are Copyright their
+contributors, Apache-2.0. Cairn Linux is not affiliated with, endorsed by, or
+supported by Bazzite, Universal Blue, Red Hat, or the Fedora Project.
+Official Fedora is available at https://fedoraproject.org/.

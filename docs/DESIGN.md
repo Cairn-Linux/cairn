@@ -222,7 +222,9 @@ stated plainly in user-facing documentation rather than discovered.
 The system is built as an OCI container image and booted natively via `bootc`,
 following the Universal Blue `image-template` pattern: a `Containerfile`, a
 GitHub Actions workflow that builds and signs the image, and
-`bootc-image-builder` to produce installable ISOs.
+`bootc-image-builder` to produce installable ISOs. The base is **Bazzite**
+(KDE variant), a Universal Blue image derived from Fedora, chosen in ADR-0006
+after a licence and trademark review; one Intel/AMD image in v1.
 
 **Why, over Debian + live-build:**
 

@@ -1,7 +1,7 @@
 # Cairn Linux — Roadmap and working plan
 
 **Status:** living document
-**Last updated:** 2026-09-03 (D1, D2, D11, D12 closed)
+**Last updated:** 2026-09-03 (D1, D2, D4, D11, D12 closed)
 
 `DESIGN.md` is the specification. This document is the plan for building it:
 what has to be decided, in what order things get built, how we know a phase is
@@ -35,7 +35,7 @@ Each has a recommendation. None is final until an ADR lands in
 | **D1** | Project licence (DESIGN §12.3) | **Closed 2026-09-03, ADR-0005.** Apache-2.0 for code; CC BY-SA 4.0 for docs and brand; name and mark are trademarks with a policy in `brand/README.md`; DCO sign-off; SPDX headers. Repository public from this date. | Closed |
 | **D2** | First-party language and UI toolkit (DESIGN §14 Q1) | **Closed 2026-09-03, ADR-0002: C++20 + Qt 6 + QML** for every first-party surface, including the restricted shell. Chosen by the maintainer to learn C++; the technical recommendation had been Python + PySide6 with the same QML. Fallback if a component proves unworkable is exactly that, and the QML carries over. | Closed |
 | **D3** | Kiosk compositor for L1/L2 (DESIGN §4.5) | **labwc** in kiosk configuration. ADR-0004 makes Steam at L1/L2 a v1 requirement, and a kiosk has no tray, so the compositor must hide Steam's forced windows with window rules and tell the launcher about them via wlr-foreign-toplevel-management. cage has neither and is kept only as a measurement baseline. Closes with the P0-10 spike. | P0-10 |
-| **D4** | Base image (DESIGN §4.1 says Fedora/bootc, not which) | **`ghcr.io/ublue-os/bazzite:stable`** (KDE variant). Ships Plasma, the Steam client, Proton plumbing and hardware enablement that Phase 1 now needs (ADR-0004); a kiosk session on it doesn't load Plasma, so the runtime cost on the 2 GB tier is disk, not RAM. Alternative: `kinoite-main` + layered Steam. **Policy reviewed 2026-09-03: no blocker** (`docs/research/base-image-policy.md`); derivatives are the intended use, the only rules are about the Bazzite/Fedora names and marks, and a compliance checklist is recorded there for Phase 1. Disk footprint is acceptable at the 64 GB floor (ADR-0003). Awaiting the maintainer's confirmation to close with an ADR. | P1-1 |
+| **D4** | Base image (DESIGN §4.1 says Fedora/bootc, not which) | **Closed 2026-09-03, ADR-0006: Bazzite (KDE), `ghcr.io/ublue-os/bazzite:stable`.** One Intel/AMD image for v1; Nvidia unsupported until later. Policy review found no blocker (`docs/research/base-image-policy.md`); compliance is P1-14. Fallback `kinoite-main` + layered Steam. | Closed |
 | **D5** | How "level" is stored and enforced (DESIGN §3, §4.3 name the property; nothing names the mechanism) | **Supplementary groups**: `cairn-l1` … `cairn-l4`, `cairn-guardian`; exactly one per account. Level change = group change. PAM, polkit, the session dispatcher and malcontent policy all key off groups, which is Unix-native, inspectable and legible (Principle 2). Per-child name/avatar/allowlists live in a small config the Guardian tool owns. | P0-2 |
 | **D6** | Display manager and greeter (DESIGN §4.3 describes the login screen, not the component) | **SDDM with a Cairn QML theme.** Since ADR-0002 the whole first-party layer is QML and SDDM themes are QML, so the login screen is a theme, not a program. `HideUsers` hides Guardians; a PAM rule grants passwordless login to `cairn-l1`/`cairn-l2` members. SDDM is also what Plasma expects. Alternative: greetd with a custom greeter, only if SDDM cannot do the avatar-tile login cleanly. Prototype in P0-3. | P0-3 |
 | **D7** | Session dispatch | **One Wayland session entry** (`cairn.desktop` → `cairn-session`) that reads the account's level group and execs either the kiosk compositor + launcher (L1/L2) or `startplasma-wayland` (L3/L4, Guardian). The greeter offers only this session, so a child cannot pick another. | P0-3 |
@@ -64,7 +64,7 @@ a CLI stand in), first-boot wizard, quick-actions overlay, ISO, CI, signing.
 | ID | Task | Depends on | Done when |
 |---|---|---|---|
 | **P0-1** | Repository, planning, brand tokens and mark as code | — | This commit. |
-| **P0-2** | **Provisioning script** `provision/` that turns a stock Fedora Kinoite or Bazzite install into a Cairn machine: creates the level groups (D5), one Guardian, one L1 child; installs the kiosk compositor and the Phase 0 app set (Tux Paint, GCompris, ScummVM via Flatpak/dnf); installs the session entry and greeter config. Idempotent; safe to re-run. | D5 | Runs clean twice on a fresh VM. |
+| **P0-2** | **Provisioning script** `provision/` that turns a stock Bazzite KDE install (ADR-0006) into a Cairn machine: creates the level groups (D5), one Guardian, one L1 child; installs the kiosk compositor and the Phase 0 app set (Tux Paint, GCompris, ScummVM via Flatpak/dnf); installs the session entry and greeter config. Idempotent; safe to re-run. | D5 | Runs clean twice on a fresh VM. |
 | **P0-3** | **Session dispatch and greeter** in `session/`: `cairn-session` dispatcher (D7), `cairn.desktop`, greetd config, PAM rule for passwordless L1/L2. | P0-2 | Child account lands in the kiosk with no password prompt; Guardian account lands in stock Plasma with one. |
 | **P0-4** | **Kiosk containment test** with labwc running a placeholder client: a launched Tux Paint or ScummVM window appears on top and closing it returns to the launcher; Alt-Tab, Super, and Ctrl-Alt-Fn VT switching are unreachable; a focus-stealing X11 client cannot steal focus under XWayland. Steam-specific rows live in P0-10. | P0-3 | Written checklist in `docs/research/kiosk-containment.md`, all rows pass or have a named mitigation. |
 | **P0-5** | **Launcher v0** in `launcher/`: a C++/QML app. Six tiles from `Cairn.Brand.Tokens`, colour by kind; keyboard and mouse navigation; launches apps with `QProcess`; shows "Something needs a grown-up" on launch failure or timeout; logs its own idle RSS. CMake, Qt Test, sanitizers and clang-format set up in this task, since it is the first C++ in the repo. | P0-4 | Runs fullscreen under cage on the target laptop; RSS recorded in `docs/research/launcher-footprint.md`. |
@@ -84,7 +84,7 @@ first-boot wizard, quick-actions overlay, signed image, CI, ISO.
 
 | ID | Task |
 |---|---|
-| P1-1 | Choose and pin the base image (D4). Measure image size and first-boot RAM on both hardware tiers. |
+| P1-1 | Pin the Bazzite base to a digest (ADR-0006). Measure image size and first-boot RAM on both hardware tiers with the Steam client resident. Disable Bazzite's first-boot portal, Game Mode session and Waydroid. |
 | P1-2 | Package launcher, shell and session as RPMs (in-tree spec files, built in a Containerfile stage or via a COPR). Name the shell (D9). |
 | P1-3 | Adopt `image-template`'s `Justfile` and `build.yml`; generate cosign keys; add `SIGNING_SECRET`; publish to `ghcr.io/cairn-linux/cairn`. |
 | P1-4 | ISO via `bootc-image-builder` (`disk_config/iso.toml`); `build-disk.yml`. Test install on both tiers. |
