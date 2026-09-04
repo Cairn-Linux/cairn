@@ -365,6 +365,10 @@ genuinely useful, but not the identity of the system.
 | Scratch 3 | Block coding, ages 8+ | Offline builds are unofficial on Linux |
 | First-party launcher + shell | Identity | §6, §3.1 |
 
+This table is the seed. A survey of existing, maintained kid-oriented software
+for music composing, writing, camera and coding extends it (ADR-0009); nothing
+is added that the project would have to maintain itself.
+
 **The ScratchJr problem.** ScratchJr is the canonical block-coding tool for
 exactly this age range and it effectively does not exist on Linux. There is no
 official Linux build; the community Electron port targets Mac and Windows with
@@ -414,9 +418,12 @@ Every project in this space has hit this wall. The workable answer is:
 
 1. Make the frame consistent enough that app windows read as *contents* rather
    than as parts of the system.
-2. Write one or two first-party apps in the house style so the aesthetic has
-   somewhere to live. A web-based drawing or music tool in a chromeless kiosk
-   window is achievable and would carry much of the identity.
+2. Let the frame carry the identity, including the terminal and the
+   creations gallery in the launcher's files view. **No first-party make-app
+   in v1** (ADR-0009): prefer existing, maintained, kid-oriented software
+   found by the catalogue survey, and revisit after Phase 2 with the child
+   test in hand. If a gap is confirmed, a picture-book maker is the leading
+   candidate, then music.
 
 Do not attempt to reskin third-party applications.
 

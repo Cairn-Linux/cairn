@@ -1,7 +1,7 @@
 # Cairn Linux — Roadmap and working plan
 
 **Status:** living document
-**Last updated:** 2026-09-03 (D1, D2, D4, D8, D11, D12, D13 closed)
+**Last updated:** 2026-09-03 (D1, D2, D4, D8, D11–D14 closed)
 
 `DESIGN.md` is the specification. This document is the plan for building it:
 what has to be decided, in what order things get built, how we know a phase is
@@ -45,6 +45,7 @@ Each has a recommendation. None is final until an ADR lands in
 | **D11** | Hardware floor (DESIGN §7 had a 2 GB minimum that contradicted its own 2013–2018 target) | **Closed 2026-09-03, ADR-0003.** Minimum: about 2013 or newer, 4 GB, Intel HD 4000+, UEFI, 64 GB. Recommended: 8 GB, discrete or modern integrated GPU, 128 GB. Published as a game-box Minimum/Recommended panel everywhere it appears. | Closed |
 | **D12** | Is Steam at L1/L2 a v1 requirement? (DESIGN §3 table said L3+, §8.3 said all levels) | **Closed 2026-09-03, ADR-0004: yes, all levels.** The maintainer's own kid-friendly Steam library is the use case. Steam integration moves from Phase 3 to Phase 1; containment is proven in Phase 0 (P0-10). | Closed |
 | **D13** | Accessibility scope for v1 (DESIGN §14 Q6) | **Closed 2026-09-03, ADR-0008.** High-contrast and large-text modes in v1 as token-set variants; screen reader, dwell click and specialist review in Phase 3. `Accessible.name` on every QML control from the start. | Closed |
+| **D14** | Which first-party app carries the aesthetic (DESIGN §6.3) | **Closed 2026-09-03, ADR-0009: none in v1.** The frame, terminal and the launcher's creations gallery carry the identity; survey existing maintained kid software instead; revisit after Phase 2 (story maker leading, then music). | Closed |
 
 ---
 
@@ -105,7 +106,9 @@ first-boot wizard, quick-actions overlay, signed image, CI, ISO.
 
 ## 4. Phase 2 — the ladder (L2, L3)
 
-- L2: launcher grows; dock gains a files view; ~12-command vocabulary.
+- L2: launcher grows; dock gains the files view, which is the **creations
+  gallery** (ADR-0009): everything the child made, from any app, with export
+  to a Guardian-readable place (DESIGN §11); ~12-command vocabulary.
 - L3: Plasma session with a KDE Kiosk profile; malcontent integration (only if
   P0-7 passed); browser present and filtered (D10).
 - Level up and level down both routine from the Guardian tool.
@@ -118,8 +121,8 @@ first-boot wizard, quick-actions overlay, signed image, CI, ISO.
   handling, Proton version pinning where a title needs it.
 - Minecraft Java as a first-class integration, not a tile.
 - `kidscan` GUI for category assignment; icon sourcing decided (DESIGN §14 Q3).
-- One first-party app in the house style (draw or music) so the aesthetic has
-  somewhere to live (DESIGN §6.3).
+- Catalogue additions from the software survey (ADR-0009); revisit the
+  first-party app question with child-test findings.
 - Accessibility, second tranche (ADR-0008): screen reader via AT-SPI/Orca,
   dwell click, review with a specialist.
 
@@ -133,7 +136,8 @@ first-boot wizard, quick-actions overlay, signed image, CI, ISO.
 | **Linux Mark Institute sublicence** | Legal | Free and routine but has lead time. Start now. |
 | **Trademark reviews** | Legal | Universal Blue / Fedora / Bazzite derivative policies; Scratch Foundation branding; "Cairn" search in software classes. |
 | **Website** `cairnlinux.com` | Separate repo, later | Hold until Phase 1 has something a parent can install. |
-| **Brand v0.2** | `docs/brand-guide/` | Iconography, motion, avatars, spacing, sound policy. See the review notes in issue tracker. |
+| **Brand v0.2** | `docs/brand-guide/` | Iconography, motion, avatars, spacing, sound policy, high-contrast and large-text variants. See the review notes in issue tracker. |
+| **Software catalogue survey** | Issue tracker, then DESIGN §5.2 | Find existing, maintained, kid-oriented apps for music composing, writing/story, camera and coding so the project does not build or maintain its own (ADR-0009). Criteria: actively maintained; Flatpak or Fedora package; offline; no accounts, ads or telemetry; free licence; Wayland/XWayland; age fit with mouse and keyboard; fits the Minimum tier. |
 
 ---
 
