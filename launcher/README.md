@@ -14,7 +14,7 @@ Colours, type and radii come from the `Cairn.Brand.Tokens` QML singleton.
   filesystem view at L1. L2 adds a files view to the dock.
 - No reading required beyond app names, paired with distinct icons.
 - **Colour codes kind, never app**: ochre = make, moss = practice,
-  fjord = machine. Use `Tokens.make` / `Tokens.onMake` and friends from
+  fjord = machine. Use `Tokens.make` / `Tokens.makeLabel` and friends from
   `../brand/qml/Cairn/Brand/Tokens.qml`, never a literal.
 - Watches launches. Slow or failed launches show "Something needs a
   grown-up", never whatever the app or Steam decided to display.

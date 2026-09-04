@@ -1,8 +1,9 @@
+// SPDX-License-Identifier: Apache-2.0
+// GENERATED from brand/tokens.json by brand/build.py. Do not edit.
 pragma Singleton
 import QtQuick
 
-// Cairn brand tokens — GENERATED from brand/tokens.json by brand/build.py. Do not edit.
-// Import with `import Cairn.Brand` (QML import path: brand/qml) and use Tokens.ink etc.
+// Import with `import Cairn.Brand` (QML import path: brand/qml).
 QtObject {
     // ---- palette ----
     readonly property color ink: "#1C333C"  // Text, the mark, the only dark ground (terminal, login, boot)
@@ -21,36 +22,43 @@ QtObject {
     readonly property color darkGround: ink
     readonly property color text: ink
     readonly property color link: fjord
+    readonly property color linkOnInk: sky
     readonly property color selection: sky
     readonly property color focus: sky
+    readonly property int focusWidth: 3
+    readonly property int focusOffset: 3
 
     // kind — colour codes what a tile does, never which app it is
     readonly property color make: ochre
     readonly property color practice: moss
     readonly property color machine: fjord
-    // label colour per kind; every pair clears 3:1 (WCAG AA large) at the 18px-bold minimum
-    readonly property color onMake: ink  // 5.69:1
-    readonly property color onPractice: ink  // 4.01:1 (Sand on Moss is 2.83:1 and fails)
-    readonly property color onMachine: sand  // 5.77:1
-    readonly property color onInk: sand  // 11.36:1
+    // Label pair comments are measured contrast ratios against each ground.
+    readonly property color makeLabel: ink  // 5.69:1
+    readonly property color practiceLabel: ink  // 4.01:1
+    readonly property color machineLabel: sand  // 5.77:1
+    readonly property color inkLabel: sand  // 11.36:1
+    readonly property color sandLabel: ink  // 11.36:1
+    readonly property color paperLabel: ink  // 12.37:1
 
     // ---- type ----
-    readonly property string fontFamily: "Atkinson Hyperlegible"
+    readonly property string fontFamily: "Atkinson Hyperlegible Next"
     readonly property string fontFamilyMono: "Atkinson Hyperlegible Mono"
-    readonly property int weightRegular: Font.Normal
-    readonly property int weightBold: Font.Bold
-    readonly property int displaySize: 48
+    readonly property int weightRegular: 400
+    readonly property int weightBold: 700
+    property real textScale: 1.0
+    readonly property real displaySize: 48 * textScale
     readonly property real displayLineHeight: 1.1
-    readonly property real displayLetterSpacing: -0.96  // px, from -0.02em
-    readonly property int headingSize: 28
+    readonly property real displayLetterSpacing: displaySize * -0.02
+    readonly property real headingSize: 28 * textScale
     readonly property real headingLineHeight: 1.2
-    readonly property int bodySize: 17
+    readonly property real bodySize: 17 * textScale
     readonly property real bodyLineHeight: 1.65
-    readonly property int terminalSize: 18
+    readonly property real terminalSize: 18 * textScale
     readonly property real terminalLineHeight: 1.7
-    readonly property int kickerSize: 13
-    readonly property int minChild: 18      // smallest child-facing text
-    readonly property int minGuardian: 16   // smallest Guardian/docs text
+    readonly property real kickerSize: 13 * textScale
+    readonly property real kickerLetterSpacing: kickerSize * 0.14
+    readonly property real minChild: 18 * textScale  // smallest child-facing text
+    readonly property real minGuardian: 16 * textScale  // smallest Guardian/docs text
 
     // ---- radius ----
     readonly property int radiusSm: 10
