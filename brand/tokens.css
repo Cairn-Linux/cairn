@@ -1,0 +1,65 @@
+/* Cairn brand tokens — generated from brand/tokens.json; edit that file, not this one.
+   Source: docs/brand-guide/Cairn Brand Guide.dc.html (v0.1). */
+
+:root {
+  /* palette */
+  --cairn-ink:    #1C333C;
+  --cairn-fjord:  #2E6276;
+  --cairn-sky:    #A5C8D6;
+  --cairn-ochre:  #D9A03C;
+  --cairn-moss:   #7C956A;
+  --cairn-sand:   #F4EDE0;
+  --cairn-paper:  #FBF7EF;
+  --cairn-pebble: #E8DFCC;
+  --cairn-line:   #E0D5BF;
+
+  /* semantic */
+  --cairn-ground:      var(--cairn-sand);
+  --cairn-card:        var(--cairn-paper);
+  --cairn-dark-ground: var(--cairn-ink);
+  --cairn-text:        var(--cairn-ink);
+  --cairn-link:        var(--cairn-fjord);
+  --cairn-selection:   var(--cairn-sky);
+  --cairn-focus:       var(--cairn-sky);
+
+  /* kind — colour codes what a tile does, never which app it is */
+  --cairn-make:        var(--cairn-ochre);
+  --cairn-practice:    var(--cairn-moss);
+  --cairn-machine:     var(--cairn-fjord);
+  /* label colour per kind: chosen so every tile label clears 3:1 (WCAG AA large) at 18px bold */
+  --cairn-on-make:     var(--cairn-ink);   /* 5.69:1 */
+  --cairn-on-practice: var(--cairn-ink);   /* 4.01:1 — Sand on Moss is 2.83:1 and fails */
+  --cairn-on-machine:  var(--cairn-sand);  /* 5.77:1 */
+  --cairn-on-ink:      var(--cairn-sand);  /* 11.36:1 */
+
+  /* type */
+  --cairn-font:      "Atkinson Hyperlegible", system-ui, sans-serif;
+  --cairn-font-mono: "Atkinson Hyperlegible Mono", ui-monospace, monospace;
+  --cairn-display-size: 48px; --cairn-display-line: 1.1; --cairn-display-tracking: -0.02em;
+  --cairn-heading-size: 28px; --cairn-heading-line: 1.2;
+  --cairn-body-size:    17px; --cairn-body-line:    1.65;
+  --cairn-terminal-size: 18px; --cairn-terminal-line: 1.7;
+  --cairn-kicker-size:  13px; --cairn-kicker-tracking: .14em;
+  --cairn-min-child: 18px;
+  --cairn-min-guardian: 16px;
+
+  /* radius */
+  --cairn-radius-sm:       10px;
+  --cairn-radius-tile:     18px;
+  --cairn-radius-card:     20px;
+  --cairn-radius-cover:    28px;
+  --cairn-radius-terminal: 14px;
+  --cairn-radius-pill:     999px;
+}
+
+/* Dark surfaces (terminal, login, boot): the only dark ground is Ink. */
+.cairn-on-ink {
+  background: var(--cairn-ink);
+  color: var(--cairn-sand);
+  --cairn-text: var(--cairn-sand);
+  --cairn-link: var(--cairn-sky);
+}
+
+/* Interaction states are themed, never browser defaults. */
+:focus-visible { outline: 3px solid var(--cairn-focus); outline-offset: 3px; }
+::selection { background: var(--cairn-selection); color: var(--cairn-ink); }

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Atkinson+Hyperlegible+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #F4EDE0; color: #1C333C; font-family: 'Atkinson Hyperlegible', sans-serif; }
+  a { color: #2E6276; } a:hover { color: #1C333C; }
+  ::selection { background: #A5C8D6; }
+</style>
+</helmet>
+
+<div style="max-width: 1040px; margin: 0 auto; padding: 72px 48px 120px; display: flex; flex-direction: column; gap: 96px">
+
+  <!-- COVER -->
+  <section data-screen-label="Cover" style="display: flex; flex-direction: column; gap: 40px; border-radius: 28px; padding: 72px 64px; background: {{ coverBg }}; color: {{ coverInk }}; transition: background .3s">
+    <div style="display: flex; align-items: center; justify-content: space-between">
+      <span style="font-size: 13px; letter-spacing: .14em; text-transform: uppercase; font-weight: 700; opacity: .6">Brand guidelines · v0.1 draft</span>
+      <span style="font-size: 13px; letter-spacing: .14em; text-transform: uppercase; font-weight: 700; opacity: .6">September 2026</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 32px; align-items: flex-start">
+      <sc-if value="{{ showA }}" hint-placeholder-val="{{ false }}">
+        <svg width="132" height="120" viewBox="0 0 120 110" aria-label="Cairn mark A"><g fill="{{ markFill }}"><rect x="48" y="8" width="24" height="16" rx="8"></rect><rect x="38" y="30" width="44" height="16" rx="8"></rect><rect x="28" y="52" width="64" height="16" rx="8"></rect><rect x="16" y="74" width="88" height="16" rx="8"></rect></g></svg>
+      </sc-if>
+      <sc-if value="{{ showB }}" hint-placeholder-val="{{ false }}">
+        <svg width="132" height="120" viewBox="0 0 120 110" aria-label="Cairn mark B"><rect x="48" y="8" width="24" height="16" rx="8" fill="#D9A03C"></rect><g fill="{{ markFill }}"><rect x="38" y="30" width="44" height="16" rx="8"></rect><rect x="28" y="52" width="64" height="16" rx="8"></rect><rect x="16" y="74" width="88" height="16" rx="8"></rect></g></svg>
+      </sc-if>
+      <sc-if value="{{ showC }}" hint-placeholder-val="{{ true }}">
+        <svg width="132" height="120" viewBox="0 0 120 110" aria-label="Cairn mark C"><g fill="{{ markFill }}"><rect x="54" y="8" width="24" height="16" rx="8"></rect><rect x="34" y="30" width="44" height="16" rx="8"></rect><rect x="30" y="52" width="64" height="16" rx="8"></rect><rect x="16" y="74" width="88" height="16" rx="8"></rect></g></svg>
+      </sc-if>
+      <div>
+        <h1 style="margin: 0; font-size: 72px; font-weight: 700; letter-spacing: -0.02em; line-height: 1">cairn</h1>
+        <p style="margin: 10px 0 0; font-size: 22px; opacity: .7">A computer that grows with your child.</p>
+      </div>
+    </div>
+    <p style="margin: 0; max-width: 560px; font-size: 16px; line-height: 1.6; opacity: .75">A cairn is a small stack of stones left by someone who walked the trail first — a marker that helps whoever comes next without walking the path for them. That is the brand.</p>
+  </section>
+
+  <!-- 01 IDEA -->
+  <section data-screen-label="The idea" style="display: grid; grid-template-columns: 220px 1fr; gap: 48px">
+    <div>
+      <div style="font-size: 13px; font-weight: 700; letter-spacing: .14em; color: #2E6276">01</div>
+      <h2 style="margin: 6px 0 0; font-size: 32px; font-weight: 700; letter-spacing: -0.01em">The idea</h2>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 20px; font-size: 17px; line-height: 1.65">
+      <p style="margin: 0"><strong>Tools, not toys.</strong> The brand reads as a creative workspace a child is trusted with — not a toy that talks down to them. Respect reads as capability faster than cartoon mascots do.</p>
+      <p style="margin: 0"><strong>Calm and deterministic.</strong> Flat shapes, a restrained fjord palette on a warm sand ground, generous space. Nothing glossy, nothing shouting, nothing animated for its own sake.</p>
+      <p style="margin: 0"><strong>Same language at every age.</strong> One visual identity carries a child from 5 to 14. Nothing here is "for little kids" that a twelve-year-old would be embarrassed by.</p>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px">
+        <span style="background: #E8DFCC; border-radius: 999px; padding: 8px 18px; font-size: 14px; font-weight: 700">No mascots</span>
+        <span style="background: #E8DFCC; border-radius: 999px; padding: 8px 18px; font-size: 14px; font-weight: 700">No gradients</span>
+        <span style="background: #E8DFCC; border-radius: 999px; padding: 8px 18px; font-size: 14px; font-weight: 700">No rainbow</span>
+        <span style="background: #E8DFCC; border-radius: 999px; padding: 8px 18px; font-size: 14px; font-weight: 700">No gamification</span>
+        <span style="background: #E8DFCC; border-radius: 999px; padding: 8px 18px; font-size: 14px; font-weight: 700">No baby talk</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 LOGO -->
+  <section data-screen-label="Logo" style="display: flex; flex-direction: column; gap: 40px">
+    <div style="display: grid; grid-template-columns: 220px 1fr; gap: 48px">
+      <div>
+        <div style="font-size: 13px; font-weight: 700; letter-spacing: .14em; color: #2E6276">02</div>
+        <h2 style="margin: 6px 0 0; font-size: 32px; font-weight: 700; letter-spacing: -0.01em">The mark</h2>
+      </div>
+      <p style="margin: 0; font-size: 17px; line-height: 1.65; max-width: 620px">Four stacked stones, drawn as rounded bars. Each stone rests on a wider one — stable, legible at 16px, and buildable by a child out of paper strips. <strong>C — Trail stack — is the mark</strong>: offset like a real cairn, hand-placed, clearly not a corporate glyph. A and B remain below as the explored record; the Tweaks panel previews each on the cover.</p>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px">
+      <div style="background: #FBF7EF; border-radius: 20px; padding: 36px 28px; display: flex; flex-direction: column; align-items: center; gap: 20px">
+        <svg width="96" height="88" viewBox="0 0 120 110"><g fill="#1C333C"><rect x="48" y="8" width="24" height="16" rx="8"></rect><rect x="38" y="30" width="44" height="16" rx="8"></rect><rect x="28" y="52" width="64" height="16" rx="8"></rect><rect x="16" y="74" width="88" height="16" rx="8"></rect></g></svg>
+        <div style="text-align: center"><div style="font-weight: 700; font-size: 16px">A — Balanced</div><div style="font-size: 14px; opacity: .65; line-height: 1.5; margin-top: 4px">Symmetric, quiet, most system-like. One color; works everywhere.</div></div>
+      </div>
+      <div style="background: #FBF7EF; border-radius: 20px; padding: 36px 28px; display: flex; flex-direction: column; align-items: center; gap: 20px">
+        <svg width="96" height="88" viewBox="0 0 120 110"><rect x="48" y="8" width="24" height="16" rx="8" fill="#D9A03C"></rect><g fill="#1C333C"><rect x="38" y="30" width="44" height="16" rx="8"></rect><rect x="28" y="52" width="64" height="16" rx="8"></rect><rect x="16" y="74" width="88" height="16" rx="8"></rect></g></svg>
+        <div style="text-align: center"><div style="font-weight: 700; font-size: 16px">B — Sun stone</div><div style="font-size: 14px; opacity: .65; line-height: 1.5; margin-top: 4px">Top stone in ochre — the child's own stone on the stack. Warmer; needs the color.</div></div>
+      </div>
+      <div style="background: #FBF7EF; border-radius: 20px; padding: 36px 28px; display: flex; flex-direction: column; align-items: center; gap: 20px">
+        <svg width="96" height="88" viewBox="0 0 120 110"><g fill="#1C333C"><rect x="54" y="8" width="24" height="16" rx="8"></rect><rect x="34" y="30" width="44" height="16" rx="8"></rect><rect x="30" y="52" width="64" height="16" rx="8"></rect><rect x="16" y="74" width="88" height="16" rx="8"></rect></g></svg>
+        <div style="text-align: center"><div style="font-weight: 700; font-size: 16px">C — Trail stack <span style="background: #A5C8D6; color: #1C333C; border-radius: 999px; padding: 3px 12px; font-size: 12px; margin-left: 6px; vertical-align: middle">Selected</span></div><div style="font-size: 14px; opacity: .65; line-height: 1.5; margin-top: 4px">Offset like a real cairn — hand-placed, imperfect. Most distinctive.</div></div>
+      </div>
+    </div>
+    <!-- lockups -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px">
+      <div style="background: #FBF7EF; border-radius: 20px; padding: 40px; display: flex; flex-direction: column; gap: 24px">
+        <span style="font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #2E6276">Horizontal lockup</span>
+        <div style="display: flex; align-items: center; gap: 20px">
+          <svg width="52" height="48" viewBox="0 0 120 110"><g fill="#1C333C"><rect x="54" y="8" width="24" height="16" rx="8"></rect><rect x="34" y="30" width="44" height="16" rx="8"></rect><rect x="30" y="52" width="64" height="16" rx="8"></rect><rect x="16" y="74" width="88" height="16" rx="8"></rect></g></svg>
+          <span style="font-size: 40px; font-weight: 700; letter-spacing: -0.02em">cairn</span>
+        </div>
+        <p style="margin: 0; font-size: 14px; opacity: .65; line-height: 1.5">Default for the website header, docs, and README. Wordmark is Atkinson Hyperlegible Bold, lowercase, tracked −2%.</p>
+      </div>
+      <div style="background: #FBF7EF; border-radius: 20px; padding: 40px; display: flex; flex-direction: column; gap: 24px">
+        <span style="font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #2E6276">Full name lockup</span>
+        <div style="display: flex; align-items: center; gap: 20px">
+          <svg width="52" height="48" viewBox="0 0 120 110"><g fill="#1C333C"><rect x="54" y="8" width="24" height="16" rx="8"></rect><rect x="34" y="30" width="44" height="16" rx="8"></rect><rect x="30" y="52" width="64" height="16" rx="8"></rect><rect x="16" y="74" width="88" height="16" rx="8"></rect></g></svg>
+          <span style="font-size: 40px; font-weight: 700; letter-spacing: -0.02em">cairn <span style="font-weight: 400; opacity: .55">linux</span></span>
+        </div>
+        <p style="margin: 0; font-size: 14px; opacity: .65; line-height: 1.5">"linux" in Regular at 55% ink. Use once per surface (installer, first-boot, about screen); elsewhere the short wordmark. Pending LMI sublicense (§12.2).</p>
+      </div>
+    </div>
+    <!-- rules -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px">
+      <div style="background: #FBF7EF; border-radius: 20px; padding: 32px">
+        <div style="font-weight: 700; font-size: 15px; margin-bottom: 8px">Clear space</div>
+        <p style="margin: 0; font-size: 14px; opacity: .65; line-height: 1.5">Keep one base-stone height of empty space on all sides. Nothing enters it — not even the tagline.</p>
+      </div>
+      <div style="background: #FBF7EF; border-radius: 20px; padding: 32px">
+        <div style="font-weight: 700; font-size: 15px; margin-bottom: 8px">Minimum size</div>
+        <p style="margin: 0; font-size: 14px; opacity: .65; line-height: 1.5">Mark alone: 16px tall (favicon). With wordmark: 24px tall. Below that, use the mark only.</p>
+      </div>
+      <div style="background: #FBF7EF; border-radius: 20px; padding: 32px">
+        <div style="font-weight: 700; font-size: 15px; margin-bottom: 8px">One ink</div>
+        <p style="margin: 0; font-size: 14px; opacity: .65; line-height: 1.5">The mark is Ink on light grounds, Sand on dark grounds. Never outlined, rotated, gradient-filled, or given a face.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 COLOR -->
+  <section data-screen-label="Color" style="display: flex; flex-direction: column; gap: 40px">
+    <div style="display: grid; grid-template-columns: 220px 1fr; gap: 48px">
+      <div>
+        <div style="font-size: 13px; font-weight: 700; letter-spacing: .14em; color: #2E6276">03</div>
+        <h2 style="margin: 6px 0 0; font-size: 32px; font-weight: 700; letter-spacing: -0.01em">Color</h2>
+      </div>
+      <p style="margin: 0; font-size: 17px; line-height: 1.65; max-width: 620px">A fjord palette: deep teal ink, one blue accent, warm sand ground. Five colors total — restrained by design (§6.2). Two of them exist only to color-code what a tile <em>does</em>.</p>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px">
+      <div style="display: flex; flex-direction: column; gap: 12px"><div style="height: 120px; border-radius: 16px; background: #1C333C"></div><div><div style="font-weight: 700; font-size: 15px">Ink</div><div style="font-family: 'Atkinson Hyperlegible Mono', monospace; font-size: 13px; opacity: .6">#1C333C</div><div style="font-size: 13px; opacity: .65; margin-top: 4px">Text, the mark, terminal ground</div></div></div>
+      <div style="display: flex; flex-direction: column; gap: 12px"><div style="height: 120px; border-radius: 16px; background: #2E6276"></div><div><div style="font-weight: 700; font-size: 15px">Fjord</div><div style="font-family: 'Atkinson Hyperlegible Mono', monospace; font-size: 13px; opacity: .6">#2E6276</div><div style="font-size: 13px; opacity: .65; margin-top: 4px">Accent, links, machine tiles</div></div></div>
+      <div style="display: flex; flex-direction: column; gap: 12px"><div style="height: 120px; border-radius: 16px; background: #A5C8D6"></div><div><div style="font-weight: 700; font-size: 15px">Sky</div><div style="font-family: 'Atkinson Hyperlegible Mono', monospace; font-size: 13px; opacity: .6">#A5C8D6</div><div style="font-size: 13px; opacity: .65; margin-top: 4px">Tints, selection, focus</div></div></div>
+      <div style="display: flex; flex-direction: column; gap: 12px"><div style="height: 120px; border-radius: 16px; background: #D9A03C"></div><div><div style="font-weight: 700; font-size: 15px">Ochre</div><div style="font-family: 'Atkinson Hyperlegible Mono', monospace; font-size: 13px; opacity: .6">#D9A03C</div><div style="font-size: 13px; opacity: .65; margin-top: 4px">Make tiles — draw, music, build</div></div></div>
+      <div style="display: flex; flex-direction: column; gap: 12px"><div style="height: 120px; border-radius: 16px; background: #7C956A"></div><div><div style="font-weight: 700; font-size: 15px">Moss</div><div style="font-family: 'Atkinson Hyperlegible Mono', monospace; font-size: 13px; opacity: .6">#7C956A</div><div style="font-size: 13px; opacity: .65; margin-top: 4px">Practice tiles — GCompris, Tux</div></div></div>
+    </div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px">
+      <div style="background: #FBF7EF; border-radius: 20px; padding: 32px">
+        <div style="font-weight: 700; font-size: 15px; margin-bottom: 8px">Grounds</div>
+        <p style="margin: 0 0 16px; font-size: 14px; opacity: .65; line-height: 1.5">Sand <span style="font-family: 'Atkinson Hyperlegible Mono', monospace">#F4EDE0</span> is the everyday ground; Paper <span style="font-family: 'Atkinson Hyperlegible Mono', monospace">#FBF7EF</span> for cards on it. Ink is the only dark ground (terminal, login).</p>
+        <div style="display: flex; gap: 10px"><div style="flex: 1; height: 44px; border-radius: 10px; background: #F4EDE0; border: 1px solid #E0D5BF"></div><div style="flex: 1; height: 44px; border-radius: 10px; background: #FBF7EF; border: 1px solid #E0D5BF"></div><div style="flex: 1; height: 44px; border-radius: 10px; background: #1C333C"></div></div>
+      </div>
+      <div style="background: #FBF7EF; border-radius: 20px; padding: 32px">
+        <div style="font-weight: 700; font-size: 15px; margin-bottom: 8px">Rules</div>
+        <p style="margin: 0; font-size: 14px; opacity: .65; line-height: 1.5">Color codes <strong>kind, never app</strong>: ochre = make, moss = practice, fjord = machine. Body text is always Ink on Sand (12.9:1). Ochre and Moss are fills for large shapes only, never text. No gradients, ever.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 04 TYPE -->
+  <section data-screen-label="Typography" style="display: flex; flex-direction: column; gap: 40px">
+    <div style="display: grid; grid-template-columns: 220px 1fr; gap: 48px">
+      <div>
+        <div style="font-size: 13px; font-weight: 700; letter-spacing: .14em; color: #2E6276">04</div>
+        <h2 style="margin: 6px 0 0; font-size: 32px; font-weight: 700; letter-spacing: -0.01em">Typography</h2>
+      </div>
+      <p style="margin: 0; font-size: 17px; line-height: 1.65; max-width: 620px">One family everywhere: <strong>Atkinson Hyperlegible</strong>, designed by the Braille Institute to disambiguate letterforms — which matters disproportionately for early readers. Its Mono sibling covers the terminal. No display face; the wordmark is just the Bold.</p>
+    </div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px">
+      <div style="background: #FBF7EF; border-radius: 20px; padding: 40px; display: flex; flex-direction: column; gap: 28px">
+        <div><div style="font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #2E6276; margin-bottom: 10px">Display · Bold 48</div><div style="font-size: 48px; font-weight: 700; line-height: 1.1; letter-spacing: -0.02em">Who's playing today?</div></div>
+        <div><div style="font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #2E6276; margin-bottom: 10px">Heading · Bold 28</div><div style="font-size: 28px; font-weight: 700; line-height: 1.2">Your drawings live here</div></div>
+        <div><div style="font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #2E6276; margin-bottom: 10px">Body · Regular 17 / 1.65</div><div style="font-size: 17px; line-height: 1.65">Everything you make is saved in your own folder. A grown-up can copy it out any time — nothing ever disappears.</div></div>
+        <div><div style="font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #2E6276; margin-bottom: 10px">Terminal · Mono 18</div><div style="font-family: 'Atkinson Hyperlegible Mono', monospace; font-size: 18px">&gt; open tuxpaint</div></div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 20px">
+        <div style="background: #1C333C; color: #F4EDE0; border-radius: 20px; padding: 40px; flex: 1">
+          <div style="font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #A5C8D6; margin-bottom: 16px">Why this face</div>
+          <div style="font-size: 56px; font-weight: 700; letter-spacing: .04em; line-height: 1.1">Il1 O0 B8</div>
+          <p style="margin: 16px 0 0; font-size: 15px; line-height: 1.6; opacity: .8">Every ambiguous pair is drawn distinct: capital I has serifs, l has a tail, 0 is slashed. A six-year-old sounding out a command can't mistake one for another.</p>
+        </div>
+        <div style="background: #FBF7EF; border-radius: 20px; padding: 32px">
+          <div style="font-weight: 700; font-size: 15px; margin-bottom: 8px">Sizing rules</div>
+          <p style="margin: 0; font-size: 14px; opacity: .65; line-height: 1.5">Child-facing UI: 18px minimum, 1.5 line height, sentence case. Guardian/docs: 16px minimum. Never all-caps for content — kickers and labels only. Weights: 400 and 700 only.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 VOICE -->
+  <section data-screen-label="Voice" style="display: flex; flex-direction: column; gap: 40px">
+    <div style="display: grid; grid-template-columns: 220px 1fr; gap: 48px">
+      <div>
+        <div style="font-size: 13px; font-weight: 700; letter-spacing: .14em; color: #2E6276">05</div>
+        <h2 style="margin: 6px 0 0; font-size: 32px; font-weight: 700; letter-spacing: -0.01em">Voice</h2>
+      </div>
+      <p style="margin: 0; font-size: 17px; line-height: 1.65; max-width: 620px">The system talks like a calm adult who assumes the child is capable. It suggests, never scolds; it names real things with real words. Simplicity comes from short sentences and a small vocabulary — never from baby talk. Two audiences, one tone; the parent copy is just longer.</p>
+    </div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px">
+      <div style="background: #FBF7EF; border-radius: 20px; padding: 36px; display: flex; flex-direction: column; gap: 18px">
+        <span style="align-self: flex-start; background: #DCE9D3; color: #3E5230; border-radius: 999px; padding: 6px 16px; font-size: 13px; font-weight: 700">Say this</span>
+        <div style="font-family: 'Atkinson Hyperlegible Mono', monospace; font-size: 16px; line-height: 1.7; background: #1C333C; color: #F4EDE0; border-radius: 14px; padding: 24px">&gt; opn tuxpaint<br><span style="color: #A5C8D6">I don't know "opn" — did you mean <strong>open</strong>?</span></div>
+        <p style="margin: 0; font-size: 14px; opacity: .65; line-height: 1.5">"Something needs a grown-up." · "That's saved in your folder." · "All done — want to keep going?"</p>
+      </div>
+      <div style="background: #FBF7EF; border-radius: 20px; padding: 36px; display: flex; flex-direction: column; gap: 18px">
+        <span style="align-self: flex-start; background: #F0D9D3; color: #7A3B2A; border-radius: 999px; padding: 6px 16px; font-size: 13px; font-weight: 700">Never this</span>
+        <div style="font-family: 'Atkinson Hyperlegible Mono', monospace; font-size: 16px; line-height: 1.7; background: #1C333C; color: #F4EDE0; border-radius: 14px; padding: 24px">&gt; opn tuxpaint<br><span style="opacity: .55">bash: opn: command not found (exit 127)</span></div>
+        <p style="margin: 0; font-size: 14px; opacity: .65; line-height: 1.5">No stack traces, no errnos, no "Oops!!" with three exclamation marks, no baby talk, no fake enthusiasm, no exclamation-mark rewards.</p>
+      </div>
+    </div>
+    <div style="background: #FBF7EF; border-radius: 20px; padding: 32px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 28px">
+      <div><div style="font-weight: 700; font-size: 15px; margin-bottom: 6px">Real words</div><p style="margin: 0; font-size: 14px; opacity: .65; line-height: 1.5">"open", "files", "save" — never invented kid-verbs. The vocabulary must transfer to a real system later.</p></div>
+      <div><div style="font-weight: 700; font-size: 15px; margin-bottom: 6px">Calm failure</div><p style="margin: 0; font-size: 14px; opacity: .65; line-height: 1.5">Every error path leads somewhere boring and safe. Errors suggest the next step; they never assign blame.</p></div>
+      <div><div style="font-weight: 700; font-size: 15px; margin-bottom: 6px">Straight with parents</div><p style="margin: 0; font-size: 14px; opacity: .65; line-height: 1.5">State limitations plainly (no remote management, hardware floor). A parent should never discover a caveat.</p></div>
+    </div>
+  </section>
+
+  <!-- 06 APPLICATION -->
+  <section data-screen-label="Application" style="display: flex; flex-direction: column; gap: 40px">
+    <div style="display: grid; grid-template-columns: 220px 1fr; gap: 48px">
+      <div>
+        <div style="font-size: 13px; font-weight: 700; letter-spacing: .14em; color: #2E6276">06</div>
+        <h2 style="margin: 6px 0 0; font-size: 32px; font-weight: 700; letter-spacing: -0.01em">In use</h2>
+      </div>
+      <p style="margin: 0; font-size: 17px; line-height: 1.65; max-width: 620px">The first surfaces the brand must carry: the login screen and the L1 launcher. These are sketches of the brand applied, not UI specs.</p>
+    </div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px">
+      <!-- login sketch -->
+      <div style="background: #1C333C; border-radius: 20px; padding: 48px 36px; display: flex; flex-direction: column; align-items: center; gap: 32px; min-height: 380px; justify-content: center">
+        <div style="display: flex; align-items: center; gap: 12px">
+          <svg width="30" height="28" viewBox="0 0 120 110"><g fill="#F4EDE0"><rect x="54" y="8" width="24" height="16" rx="8"></rect><rect x="34" y="30" width="44" height="16" rx="8"></rect><rect x="30" y="52" width="64" height="16" rx="8"></rect><rect x="16" y="74" width="88" height="16" rx="8"></rect></g></svg>
+          <span style="color: #F4EDE0; font-size: 22px; font-weight: 700">cairn</span>
+        </div>
+        <div style="color: #A5C8D6; font-size: 24px; font-weight: 700">Who's playing today?</div>
+        <div style="display: flex; gap: 28px">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 10px"><div style="width: 88px; height: 88px; border-radius: 50%; background: #D9A03C; display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: 700; color: #1C333C">N</div><span style="color: #F4EDE0; font-size: 17px; font-weight: 700">Nora</span></div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 10px"><div style="width: 88px; height: 88px; border-radius: 50%; background: #7C956A; display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: 700; color: #1C333C">S</div><span style="color: #F4EDE0; font-size: 17px; font-weight: 700">Sam</span></div>
+        </div>
+        <div style="color: #F4EDE0; opacity: .4; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; font-weight: 700">Login · large avatar tiles, no passwords at L1</div>
+      </div>
+      <!-- launcher sketch -->
+      <div style="background: #F4EDE0; border: 1px solid #E0D5BF; border-radius: 20px; padding: 36px; display: flex; flex-direction: column; gap: 24px; min-height: 380px">
+        <div style="display: flex; justify-content: space-between; align-items: center">
+          <span style="font-size: 20px; font-weight: 700">Hi Nora</span>
+          <svg width="22" height="20" viewBox="0 0 120 110"><g fill="#1C333C"><rect x="54" y="8" width="24" height="16" rx="8"></rect><rect x="34" y="30" width="44" height="16" rx="8"></rect><rect x="30" y="52" width="64" height="16" rx="8"></rect><rect x="16" y="74" width="88" height="16" rx="8"></rect></g></svg>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; flex: 1">
+          <div style="background: #D9A03C; border-radius: 18px; display: flex; align-items: flex-end; padding: 16px; font-weight: 700; font-size: 16px; color: #1C333C">Draw</div>
+          <div style="background: #D9A03C; border-radius: 18px; display: flex; align-items: flex-end; padding: 16px; font-weight: 700; font-size: 16px; color: #1C333C">Music</div>
+          <div style="background: #D9A03C; border-radius: 18px; display: flex; align-items: flex-end; padding: 16px; font-weight: 700; font-size: 16px; color: #1C333C">Build</div>
+          <div style="background: #7C956A; border-radius: 18px; display: flex; align-items: flex-end; padding: 16px; font-weight: 700; font-size: 16px; color: #F4EDE0">Practice</div>
+          <div style="background: #2E6276; border-radius: 18px; display: flex; align-items: flex-end; padding: 16px; font-weight: 700; font-size: 16px; color: #F4EDE0">Terminal</div>
+          <div style="background: #FBF7EF; border: 1px solid #E0D5BF; border-radius: 18px; display: flex; align-items: flex-end; padding: 16px; font-weight: 700; font-size: 16px; color: #1C333C">Freddi Fish</div>
+        </div>
+        <div style="opacity: .5; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; font-weight: 700">L1 launcher · color = kind, not app</div>
+      </div>
+    </div>
+    <!-- app icon + dark -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px">
+      <div style="background: #FBF7EF; border-radius: 20px; padding: 32px; display: flex; flex-direction: column; align-items: center; gap: 16px">
+        <div style="width: 96px; height: 96px; border-radius: 24px; background: #2E6276; display: flex; align-items: center; justify-content: center"><svg width="52" height="48" viewBox="0 0 120 110"><g fill="#F4EDE0"><rect x="54" y="8" width="24" height="16" rx="8"></rect><rect x="34" y="30" width="44" height="16" rx="8"></rect><rect x="30" y="52" width="64" height="16" rx="8"></rect><rect x="16" y="74" width="88" height="16" rx="8"></rect></g></svg></div>
+        <div style="font-size: 14px; opacity: .65">App icon / distro logo tile</div>
+      </div>
+      <div style="background: #1C333C; border-radius: 20px; padding: 32px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px">
+        <svg width="64" height="58" viewBox="0 0 120 110"><g fill="#F4EDE0"><rect x="54" y="8" width="24" height="16" rx="8"></rect><rect x="34" y="30" width="44" height="16" rx="8"></rect><rect x="30" y="52" width="64" height="16" rx="8"></rect><rect x="16" y="74" width="88" height="16" rx="8"></rect></g></svg>
+        <div style="font-size: 14px; color: #F4EDE0; opacity: .65">On Ink: mark in Sand</div>
+      </div>
+      <div style="background: #FBF7EF; border-radius: 20px; padding: 32px; display: flex; flex-direction: column; justify-content: center">
+        <div style="font-weight: 700; font-size: 15px; margin-bottom: 8px">Boot & GRUB</div>
+        <p style="margin: 0; font-size: 14px; opacity: .65; line-height: 1.5">Boot splash is the mark alone, centered on Ink, no spinner text. The machine should feel quiet from the first second.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer style="display: flex; justify-content: space-between; align-items: center; opacity: .5; font-size: 13px">
+    <span>Cairn Linux · brand guidelines v0.1</span>
+    <span>cairnlinux.com</span>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;markVariant&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;options&quot;: [&quot;A — Balanced&quot;, &quot;B — Sun stone&quot;, &quot;C — Trail stack&quot;], &quot;default&quot;: &quot;C — Trail stack&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Cover&quot;}, &quot;darkCover&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Cover&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const v = this.props.markVariant ?? 'C — Trail stack';
+    const dark = this.props.darkCover ?? false;
+    return {
+      showA: v.startsWith('A'), showB: v.startsWith('B'), showC: v.startsWith('C'),
+      coverBg: dark ? '#1C333C' : '#FBF7EF',
+      coverInk: dark ? '#F4EDE0' : '#1C333C',
+      markFill: dark ? '#F4EDE0' : '#1C333C'
+    };
+  }
+}
+</script>
+</body>
+</html>
