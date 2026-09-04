@@ -1,7 +1,8 @@
 # Cairn Linux — Roadmap and working plan
 
 **Status:** living document
-**Last updated:** 2026-09-03 (D1, D2, D4, D8, D11–D14 closed; D15 deferred)
+**Last updated:** 2026-09-04
+(D1, D2, D4, D5, D7, D8, D11–D14 closed; D15 deferred)
 
 `DESIGN.md` is the specification. This document is the plan for building it:
 what has to be decided, in what order things get built, how we know a phase is
@@ -17,9 +18,17 @@ done, and what could sink it. Decisions that change the design get an ADR in
 - GitHub organisation `Cairn-Linux` created 2026-09-03. This repository is its
   first, and has been public since the same day (ADR-0005).
 - The `kidscan` scanner prototype is imported at `tools/kidscan/` with tests
-  (2026-09-03). No other code yet.
-- Brand tokens and the mark have been extracted to `brand/` so code has a
-  single source of truth from the first line.
+  (2026-09-03).
+- Brand tokens and the mark are generated in `brand/` and validated with
+  `python3 brand/build.py --check`.
+- The C++ toolchain, CMake presets, clang-format, clang-tidy and qmlformat
+  configurations are in place.
+- The first launcher slice landed 2026-09-04: six tiles in a Qt Quick
+  window, keyboard navigation, translatable strings, accessible names and
+  three test suites (tile model, compiled brand tokens and QML navigation).
+  It runs on the dev PC as a normal window under Plasma, not a kiosk.
+- `docs/DEVELOPMENT.md` matches the real dev PC as checked on 2026-09-04.
+- D5 (level groups, ADR-0011) and D7 (session dispatch, ADR-0012) are closed.
 - **Phase 0 begins.** Its whole purpose is to put a launcher in front of a
   real child before any image tooling exists.
 
@@ -34,11 +43,11 @@ Each has a recommendation. None is final until an ADR lands in
 |---|---|---|---|
 | **D1** | Project licence (DESIGN §12.3) | **Closed 2026-09-03, ADR-0005.** Apache-2.0 for code; CC BY-SA 4.0 for docs and brand; name and mark are trademarks with a policy in `brand/README.md`; DCO sign-off; SPDX headers. Repository public from this date. | Closed |
 | **D2** | First-party language and UI toolkit (DESIGN §14 Q1) | **Closed 2026-09-03, ADR-0002: C++20 + Qt 6 + QML** for every first-party surface, including the restricted shell. Chosen by the maintainer to learn C++; the technical recommendation had been Python + PySide6 with the same QML. Fallback if a component proves unworkable is exactly that, and the QML carries over. | Closed |
-| **D3** | Kiosk compositor for L1/L2 (DESIGN §4.5) | **labwc** in kiosk configuration. ADR-0004 makes Steam at L1/L2 a v1 requirement, and a kiosk has no tray, so the compositor must hide Steam's forced windows with window rules and tell the launcher about them via wlr-foreign-toplevel-management. cage has neither and is kept only as a measurement baseline. Closes with the P0-10 spike. | P0-10 |
+| **D3** | Kiosk compositor for L1/L2 (DESIGN §4.5) | **labwc** in kiosk configuration. ADR-0004 makes Steam at L1/L2 a v1 requirement, and a kiosk has no tray, so the compositor must hide Steam's forced windows with window rules and tell the launcher about them via wlr-foreign-toplevel-management. cage has neither and is kept only as a measurement baseline. Proposed until the P0-10 spike closes D3 with an ADR. | P0-10 |
 | **D4** | Base image (DESIGN §4.1 says Fedora/bootc, not which) | **Closed 2026-09-03, ADR-0006: Bazzite (KDE), `ghcr.io/ublue-os/bazzite:stable`.** One Intel/AMD image for v1; Nvidia unsupported until later. Policy review found no blocker (`docs/research/base-image-policy.md`); compliance is P1-14. Fallback `kinoite-main` + layered Steam. | Closed |
-| **D5** | How "level" is stored and enforced (DESIGN §3, §4.3 name the property; nothing names the mechanism) | **Supplementary groups**: `cairn-l1` … `cairn-l4`, `cairn-guardian`; exactly one per account. Level change = group change. PAM, polkit, the session dispatcher and malcontent policy all key off groups, which is Unix-native, inspectable and legible (Principle 2). Per-child name/avatar/allowlists live in a small config the Guardian tool owns. | P0-2 |
-| **D6** | Display manager and greeter (DESIGN §4.3 describes the login screen, not the component) | **SDDM with a Cairn QML theme.** Since ADR-0002 the whole first-party layer is QML and SDDM themes are QML, so the login screen is a theme, not a program. `HideUsers` hides Guardians; a PAM rule grants passwordless login to `cairn-l1`/`cairn-l2` members. SDDM is also what Plasma expects. Alternative: greetd with a custom greeter, only if SDDM cannot do the avatar-tile login cleanly. Prototype in P0-3. | P0-3 |
-| **D7** | Session dispatch | **One Wayland session entry** (`cairn.desktop` → `cairn-session`) that reads the account's level group and execs either the kiosk compositor + launcher (L1/L2) or `startplasma-wayland` (L3/L4, Guardian). The greeter offers only this session, so a child cannot pick another. | P0-3 |
+| **D5** | How "level" is stored and enforced (DESIGN §3, §4.3) | **Closed 2026-09-04, ADR-0011.** Supplementary groups: `cairn-l1` … `cairn-l4`, `cairn-guardian`; exactly one per account. Level change = group change. PAM, polkit, the session dispatcher and malcontent policy all key off groups, which is Unix-native, inspectable and legible (Principle 2). Per-child name/avatar/allowlists live in a small config the Guardian tool owns. | Closed |
+| **D6** | Display manager and greeter (DESIGN §4.3 describes the login screen, not the component) | **SDDM with a Cairn QML theme remains proposed.** Since ADR-0002 the whole first-party layer is QML and SDDM themes are QML, so this would make the login screen a theme, not a program. `HideUsers` hides Guardians; a PAM rule grants passwordless login to `cairn-l1`/`cairn-l2` members. Verified 2026-09-04: Fedora 44 KDE ships Plasma Login Manager (`plasmalogin.service`), not SDDM; Bazzite's Containerfile swaps to SDDM only in its Steam Deck stage. P0-3 first records what stock Bazzite KDE ships; the recommendation rests on that check, with any display-manager swap explicit in the D6 ADR. Alternative: greetd with a custom greeter, only if SDDM cannot do the avatar-tile login cleanly. Prototype in P0-3. | P0-3 |
+| **D7** | Session dispatch | **Closed 2026-09-04, ADR-0012.** One Wayland session entry (`cairn.desktop` → `cairn-session`) that reads the account's level group and execs either the kiosk compositor + launcher (L1/L2) or `startplasma-wayland` (L3/L4, Guardian). The greeter offers only this session, so a child cannot pick another. | Closed |
 | **D8** | Localisation and offline stance (DESIGN §14 Q4, Q5) | **Closed 2026-09-03, ADR-0007.** English-only v1 with all strings externalised from the first commit; offline-capable, not offline-first. | Closed |
 | **D9** | Name and architecture of the restricted shell | Needs a real name before Phase 1 packaging; the child never types it, so it's a package name, not a brand. Architecture proposal since ADR-0002: a Qt/QML text surface with the command interpreter in C++, **not** a PTY program in a terminal emulator. That gives the large type and icon-augmented `ls` directly and makes the hand-off to a real shell at L3 an explicit step. | P1-2 |
 | **D10** | Content filtering (DESIGN §9.2 "TBD") | Two options, both local-config-only to honour §9.3: a **filtered upstream DNS resolver** (simple, but sends every query to a third party) or a **local resolver with blocklists** (private, needs list updates via the OS image). Decide in Phase 2 when the browser first appears at L2. | Phase 2 |
@@ -64,18 +73,21 @@ written up in `docs/research/`. Then, and only then, Phase 1.
 **What Phase 0 deliberately skips.** Guardian GUI (the provisioning script and
 a CLI stand in), first-boot wizard, quick-actions overlay, ISO, CI, signing.
 
+**P0-4 and P0-5:** nested labwc on the dev PC; the test laptop only for RSS
+and the VT-switch row.
+
 | ID | Task | Depends on | Done when |
 |---|---|---|---|
 | **P0-1** | Repository, planning, brand tokens and mark as code | — | This commit. |
-| **P0-2** | **Provisioning script** `provision/` that turns a stock Bazzite KDE install (ADR-0006) into a Cairn machine: creates the level groups (D5), one Guardian, one L1 child; installs the kiosk compositor and the Phase 0 app set (Tux Paint, GCompris, ScummVM via Flatpak/dnf); installs the session entry and greeter config. Idempotent; safe to re-run. | D5 | Runs clean twice on a fresh VM. |
-| **P0-3** | **Session dispatch and greeter** in `session/`: `cairn-session` dispatcher (D7), `cairn.desktop`, greetd config, PAM rule for passwordless L1/L2. | P0-2 | Child account lands in the kiosk with no password prompt; Guardian account lands in stock Plasma with one. |
-| **P0-4** | **Kiosk containment test** with labwc running a placeholder client: a launched Tux Paint or ScummVM window appears on top and closing it returns to the launcher; Alt-Tab, Super, and Ctrl-Alt-Fn VT switching are unreachable; a focus-stealing X11 client cannot steal focus under XWayland. Steam-specific rows live in P0-10. | P0-3 | Written checklist in `docs/research/kiosk-containment.md`, all rows pass or have a named mitigation. |
-| **P0-5** | **Launcher v0** in `launcher/`: a C++/QML app. Six tiles from `Cairn.Brand.Tokens`, colour by kind; keyboard and mouse navigation; launches apps with `QProcess`; shows "Something needs a grown-up" on launch failure or timeout; logs its own idle RSS. CMake, Qt Test, sanitizers and clang-format set up in this task, since it is the first C++ in the repo. | P0-4 | Runs fullscreen under cage on the target laptop; RSS recorded in `docs/research/launcher-footprint.md`. |
+| **P0-2** | **Provisioning script** `provision/` that turns a stock Bazzite KDE install (ADR-0006) into a Cairn machine: creates the level groups from ADR-0011, one Guardian, one L1 child; installs the kiosk compositor and the Phase 0 app set (Tux Paint, GCompris, ScummVM via Flatpak/dnf); installs the session entry and the display manager and greeter configuration (D6). Idempotent; safe to re-run. | — | Runs clean twice on a fresh VM. |
+| **P0-3** | **Session dispatch and greeter** in `session/`: `cairn-session` dispatcher (ADR-0012), `cairn.desktop`, display manager and greeter configuration (D6), PAM rule for passwordless L1/L2. Resolves D6 only. | P0-2 | Record which display manager stock Bazzite KDE ships (`rpm -q sddm plasma-login-manager` and `readlink -f /etc/systemd/system/display-manager.service` in the VM); child account lands in the kiosk with no password prompt; Guardian account lands in stock Plasma with one. |
+| **P0-4** | **Kiosk containment test** with labwc running a placeholder client: a launched Tux Paint or ScummVM window appears on top and closing it returns to the launcher; Alt-Tab, Super, and Ctrl-Alt-Fn VT switching are unreachable; a focus-stealing X11 client cannot steal focus under XWayland. Steam-specific rows live in P0-10. | — | Written checklist in `docs/research/kiosk-containment.md`, all rows pass or have a named mitigation. |
+| **P0-5** | **Launcher v0** in `launcher/`: a C++/QML app. Six tiles from `Cairn.Brand.Tokens`, colour by kind; keyboard and mouse navigation. First slice landed 2026-09-04 (six tiles, navigation, tests); remaining: `QProcess` launch with the "Something needs a grown-up" screen on failure or timeout, the foreign-toplevel listener (`ext-foreign-toplevel-list-v1`, needed by P0-10), RSS log. | — | Runs as a window under Plasma and fullscreen under nested labwc; RSS recorded in `docs/research/launcher-footprint.md`. |
 | **P0-6** | **Restricted shell v0** in `shell/`: C++ interpreter behind a QML text surface. L1 vocabulary candidate of five real commands (`ls`, `cd`, `open`, `cat`, `help`), large type, aggressive completion, suggestion-style errors ("I don't know \"opn\" — did you mean open?"), icon-augmented `ls`. Nothing destructive reachable. The interpreter is a pure C++ class with no Qt GUI dependency so it is unit-testable in isolation. | P0-5 | Child can open an app from it. Vocabulary written up for testing (DESIGN §14 Q2). |
-| **P0-7** | **malcontent-on-Plasma check** (DESIGN §14 Q7). In a VM: install malcontent, restrict a test user, log into Plasma, confirm restricted Flatpaks refuse to launch and the restriction UI is reachable. | — (parallel) | Result recorded as ADR-0002; if it fails, §4.5/§9.1 get revisited before Phase 2. |
+| **P0-7** | **malcontent-on-Plasma check** (DESIGN §14 Q7). In a VM: install malcontent, restrict a test user, log into Plasma, confirm restricted Flatpaks refuse to launch and the restriction UI is reachable. | — (parallel) | Result recorded in `docs/research/malcontent-plasma.md` and, if it changes §4.5 or §9.1, an ADR. |
 | **P0-8** | **Import `kidscan`** into `tools/kidscan/` with its README; no GUI yet. | — (parallel) | **Done 2026-09-03.** Imported with a fixture-based test suite; still to run against a real Steam library. |
-| **P0-9** | **Child test.** Real hardware, real child, twenty minutes, observer takes notes and does not intervene unless asked. Iterate on P0-5/P0-6 and repeat at least once. | P0-2…P0-6 | Write-up in `docs/research/child-test-01.md`. Phase 0 exit criterion met. |
-| **P0-10** | **Steam containment spike** (ADR-0004; the riskiest item in the design, so it runs early). Under labwc on the Minimum-tier laptop: start the client with `-silent` at session start; launch a game with `steam -applaunch`; force the client window open (`steam steam://open/main`, a pending client update, a signed-out client) and confirm window rules keep it off the screen; confirm the launcher learns of the foreign window via wlr-foreign-toplevel-management and can show "Something needs a grown-up"; confirm Family View PIN locks store/community/friends when a window does slip through; record idle RSS of the client against the 4 GB floor. Note that the Steam client is an X11 app under XWayland, so rules match its `WM_CLASS`. | P0-3 | `docs/research/steam-containment.md` with every row passing or named as an accepted gap; D3 closes with an ADR. |
+| **P0-9** | **Child test.** Real hardware, real child, twenty minutes, observer takes notes and does not intervene unless asked. Iterate on P0-5/P0-6 and repeat at least once. | P0-2…P0-6 and P0-10 | Write-up in `docs/research/child-test-01.md`. Phase 0 exit criterion met. |
+| **P0-10** | **Steam containment spike** (ADR-0004; the riskiest item in the design, so it runs early). **In the VM**, under labwc: start the client with `-silent` at session start; launch a game with `steam -applaunch`; force the client window open (`steam steam://open/main`, a pending client update, a signed-out client) and confirm window rules keep it off the screen; confirm the launcher learns of the foreign window via `ext-foreign-toplevel-list-v1` (P0-5) and can show "Something needs a grown-up"; confirm Family View PIN locks store/community/friends when a window does slip through. **On the Minimum-tier laptop:** record idle RSS of the client against the 4 GB floor; confirm Ctrl-Alt-Fn VT switching is unreachable. Note that the Steam client is an X11 app under XWayland, so rules match its `WM_CLASS`. | P0-3 | `docs/research/steam-containment.md` with every row passing or named as an accepted gap; D3 closes with an ADR. |
 
 ---
 
@@ -87,9 +99,9 @@ first-boot wizard, quick-actions overlay, signed image, CI, ISO.
 
 | ID | Task |
 |---|---|
-| P1-1 | Pin the Bazzite base to a digest (ADR-0006). Measure image size and first-boot RAM on both hardware tiers with the Steam client resident. Disable Bazzite's first-boot portal, Game Mode session and Waydroid. |
+| P1-1 | Measure image size and first-boot RAM on both hardware tiers with the Steam client resident. Disable Bazzite's first-boot portal, Game Mode session and Waydroid. |
 | P1-2 | Package launcher, shell and session as RPMs (in-tree spec files, built in a Containerfile stage or via a COPR). Name the shell (D9). |
-| P1-3 | Adopt `image-template`'s `Justfile` and `build.yml`; generate cosign keys; add `SIGNING_SECRET`; publish to `ghcr.io/cairn-linux/cairn`. |
+| P1-3 | Adopt `image-template`'s `Justfile` and `build.yml`; pin the Bazzite base to a digest (ADR-0006); generate cosign keys; add `SIGNING_SECRET`; publish to `ghcr.io/cairn-linux/cairn`. |
 | P1-4 | ISO via `bootc-image-builder` (`disk_config/iso.toml`); `build-disk.yml`. Test install on both tiers. |
 | P1-5 | Guardian tooling: a CLI first (`create-child`, `set-level`, `set-pin`, `allow-app`), then a minimal GUI on it. Level changes symmetric (DESIGN §3). |
 | P1-6 | First-boot wizard (DESIGN §4.3.1): Guardian account, PIN with its warning, first child, game scan offer, where creations live. Add Wi-Fi setup, which the design doc's list omits. |
@@ -153,7 +165,7 @@ first-boot wizard, quick-actions overlay, signed image, CI, ISO.
 | Steam changes client behaviour under us | Phase 1 onward | Detection + graceful failure, never rely on a quiet client. |
 | Single maintainer | Always | Inherit upstream; keep first-party code small; document every mechanism. |
 | Base image trademark constraints | Reviewed 2026-09-03, no blocker | Compliance checklist in `docs/research/base-image-policy.md`; P1-14 executes it before any image is published. |
-| Atkinson Hyperlegible Mono licence | Phase 1 packaging | Verify the Mono's licence permits redistribution in the image before it becomes the terminal face. |
+| Atkinson Hyperlegible Mono licence | **Closed 2026-09-04** | Atkinson Hyperlegible Next and Atkinson Hyperlegible Mono are both OFL-1.1, verified against the Fedora packages on 2026-09-04 (`docs/DEVELOPMENT.md`). |
 
 ---
 
@@ -162,8 +174,8 @@ first-boot wizard, quick-actions overlay, signed image, CI, ISO.
 - **GitHub milestones** per phase: Phase 0, Phase 1, Phase 2, Phase 3,
   Pre-release legal.
 - **Labels**: `area:launcher`, `area:shell`, `area:session`, `area:image`,
-  `area:guardian`, `area:games`, `area:brand`, `area:docs`, `decision`,
-  `research`, `upstream`, `legal`.
+  `area:guardian`, `area:games`, `area:brand`, `area:docs`, `area:provision`,
+  `accessibility`, `decision`, `research`, `upstream`, `legal`.
 - **ADRs** in `docs/decisions/` for every D-number when it closes.
 - `DESIGN.md` changes go through a pull request, even from the maintainer, so
   the reasoning is recorded.

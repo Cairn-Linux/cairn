@@ -2,7 +2,7 @@
 
 **Status:** accepted
 **Date:** 2026-09-03
-**Closes:** ROADMAP D2
+**Closes:** ROADMAP D2 (DESIGN §14 Q1)
 
 ## Context
 

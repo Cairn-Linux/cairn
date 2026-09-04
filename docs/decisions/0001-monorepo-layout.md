@@ -1,6 +1,8 @@
 # ADR-0001: One repository for the image and its first-party components
 
 **Status:** accepted
+**Amended by:** ADR-0010 (the scratchjr-linux repository is not created;
+ScratchJr is deferred)
 **Date:** 2026-09-03
 
 ## Context

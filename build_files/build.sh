@@ -6,17 +6,19 @@
 
 set -ouex pipefail
 
-# Lay system_files/ over / — session entries, greetd config, PAM rules,
-# launcher and shell packaging outputs, brand fonts.
+# Lay system_files/ over / — session entries,
+# the display manager and greeter configuration (D6), PAM rules,
+# launcher and shell packaging outputs.
 cp -avf /ctx/system_files/. /
 
 ### Packages that must live in the image, not in Flatpak (DESIGN §4.2):
 ### the launcher, the restricted shell, session plumbing, the kiosk
 ### compositor, ScummVM. Uncomment as each lands.
-# dnf5 install -y cage scummvm
+# dnf5 install -y labwc scummvm
+# dnf5 install -y atkinson-hyperlegible-next-fonts atkinson-hyperlegible-mono-fonts
 
 ### Everything else arrives as Flatpak at first boot or via the Guardian tool:
 ### GCompris (org.kde.gcompris), Tux Paint (org.tuxpaint.Tuxpaint), etc.
 
-### Services
-# systemctl enable greetd.service
+### Services: the display manager and greeter configuration (D6)
+# systemctl enable <display-manager>.service  # D6

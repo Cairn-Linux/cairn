@@ -8,14 +8,19 @@ Nothing here yet. Phase 0 task **P0-2** builds `cairn-provision.sh`.
 
 ## What it must do
 
-1. Create the level groups (`cairn-l1` … `cairn-guardian`).
+Its first act on the VM is to record `rpm -q sddm plasma-login-manager` and
+the active display manager via
+`readlink -f /etc/systemd/system/display-manager.service`.
+
+1. Create the level groups (`cairn-l1` … `cairn-guardian`, ADR-0011).
 2. Create one Guardian account (password) and one L1 child account (no
    password, avatar).
-3. Install the kiosk compositor (labwc, ADR-0004) and the Phase 0 app set:
-   Tux Paint, GCompris (Qt), ScummVM — via Flatpak where available,
-   `rpm-ostree`/`bootc` layering otherwise. Steam is already on Bazzite.
-4. Install the session entry, dispatcher, and greeter configuration from
-   `../session/`.
+3. Install the kiosk compositor (labwc proposed under D3 until P0-10 closes
+   it; ADR-0004) and the Phase 0 app set: Tux Paint, GCompris (Qt), ScummVM —
+   via Flatpak where available, `rpm-ostree`/`bootc` layering otherwise.
+   Steam is already on Bazzite.
+4. Install the session entry, dispatcher, and display manager and greeter
+   configuration (D6) from `../session/`.
 5. Install the launcher and shell prototypes from `../launcher/` and
    `../shell/`.
 6. Be idempotent. Running it twice on the same machine changes nothing the

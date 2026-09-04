@@ -12,7 +12,7 @@ close.
 ```markdown
 # ADR-NNNN: Title
 
-**Status:** proposed | accepted | superseded by ADR-MMMM
+**Status:** proposed | accepted | amended by ADR-MMMM | superseded by ADR-MMMM
 **Date:** YYYY-MM-DD
 **Closes:** ROADMAP D-n (if applicable)
 
