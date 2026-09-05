@@ -3,8 +3,13 @@
 Login-to-session plumbing. Makes "level is a property of the account"
 (DESIGN §3, §4.3) true on a real Linux system.
 
-Nothing here yet.
-Phase 0 task **P0-3** builds it, resolving **ROADMAP D6** only.
+So far only the kiosk compositor's configuration, `labwc/rc.xml`: no
+titlebars, no default key or mouse bindings, and a window rule that makes
+the launcher fullscreen on sight.
+Fullscreen is the compositor's decision, made per session, never a launcher
+option.
+`tests/test_labwc_config.py` checks the file says so; CTest runs it.
+Phase 0 task **P0-3** builds the rest, resolving **ROADMAP D6** only.
 
 ## Decided
 
@@ -37,5 +42,5 @@ Phase 0 task **P0-3** builds it, resolving **ROADMAP D6** only.
 
 ## Files expected here
 
-`cairn-session`, `cairn.desktop` and `pam.d/`.
+`cairn-session`, `cairn.desktop` and `pam.d/`, beside `labwc/`.
 If D6 chooses SDDM, also `sddm.conf.d/` and the theme under `theme/`.
