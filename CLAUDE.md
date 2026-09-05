@@ -113,10 +113,10 @@ someone learning the language from it. That shapes every rule below.
 
 ## Things that are not here
 
-- The C++ so far is the launcher in `launcher/` (see its README for the
-  build and the slices that have landed). `tools/kidscan/` and the brand
-  generator `brand/build.py` are standard-library Python by design. Run
-  the tests with `ctest --preset debug`,
+- The C++ so far is the launcher in `launcher/` and the restricted shell's
+  interpreter in `shell/` (each README lists the slices that have landed).
+  `tools/kidscan/` and the brand generator `brand/build.py` are
+  standard-library Python by design. Run the tests with `ctest --preset debug`,
   `python3 tools/kidscan/tests/test_kidscan.py` and
   `python3 brand/build.py --check`.
 - The brand guide's `docs/brand-guide/_ds/` folder is an unrelated, auto-generated

@@ -106,7 +106,7 @@ simultaneously with proper file separation and per-child controls.
 
 | Level | Age | Shell | Desktop | Games |
 |---|---|---|---|---|
-| L1 | 5–6 | ~5 commands, launches apps only | Launcher only, no filesystem | Curated tiles, incl. allowlisted Steam titles |
+| L1 | 5–6 | ~5 commands over the app tree, launches apps only (ADR-0013) | Launcher only, no filesystem | Curated tiles, incl. allowlisted Steam titles |
 | L2 | 7–8 | ~12 commands, sees own files | Launcher + own files | Curated tiles, incl. allowlisted Steam titles |
 | L3 | 9–11 | Real shell, no sudo | Plasma, locked down | Steam, allowlisted |
 | L4 | 12+ | Full bash | Stock Plasma + controls | Full |
@@ -151,7 +151,10 @@ destructive power, and no reward at the end.
 - Icon-augmented output where useful (`ls` showing pictures alongside names for
   pre-readers).
 
-Vocabulary per level is an open question (§14).
+Vocabulary per level is an open question (§14). What the commands see is
+decided: at L1 the shell's tree is the launcher's manifest, one folder per
+kind, and `open` resolves only to a manifest entry, never to a path or
+`xdg-open` (ADR-0013). L2 adds the child's own files.
 
 ### 3.2 The Guardian role
 
