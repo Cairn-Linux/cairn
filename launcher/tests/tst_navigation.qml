@@ -240,4 +240,32 @@ TestCase {
         compare(grid.currentIndex, 0);
         tryCompare(grid.currentItem, "activeFocus", true);
     }
+
+    // A window that opened on its own, reported as the compositor would report
+    // it: the grown-up screen appears with no Back tile and only the window
+    // closing ends it.
+    function test_windowOnItsOwnShowsGrownUpScreenWithoutBack() {
+        appLauncher.windowOpened("w1", "steam", "Steam");
+        tryCompare(grownUp, "visible", true);
+        compare(appLauncher.state, AppLauncher.Interrupted);
+        compare(grownUp.appTitle, "Steam");
+        compare(grid.visible, false);
+        const back = findChild(grownUp, "backTile");
+        verify(back !== null);
+        tryCompare(back, "visible", false);
+        tryCompare(grownUp, "activeFocus", true);
+        keyClick(Qt.Key_Escape);
+        compare(grownUp.visible, true);
+        appLauncher.windowClosed("w1");
+        tryCompare(grownUp, "visible", false);
+        compare(appLauncher.state, AppLauncher.Idle);
+        tryCompare(grid.currentItem, "activeFocus", true);
+    }
+
+    function test_ownWindowDoesNotInterrupt() {
+        appLauncher.ownAppId = "cairn-launcher";
+        appLauncher.windowOpened("w1", "cairn-launcher", "Cairn");
+        compare(appLauncher.state, AppLauncher.Idle);
+        compare(grownUp.visible, false);
+    }
 }
