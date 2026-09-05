@@ -23,9 +23,12 @@ done, and what could sink it. Decisions that change the design get an ADR in
   `python3 brand/build.py --check`.
 - The C++ toolchain, CMake presets, clang-format, clang-tidy and qmlformat
   configurations are in place.
-- The first launcher slice landed 2026-09-04: six tiles in a Qt Quick
+- Two launcher slices landed 2026-09-04. The first: six tiles in a Qt Quick
   window, keyboard navigation, translatable strings, accessible names and
-  three test suites (tile model, compiled brand tokens and QML navigation).
+  tests for the tile model, the compiled brand tokens and QML navigation.
+  The second: tiles launch the program a `kidscan` manifest names, a launch
+  that fails or errors within five seconds shows "Something needs a
+  grown-up", and the manifest reader and launcher have their own tests.
   It runs on the dev PC as a normal window under Plasma, not a kiosk.
 - `docs/DEVELOPMENT.md` matches the real dev PC as checked on 2026-09-04.
 - D5 (level groups, ADR-0011) and D7 (session dispatch, ADR-0012) are closed.
@@ -82,7 +85,7 @@ and the VT-switch row.
 | **P0-2** | **Provisioning script** `provision/` that turns a stock Bazzite KDE install (ADR-0006) into a Cairn machine: creates the level groups from ADR-0011, one Guardian, one L1 child; installs the kiosk compositor and the Phase 0 app set (Tux Paint, GCompris, ScummVM via Flatpak/dnf); installs the session entry and the display manager and greeter configuration (D6). Idempotent; safe to re-run. | — | Runs clean twice on a fresh VM. |
 | **P0-3** | **Session dispatch and greeter** in `session/`: `cairn-session` dispatcher (ADR-0012), `cairn.desktop`, display manager and greeter configuration (D6), PAM rule for passwordless L1/L2. Resolves D6 only. | P0-2 | Record which display manager stock Bazzite KDE ships (`rpm -q sddm plasma-login-manager` and `readlink -f /etc/systemd/system/display-manager.service` in the VM); child account lands in the kiosk with no password prompt; Guardian account lands in stock Plasma with one. |
 | **P0-4** | **Kiosk containment test** with labwc running a placeholder client: a launched Tux Paint or ScummVM window appears on top and closing it returns to the launcher; Alt-Tab, Super, and Ctrl-Alt-Fn VT switching are unreachable; a focus-stealing X11 client cannot steal focus under XWayland. Steam-specific rows live in P0-10. | — | Written checklist in `docs/research/kiosk-containment.md`, all rows pass or have a named mitigation. |
-| **P0-5** | **Launcher v0** in `launcher/`: a C++/QML app. Six tiles from `Cairn.Brand.Tokens`, colour by kind; keyboard and mouse navigation. First slice landed 2026-09-04 (six tiles, navigation, tests); remaining: `QProcess` launch with the "Something needs a grown-up" screen on failure or timeout, the foreign-toplevel listener (`ext-foreign-toplevel-list-v1`, needed by P0-10), RSS log. | — | Runs as a window under Plasma and fullscreen under nested labwc; RSS recorded in `docs/research/launcher-footprint.md`. |
+| **P0-5** | **Launcher v0** in `launcher/`: a C++/QML app. Six tiles from `Cairn.Brand.Tokens`, colour by kind; keyboard and mouse navigation. Slices 1 and 2 landed 2026-09-04 (six tiles, navigation, `QProcess` launch from a `kidscan` manifest, the "Something needs a grown-up" screen on failure, tests); remaining: the foreign-toplevel listener (`ext-foreign-toplevel-list-v1`, needed by P0-10 and #42), fullscreen under nested labwc, RSS log, icons (DESIGN §14 Q3). | — | Runs as a window under Plasma and fullscreen under nested labwc; RSS recorded in `docs/research/launcher-footprint.md`. |
 | **P0-6** | **Restricted shell v0** in `shell/`: C++ interpreter behind a QML text surface. L1 vocabulary candidate of five real commands (`ls`, `cd`, `open`, `cat`, `help`), large type, aggressive completion, suggestion-style errors ("I don't know \"opn\" — did you mean open?"), icon-augmented `ls`. Nothing destructive reachable. The interpreter is a pure C++ class with no Qt GUI dependency so it is unit-testable in isolation. | P0-5 | Child can open an app from it. Vocabulary written up for testing (DESIGN §14 Q2). |
 | **P0-7** | **malcontent-on-Plasma check** (DESIGN §14 Q7). In a VM: install malcontent, restrict a test user, log into Plasma, confirm restricted Flatpaks refuse to launch and the restriction UI is reachable. | — (parallel) | Result recorded in `docs/research/malcontent-plasma.md` and, if it changes §4.5 or §9.1, an ADR. |
 | **P0-8** | **Import `kidscan`** into `tools/kidscan/` with its README; no GUI yet. | — (parallel) | **Done 2026-09-03.** Imported with a fixture-based test suite; still to run against a real Steam library. |
