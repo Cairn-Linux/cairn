@@ -102,6 +102,7 @@ labwc -s './build/debug/launcher/cairn-launcher \
 Then, from another terminal, open a window in that session
 (`WAYLAND_DISPLAY=wayland-1 foot`, for instance): the grown-up screen should
 name it and go away when the window is closed.
+This passed on the dev PC with labwc 0.9.6 on 2026-09-04.
 
 Known gap (issue #42): `steam -applaunch` returns at once, so a game window
 that opens after the process has exited would be treated as unexpected.
