@@ -24,10 +24,20 @@ Window {
         manifestPath: window.manifestPath
     }
 
+    // Windows of other programs, from the compositor. Nothing arrives on
+    // platforms without the protocol; the launcher then only watches processes.
+    ForeignWindowList {
+        id: windows
+
+        onWindowOpened: (identifier, appId, title) => launcher.windowOpened(identifier, appId, title)
+        onWindowClosed: identifier => launcher.windowClosed(identifier)
+    }
+
     AppLauncher {
         id: launcher
 
         objectName: "launcher"
+        ownAppId: windows.ownAppId
     }
 
     GridView {
@@ -76,10 +86,13 @@ Window {
 
         objectName: "grownUpScreen"
         anchors.fill: parent
-        visible: launcher.state === AppLauncher.Failed
+        visible: launcher.needsGrownUp
         appTitle: launcher.title
-        onDismissed: {
-            launcher.dismiss();
+        openedOnItsOwn: launcher.state === AppLauncher.Interrupted
+        onDismissed: launcher.dismiss()
+        onVisibleChanged: {
+            if (visible)
+                return;
             grid.forceActiveFocus();
             if (grid.currentItem)
                 grid.currentItem.forceActiveFocus();

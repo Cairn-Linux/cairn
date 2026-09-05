@@ -34,6 +34,8 @@ Checks: >
   -readability-uppercase-literal-suffix
 WarningsAsErrors: '*'
 HeaderFilterRegex: '(launcher|shell|session|brand)/.*\.h$'
+# Wayland protocol code that wayland-scanner writes into the build tree.
+ExcludeHeaderFilterRegex: 'build/.*'
 FormatStyle: file
 CheckOptions:
   # Qt Test's QTRY_* macros expand to loops; count only the code a person wrote.

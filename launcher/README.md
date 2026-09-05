@@ -9,6 +9,9 @@ Colours, type, focus rings and radii come from `Cairn.Brand.Tokens`.
 - **Slice 1 (2026-09-04):** six tiles, keyboard navigation, mouse focus.
 - **Slice 2:** tiles launch programs from a manifest; a failed launch shows
   "Something needs a grown-up" instead of whatever the program printed.
+- **Slice 3:** the launcher hears from the compositor when any window opens
+  or closes, and a window nobody launched shows the grown-up screen until it
+  is closed.
 
 ## Build and run on the dev PC
 
@@ -25,9 +28,11 @@ The presets do not pin a compiler.
 Debug enables AddressSanitizer and UndefinedBehaviorSanitizer.
 Use `cmake --preset release && cmake --build --preset release` for a build
 without sanitizers.
-CTest runs five suites offscreen: the tile model, the manifest reader, the
-app launcher, the compiled brand tokens, and the QML navigation and
-failure-screen behaviour.
+CTest runs six suites offscreen: the tile model, the manifest reader, the
+app launcher, the window list, the compiled brand tokens, and the QML
+navigation and grown-up-screen behaviour.
+Qt on Fedora sends `qWarning` and `qInfo` lines to the journal when stderr
+is not a terminal; set `QT_FORCE_STDERR_LOGGING=1` to see them in a pipe.
 
 This is a normal window under Plasma, not a kiosk.
 There is no `--fullscreen` option.
@@ -68,6 +73,39 @@ The launcher runs one program at a time; a second Enter while one is
 starting or running is ignored.
 The program's own terminal output goes to the launcher's terminal, never to
 the child's screen.
+
+## Windows that open on their own
+
+Under a Wayland compositor that offers `ext-foreign-toplevel-list-v1`
+(labwc 0.8.2 and later), the launcher hears about every window that opens or
+closes, with its app id and title.
+A window that opens while the tiles are up, and is not the launcher's own,
+is one nobody asked for: a Steam update, a sign-in prompt, a stray dialog.
+The grown-up screen names it ("Steam opened on its own.") with no Back tile,
+because a child cannot dismiss what a grown-up has to see, and the tiles
+return when the window closes.
+Windows that open while a launched program is starting or running belong to
+that program and are left alone.
+The launcher's own windows carry the app id `cairn-launcher`, the name of
+the executable, which is what Qt reports when no desktop file is set.
+
+KWin does not offer the protocol, so under Plasma the launcher says so once
+in the terminal and only watches processes.
+To check the window path by hand, run the launcher inside nested labwc:
+
+```sh
+export QT_FORCE_STDERR_LOGGING=1
+labwc -s './build/debug/launcher/cairn-launcher \
+  --manifest launcher/manifests/dev-pc.json'
+```
+
+Then, from another terminal, open a window in that session
+(`WAYLAND_DISPLAY=wayland-1 foot`, for instance): the grown-up screen should
+name it and go away when the window is closed.
+
+Known gap (issue #42): `steam -applaunch` returns at once, so a game window
+that opens after the process has exited would be treated as unexpected.
+The P0-10 spike designs the window-based lifecycle for that case.
 
 ## Requirements carried from the design
 

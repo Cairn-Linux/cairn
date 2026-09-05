@@ -22,6 +22,10 @@ AppLauncher::State AppLauncher::state() const {
     return m_state;
 }
 
+bool AppLauncher::needsGrownUp() const {
+    return m_state == State::Failed || m_state == State::Interrupted;
+}
+
 QString AppLauncher::title() const {
     return m_title;
 }
@@ -38,14 +42,23 @@ void AppLauncher::setSettleMilliseconds(int milliseconds) {
     emit settleMillisecondsChanged();
 }
 
-void AppLauncher::launch(const QString& title, const QStringList& exec) {
-    if (m_state == State::Starting || m_state == State::Running) {
+QString AppLauncher::ownAppId() const {
+    return m_ownAppId;
+}
+
+void AppLauncher::setOwnAppId(const QString& appId) {
+    if (appId == m_ownAppId) {
         return;
     }
-    if (m_title != title) {
-        m_title = title;
-        emit titleChanged();
+    m_ownAppId = appId;
+    emit ownAppIdChanged();
+}
+
+void AppLauncher::launch(const QString& title, const QStringList& exec) {
+    if (m_state == State::Starting || m_state == State::Running || m_state == State::Interrupted) {
+        return;
     }
+    setTitle(title);
     if (exec.isEmpty()) {
         qWarning().noquote() << QStringLiteral("No program is set up for the tile %1.").arg(title);
         setState(State::Failed);
@@ -64,12 +77,51 @@ void AppLauncher::dismiss() {
     }
 }
 
+void AppLauncher::windowOpened(const QString& identifier, const QString& appId,
+                               const QString& title) {
+    if (!m_ownAppId.isEmpty() && appId == m_ownAppId) {
+        return;
+    }
+    if (m_state == State::Starting || m_state == State::Running) {
+        return;
+    }
+    QString name = title.isEmpty() ? appId : title;
+    if (name.isEmpty()) {
+        name = tr("Another program");
+    }
+    m_unexpectedWindows.insert(identifier, name);
+    if (m_state == State::Interrupted) {
+        return;
+    }
+    qWarning().noquote()
+        << QStringLiteral("%1 opened a window on its own (app id %2).").arg(name, appId);
+    setTitle(name);
+    setState(State::Interrupted);
+}
+
+void AppLauncher::windowClosed(const QString& identifier) {
+    if (!m_unexpectedWindows.remove(identifier)) {
+        return;
+    }
+    if (m_state == State::Interrupted && m_unexpectedWindows.isEmpty()) {
+        setState(State::Idle);
+    }
+}
+
 void AppLauncher::setState(State state) {
     if (state == m_state) {
         return;
     }
     m_state = state;
     emit stateChanged();
+}
+
+void AppLauncher::setTitle(const QString& title) {
+    if (title == m_title) {
+        return;
+    }
+    m_title = title;
+    emit titleChanged();
 }
 
 void AppLauncher::onStarted() {
