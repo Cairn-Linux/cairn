@@ -97,8 +97,6 @@ private slots:
         QCOMPARE(states.count(), 1);
     }
 
-    // Qt Test finds data functions through the meta-object, so it is a slot.
-    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
     void windowIsNamedByTitleThenAppIdThenAPlainPhrase_data() {
         QTest::addColumn<QString>("appId");
         QTest::addColumn<QString>("title");
