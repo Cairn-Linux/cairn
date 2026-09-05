@@ -12,6 +12,8 @@ Colours, type, focus rings and radii come from `Cairn.Brand.Tokens`.
 - **Slice 3:** the launcher hears from the compositor when any window opens
   or closes, and a window nobody launched shows the grown-up screen until it
   is closed.
+- **Slice 4:** fullscreen under labwc, through the kiosk configuration in
+  `../session/labwc/`. No launcher code changed.
 
 ## Build and run on the dev PC
 
@@ -35,7 +37,19 @@ Qt on Fedora sends `qWarning` and `qInfo` lines to the journal when stderr
 is not a terminal; set `QT_FORCE_STDERR_LOGGING=1` to see them in a pipe.
 
 This is a normal window under Plasma, not a kiosk.
-There is no `--fullscreen` option.
+There is no `--fullscreen` option: fullscreen is the compositor's decision,
+made by the window rule in `../session/labwc/rc.xml`, so the same program
+is a window under Plasma and the whole screen under labwc.
+To see that on the dev PC, run it inside nested labwc with that
+configuration:
+
+```sh
+export QT_FORCE_STDERR_LOGGING=1
+labwc -C session/labwc -S './build/debug/launcher/cairn-launcher \
+  --manifest launcher/manifests/dev-pc.json'
+```
+
+The compositor ends when the launcher does.
 Arrow keys move between tiles; Tab and Shift-Tab wrap through all of them
 (six by default).
 Enter, Space or a click launches the tile's program.
@@ -95,7 +109,7 @@ To check the window path by hand, run the launcher inside nested labwc:
 
 ```sh
 export QT_FORCE_STDERR_LOGGING=1
-labwc -s './build/debug/launcher/cairn-launcher \
+labwc -C session/labwc -S './build/debug/launcher/cairn-launcher \
   --manifest launcher/manifests/dev-pc.json'
 ```
 

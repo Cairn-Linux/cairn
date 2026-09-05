@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!--
+  labwc in kiosk configuration for L1 and L2 sessions (DESIGN §4.5,
+  ADR-0004). The session dispatcher (ADR-0012) starts it as
+  `labwc -C <this directory> -S cairn-launcher`, so the compositor ends when
+  the launcher does. On the dev PC, launcher/README.md shows the nested form.
+
+  Only what the launcher needs so far. Steam's window rules arrive with the
+  P0-10 spike; the escape hatch for hung apps is issue #41.
+-->
+<labwc_config>
+  <core>
+    <!-- Windows draw no titlebars; nothing here is meant to be moved. -->
+    <decoration>client</decoration>
+  </core>
+
+  <!--
+    labwc loads its default keybinds (Alt-Tab, Super, VT switching by
+    Ctrl-Alt-Fn and more) whenever a config defines none at all, so one
+    binding that does nothing is what turns them off. P0-4 checks this.
+  -->
+  <keyboard>
+    <keybind key="A-Tab">
+      <action name="None" />
+    </keybind>
+  </keyboard>
+
+  <!-- Likewise for the default mousebinds, including the right-click root menu. -->
+  <mouse>
+    <context name="Root">
+      <mousebind button="Right" action="Press">
+        <action name="None" />
+      </mousebind>
+    </context>
+  </mouse>
+
+  <windowRules>
+    <!--
+      The launcher is the whole screen. Fullscreen is the compositor's
+      decision, made here per session, never a launcher option: under Plasma
+      the same program is an ordinary window.
+    -->
+    <windowRule identifier="cairn-launcher" serverDecoration="no" fixedPosition="yes">
+      <action name="ToggleFullscreen" />
+    </windowRule>
+  </windowRules>
+</labwc_config>
