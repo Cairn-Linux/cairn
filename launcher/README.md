@@ -82,7 +82,10 @@ Without `--manifest` the six built-in tiles appear, none of which launches
 anything.
 A manifest that cannot be read is reported in the terminal for the parent,
 and the child sees the built-in tiles.
-`manifests/dev-pc.json` names Tux Paint and GCompris for the dev PC.
+`manifests/dev-pc.json` names Tux Paint for Draw and GCompris for Practice
+only; Build, Music and Story are empty until the catalogue survey (issue
+#26) picks a program for each. GCompris is a practice-folder app, never
+the front door (DESIGN §5.1).
 
 ## What a launch does
 
