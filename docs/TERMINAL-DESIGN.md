@@ -1,12 +1,12 @@
 # The terminal — Design Document
 
-**Status:** Draft for discussion, 2026-09-05
+**Status:** Draft for discussion, revised 2026-09-05
 **Intended home:** its own repository once ROADMAP D9 names it; until then
 this file lives beside `DESIGN.md` and is argued with here
 **Depends on:** `DESIGN.md` §3.1 (the premise), ADR-0002 (C++/Qt/QML),
 ADR-0013 (what the L1 shell sees)
 
-A shell that grows with the child. Five words at five years old, about
+A shell that grows with the child. Six words at five years old, about
 twelve at seven, and at nine the same words work in a real terminal.
 
 ---
@@ -32,8 +32,8 @@ purpose.
 
 The reward is real: `open draw` starts the drawing program. The vocabulary
 is real: `ls`, `cd`, `open`, `cat`. The determinism is total: same input,
-same answer, every time. The failure is free: nothing outside the terminal's
-own world exists to break.
+same answer, every time. The failure is free: nothing the child can type
+changes anything, so there is nothing to break.
 
 ### 1.2 Non-goals
 
@@ -53,11 +53,10 @@ own world exists to break.
 1. **Real words only.** Every command name and every argument form is one
    bash accepts, or will accept through a small wrapper (`open`). A child
    who learns here relearns nothing later.
-2. **One world, two doors.** The terminal shows two kinds of thing: what the
-   child can open, and what the child owns. Nothing else.
-3. **Consequence-free experimentation.** A child can make, rename and
-   delete things freely, because the things are theirs and pretend, and a
-   reset costs nothing.
+2. **A small world to explore.** The terminal shows two kinds of thing:
+   places to go and look, and things to open. Nothing else.
+3. **Consequence-free exploration.** No word the child knows makes,
+   changes or deletes anything. The world is the same tomorrow as today.
 4. **Suggest, never scold.** A mistake is answered with the next thing to
    type. No errors, no codes, no blame.
 5. **Same answer every time.** No randomness, no timing, no state the child
@@ -76,37 +75,39 @@ own world exists to break.
 What `ls` shows at the root:
 
 ```
-make   practice   machine   mine
+make   practice   machine   home
 ```
 
 The first three are **doors**: the programs the child can open, grouped by
 kind as the launcher groups them (ADR-0013). They come from the host, and
 the terminal cannot change them.
 
-`mine` is the **pretend computer**: a tree the child owns outright. It lives
-in the terminal's own memory and is saved as one small file wherever the
-host says. Every command that makes or changes something works only here.
-A child can fill it, wreck it and empty it, and `reset` (a grown-up action
-in the host, not a command) puts back the starter set.
+`home` is a **small fictional computer**: a few folders and notes laid out
+the way a real Linux home is, so that `cd home`, `cd notes`, `ls` and
+`cat hello` teach the shape a child will meet again at L3. It is authored,
+not made by the child, and the child cannot change it. It ships with the
+terminal as one small file; a host may replace it with its own.
 
-At L2 a third kind appears beside `mine`: `files`, the child's real
-creations directory (`DESIGN.md` §11), read-only. `ls files` shows the
-drawings with their pictures; `open` on one shows it. The terminal never
-writes there.
+At L2 one real thing appears inside it: `home/<name>/pictures`, the child's
+creations directory (`DESIGN.md` §11), read-only. `ls` shows the drawings
+with their pictures; `open` on one shows it. The terminal never writes
+there.
 
 ### 3.1 Names
 
 Everything has a lowercase name with no spaces: `draw`, `tux-paint`,
-`my-story`. Titles from the host become names by the slug rule in
-ADR-0013. Names the child makes are taken as typed, lowercased, with spaces
-turned into dashes, so `mkdir My Stuff` makes `my-stuff` and says so.
+`notes`. Titles from the host become names by the slug rule in ADR-0013.
+Files the host hands over at L2 keep their real names, lowercased for
+matching.
 
-### 3.2 Starter set
+### 3.2 What is in `home`
 
-`mine` starts with three things, so `cat` has a purpose at L1 and `ls` is
-never empty: a note that says hello, a note that lists the five words, and
-an empty folder called `things`. The wording is part of the vocabulary
-write-up and gets child-tested like everything else.
+The starter layout is small on purpose: `home/<name>` with a note that
+says hello, a note that lists the words, a folder `notes` with two more
+notes, and `pictures` (empty until L2). Enough that `ls` is never empty and
+`cat` has something to read at L1; not so much that the layout is a maze.
+The wording of the notes is part of the vocabulary write-up and gets
+child-tested like everything else.
 
 ---
 
@@ -114,28 +115,29 @@ write-up and gets child-tested like everything else.
 
 | Level | Words | What is new |
 |---|---|---|
-| L1 (5–6) | `ls` `cd` `open` `cat` `help` | looking, going, opening, reading |
-| L2 (7–8) | L1 plus `pwd` `mkdir` `touch` `echo` `mv` `cp` `rm` | making and changing things in `mine`; `files` appears |
+| L1 (5–6) | `ls` `cd` `open` `cat` `help` `exit` | looking, going, opening, reading, leaving |
+| L2 (7–8) | L1 plus `pwd` `tree` `clear` `history` `echo` `whoami` | seeing where you are and what you did; `pictures` appears |
 | L3 (9–11) | a real shell | the same words in bash, plus everything else |
 
+Every word at L1 and L2 looks, moves or opens. None makes, changes or
+deletes anything, at any level: that is bash's job at L3, in a real home.
 Twelve at L2 is the design's number; the exact set is child-tested
-(`DESIGN.md` §14 Q2). Candidates not in the table: `clear`, `history`,
-`tree`.
+(`DESIGN.md` §14 Q2). Candidates not in the table: `find`, `head`, `date`.
 
 ### 4.1 Rules that hold at every level
 
 - A command behaves as bash does for the forms it accepts. `cd ..` goes up,
-  `cd` alone goes home, `ls name` looks into a folder, `echo hi > note`
-  writes a note. Forms it does not accept get a suggestion, not a surprise.
+  `cd` alone goes to the root, `ls name` looks into a folder, `echo hi`
+  says hi. Forms it does not accept get a suggestion, not a surprise.
 - No flags at L1. `ls -la` is a name the terminal cannot find. Flags arrive
   when a level needs them, one at a time, and each is a real one.
-- One name at a time at L1. L2 allows what its commands need (`mv a b`).
+- One name at a time at L1 and L2. No command here needs two.
 - `open` always means the host starts something. On a door it starts the
-  program. On a file in `files` it shows the file. On a thing in `mine` it
-  reads it, like `cat`, because a pretend thing has nothing else to open.
-- `rm` in `mine` asks nothing and deletes. The pretend computer is the
-  place to learn that `rm` means gone; the reset is the safety net, and it
-  is the grown-up's, not the child's.
+  program. On a picture it shows the picture. On a note it reads it, like
+  `cat`, because a note has nothing else to open.
+- `exit` leaves the terminal and returns to the launcher, at every level.
+  It is the one word that does something outside the world, and it is the
+  first word a child should be sure of.
 - Nothing the child types ever reaches the real filesystem, the network or
   another program, except through `open`, which the host carries out from
   its own allowlist.
@@ -147,9 +149,9 @@ that a step and not a cliff:
 
 - Every word they know works, because they were real. `open` works through
   a small `/usr/bin/open` wrapper the OS packages (issue #46).
-- `mine` becomes real: on the day the level changes, the pretend tree is
-  written out as an actual folder in the child's home, with the same names.
-  What they built stays built.
+- The shape is the same. `home/<name>/notes` and `home/<name>/pictures`
+  were laid out like a real home on purpose, so the real one is familiar,
+  and `pictures` was already the real one.
 - The first `help` in bash is a page that says which words they already know
   and which are new. That page is the OS's, not this project's.
 
@@ -170,7 +172,7 @@ Specific to the terminal:
   suggestion, because guessing `ls` would be wrong.
 - **Success is mostly quiet.** `cd make` says nothing; the prompt changes.
   `open draw` says `Opening Draw.` once.
-- **The prompt is the location.** `/`, `/make`, `/mine/things`. Nothing
+- **The prompt is the location.** `/`, `/make`, `/home/sam/notes`. Nothing
   else on it.
 - **Every string is translatable from the first commit** (ADR-0007) and the
   complete wording table lives in the repository beside the tests that pin
@@ -191,15 +193,15 @@ The current table is in `shell/README.md`.
   not vanish.
 - **Icons on `ls`.** Every line carries its kind, so a door shows the kind's
   colour and mark, a folder shows a folder, a note shows a note, and a
-  drawing in `files` shows the drawing. A pre-reader can `ls` and `open` by
+  drawing in `pictures` shows the drawing. A pre-reader can `ls` and `open` by
   picture alone.
 - **Up arrow recalls.** History is the last twenty lines of this session,
   nothing more.
 - **Nothing scrolls away.** Output is short by design; the surface keeps the
   last screenful and no more.
-- **One way out.** Escape, or the host's Back control, returns to the
-  launcher. There is no `exit` at L1; it arrives at L2, because it is a
-  real word.
+- **One way out, three ways to say it.** `exit`, Escape, or the host's Back
+  control, and all three return to the launcher. `exit` is an L1 word
+  because leaving is the first thing a child should be able to do alone.
 - Every control has an `Accessible.name` (ADR-0008); the surface is
   keyboard-first and mouse-optional.
 
@@ -211,26 +213,27 @@ C++20 with Qt 6 and QML, as ADR-0002 says for every first-party surface.
 Three parts, each testable on its own:
 
 1. **The interpreter.** Qt Core only. Takes a line, returns a reply: lines
-   with kinds, an optional launch, a new location. Holds the level and the
-   world. Never touches a file or a process.
-2. **The world.** Two providers behind one interface. The *doors* provider
-   is handed a list of titles, kinds and exec lists by the host. The
-   *pretend computer* is the interpreter's own tree, loaded from and saved
-   to a single JSON file the host names. The *files* provider, from L2, is
-   handed a real directory by the host and only ever reads it.
+   with kinds, an optional launch, a leave, a new location. Holds the level
+   and the world. Never writes a file or starts a process.
+2. **The world.** Three read-only providers behind one interface. The
+   *doors* provider is handed a list of titles, kinds and exec lists by the
+   host. The *home* provider loads the fictional layout from one JSON file,
+   the project's own or one the host names. The *pictures* provider, from
+   L2, is handed a real directory by the host and only ever reads it.
 3. **The surface.** A QML component the host places in its window. It draws
    replies, handles input, completion and history, and emits `launch` and
    `leave`.
 
 The host interface is deliberately small: give the terminal its doors, its
-level, its save file and (at L2) its files directory; receive `launch`
+level, the child's name and (at L2) the pictures directory; receive `launch`
 requests and a `leave` signal. Cairn's launcher is the first host and does
 those through the manifest reader and `AppLauncher` it already has. A
 standalone window with a demo world is the second host and lives in this
 project.
 
 Slice 1 of the interpreter, the doors provider and the reply type exist
-today in Cairn's `shell/`. They move with the split.
+today in Cairn's `shell/`, with five words; `exit` and `home` are slice 2.
+They move with the split.
 
 ### 7.1 What stays in Cairn
 
@@ -250,14 +253,13 @@ Quick Test the way the launcher's is.
 
 ## 8. Safety
 
-- The interpreter has no filesystem access except the one save file the
-  host names and the read-only directory it is handed at L2.
+- The interpreter writes nothing, anywhere, ever. It reads one layout file
+  and, at L2, the one directory the host hands it.
 - No network, ever.
 - No child process is started by this project. `open` is a request to the
   host, which starts things from its own allowlist.
 - What `ls` shows is the whole world; there is no hidden name to guess.
-- The save file is the child's own data and is disposable: a corrupt or
-  missing file means the starter set, not an error.
+- A missing or broken layout file means the built-in one, not an error.
 
 ---
 
@@ -267,8 +269,7 @@ Quick Test the way the launcher's is.
 |---|---|---|
 | 1 | The name | ROADMAP D9. A package and project name, not something the child types. Decides the repository. |
 | 2 | The exact L2 twelve | Table in §4 is the candidate. Child-tested. |
-| 3 | `rm` with no net | §4.1 says delete means gone in `mine`. A `trash` folder would be more forgiving but is not a real word. Decide after the first child test. |
-| 4 | Discoveries | Small things to find (`help` growing, a note that mentions another) could make play richer. Or they are clutter. Not in v1. |
-| 5 | Save format | One JSON file per child. Where the host keeps it and what a reset restores. |
-| 6 | The demo world | What the standalone window shows a child who is not on Cairn: doors that open nothing real need honest wording. |
-| 7 | Sharing `mine` | Two children on one machine each get their own; whether they can see each other's is the OS's question. |
+| 3 | Can a grown-up add to `home`? | A note from a parent in `notes` would be a reason to `cat` something new. Cheap if the layout file is editable by the Guardian tool; decide after the first child test. |
+| 4 | Discoveries | Small things to find (`help` growing, a note that mentions another) could make exploring richer. Or they are clutter. Not in v1. |
+| 5 | The demo world | What the standalone window shows a child who is not on Cairn: doors that open nothing real need honest wording. |
+| 6 | The child's name in the tree | `home/<name>` needs the name from the host; the demo world needs a default. |
