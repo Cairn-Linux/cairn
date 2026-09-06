@@ -75,45 +75,85 @@ Window {
             grid.currentItem.forceActiveFocus();
     }
 
-    GridView {
-        id: grid
+    // The window onto the tiles (ADR-0015): two whole rows, and when there are
+    // more, the top of the third, so a child sees there is more. The grid is
+    // as tall as all its rows and slides under the window by whole rows.
+    Item {
+        id: tileWindow
 
-        objectName: "tileGrid"
+        objectName: "tileWindow"
+        // Room for the focus ring around the outermost tiles, inside the clip.
+        readonly property real ring: Tokens.focusOffset + Tokens.focusWidth
+
         anchors.fill: parent
-        anchors.margins: Tokens.headingSize
-        cellWidth: width / 3
-        cellHeight: height / 2
-        interactive: false
-        focus: !grownUp.visible && !window.terminalOpen
+        anchors.margins: Tokens.headingSize - ring
+        clip: true
         visible: !grownUp.visible && !window.terminalOpen
-        keyNavigationEnabled: true
-        keyNavigationWraps: true
-        currentIndex: 0
-        model: tiles
 
-        Keys.onTabPressed: event => {
-            const step = (event.modifiers & Qt.ShiftModifier) ? count - 1 : 1;
-            currentIndex = (currentIndex + step) % count;
-            event.accepted = true;
-        }
-        Keys.onBacktabPressed: event => {
-            currentIndex = (currentIndex + count - 1) % count;
-            event.accepted = true;
+        GridScroller {
+            id: scroller
+
+            objectName: "gridScroller"
+            columns: 3
+            visibleRows: 2
+            count: grid.count
+            currentIndex: grid.currentIndex
         }
 
-        delegate: Tile {
-            required property int index
-            required property list<string> exec
-            required property bool opensTerminal
+        GridView {
+            id: grid
 
-            width: grid.cellWidth - Tokens.headingSize
-            height: grid.cellHeight - Tokens.headingSize
-            focus: GridView.isCurrentItem
-            onActiveFocusChanged: {
-                if (activeFocus)
-                    grid.currentIndex = index;
+            objectName: "tileGrid"
+            readonly property real windowHeight: tileWindow.height - 2 * tileWindow.ring
+
+            x: tileWindow.ring
+            width: parent.width - 2 * tileWindow.ring
+            height: cellHeight * Math.max(1, scroller.rows)
+            y: tileWindow.ring - scroller.firstRow * cellHeight
+            cellWidth: width / scroller.columns
+            cellHeight: scroller.scrolls ? windowHeight / (scroller.visibleRows + 0.5) : windowHeight / scroller.visibleRows
+            interactive: false
+            focus: tileWindow.visible
+            keyNavigationEnabled: true
+            keyNavigationWraps: true
+            currentIndex: 0
+            model: tiles
+
+            // The one motion that earns its place: the rows moving.
+            Behavior on y {
+                NumberAnimation {
+                    duration: Tokens.motionRow
+                }
             }
-            onActivated: opensTerminal ? window.openTerminal() : launcher.launch(title, exec)
+
+            Keys.onTabPressed: event => {
+                const step = (event.modifiers & Qt.ShiftModifier) ? count - 1 : 1;
+                currentIndex = (currentIndex + step) % count;
+                event.accepted = true;
+            }
+            Keys.onBacktabPressed: event => {
+                currentIndex = (currentIndex + count - 1) % count;
+                event.accepted = true;
+            }
+
+            WheelHandler {
+                onWheel: event => grid.currentIndex = scroller.indexAfterWheel(event.angleDelta.y)
+            }
+
+            delegate: Tile {
+                required property int index
+                required property list<string> exec
+                required property bool opensTerminal
+
+                width: grid.cellWidth - Tokens.headingSize
+                height: grid.cellHeight - Tokens.headingSize
+                focus: GridView.isCurrentItem
+                onActiveFocusChanged: {
+                    if (activeFocus)
+                        grid.currentIndex = index;
+                }
+                onActivated: opensTerminal ? window.openTerminal() : launcher.launch(title, exec)
+            }
         }
     }
 

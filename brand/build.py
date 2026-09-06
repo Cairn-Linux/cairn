@@ -208,6 +208,9 @@ def render_css(tokens):
   --cairn-radius-cover:    {tokens['radius']['cover']}px;
   --cairn-radius-terminal: {tokens['radius']['terminal']}px;
   --cairn-radius-pill:     {tokens['radius']['pill']}px;
+
+  /* motion: the one animation, rows of tiles sliding into view */
+  --cairn-motion-row: {tokens['motion']['row']}ms;
 }}
 
 /* Dark surfaces (terminal, login, boot): the only dark ground is Ink. */
@@ -333,6 +336,12 @@ def render_qml(tokens):
     for name, value in tokens["radius"].items():
         property_name = "radius" + camel(name)[0].upper() + camel(name)[1:]
         lines.append(qml_property("int", property_name, str(value)))
+    lines += ["", "    // ---- motion (milliseconds) ----"]
+    for name, value in tokens["motion"].items():
+        if name == "note":
+            continue
+        property_name = "motion" + camel(name)[0].upper() + camel(name)[1:]
+        lines.append(qml_property("int", property_name, str(value), tokens["motion"]["note"]))
     lines += ["}", ""]
     qml = "\n".join(lines)
     validate_qml_property_names(qml)

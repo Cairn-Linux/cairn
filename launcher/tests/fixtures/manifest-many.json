@@ -1,0 +1,131 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "title": "Tile 1",
+      "category": "practice",
+      "exec": [
+        "/bin/sh",
+        "-c",
+        "exit 0"
+      ]
+    },
+    {
+      "title": "Tile 2",
+      "category": "machine",
+      "exec": [
+        "/bin/sh",
+        "-c",
+        "exit 0"
+      ]
+    },
+    {
+      "title": "Tile 3",
+      "category": "make",
+      "exec": [
+        "/bin/sh",
+        "-c",
+        "exit 0"
+      ]
+    },
+    {
+      "title": "Tile 4",
+      "category": "practice",
+      "exec": [
+        "/bin/sh",
+        "-c",
+        "exit 0"
+      ]
+    },
+    {
+      "title": "Tile 5",
+      "category": "machine",
+      "exec": [
+        "/bin/sh",
+        "-c",
+        "exit 0"
+      ]
+    },
+    {
+      "title": "Tile 6",
+      "category": "make",
+      "exec": [
+        "/bin/sh",
+        "-c",
+        "exit 0"
+      ]
+    },
+    {
+      "title": "Tile 7",
+      "category": "practice",
+      "exec": [
+        "/bin/sh",
+        "-c",
+        "exit 0"
+      ]
+    },
+    {
+      "title": "Tile 8",
+      "category": "machine",
+      "exec": [
+        "/bin/sh",
+        "-c",
+        "exit 0"
+      ]
+    },
+    {
+      "title": "Tile 9",
+      "category": "make",
+      "exec": [
+        "/bin/sh",
+        "-c",
+        "exit 0"
+      ]
+    },
+    {
+      "title": "Tile 10",
+      "category": "practice",
+      "exec": [
+        "/bin/sh",
+        "-c",
+        "exit 0"
+      ]
+    },
+    {
+      "title": "Tile 11",
+      "category": "machine",
+      "exec": [
+        "/bin/sh",
+        "-c",
+        "exit 0"
+      ]
+    },
+    {
+      "title": "Tile 12",
+      "category": "make",
+      "exec": [
+        "/bin/sh",
+        "-c",
+        "exit 0"
+      ]
+    },
+    {
+      "title": "Tile 13",
+      "category": "practice",
+      "exec": [
+        "/bin/sh",
+        "-c",
+        "exit 0"
+      ]
+    },
+    {
+      "title": "Tile 14",
+      "category": "machine",
+      "exec": [
+        "/bin/sh",
+        "-c",
+        "exit 0"
+      ]
+    }
+  ]
+}

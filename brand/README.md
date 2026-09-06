@@ -7,7 +7,7 @@ guideline (a design canvas, v0.1); this directory is what programs import.
 |---|---|
 | `tokens.json` | Source of truth: palette, semantic roles, type scale, radii, mark geometry, measured contrast ratios. Edit this. |
 | `tokens.css` | CSS custom properties generated from `tokens.json`, for web surfaces and docs. |
-| `qml/Cairn/Brand/Tokens.qml` | QML singleton generated from `tokens.json`. Every first-party Qt/QML surface uses this and nothing else for colour, type or radius: `import Cairn.Brand`, then `Tokens.ink`, `Tokens.makeLabel`, `Tokens.radiusTile`. |
+| `qml/Cairn/Brand/Tokens.qml` | QML singleton generated from `tokens.json`. Every first-party Qt/QML surface uses this and nothing else for colour, type, radius or motion: `import Cairn.Brand`, then `Tokens.ink`, `Tokens.makeLabel`, `Tokens.radiusTile`. |
 | `qml/Cairn/Brand/qmldir` | Generated module description for tools that import QML from `brand/qml`. |
 | `qml/Cairn/Brand/CMakeLists.txt` | Generated `qt_add_qml_module` declaration for compiled applications. |
 | `tests/` | Python generator tests and QML tests for both import routes. |
