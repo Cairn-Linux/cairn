@@ -138,7 +138,9 @@ The P0-10 spike designs the window-based lifecycle for that case.
 ## Requirements carried from the design
 
 - Fullscreen grid of large tiles. No window management, taskbar, or
-  filesystem view at L1. L2 adds a files view to the dock.
+  filesystem view at L1. Flat: no folders. More tiles than fit means the
+  grid scrolls by wheel and arrow keys, whole rows at a time, with the next
+  row showing at the edge (ADR-0015). L2 adds a files view to the dock.
 - No reading required beyond app names, paired with distinct icons.
 - **Colour codes kind, never app**: ochre = make, moss = practice,
   fjord = machine. Use `Tokens.make` / `Tokens.makeLabel`,
