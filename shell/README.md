@@ -90,9 +90,10 @@ Refresh the translation catalogue with
   the surface can draw the icon.
 - Perfect determinism: same input, same result, every time.
 
-## Open
+## Where this is going
 
-- Where the shell runs: a screen inside the launcher's window, or its own
-  program started from the Terminal tile. D9 decides; slice 2 needs it.
-- How L3's real shell hands off from this one without a vocabulary cliff
-  (Phase 2).
+The shell runs as a screen inside the launcher's window (decided
+2026-09-04). The terminal is to become its own project; the draft design
+for that, including the pretend computer the child owns, the L2 words and
+the L3 hand-off, is `../docs/TERMINAL-DESIGN.md`. What is here moves with
+it once D9 names it.
