@@ -1,0 +1,32 @@
+#%PAM-1.0
+# SPDX-License-Identifier: Apache-2.0
+# Fedora's stock /etc/pam.d/sddm with two lines added (ADR-0016): an L1 or
+# L2 child logs in from the greeter with no password. The rule lives here
+# and nowhere else, so su, ssh and the lock screen still find the account's
+# password locked (issue #35). Provisioning replaces the stock file with this
+# one; the rest of the file matches sddm-0.21 in Fedora 44.
+auth     [success=done ignore=ignore default=bad] pam_selinux_permit.so
+auth        sufficient    pam_succeed_if.so quiet user ingroup cairn-l1
+auth        sufficient    pam_succeed_if.so quiet user ingroup cairn-l2
+auth        substack      password-auth
+-auth        optional      pam_gnome_keyring.so
+-auth        optional      pam_kwallet5.so
+-auth        optional      pam_kwallet.so
+auth        include       postlogin
+
+account     required      pam_nologin.so
+account     include       password-auth
+
+password    include       password-auth
+
+session     required      pam_selinux.so close
+session     required      pam_loginuid.so
+-session    optional    pam_ck_connector.so
+session     required      pam_selinux.so open
+session     optional      pam_keyinit.so force revoke
+session     required      pam_namespace.so
+session     include       password-auth
+-session     optional      pam_gnome_keyring.so auto_start
+-session     optional      pam_kwallet5.so auto_start
+-session     optional      pam_kwallet.so auto_start
+session     include       postlogin

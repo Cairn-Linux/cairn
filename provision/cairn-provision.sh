@@ -17,7 +17,7 @@ PREFIX=/usr/local
 SHARE="$PREFIX/share/cairn"
 FACTS=/var/lib/cairn/facts.txt
 LEVEL_GROUPS=(cairn-l1 cairn-l2 cairn-l3 cairn-l4 cairn-guardian)
-LAYERED_PACKAGES=(labwc scummvm)
+LAYERED_PACKAGES=(labwc scummvm sddm sddm-breeze sddm-wayland-plasma)
 FLATPAKS=(org.kde.gcompris org.tuxpaint.Tuxpaint)
 
 guardian=""
@@ -125,6 +125,21 @@ package_present() {
         || rpm-ostree status | grep -E '^\s*LayeredPackages:' | tr ' ' '\n' | grep -qx "$1"
 }
 
+# sddm requires desktop-backgrounds-compat, whose two wallpaper paths exist
+# in the Bazzite image as symlinks no package owns, so a plain layering
+# fails on the file clash. rpm-ostree allows the replacement only for a
+# local RPM in a transaction of its own, so that package goes first.
+layer_backgrounds_compat() {
+    package_present desktop-backgrounds-compat && return
+    local dir
+    dir="$(mktemp -d)"
+    dnf5 download --quiet --destdir "$dir" desktop-backgrounds-compat
+    rpm-ostree install --idempotent --force-replacefiles "$dir"/desktop-backgrounds-compat-*.rpm
+    rm -r "$dir"
+    changed "layered desktop-backgrounds-compat over the image's wallpaper symlinks"
+    reboot_needed=yes
+}
+
 layer_packages() {
     local missing=()
     local package
@@ -132,6 +147,7 @@ layer_packages() {
         package_present "$package" || missing+=("$package")
     done
     if [ ${#missing[@]} -gt 0 ]; then
+        layer_backgrounds_compat
         rpm-ostree install --idempotent "${missing[@]}"
         changed "layered ${missing[*]} (reboot to use them)"
         reboot_needed=yes
@@ -163,7 +179,39 @@ install_file() {
 install_session_files() {
     install_file 644 "$REPO/session/labwc/rc.xml" "$SHARE/labwc/rc.xml"
     install_file 644 "$REPO/session/labwc/environment" "$SHARE/labwc/environment"
-    # cairn-session and cairn.desktop arrive with P0-3 (ADR-0012).
+    # The one session entry and its dispatcher (ADR-0012).
+    install_file 755 "$REPO/session/bin/cairn-session" "$PREFIX/bin/cairn-session"
+    install_file 644 "$REPO/session/sessions/cairn.desktop" "$SHARE/sessions/cairn.desktop"
+}
+
+# --- 7. The display manager: SDDM, swapped in explicitly (ADR-0016) ---------
+install_display_manager() {
+    install_file 644 "$REPO/session/sddm/sddm.conf.d/10-cairn.conf" /etc/sddm.conf.d/10-cairn.conf
+    install_file 644 "$REPO/session/sddm/sddm.conf.d/zz-cairn-no-autologin.conf" /etc/sddm.conf.d/zz-cairn-no-autologin.conf
+    install_file 644 "$REPO/session/sddm/pam.d/sddm" /etc/pam.d/sddm
+    # Guardians are hidden from the greeter's tiles. The list changes with
+    # the accounts, so it is generated here rather than shipped.
+    local guardians
+    guardians="$(getent group cairn-guardian | cut -d: -f4)"
+    printf '# Written by provision/cairn-provision.sh; the members of cairn-guardian.\n[Users]\nHideUsers=%s\n' \
+        "$guardians" > /tmp/cairn-guardians.conf
+    install_file 644 /tmp/cairn-guardians.conf /etc/sddm.conf.d/20-cairn-guardians.conf
+    rm /tmp/cairn-guardians.conf
+    # The packages are layered above; until the reboot sddm.service is not
+    # there to enable, so this step waits for the second run.
+    if [ -f /usr/lib/systemd/system/sddm.service ]; then
+        if [ "$(systemctl is-enabled plasmalogin.service 2>/dev/null)" != "disabled" ]; then
+            systemctl disable plasmalogin.service
+            changed "plasmalogin.service disabled"
+        fi
+        if [ "$(systemctl is-enabled sddm.service 2>/dev/null)" != "enabled" ]; then
+            systemctl enable sddm.service
+            changed "sddm.service enabled (takes effect at the next boot)"
+            reboot_needed=yes
+        fi
+    else
+        echo "note: sddm is not in the booted deployment yet; rerun after the reboot to enable it"
+    fi
 }
 
 install_launcher() {
@@ -186,7 +234,9 @@ WRAPPER
 
 relabel() {
     if command -v restorecon > /dev/null; then
-        restorecon -R "$PREFIX/bin/cairn-launcher" "$PREFIX/libexec/cairn" "$PREFIX/lib64/cairn" "$SHARE"
+        restorecon -R "$PREFIX/bin/cairn-launcher" "$PREFIX/bin/cairn-session" \
+            "$PREFIX/libexec/cairn" "$PREFIX/lib64/cairn" "$SHARE" \
+            /etc/sddm.conf.d /etc/pam.d/sddm
     fi
 }
 
@@ -198,10 +248,11 @@ layer_packages
 install_flatpaks
 install_session_files
 install_launcher
+install_display_manager
 relabel
 
 set +x
 echo "done: $changes change(s)"
 if [ "$reboot_needed" = yes ]; then
-    echo "reboot before using labwc or ScummVM: the layered packages are in the next deployment"
+    echo "reboot: layered packages or the display manager change take effect at the next boot"
 fi
