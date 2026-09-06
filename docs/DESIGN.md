@@ -283,7 +283,8 @@ property of that account and determines which session type launches at login.
 
 The level is a supplementary group (ADR-0011), and one session entry
 dispatches on it (ADR-0012).
-The login screen component is decided by ROADMAP D6, which remains open.
+The login screen is SDDM with a Cairn theme (ADR-0016); the passwordless
+rule for L1 and L2 lives only in the greeter's PAM service.
 
 ### 4.3.1 First boot
 

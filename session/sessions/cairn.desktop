@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: Apache-2.0
+# The only session the greeter offers (ADR-0012). cairn-session picks the
+# real one from the account's level group.
+[Desktop Entry]
+Type=Application
+Name=Cairn
+Comment=The session for this account's level
+Exec=cairn-session
+DesktopNames=KDE

@@ -4,3 +4,6 @@ find_package(Python3 REQUIRED COMPONENTS Interpreter)
 add_test(NAME labwc_config
     COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_labwc_config.py"
 )
+add_test(NAME cairn_session
+    COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_cairn_session.py"
+)

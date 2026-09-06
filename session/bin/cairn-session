@@ -1,0 +1,39 @@
+#!/bin/bash
+# SPDX-License-Identifier: Apache-2.0
+#
+# cairn-session: the one session entry, dispatched by the account's level
+# group (ADR-0012, DESIGN §4.3). The greeter runs this for every account.
+# It reads the groups of the user who logged in and hands the session to
+# either the kiosk compositor with the launcher (L1, L2) or Plasma (L3, L4,
+# Guardian). Nothing else is decided here.
+#
+# This is a trust boundary (CLAUDE.md), so it stays short: the tests in
+# ../tests/test_cairn_session.py run it with stand-ins for `id`, `labwc` and
+# `startplasma-wayland` and check which one it chose.
+set -ouex pipefail
+
+# Where provisioning puts the kiosk configuration (provision/README.md).
+# The Phase 1 package will set its own path here.
+labwc_config="${CAIRN_LABWC_CONFIG:-/usr/local/share/cairn/labwc}"
+
+# One line, one word per group, so a name can be matched whole: `cairn-l1`
+# must never match inside another name.
+groups="$(id -nG | tr ' ' '\n')"
+
+in_group() {
+    grep -qx -- "$1" <<< "$groups"
+}
+
+# The kiosk is checked first. An account that is somehow in two level
+# groups gets the more restricted session, never the less.
+if in_group cairn-l1 || in_group cairn-l2; then
+    exec labwc -C "$labwc_config" -S cairn-launcher
+fi
+
+if in_group cairn-l3 || in_group cairn-l4 || in_group cairn-guardian; then
+    exec startplasma-wayland
+fi
+
+# Not a Cairn account at all. Plasma is what the machine gave it before
+# Cairn arrived, so nothing is taken away and nothing is granted.
+exec startplasma-wayland

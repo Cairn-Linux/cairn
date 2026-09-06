@@ -31,11 +31,14 @@ What it leaves on the machine:
 | the child account | In `cairn-l1`, password locked: the greeter lets an L1 child in, `su` and `ssh` do not (#35) |
 | labwc, ScummVM | Layered into the OS; Tux Paint and GCompris as system Flatpaks |
 | `/usr/local/share/cairn/labwc/` | The kiosk configuration from `../session/labwc/` |
+| `/usr/local/bin/cairn-session`, `/usr/local/share/cairn/sessions/cairn.desktop` | The one session entry and its dispatcher (ADR-0012) |
+| sddm, sddm-breeze, sddm-wayland-plasma | Layered; `plasmalogin.service` disabled and `sddm.service` enabled (ADR-0016). `desktop-backgrounds-compat` is layered first from a downloaded RPM with `--force-replacefiles`, because the image carries its two wallpaper paths as symlinks no package owns |
+| `/etc/sddm.conf.d/`, `/etc/pam.d/sddm` | Only Cairn's session directory offered, Guardians hidden (generated from `cairn-guardian`), no autologin, and the greeter-only passwordless rule for L1 and L2 |
 | `/usr/local/bin/cairn-launcher` | Wrapper that runs the release launcher from `/usr/local/libexec/cairn` with the manifest in `/usr/local/share/cairn/manifest.json` |
 
-Not yet: the session entry and dispatcher (P0-3, ADR-0012), an avatar for
-the child, and the polkit rule for the level groups that the P0-4 run showed
-is needed (`../docs/research/kiosk-containment.md`, #35).
+Not yet: an avatar for the child, the Cairn greeter theme (P1-16), and the
+polkit rule for the level groups that the P0-4 run showed is needed
+(`../docs/research/kiosk-containment.md`, #35).
 
 ## What it must do
 
@@ -53,7 +56,7 @@ Recorded 2026-09-06 on `bazzite-44.20260902`: Plasma Login Manager
    via Flatpak where available, `rpm-ostree`/`bootc` layering otherwise.
    Steam is already on Bazzite.
 4. Install the session entry, dispatcher, and display manager and greeter
-   configuration (D6) from `../session/`.
+   configuration (ADR-0016) from `../session/`.
 5. Install the launcher and shell prototypes from `../launcher/` and
    `../shell/`.
 6. Be idempotent. Running it twice on the same machine changes nothing the
