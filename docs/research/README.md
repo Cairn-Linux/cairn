@@ -8,11 +8,12 @@ Files:
 - `base-image-policy.md` — 2026-09-03 review of Bazzite, Universal Blue and
   Fedora trademark and licence terms for building Cairn on Bazzite. No
   blocker; compliance checklist for Phase 1.
+- `kiosk-containment.md` — 2026-09-06 P0-4 checklist under nested labwc:
+  what a child can and cannot reach from inside the L1 session. Two rows
+  passed only after changes to `session/labwc/`; three rows wait for the VM.
 
 Planned files:
 
-- `kiosk-containment.md` — P0-4 checklist: what a child can and cannot reach
-  from inside the L1 session.
 - `launcher-footprint.md` — P0-5: idle RSS and launch latency of the launcher
   on the Minimum tier (ADR-0003), against the 4 GB floor.
 - `malcontent-plasma.md` — P0-7: does malcontent gate Flatpaks under Plasma.

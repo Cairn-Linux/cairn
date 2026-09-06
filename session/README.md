@@ -3,12 +3,18 @@
 Login-to-session plumbing. Makes "level is a property of the account"
 (DESIGN §3, §4.3) true on a real Linux system.
 
-So far only the kiosk compositor's configuration, `labwc/rc.xml`: no
-titlebars, no default key or mouse bindings, and a window rule that makes
-the launcher fullscreen on sight.
+So far only the kiosk compositor's configuration in `labwc/`.
+`rc.xml`: no titlebars on any window, Wayland or X11; no default key or mouse
+bindings; no window gets focus by asking for it; and a window rule that
+makes the launcher fullscreen on sight.
+`environment`: the XKB option that takes the Ctrl-Alt-Fn VT-switch keysyms
+out of the keymap, because labwc switches VTs in code and offers no other
+way to stop it.
 Fullscreen is the compositor's decision, made per session, never a launcher
 option.
-`tests/test_labwc_config.py` checks the file says so; CTest runs it.
+`tests/test_labwc_config.py` checks the files say so; CTest runs it.
+What the configuration was tested against, and what is left for the VM, is
+in `docs/research/kiosk-containment.md` (P0-4).
 Phase 0 task **P0-3** builds the rest, resolving **ROADMAP D6** only.
 
 ## Decided

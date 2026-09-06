@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Read by labwc from this directory (labwc-config(5)), one variable per line.
+#
+# Ctrl-Alt-F1 to F12 switch virtual terminals in labwc's own code, before any
+# keybind and with no rc.xml option to stop it. What it looks for are the
+# XF86Switch_VT keysyms, and this XKB option takes them out of the keymap,
+# leaving plain F keys. See docs/research/kiosk-containment.md.
+XKB_DEFAULT_OPTIONS=srvrkeys:none

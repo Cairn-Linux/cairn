@@ -31,7 +31,7 @@ private slots:
         const QString path = write("good.json", R"({
             "version": 1,
             "entries": [
-                {"title": "Paint", "category": "make", "exec": ["tuxpaint", "--fullscreen"]},
+                {"title": "Paint", "category": "make", "exec": ["tuxpaint", "--fullscreen=native"]},
                 {"title": "Letters", "category": "practice", "exec": ["gcompris-qt"]},
                 {"title": "Terminal", "category": "machine", "exec": []}
             ]
@@ -42,7 +42,7 @@ private slots:
         QCOMPARE(result.tiles.at(0).title, QStringLiteral("Paint"));
         QCOMPARE(result.tiles.at(0).kind, TileModel::Kind::Make);
         QCOMPARE(result.tiles.at(0).exec,
-                 QStringList({QStringLiteral("tuxpaint"), QStringLiteral("--fullscreen")}));
+                 QStringList({QStringLiteral("tuxpaint"), QStringLiteral("--fullscreen=native")}));
         QCOMPARE(result.tiles.at(1).kind, TileModel::Kind::Practice);
         QCOMPARE(result.tiles.at(2).kind, TileModel::Kind::Machine);
         QVERIFY(result.tiles.at(2).exec.isEmpty());

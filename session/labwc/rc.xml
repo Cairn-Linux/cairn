@@ -16,9 +16,13 @@
   </core>
 
   <!--
-    labwc loads its default keybinds (Alt-Tab, Super, VT switching by
-    Ctrl-Alt-Fn and more) whenever a config defines none at all, so one
-    binding that does nothing is what turns them off. P0-4 checks this.
+    labwc loads its default keybinds (Alt-Tab, Alt-F4, Super-Return, the
+    window menu and more) whenever a config defines none at all, so one
+    binding that does nothing is what turns them off. labwc drops a binding
+    with no action only after that check; the debug log line to watch for
+    on an upgrade is "load default key bindings", whose absence is the pass.
+    Ctrl-Alt-Fn VT switching is not a keybind and is handled in the
+    `environment` file beside this one. See docs/research/kiosk-containment.md.
   -->
   <keyboard>
     <keybind key="A-Tab">
@@ -36,6 +40,18 @@
   </mouse>
 
   <windowRules>
+    <!--
+      Every window, whichever way it arrived: no titlebar, and no taking
+      focus by asking for it. `<decoration>client</decoration>` above only
+      governs Wayland clients; an X11 window under XWayland still got a
+      titlebar with close and minimise buttons. labwc honours an X11
+      _NET_ACTIVE_WINDOW or a Wayland xdg-activation request unless told
+      not to, and a window that asked was given focus over the launcher. A
+      window that opens normally is still focused, so a launched app comes
+      up in front as before. Later rules win, so this one goes first.
+    -->
+    <windowRule identifier="*" serverDecoration="no" ignoreFocusRequest="yes" />
+
     <!--
       The launcher is the whole screen. Fullscreen is the compositor's
       decision, made here per session, never a launcher option: under Plasma
