@@ -40,21 +40,8 @@
 <context>
     <name>Main</name>
     <message>
-        <location filename="../qml/Main.qml" line="15"/>
+        <location filename="../qml/Main.qml" line="16"/>
         <source>Cairn</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>Terminal</name>
-    <message>
-        <location filename="../qml/Terminal.qml" line="21"/>
-        <source>Terminal</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/Terminal.qml" line="137"/>
-        <source>Type a command</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

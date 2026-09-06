@@ -134,10 +134,15 @@ upper bound. Published numbers come from the test laptop.
 ## Building
 
 ```sh
+git submodule update --init   # Footpath, the terminal, pinned to a tag (ADR-0014)
 cmake --preset debug          # -Wall -Wextra -Werror, ASan + UBSan
 cmake --build --preset debug
 ctest --preset debug
 ```
+
+Footpath's own tests are off in this tree; run them in `external/footpath`
+or its repository. To move the pin, check out the new tag inside
+`external/footpath` and commit the changed submodule entry.
 
 Presets live in `CMakePresets.json` at the repo root. A Debug build is the
 default for development: a crash prints a stack trace with file and line
