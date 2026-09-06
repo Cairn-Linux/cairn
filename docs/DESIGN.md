@@ -137,8 +137,8 @@ children.
 Modern bash has none of these: unbounded surface area, cryptic errors, genuine
 destructive power, and no reward at the end.
 
-**Therefore:** a purpose-built restricted shell, Footpath (ADR-0014), not bash with a constrained
-`.bashrc`. Design requirements:
+**Therefore:** a purpose-built restricted shell, Footpath (ADR-0014), not
+bash with a constrained `.bashrc`. Design requirements:
 
 - Real command names (`ls`, `cd`, `open`, `cat`), not invented kid-verbs. The
   entire value is transfer to a real system later; made-up vocabulary means
@@ -294,8 +294,11 @@ first impression. A wizard that:
 2. Sets the quick-actions PIN (§3.2), with a plain warning that children will
    learn it and that it intentionally unlocks very little.
 3. Creates the first child account: name, avatar, level.
-4. Offers to scan for installed games (§8.7) if any are present.
-5. Explains where creations are stored and how to get them out (§11).
+4. Proposes a starter set of apps from the curated list (§5.2, ADR-0015),
+   Tux Paint pre-ticked, and installs what is left ticked. Needs a network
+   and says so plainly; skipping it is allowed and leaves the tiles empty.
+5. Offers to scan for installed games (§8.7) if any are present.
+6. Explains where creations are stored and how to get them out (§11).
 
 Nothing here may require editing a config file. If a step can't be done in the
 wizard, it isn't ready to ship.
@@ -360,8 +363,10 @@ collections with a themed wallpaper.
 **Front page (make):** draw, music, build (block coding), write/story, camera,
 terminal.
 
-**In a folder (practice):** GCompris and the Tux suite. Excellent software,
-genuinely useful, but not the identity of the system.
+**Practice:** GCompris and the Tux suite. Excellent software, genuinely
+useful, but not the identity of the system, and not bundled: a Guardian
+adds them from the curated list like anything else (ADR-0015), and they sit
+in the same flat grid, told apart by colour.
 
 ### 5.2 Bundled applications
 
@@ -375,9 +380,11 @@ genuinely useful, but not the identity of the system.
 | Scratch 3 | Block coding, ages 8+ | Offline builds are unofficial on Linux |
 | First-party launcher + shell | Identity | §6, §3.1 |
 
-This table is the seed. A survey of existing, maintained kid-oriented software
-for music composing, writing, camera and coding extends it (ADR-0009); nothing
-is added that the project would have to maintain itself.
+This table is the seed of the **curated list** (ADR-0015): apps a Guardian
+can add to a child's tiles from the Guardian tool, none of them bundled in
+the image and none of them maintained by this project. A survey of existing,
+maintained kid-oriented software for music composing, writing, camera and
+coding fills it (ADR-0009).
 
 **The ScratchJr problem.** ScratchJr is the canonical block-coding tool for
 exactly this age range and it effectively does not exist on Linux. There is no
@@ -403,7 +410,11 @@ The launcher **is the product.** Everything else is packaging.
 - Fullscreen grid of large tiles. No window management, no taskbar, no
   filesystem, nothing to get lost in.
 - No reading required beyond app names, which are paired with distinct icons.
-- L1: ~6 tiles plus a small dock. L2: grid grows, dock gains a files view.
+- Flat at L1: no folders, no sub-menus. When there are more tiles than fit,
+  the grid scrolls, by wheel and by arrow keys, whole rows at a time, with
+  the next row showing at the edge (ADR-0015). The Guardian chooses what
+  appears, including approved Steam titles. L2 adds a small dock with a
+  files view.
 - Colour groups by *kind* (make / practice / machine), not one colour per app.
 
 ### 6.2 Visual direction
@@ -712,11 +723,12 @@ with a child.*
 
 ### Phase 1 — MVP image
 
-L1 only. Launcher, restricted shell, core educational apps via Flatpak, ScummVM
-integration, Steam integration with the silent client and containment
-(§8.3, ADR-0004). Guardian role with account creation and level management (§3.2),
-first-boot wizard (§4.3.1), quick-actions overlay. Signed image, CI, ISO.
-High-contrast and large-text modes (P1-15, ADR-0008).
+L1 only. Launcher, restricted shell, the curated list with Flatpak install
+from the Guardian tool (ADR-0015), ScummVM integration, Steam integration
+with the silent client and containment (§8.3, ADR-0004). Guardian role with
+account creation and level management (§3.2), first-boot wizard (§4.3.1),
+quick-actions overlay. Signed image, CI, ISO. High-contrast and large-text
+modes (P1-15, ADR-0008).
 
 *Note: the Guardian surface is not deferrable to a later phase. Without it there
 is no way to create a child account, so there is no product.*
