@@ -67,4 +67,7 @@ QtObject {
     readonly property int radiusCover: 28
     readonly property int radiusTerminal: 14
     readonly property int radiusPill: 999
+
+    // ---- motion (milliseconds) ----
+    readonly property int motionRow: 160  // Milliseconds. One motion earns its place (DESIGN 6.1): rows of tiles sliding into view. Nothing else animates.
 }

@@ -20,6 +20,10 @@ Colours, type, focus rings and radii come from `Cairn.Brand.Tokens`.
 - **Slice 6 (2026-09-05):** the shell is Footpath from its own repository
   (`../external/footpath`, ADR-0014). `DoorsFromTiles` hands it the tiles
   as doors and `Main.qml` binds its look to the brand tokens.
+- **Slice 7 (2026-09-05):** the grid scrolls (ADR-0015). `GridScroller`
+  decides which rows are in the window; wheel and arrow keys move the
+  focus one row at a time and the window follows by whole rows, the next
+  row peeking at the edge.
 
 ## Build and run on the dev PC
 
@@ -36,9 +40,10 @@ The presets do not pin a compiler.
 Debug enables AddressSanitizer and UndefinedBehaviorSanitizer.
 Use `cmake --preset release && cmake --build --preset release` for a build
 without sanitizers.
-CTest runs six suites offscreen: the tile model, the manifest reader, the
-app launcher, the window list, the compiled brand tokens, and the QML
-navigation, grown-up-screen and terminal behaviour. Footpath's own six
+CTest runs seven suites offscreen: the tile model, the manifest reader, the
+app launcher, the grid scroller, the window list, the compiled brand
+tokens, and the QML navigation, scrolling, grown-up-screen and terminal
+behaviour. Footpath's own six
 suites run in its repository.
 Qt on Fedora sends `qWarning` and `qInfo` lines to the journal when stderr
 is not a terminal; set `QT_FORCE_STDERR_LOGGING=1` to see them in a pipe.
@@ -59,6 +64,10 @@ labwc -C session/labwc -S './build/debug/launcher/cairn-launcher \
 The compositor ends when the launcher does.
 Arrow keys move between tiles; Tab and Shift-Tab wrap through all of them
 (six by default).
+With more than six tiles the grid shows two rows and the top of a third, and
+slides by whole rows to keep the focused tile in view; a wheel notch moves
+the focus one row. Try it with
+`--manifest launcher/tests/fixtures/manifest-many.json` (fourteen tiles).
 Enter, Space or a click launches the tile's program.
 Escape or the Back tile leaves the grown-up screen.
 The Terminal tile is the launcher's own, always last, and opens Footpath

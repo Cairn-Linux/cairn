@@ -326,4 +326,72 @@ TestCase {
         tryCompare(input, "activeFocus", true);
         compare(session.location, "/make");
     }
+
+    // Fourteen tiles plus the Terminal: five rows, two showing. The window
+    // slides by whole rows and the focused tile is never off screen.
+    function openManyTiles() {
+        launcher.destroy();
+        launcher = createTemporaryObject(launcherComponent, testCase, {
+            "manifestPath": Qt.resolvedUrl("fixtures/manifest-many.json")
+        });
+        verify(launcher !== null);
+        grid = findChild(launcher, "tileGrid");
+        appLauncher = findChild(launcher, "launcher");
+        grownUp = findChild(launcher, "grownUpScreen");
+        launcher.requestActivate();
+        tryCompare(launcher, "active", true);
+        tryCompare(grid, "count", 15);
+        tryVerify(() => grid.currentItem !== null);
+        tryCompare(grid.currentItem, "activeFocus", true);
+    }
+
+    function test_manyTilesScrollByRowWithTheKeys() {
+        openManyTiles();
+        const scroller = findChild(launcher, "gridScroller");
+        const tileWindow = findChild(launcher, "tileWindow");
+        verify(scroller !== null && tileWindow !== null);
+        compare(scroller.rows, 5);
+        compare(scroller.scrolls, true);
+        // The third row peeks: cells are shorter than half the window.
+        verify(grid.cellHeight < grid.windowHeight / 2);
+        verify(grid.cellHeight * 2.5 <= grid.windowHeight + 1);
+        keyClick(Qt.Key_Down);
+        compare(scroller.firstRow, 0);
+        keyClick(Qt.Key_Down);
+        tryCompare(grid, "currentIndex", 6);
+        compare(scroller.firstRow, 1);
+        tryCompare(grid, "y", tileWindow.ring - grid.cellHeight);
+        tryCompare(grid.currentItem, "activeFocus", true);
+        // The focused tile is inside the window.
+        const tileTop = grid.currentItem.y + grid.y;
+        verify(tileTop >= 0 && tileTop + grid.currentItem.height <= tileWindow.height);
+        keyClick(Qt.Key_Up);
+        keyClick(Qt.Key_Up);
+        tryCompare(grid, "currentIndex", 0);
+        tryCompare(grid, "y", tileWindow.ring);
+    }
+
+    function test_wheelMovesTheFocusOneRow() {
+        openManyTiles();
+        const scroller = findChild(launcher, "gridScroller");
+        mouseWheel(grid, grid.width / 2, grid.height / 4, 0, -120);
+        tryCompare(grid, "currentIndex", 3);
+        mouseWheel(grid, grid.width / 2, grid.height / 4, 0, -120);
+        tryCompare(grid, "currentIndex", 6);
+        tryCompare(scroller, "firstRow", 1);
+        mouseWheel(grid, grid.width / 2, grid.height / 4, 0, 120);
+        tryCompare(grid, "currentIndex", 3);
+        compare(scroller.firstRow, 1);
+    }
+
+    function test_sixTilesFillTwoRowsAndDoNotScroll() {
+        const scroller = findChild(launcher, "gridScroller");
+        const tileWindow = findChild(launcher, "tileWindow");
+        compare(scroller.scrolls, false);
+        compare(grid.cellHeight, grid.windowHeight / 2);
+        focusTile(5);
+        compare(grid.y, tileWindow.ring);
+        mouseWheel(grid, grid.width / 2, grid.height / 4, 0, -120);
+        compare(grid.currentIndex, 5);
+    }
 }
