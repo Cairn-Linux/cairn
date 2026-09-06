@@ -51,7 +51,7 @@ them. That is the design brief.
 | `cairn.env` | Universal Blue image-template variables; Phase 1, see issue #37. |
 | `CMakeLists.txt`, `CMakePresets.json` | The C++ build, first landed 2026-09-04. |
 | `launcher/` | The fullscreen tile launcher — the product. |
-| `shell/` | Footpath, the child-facing terminal (ADR-0014), until it moves to its own repository. |
+| `external/footpath/` | Footpath, the child-facing terminal, a submodule pinned to a tag (ADR-0014; its own repository is `Cairn-Linux/footpath`). |
 | `session/` | Login-to-session plumbing: one session entry that dispatches by account level. |
 | `provision/` | Phase 0 script that turns a stock install into a Cairn machine, for testing before any ISO exists. |
 | `tools/kidscan/` | Game library scanner: Steam + ScummVM detection → launcher manifest. |

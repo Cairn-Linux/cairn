@@ -20,6 +20,9 @@ set(QT_QML_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/qml")
 
 enable_testing()
 add_subdirectory(brand/qml/Cairn/Brand)
-add_subdirectory(shell)
+# Footpath, the terminal (ADR-0014): a submodule pinned to a tag. Its own
+# tests run in its own repository.
+set(FOOTPATH_BUILD_TESTS OFF)
+add_subdirectory(external/footpath)
 add_subdirectory(launcher)
 add_subdirectory(session)

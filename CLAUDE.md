@@ -113,9 +113,10 @@ someone learning the language from it. That shapes every rule below.
 
 ## Things that are not here
 
-- The C++ so far is the launcher in `launcher/` and Footpath's interpreter
-  in `shell/` (each README lists the slices that have landed); Footpath is
-  moving to its own repository (ADR-0014).
+- The C++ so far is the launcher in `launcher/` (its README lists the
+  slices that have landed). Footpath, the terminal, is its own repository
+  and arrives as the submodule `external/footpath` pinned to a tag
+  (ADR-0014); change it there, then move the pin here.
   `tools/kidscan/` and the brand generator `brand/build.py` are
   standard-library Python by design. Run the tests with `ctest --preset debug`,
   `python3 tools/kidscan/tests/test_kidscan.py` and

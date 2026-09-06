@@ -1,0 +1,3 @@
+[submodule "external/footpath"]
+	path = external/footpath
+	url = https://github.com/Cairn-Linux/footpath

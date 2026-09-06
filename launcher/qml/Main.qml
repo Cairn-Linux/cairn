@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Cairn.Brand
 import Cairn.Launcher
+import Footpath
 
 Window {
     id: window
@@ -42,13 +43,19 @@ Window {
         ownAppId: windows.ownAppId
     }
 
+    // Footpath, the terminal (ADR-0014). The tiles are its doors; open there
+    // comes back here as a launch request and goes the same way a tile does.
     TerminalSession {
         id: session
 
         objectName: "terminalSession"
-        tiles: tiles
         onLaunchRequested: (title, exec) => launcher.launch(title, exec)
         onLeft: window.closeTerminal()
+    }
+
+    DoorsFromTiles {
+        tiles: tiles
+        session: session
     }
 
     function openTerminal() {
@@ -118,6 +125,20 @@ Window {
         visible: window.terminalOpen && !grownUp.visible
         session: session
         onExited: window.closeTerminal()
+        // Its look is the frame's: every value from the brand tokens.
+        groundColor: Tokens.ink
+        textColor: Tokens.sand
+        hintColor: Tokens.sky
+        folderColor: Tokens.sky
+        noteColor: Tokens.paper
+        makeColor: Tokens.make
+        practiceColor: Tokens.practice
+        machineColor: Tokens.fjord
+        fontFamily: Tokens.fontFamilyMono
+        fontSize: Tokens.terminalSize
+        lineHeight: Tokens.terminalLineHeight
+        margin: Tokens.headingSize
+        chipRadius: Tokens.radiusSm / 2
     }
 
     GrownUpScreen {
