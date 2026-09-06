@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "entries": [
+    {"title": "Draw", "category": "make", "exec": ["flatpak", "run", "org.tuxpaint.Tuxpaint", "--fullscreen=native"]},
+    {"title": "Music", "category": "make", "exec": []},
+    {"title": "Build", "category": "make", "exec": []},
+    {"title": "Story", "category": "make", "exec": []},
+    {"title": "Practice", "category": "practice", "exec": ["flatpak", "run", "org.kde.gcompris"]}
+  ]
+}
