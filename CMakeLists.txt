@@ -20,6 +20,6 @@ set(QT_QML_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/qml")
 
 enable_testing()
 add_subdirectory(brand/qml/Cairn/Brand)
+add_subdirectory(shell)
 add_subdirectory(launcher)
 add_subdirectory(session)
-add_subdirectory(shell)

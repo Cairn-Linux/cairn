@@ -231,9 +231,9 @@ those through the manifest reader and `AppLauncher` it already has. A
 standalone window with a demo world is the second host and lives in this
 project.
 
-Slice 1 of the interpreter, the doors provider and the reply type exist
-today in Cairn's `shell/`, with five words; `exit` and `home` are slice 2.
-They move with the split.
+The interpreter, the world with its built-in `home`, the reply type and
+the surface exist today in Cairn's `shell/` and `launcher/`, with the six
+L1 words. They move with the split.
 
 ### 7.1 What stays in Cairn
 

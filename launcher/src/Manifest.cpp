@@ -87,7 +87,7 @@ Manifest::Result Manifest::read(const QString& path) {
                                        "list: %2.")
                             .arg(file, title.isEmpty() ? QStringLiteral("(untitled)") : title)};
         }
-        result.tiles.append({.title = title, .kind = *kind, .exec = *exec});
+        result.tiles.append({.title = title, .kind = *kind, .exec = *exec, .opensTerminal = false});
     }
     if (result.tiles.isEmpty()) {
         return {.tiles = {}, .error = QStringLiteral("The manifest %1 has no entries.").arg(file)};

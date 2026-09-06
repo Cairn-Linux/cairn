@@ -12,7 +12,7 @@
 // each with an icon slot so a pre-reader can tell a folder from a thing to
 // open; a launch is carried out by whoever hosts the shell, never here.
 struct Reply {
-    enum class Icon : std::uint8_t { None, Folder, Make, Practice, Machine };
+    enum class Icon : std::uint8_t { None, Folder, Make, Practice, Machine, Note };
 
     struct Line {
         QString text;
@@ -26,4 +26,6 @@ struct Reply {
 
     QList<Line> lines;
     std::optional<Launch> launch;
+    // The child typed exit: the host returns to the tiles.
+    bool leave = false;
 };

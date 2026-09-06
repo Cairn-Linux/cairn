@@ -14,6 +14,9 @@ Colours, type, focus rings and radii come from `Cairn.Brand.Tokens`.
   is closed.
 - **Slice 4:** fullscreen under labwc, through the kiosk configuration in
   `../session/labwc/`. No launcher code changed.
+- **Slice 5 (2026-09-05):** the Terminal tile opens the restricted shell
+  inside the window; `open` there launches through the same path and the
+  same grown-up screen; `exit` or Escape returns to the tiles.
 
 ## Build and run on the dev PC
 
@@ -30,9 +33,9 @@ The presets do not pin a compiler.
 Debug enables AddressSanitizer and UndefinedBehaviorSanitizer.
 Use `cmake --preset release && cmake --build --preset release` for a build
 without sanitizers.
-CTest runs six suites offscreen: the tile model, the manifest reader, the
-app launcher, the window list, the compiled brand tokens, and the QML
-navigation and grown-up-screen behaviour.
+CTest runs seven suites offscreen: the tile model, the manifest reader, the
+app launcher, the terminal session, the window list, the compiled brand
+tokens, and the QML navigation, grown-up-screen and terminal behaviour.
 Qt on Fedora sends `qWarning` and `qInfo` lines to the journal when stderr
 is not a terminal; set `QT_FORCE_STDERR_LOGGING=1` to see them in a pipe.
 
@@ -54,6 +57,9 @@ Arrow keys move between tiles; Tab and Shift-Tab wrap through all of them
 (six by default).
 Enter, Space or a click launches the tile's program.
 Escape or the Back tile leaves the grown-up screen.
+The Terminal tile is the launcher's own, always last, and opens the
+restricted shell (`../shell/README.md`) over the tiles; a manifest never
+names it.
 Atkinson Hyperlegible Next falls back to the system font when not installed.
 
 Refresh the English translation catalogue with

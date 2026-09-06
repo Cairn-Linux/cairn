@@ -104,9 +104,14 @@ private slots:
         TileModel model(this);
         model.setManifestPath(path);
         QVERIFY(model.loadError().isEmpty());
-        QCOMPARE(model.rowCount(), 1);
+        // The manifest's one tile, then the launcher's own Terminal.
+        QCOMPARE(model.rowCount(), 2);
         QCOMPARE(model.data(model.index(0), TileModel::ExecRole).toStringList(),
                  QStringList{QStringLiteral("tuxpaint")});
+        QVERIFY(!model.data(model.index(0), TileModel::OpensTerminalRole).toBool());
+        QVERIFY(model.data(model.index(1), TileModel::OpensTerminalRole).toBool());
+        QCOMPARE(model.data(model.index(1), TileModel::TitleRole).toString(),
+                 QStringLiteral("Terminal"));
         model.setManifestPath(QString());
         QCOMPARE(model.rowCount(), 6);
     }

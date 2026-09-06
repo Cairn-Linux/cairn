@@ -24,8 +24,14 @@ set(launcher_model_sources
 )
 # Needs a Wayland session to do anything, so it stays out of the model tests.
 set(launcher_window_sources src/ForeignWindowList.h src/ForeignWindowList.cpp)
-set(launcher_qml_files qml/Main.qml qml/Tile.qml qml/GrownUpScreen.qml)
+# The terminal inside the launcher: needs the shell's interpreter.
+set(launcher_terminal_sources
+    src/OutputModel.h src/OutputModel.cpp
+    src/TerminalSession.h src/TerminalSession.cpp
+)
+set(launcher_qml_files qml/Main.qml qml/Tile.qml qml/GrownUpScreen.qml qml/Terminal.qml)
 set_source_files_properties(qml/Main.qml PROPERTIES QT_RESOURCE_ALIAS Main.qml)
+set_source_files_properties(qml/Terminal.qml PROPERTIES QT_RESOURCE_ALIAS Terminal.qml)
 set_source_files_properties(qml/Tile.qml PROPERTIES QT_RESOURCE_ALIAS Tile.qml)
 set_source_files_properties(qml/GrownUpScreen.qml PROPERTIES QT_RESOURCE_ALIAS GrownUpScreen.qml)
 
@@ -33,10 +39,10 @@ qt_add_executable(cairn-launcher src/main.cpp)
 qt_add_qml_module(cairn-launcher
     URI Cairn.Launcher
     QML_FILES ${launcher_qml_files}
-    SOURCES ${launcher_model_sources} ${launcher_window_sources}
+    SOURCES ${launcher_model_sources} ${launcher_window_sources} ${launcher_terminal_sources}
 )
 target_include_directories(cairn-launcher PRIVATE src)
-target_link_libraries(cairn-launcher PRIVATE Qt6::Quick CairnBrand cairn-foreign-toplevel)
+target_link_libraries(cairn-launcher PRIVATE Qt6::Quick CairnBrand cairn-foreign-toplevel cairn-shell-core)
 
 qt_add_lupdate(
     SOURCE_TARGETS cairn-launcher
@@ -59,6 +65,12 @@ target_include_directories(tst_applauncher PRIVATE src)
 target_link_libraries(tst_applauncher PRIVATE Qt6::Qml Qt6::Test)
 add_test(NAME applauncher COMMAND tst_applauncher)
 
+qt_add_executable(tst_terminalsession tests/tst_terminalsession.cpp ${launcher_model_sources} ${launcher_terminal_sources})
+target_include_directories(tst_terminalsession PRIVATE src)
+target_link_libraries(tst_terminalsession PRIVATE Qt6::Qml Qt6::Test cairn-shell-core)
+target_compile_definitions(tst_terminalsession PRIVATE QUICK_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests")
+add_test(NAME terminalsession COMMAND tst_terminalsession)
+
 qt_add_executable(tst_foreignwindowlist tests/tst_foreignwindowlist.cpp ${launcher_window_sources})
 target_include_directories(tst_foreignwindowlist PRIVATE src)
 target_link_libraries(tst_foreignwindowlist PRIVATE Qt6::Gui Qt6::Qml Qt6::Test cairn-foreign-toplevel)
@@ -77,15 +89,15 @@ qt_add_qml_module(tst_navigation
     URI Cairn.Launcher
     OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/tests/Cairn/Launcher"
     QML_FILES ${launcher_qml_files}
-    SOURCES ${launcher_model_sources} ${launcher_window_sources}
+    SOURCES ${launcher_model_sources} ${launcher_window_sources} ${launcher_terminal_sources}
 )
 target_include_directories(tst_navigation PRIVATE src)
-target_link_libraries(tst_navigation PRIVATE Qt6::Gui Qt6::QuickTest CairnBrand cairn-foreign-toplevel)
+target_link_libraries(tst_navigation PRIVATE Qt6::Gui Qt6::QuickTest CairnBrand cairn-foreign-toplevel cairn-shell-core)
 target_compile_definitions(tst_navigation PRIVATE
     QUICK_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests"
 )
 add_test(NAME navigation COMMAND tst_navigation)
 
-set_tests_properties(tilemodel manifest applauncher foreignwindowlist tokens_loaded navigation PROPERTIES
+set_tests_properties(tilemodel manifest applauncher terminalsession foreignwindowlist tokens_loaded navigation PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QML_IMPORT_PATH=${QT_QML_OUTPUT_DIRECTORY}"
 )
