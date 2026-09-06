@@ -12,11 +12,11 @@ system". Run on the dev PC, a Practice tile that opens GCompris still reads
 as a native part of Cairn, and a Build tile that opened the whole of it read
 as the themed activity pack the design set out to avoid.
 [DESIGN §3.2](../DESIGN.md#32-the-guardian-role) already gives Guardians a
-per-child app allowlist; [§4.2](../DESIGN.md#42-application-delivery-flatpak)
-delivers apps by Flatpak; [§9.1](../DESIGN.md#91-two-complementary-control-
-layers)
-gates them with malcontent; the `kidscan` manifest is how a program becomes
-a tile.
+per-child app allowlist;
+[§4.2](../DESIGN.md#42-application-delivery-flatpak) delivers apps by
+Flatpak;
+[§9.1](../DESIGN.md#91-two-complementary-control-layers) gates them with
+malcontent; the `kidscan` manifest is how a program becomes a tile.
 [DESIGN §6.1](../DESIGN.md#61-the-launcher) says L1 is about six tiles and
 "nothing to get lost in", and that the grid grows only at L2, which leaves no
 room for the Steam titles a parent has approved

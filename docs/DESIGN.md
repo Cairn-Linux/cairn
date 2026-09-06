@@ -137,9 +137,8 @@ children.
 Modern bash has none of these: unbounded surface area, cryptic errors, genuine
 destructive power, and no reward at the end.
 
-**Therefore:** a purpose-built restricted shell, Footpath (ADR-0014), not bash
-with a constrained
-`.bashrc`. Design requirements:
+**Therefore:** a purpose-built restricted shell, Footpath (ADR-0014), not
+bash with a constrained `.bashrc`. Design requirements:
 
 - Real command names (`ls`, `cd`, `open`, `cat`), not invented kid-verbs. The
   entire value is transfer to a real system later; made-up vocabulary means
@@ -722,11 +721,11 @@ with a child.*
 ### Phase 1 — MVP image
 
 L1 only. Launcher, restricted shell, the curated list with Flatpak install
-from the Guardian tool (ADR-0015), ScummVM integration, Steam integration with
-the silent client and containment (§8.3, ADR-0004). Guardian role with account
-creation and level management (§3.2),
-first-boot wizard (§4.3.1), quick-actions overlay. Signed image, CI, ISO.
-High-contrast and large-text modes (P1-15, ADR-0008).
+from the Guardian tool (ADR-0015), ScummVM integration, Steam integration
+with the silent client and containment (§8.3, ADR-0004). Guardian role with
+account creation and level management (§3.2), first-boot wizard (§4.3.1),
+quick-actions overlay. Signed image, CI, ISO. High-contrast and large-text
+modes (P1-15, ADR-0008).
 
 *Note: the Guardian surface is not deferrable to a later phase. Without it there
 is no way to create a child account, so there is no product.*
