@@ -294,8 +294,11 @@ first impression. A wizard that:
 2. Sets the quick-actions PIN (§3.2), with a plain warning that children will
    learn it and that it intentionally unlocks very little.
 3. Creates the first child account: name, avatar, level.
-4. Offers to scan for installed games (§8.7) if any are present.
-5. Explains where creations are stored and how to get them out (§11).
+4. Proposes a starter set of apps from the curated list (§5.2, ADR-0015),
+   Tux Paint pre-ticked, and installs what is left ticked. Needs a network
+   and says so plainly; skipping it is allowed and leaves the tiles empty.
+5. Offers to scan for installed games (§8.7) if any are present.
+6. Explains where creations are stored and how to get them out (§11).
 
 Nothing here may require editing a config file. If a step can't be done in the
 wizard, it isn't ready to ship.

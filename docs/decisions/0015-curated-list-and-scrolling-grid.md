@@ -35,6 +35,16 @@ for a child, and adds the tile to that child's manifest. Nothing on the list
 is maintained by this project. The catalogue survey (issue #26) becomes the
 list's first contents. GCompris is on the list, not in the image.
 
+Tux Paint is on the list too, not in the image. So that Draw works on day
+one, the first-boot wizard (DESIGN §4.3.1) proposes a **starter set** from
+the list with Tux Paint pre-ticked; the Guardian can untick it. Which apps
+make up the starter set is settled by testing, not here.
+
+Two things the image carries regardless, because the base image does: the
+Steam client, which starts silent at login as §8.3 requires, and its
+Proton runtime. ScummVM is installed with the first ScummVM game a Guardian
+adds, not up front.
+
 **The front door stays flat.** At L1 there are no folders and no sub-menus.
 When a child has more tiles than fit, the **grid scrolls**: by mouse wheel
 and by arrow keys, whole rows at a time, with the next row visible at the
@@ -46,13 +56,15 @@ Folders arrive with the dock at L2.
 ## Consequences
 
 - The image gets smaller and the front door is honest: on a fresh install a
-  child sees Draw only if a Guardian put it there.
+  child sees Draw because the Guardian left it ticked at first boot, and
+  nothing else unless the Guardian added it.
 - Approved Steam titles, ScummVM games and installed apps are all tiles in
   one grid; the launcher's colour by kind still says what each is.
 - Installing needs a network; a Guardian's action, failing calmly without
   one, as ADR-0007 allows. Nothing a child does needs it.
 - P1-5's Guardian tooling gains `install-app` and `remove-app` on top of
-  `allow-app`; the list lives at `catalogue/` when that work starts.
+  `allow-app`; the list lives at `catalogue/` when that work starts. P1-6's
+  wizard gains the starter-set step, which needs a network and says so.
 - The launcher's grid gains scrolling (issue in `launcher/`); the Phase 0
   child test sees whichever tiles the dev-PC manifest names.
 - ADR-0009 stands: still no first-party app. The list is data, not code.
