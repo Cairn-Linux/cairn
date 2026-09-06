@@ -268,4 +268,62 @@ TestCase {
         compare(appLauncher.state, AppLauncher.Idle);
         compare(grownUp.visible, false);
     }
+
+    // The Terminal tile opens the shell inside the window; exit closes it.
+    function test_terminalTileOpensTheShellAndExitCloses() {
+        const terminal = findChild(launcher, "terminalScreen");
+        verify(terminal !== null);
+        const input = findChild(launcher, "terminalInput");
+        verify(input !== null);
+        const tile = grid.itemAtIndex(5);
+        verify(tile !== null);
+        compare(tile.title, "Terminal");
+        focusTile(5);
+        keyClick(Qt.Key_Return);
+        tryCompare(terminal, "visible", true);
+        compare(grid.visible, false);
+        tryCompare(input, "activeFocus", true);
+        input.text = "exit";
+        keyClick(Qt.Key_Return);
+        tryCompare(terminal, "visible", false);
+        compare(grid.visible, true);
+        tryCompare(grid.currentItem, "activeFocus", true);
+        compare(stateSpy.count, 0);
+    }
+
+    function test_escapeLeavesTheTerminal() {
+        const terminal = findChild(launcher, "terminalScreen");
+        focusTile(5);
+        keyClick(Qt.Key_Return);
+        tryCompare(terminal, "visible", true);
+        keyClick(Qt.Key_Escape);
+        tryCompare(terminal, "visible", false);
+        tryCompare(grid.currentItem, "activeFocus", true);
+    }
+
+    // open from the shell goes through the same launcher; a bad launch shows
+    // the grown-up screen and Back returns to the terminal, not the tiles.
+    function test_openFromTheTerminalLaunchesThroughTheLauncher() {
+        const terminal = findChild(launcher, "terminalScreen");
+        const input = findChild(launcher, "terminalInput");
+        const session = findChild(launcher, "terminalSession");
+        verify(session !== null);
+        focusTile(5);
+        keyClick(Qt.Key_Return);
+        tryCompare(terminal, "visible", true);
+        input.text = "cd make";
+        keyClick(Qt.Key_Return);
+        tryCompare(session, "location", "/make");
+        input.text = "open quits-badly";
+        keyClick(Qt.Key_Return);
+        tryCompare(appLauncher, "state", AppLauncher.Failed);
+        tryCompare(grownUp, "visible", true);
+        compare(grownUp.appTitle, "Quits badly");
+        compare(terminal.visible, false);
+        keyClick(Qt.Key_Escape);
+        tryCompare(grownUp, "visible", false);
+        tryCompare(terminal, "visible", true);
+        tryCompare(input, "activeFocus", true);
+        compare(session.location, "/make");
+    }
 }

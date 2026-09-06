@@ -7,15 +7,23 @@
 
 TileModel::TileModel(QObject* parent) : QAbstractListModel(parent), m_tiles(defaultTiles()) {}
 
+QList<TileModel::Tile> TileModel::tiles() const {
+    return m_tiles;
+}
+
 QList<TileModel::Tile> TileModel::defaultTiles() {
     // The six tiles of the L1 front page (DESIGN §5.1). None launches anything
-    // until a manifest names a program for it.
-    return {{.title = tr("Draw"), .kind = Kind::Make, .exec = {}},
-            {.title = tr("Music"), .kind = Kind::Make, .exec = {}},
-            {.title = tr("Build"), .kind = Kind::Make, .exec = {}},
-            {.title = tr("Story"), .kind = Kind::Make, .exec = {}},
-            {.title = tr("Practice"), .kind = Kind::Practice, .exec = {}},
-            {.title = tr("Terminal"), .kind = Kind::Machine, .exec = {}}};
+    // until a manifest names a program for it; the last is the Terminal.
+    return {{.title = tr("Draw"), .kind = Kind::Make, .exec = {}, .opensTerminal = false},
+            {.title = tr("Music"), .kind = Kind::Make, .exec = {}, .opensTerminal = false},
+            {.title = tr("Build"), .kind = Kind::Make, .exec = {}, .opensTerminal = false},
+            {.title = tr("Story"), .kind = Kind::Make, .exec = {}, .opensTerminal = false},
+            {.title = tr("Practice"), .kind = Kind::Practice, .exec = {}, .opensTerminal = false},
+            terminalTile()};
+}
+
+TileModel::Tile TileModel::terminalTile() {
+    return {.title = tr("Terminal"), .kind = Kind::Machine, .exec = {}, .opensTerminal = true};
 }
 
 int TileModel::rowCount(const QModelIndex& parent) const {
@@ -37,6 +45,8 @@ QVariant TileModel::data(const QModelIndex& index, int role) const {
         return QVariant::fromValue(tile.kind);
     case ExecRole:
         return tile.exec;
+    case OpensTerminalRole:
+        return tile.opensTerminal;
     default:
         return {};
     }
@@ -46,7 +56,8 @@ QHash<int, QByteArray> TileModel::roleNames() const {
     return {{TitleRole, "title"},
             {KindRole, "kind"},
             {AccessibleNameRole, "accessibleName"},
-            {ExecRole, "exec"}};
+            {ExecRole, "exec"},
+            {OpensTerminalRole, "opensTerminal"}};
 }
 
 QString TileModel::manifestPath() const {
@@ -68,7 +79,9 @@ void TileModel::setManifestPath(const QString& path) {
         const Manifest::Result result = Manifest::read(path);
         m_loadError = result.error;
         if (result.error.isEmpty()) {
-            replaceTiles(result.tiles);
+            QList<Tile> tiles = result.tiles;
+            tiles.append(terminalTile());
+            replaceTiles(tiles);
         } else {
             // A parent reads this in the terminal; the child keeps the built-in tiles.
             qWarning().noquote() << result.error;

@@ -1,28 +1,28 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
-#include "AppTree.h"
 #include "Reply.h"
+#include "World.h"
 
-#include <QObject>
+#include <QCoreApplication>
 #include <QString>
 #include <QStringList>
 
 #include <optional>
 
-// The restricted shell's five commands over the app tree: ls, cd, open, cat,
-// help. Every answer is a Reply; a mistake gets a suggestion, never a
+// The restricted shell's six words over the world: ls, cd, open, cat, help,
+// exit. Every answer is a Reply; a mistake gets a suggestion, never a
 // scolding, an errno or an exit code. Nothing here touches the filesystem or
 // runs anything: open only names a program for the host to start.
-class Interpreter : public QObject {
-    Q_OBJECT
+class Interpreter {
+    Q_DECLARE_TR_FUNCTIONS(Interpreter)
 
 public:
-    explicit Interpreter(AppTree tree, QObject* parent = nullptr);
+    explicit Interpreter(World world);
 
     static QStringList commands();
 
-    // "/" at the root, "/make" inside a folder. For the prompt.
+    // "/" at the root, "/home/sam/notes" inside. For the prompt.
     QString location() const;
 
     Reply run(const QString& line);
@@ -38,11 +38,11 @@ private:
     Reply cat(const QStringList& args);
     static Reply help(const QStringList& args);
 
-    Reply listing(std::optional<AppTree::Kind> folder) const;
+    Reply listing(const QString& folder) const;
     Reply notFound(const QString& name) const;
     QStringList namesHere() const;
-    std::optional<AppTree::Entry> entryHere(const QString& name) const;
+    std::optional<World::Node> here(const QString& name) const;
 
-    AppTree m_tree;
-    std::optional<AppTree::Kind> m_folder;
+    World m_world;
+    QString m_location;
 };

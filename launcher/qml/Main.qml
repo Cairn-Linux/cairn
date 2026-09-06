@@ -9,6 +9,8 @@ Window {
 
     // Set from the command line (--manifest). Empty means the built-in tiles.
     property string manifestPath: ""
+    // The Terminal tile is open; the tiles are hidden behind it.
+    property bool terminalOpen: false
 
     title: qsTr("Cairn")
     visibility: Window.Windowed
@@ -40,6 +42,32 @@ Window {
         ownAppId: windows.ownAppId
     }
 
+    TerminalSession {
+        id: session
+
+        objectName: "terminalSession"
+        tiles: tiles
+        onLaunchRequested: (title, exec) => launcher.launch(title, exec)
+        onLeft: window.closeTerminal()
+    }
+
+    function openTerminal() {
+        session.reset();
+        terminalOpen = true;
+        terminalScreen.takeFocus();
+    }
+
+    function closeTerminal() {
+        terminalOpen = false;
+        focusTiles();
+    }
+
+    function focusTiles() {
+        grid.forceActiveFocus();
+        if (grid.currentItem)
+            grid.currentItem.forceActiveFocus();
+    }
+
     GridView {
         id: grid
 
@@ -49,8 +77,8 @@ Window {
         cellWidth: width / 3
         cellHeight: height / 2
         interactive: false
-        focus: !grownUp.visible
-        visible: !grownUp.visible
+        focus: !grownUp.visible && !window.terminalOpen
+        visible: !grownUp.visible && !window.terminalOpen
         keyNavigationEnabled: true
         keyNavigationWraps: true
         currentIndex: 0
@@ -69,6 +97,7 @@ Window {
         delegate: Tile {
             required property int index
             required property list<string> exec
+            required property bool opensTerminal
 
             width: grid.cellWidth - Tokens.headingSize
             height: grid.cellHeight - Tokens.headingSize
@@ -77,8 +106,18 @@ Window {
                 if (activeFocus)
                     grid.currentIndex = index;
             }
-            onActivated: launcher.launch(title, exec)
+            onActivated: opensTerminal ? window.openTerminal() : launcher.launch(title, exec)
         }
+    }
+
+    Terminal {
+        id: terminalScreen
+
+        objectName: "terminalScreen"
+        anchors.fill: parent
+        visible: window.terminalOpen && !grownUp.visible
+        session: session
+        onExited: window.closeTerminal()
     }
 
     GrownUpScreen {
@@ -93,9 +132,10 @@ Window {
         onVisibleChanged: {
             if (visible)
                 return;
-            grid.forceActiveFocus();
-            if (grid.currentItem)
-                grid.currentItem.forceActiveFocus();
+            if (window.terminalOpen)
+                terminalScreen.takeFocus();
+            else
+                window.focusTiles();
         }
     }
 }

@@ -40,40 +40,53 @@
 <context>
     <name>Main</name>
     <message>
-        <location filename="../qml/Main.qml" line="13"/>
+        <location filename="../qml/Main.qml" line="15"/>
         <source>Cairn</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>Terminal</name>
+    <message>
+        <location filename="../qml/Terminal.qml" line="21"/>
+        <source>Terminal</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/Terminal.qml" line="137"/>
+        <source>Type a command</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
     <name>TileModel</name>
     <message>
-        <location filename="../src/TileModel.cpp" line="13"/>
+        <location filename="../src/TileModel.cpp" line="17"/>
         <source>Draw</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/TileModel.cpp" line="14"/>
+        <location filename="../src/TileModel.cpp" line="18"/>
         <source>Music</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/TileModel.cpp" line="15"/>
+        <location filename="../src/TileModel.cpp" line="19"/>
         <source>Build</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/TileModel.cpp" line="16"/>
+        <location filename="../src/TileModel.cpp" line="20"/>
         <source>Story</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/TileModel.cpp" line="17"/>
+        <location filename="../src/TileModel.cpp" line="21"/>
         <source>Practice</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/TileModel.cpp" line="18"/>
+        <location filename="../src/TileModel.cpp" line="26"/>
         <source>Terminal</source>
         <translation type="unfinished"></translation>
     </message>

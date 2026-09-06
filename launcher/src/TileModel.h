@@ -26,13 +26,17 @@ public:
         TitleRole = Qt::UserRole + 1,
         KindRole,
         AccessibleNameRole,
-        ExecRole
+        ExecRole,
+        OpensTerminalRole
     };
 
     struct Tile {
         QString title;
         Kind kind;
         QStringList exec;
+        // The launcher's own Terminal tile: opens the restricted shell inside
+        // this window instead of starting a program.
+        bool opensTerminal = false;
     };
 
     explicit TileModel(QObject* parent = nullptr);
@@ -45,7 +49,11 @@ public:
     void setManifestPath(const QString& path);
     QString loadError() const;
 
+    // The tiles as shown, manifest or built-in, always ending with the
+    // Terminal tile, which is the launcher's and never a manifest's.
+    QList<Tile> tiles() const;
     static QList<Tile> defaultTiles();
+    static Tile terminalTile();
 
 signals:
     void manifestPathChanged();

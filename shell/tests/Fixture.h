@@ -1,21 +1,25 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
-#include "AppTree.h"
+#include "HomeLayout.h"
+#include "World.h"
 
-// The six dev-PC tiles, as the tests see them.
-inline AppTree fixtureTree() {
-    return AppTree({
+// The dev-PC doors and the built-in home for a child called Sam.
+inline QList<World::Door> fixtureDoors() {
+    return {
         {.title = QStringLiteral("Draw"),
-         .kind = AppTree::Kind::Make,
+         .kind = World::Kind::Make,
          .exec = {QStringLiteral("tuxpaint")}},
-        {.title = QStringLiteral("Music"), .kind = AppTree::Kind::Make, .exec = {}},
+        {.title = QStringLiteral("Music"), .kind = World::Kind::Make, .exec = {}},
         {.title = QStringLiteral("Tux Paint"),
-         .kind = AppTree::Kind::Make,
+         .kind = World::Kind::Make,
          .exec = {QStringLiteral("tuxpaint")}},
         {.title = QStringLiteral("Practice"),
-         .kind = AppTree::Kind::Practice,
+         .kind = World::Kind::Practice,
          .exec = {QStringLiteral("gcompris-qt")}},
-        {.title = QStringLiteral("Terminal"), .kind = AppTree::Kind::Machine, .exec = {}},
-    });
+    };
+}
+
+inline World fixtureWorld() {
+    return {fixtureDoors(), HomeLayout::builtIn(QStringLiteral("Sam"))};
 }
