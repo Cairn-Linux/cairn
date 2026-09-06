@@ -3,14 +3,17 @@
 """Checks that the kiosk labwc config still says what the README promises.
 
 Standard library only, like the rest of the Python here. The compositor
-itself is checked by hand under nested labwc (launcher/README.md).
+itself is checked by hand under nested labwc (launcher/README.md); what
+those checks found is in docs/research/kiosk-containment.md.
 """
 
 import pathlib
 import unittest
 import xml.etree.ElementTree as ET
 
-CONFIG = pathlib.Path(__file__).resolve().parent.parent / "labwc" / "rc.xml"
+LABWC_DIR = pathlib.Path(__file__).resolve().parent.parent / "labwc"
+CONFIG = LABWC_DIR / "rc.xml"
+ENVIRONMENT = LABWC_DIR / "environment"
 
 
 class LabwcConfigTest(unittest.TestCase):
@@ -42,6 +45,30 @@ class LabwcConfigTest(unittest.TestCase):
         mousebinds = self.root.findall("./mouse/context/mousebind")
         self.assertTrue(mousebinds, "at least one mousebind, or the defaults load")
         self.assertIsNone(self.root.find("./mouse/default"))
+
+    def test_every_window_is_undecorated_and_cannot_ask_for_focus(self):
+        # X11 windows got a titlebar and an activation request took focus
+        # from the launcher until this rule existed (kiosk-containment.md).
+        rules = self.root.findall("./windowRules/windowRule")
+        catch_all = [rule for rule in rules if rule.get("identifier") == "*"]
+        self.assertEqual(len(catch_all), 1, "exactly one rule for every window")
+        rule = catch_all[0]
+        self.assertEqual(rule.get("serverDecoration"), "no")
+        self.assertEqual(rule.get("ignoreFocusRequest"), "yes")
+        # Later rules win in labwc, so the catch-all must come first.
+        self.assertIs(rules[0], rule)
+
+    def test_vt_switching_keysyms_are_removed_from_the_keymap(self):
+        # labwc switches VTs on XF86Switch_VT keysyms in code, with no rc.xml
+        # option; the XKB option takes the keysyms out of the keymap instead.
+        settings = {}
+        for line in ENVIRONMENT.read_text().splitlines():
+            line = line.strip()
+            if line and not line.startswith("#"):
+                name, _, value = line.partition("=")
+                settings[name] = value
+        options = settings.get("XKB_DEFAULT_OPTIONS", "").split(",")
+        self.assertIn("srvrkeys:none", options)
 
 
 if __name__ == "__main__":

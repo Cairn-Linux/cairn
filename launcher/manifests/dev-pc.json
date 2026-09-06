@@ -1,7 +1,7 @@
 {
   "version": 1,
   "entries": [
-    {"title": "Draw", "category": "make", "exec": ["tuxpaint", "--fullscreen"]},
+    {"title": "Draw", "category": "make", "exec": ["tuxpaint", "--fullscreen=native"]},
     {"title": "Music", "category": "make", "exec": []},
     {"title": "Build", "category": "make", "exec": []},
     {"title": "Story", "category": "make", "exec": []},

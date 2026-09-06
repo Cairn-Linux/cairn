@@ -1,7 +1,7 @@
 # Cairn Linux — Roadmap and working plan
 
 **Status:** living document
-**Last updated:** 2026-09-04
+**Last updated:** 2026-09-06
 (D1, D2, D4, D5, D7, D8, D11–D14 closed; D15 deferred)
 
 `DESIGN.md` is the specification. This document is the plan for building it:
@@ -56,6 +56,13 @@ done, and what could sink it. Decisions that change the design get an ADR in
   the brand tokens; the terminal's own tests run in its repository.
 - `docs/DEVELOPMENT.md` matches the real dev PC as checked on 2026-09-04.
 - D5 (level groups, ADR-0011) and D7 (session dispatch, ADR-0012) are closed.
+- P0-4 ran nested on the dev PC on 2026-09-06
+  (`docs/research/kiosk-containment.md`). Two rows failed and were fixed in
+  `session/labwc/`: X11 windows had titlebars, and a window that asked for
+  focus was given it over the launcher. VT switching turns out to be code in
+  labwc, not a binding, so the keymap drops the keysyms instead. Left for
+  the VM: the shortcut rows by keypress, the VT row on a real console, and
+  `pkcheck` as a child account. A hung app still has no way out (#41).
 - **Phase 0 begins.** Its whole purpose is to put a launcher in front of a
   real child before any image tooling exists.
 
@@ -108,7 +115,7 @@ and the VT-switch row.
 | **P0-1** | Repository, planning, brand tokens and mark as code | — | This commit. |
 | **P0-2** | **Provisioning script** `provision/` that turns a stock Bazzite KDE install (ADR-0006) into a Cairn machine: creates the level groups from ADR-0011, one Guardian, one L1 child; installs the kiosk compositor and the Phase 0 app set (Tux Paint, GCompris, ScummVM via Flatpak/dnf); installs the session entry and the display manager and greeter configuration (D6). Idempotent; safe to re-run. | — | Runs clean twice on a fresh VM. |
 | **P0-3** | **Session dispatch and greeter** in `session/`: `cairn-session` dispatcher (ADR-0012), `cairn.desktop`, display manager and greeter configuration (D6), PAM rule for passwordless L1/L2. Resolves D6 only. | P0-2 | Record which display manager stock Bazzite KDE ships (`rpm -q sddm plasma-login-manager` and `readlink -f /etc/systemd/system/display-manager.service` in the VM); child account lands in the kiosk with no password prompt; Guardian account lands in stock Plasma with one. |
-| **P0-4** | **Kiosk containment test** with labwc running a placeholder client: a launched Tux Paint or ScummVM window appears on top and closing it returns to the launcher; Alt-Tab, Super, and Ctrl-Alt-Fn VT switching are unreachable; a focus-stealing X11 client cannot steal focus under XWayland. Steam-specific rows live in P0-10. | — | Written checklist in `docs/research/kiosk-containment.md`, all rows pass or have a named mitigation. |
+| **P0-4** | **Kiosk containment test** with labwc running a placeholder client: a launched Tux Paint or ScummVM window appears on top and closing it returns to the launcher; Alt-Tab, Super, and Ctrl-Alt-Fn VT switching are unreachable; a focus-stealing X11 client cannot steal focus under XWayland. Steam-specific rows live in P0-10. Nested rows ran 2026-09-06: Tux Paint on top and back, focus requests refused and X11 titlebars removed by a new window rule, VT keysyms removed by `session/labwc/environment`. Remaining, in the VM: shortcuts by keypress, the VT row, `pkcheck` as a child (after P0-2). The hung-app row is open on #41. | — | Written checklist in `docs/research/kiosk-containment.md`, all rows pass or have a named mitigation. |
 | **P0-5** | **Launcher v0** in `launcher/`: a C++/QML app. Six tiles from `Cairn.Brand.Tokens`, colour by kind; keyboard and mouse navigation. Slices 1 to 3 landed 2026-09-04 (six tiles, navigation, `QProcess` launch from a `kidscan` manifest, the "Something needs a grown-up" screen on failure and on a window nobody launched, via `ext-foreign-toplevel-list-v1`, tests). Slice 4 added the labwc kiosk configuration in `session/labwc/`, whose window rule makes the launcher fullscreen; the launcher itself has no fullscreen option. The window listener and the fullscreen rule were checked by hand under nested labwc 0.9.6 on 2026-09-04. The grid scrolls since 2026-09-05 (slice 7, ADR-0015). Remaining: RSS log, icons (DESIGN §14 Q3). The `steam -applaunch` lifecycle (#42) is designed in P0-10. | — | Runs as a window under Plasma and fullscreen under nested labwc; RSS recorded in `docs/research/launcher-footprint.md`. |
 | **P0-6** | **Restricted shell v0** in `shell/`: C++ interpreter behind a QML text surface. L1 vocabulary candidate of six real commands (`ls`, `cd`, `open`, `cat`, `help`, `exit`), large type, aggressive completion, suggestion-style errors ("I don't know \"opn\" — did you mean open?"), icon-augmented `ls`. Nothing destructive reachable. The interpreter is a pure C++ class with no Qt GUI dependency so it is unit-testable in isolation. Slices 1 and 2 landed 2026-09-04 and 2026-09-05: the interpreter over doors and `home`, six words, suggestions, completion, and the surface inside the launcher with `open` through `AppLauncher`. Split into `Cairn-Linux/footpath` on 2026-09-05 (ADR-0014). Remaining, in that repository: a `--home` layout file, icons on `ls` beyond colour chips (DESIGN §14 Q3); here: the child test. | P0-5 | Child can open an app from it. Vocabulary written up for testing (DESIGN §14 Q2). |
 | **P0-7** | **malcontent-on-Plasma check** (DESIGN §14 Q7). In a VM: install malcontent, restrict a test user, log into Plasma, confirm restricted Flatpaks refuse to launch and the restriction UI is reachable. | — (parallel) | Result recorded in `docs/research/malcontent-plasma.md` and, if it changes §4.5 or §9.1, an ADR. |
