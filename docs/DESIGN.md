@@ -137,7 +137,7 @@ children.
 Modern bash has none of these: unbounded surface area, cryptic errors, genuine
 destructive power, and no reward at the end.
 
-**Therefore:** a purpose-built restricted shell, not bash with a constrained
+**Therefore:** a purpose-built restricted shell, Footpath (ADR-0014), not bash with a constrained
 `.bashrc`. Design requirements:
 
 - Real command names (`ls`, `cd`, `open`, `cat`), not invented kid-verbs. The

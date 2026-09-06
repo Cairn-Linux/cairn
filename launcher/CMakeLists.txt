@@ -42,7 +42,7 @@ qt_add_qml_module(cairn-launcher
     SOURCES ${launcher_model_sources} ${launcher_window_sources} ${launcher_terminal_sources}
 )
 target_include_directories(cairn-launcher PRIVATE src)
-target_link_libraries(cairn-launcher PRIVATE Qt6::Quick CairnBrand cairn-foreign-toplevel cairn-shell-core)
+target_link_libraries(cairn-launcher PRIVATE Qt6::Quick CairnBrand cairn-foreign-toplevel footpath-core)
 
 qt_add_lupdate(
     SOURCE_TARGETS cairn-launcher
@@ -67,7 +67,7 @@ add_test(NAME applauncher COMMAND tst_applauncher)
 
 qt_add_executable(tst_terminalsession tests/tst_terminalsession.cpp ${launcher_model_sources} ${launcher_terminal_sources})
 target_include_directories(tst_terminalsession PRIVATE src)
-target_link_libraries(tst_terminalsession PRIVATE Qt6::Qml Qt6::Test cairn-shell-core)
+target_link_libraries(tst_terminalsession PRIVATE Qt6::Qml Qt6::Test footpath-core)
 target_compile_definitions(tst_terminalsession PRIVATE QUICK_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests")
 add_test(NAME terminalsession COMMAND tst_terminalsession)
 
@@ -92,7 +92,7 @@ qt_add_qml_module(tst_navigation
     SOURCES ${launcher_model_sources} ${launcher_window_sources} ${launcher_terminal_sources}
 )
 target_include_directories(tst_navigation PRIVATE src)
-target_link_libraries(tst_navigation PRIVATE Qt6::Gui Qt6::QuickTest CairnBrand cairn-foreign-toplevel cairn-shell-core)
+target_link_libraries(tst_navigation PRIVATE Qt6::Gui Qt6::QuickTest CairnBrand cairn-foreign-toplevel footpath-core)
 target_compile_definitions(tst_navigation PRIVATE
     QUICK_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests"
 )

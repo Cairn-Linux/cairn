@@ -2,7 +2,8 @@
 
 **Status:** accepted
 **Amended by:** ADR-0010 (the scratchjr-linux repository is not created;
-ScratchJr is deferred)
+ScratchJr is deferred); ADR-0014 (the shell, Footpath, gets its own
+repository)
 **Date:** 2026-09-03
 
 ## Context
