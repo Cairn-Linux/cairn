@@ -35,10 +35,11 @@ Phase 0 task **P0-3** builds the rest, resolving **ROADMAP D6** only.
   password for `cairn-l1`/`cairn-l2` (PAM rule), Guardians hidden with
   `HideUsers`.
   Fedora 44 KDE ships Plasma Login Manager (`plasmalogin.service`), not
-  SDDM, as verified on 2026-09-04.
-  Bazzite's Containerfile swaps to SDDM only in its Steam Deck stage.
-  P0-3 first records what stock Bazzite KDE ships; the SDDM recommendation
-  rests on that check, and the D6 ADR must make any swap explicit.
+  SDDM, as verified on 2026-09-04, and so does stock Bazzite KDE
+  `44.20260902`, as recorded by `provision/cairn-provision.sh` in the VM on
+  2026-09-06 (sddm and greetd not installed).
+  The SDDM recommendation therefore means a display-manager swap, which the
+  D6 ADR must make explicit.
   greetd with a custom greeter is the fallback.
 - **Kiosk compositor.** labwc in kiosk configuration (ADR-0004): window
   rules keep Steam's forced windows off the screen and
