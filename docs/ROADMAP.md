@@ -43,11 +43,11 @@ done, and what could sink it. Decisions that change the design get an ADR in
   instead of errors, completion, and the surface inside the launcher
   window from the Terminal tile, with `open` going through the launcher's
   own launch path.
-- The shell will run inside the launcher window (decided 2026-09-04). The
-  terminal is to become its own project and repository, so it can grow as
-  an educational program on its own; `docs/TERMINAL-DESIGN.md` is the draft
-  design for that, under discussion. Splitting it out contradicts ADR-0001
-  and needs an ADR once the name (D9) lands.
+- The shell is **Footpath** (ADR-0014, closing D9): it runs inside the
+  launcher window and is to move to its own repository,
+  `Cairn-Linux/footpath`, with `docs/TERMINAL-DESIGN.md` as its design
+  document. The split is the next change; until then the code stays in
+  `shell/` and `launcher/` under the `footpath-core` target.
 - `docs/DEVELOPMENT.md` matches the real dev PC as checked on 2026-09-04.
 - D5 (level groups, ADR-0011) and D7 (session dispatch, ADR-0012) are closed.
 - **Phase 0 begins.** Its whole purpose is to put a launcher in front of a
@@ -70,7 +70,7 @@ Each has a recommendation. None is final until an ADR lands in
 | **D6** | Display manager and greeter (DESIGN §4.3 describes the login screen, not the component) | **SDDM with a Cairn QML theme remains proposed.** Since ADR-0002 the whole first-party layer is QML and SDDM themes are QML, so this would make the login screen a theme, not a program. `HideUsers` hides Guardians; a PAM rule grants passwordless login to `cairn-l1`/`cairn-l2` members. Verified 2026-09-04: Fedora 44 KDE ships Plasma Login Manager (`plasmalogin.service`), not SDDM; Bazzite's Containerfile swaps to SDDM only in its Steam Deck stage. P0-3 first records what stock Bazzite KDE ships; the recommendation rests on that check, with any display-manager swap explicit in the D6 ADR. Alternative: greetd with a custom greeter, only if SDDM cannot do the avatar-tile login cleanly. Prototype in P0-3. | P0-3 |
 | **D7** | Session dispatch | **Closed 2026-09-04, ADR-0012.** One Wayland session entry (`cairn.desktop` → `cairn-session`) that reads the account's level group and execs either the kiosk compositor + launcher (L1/L2) or `startplasma-wayland` (L3/L4, Guardian). The greeter offers only this session, so a child cannot pick another. | Closed |
 | **D8** | Localisation and offline stance (DESIGN §14 Q4, Q5) | **Closed 2026-09-03, ADR-0007.** English-only v1 with all strings externalised from the first commit; offline-capable, not offline-first. | Closed |
-| **D9** | Name and architecture of the restricted shell | Needs a real name before Phase 1 packaging; the child never types it, so it's a package name, not a brand. Architecture since ADR-0002: a Qt/QML text surface with the command interpreter in C++, **not** a PTY program in a terminal emulator, and (decided 2026-09-04) hosted as a screen inside the launcher window. The name now also names a separate repository: see `docs/TERMINAL-DESIGN.md` (draft). | P1-2 |
+| **D9** | Name and architecture of the restricted shell | **Closed 2026-09-05, ADR-0014: Footpath.** A Qt Core interpreter behind a QML surface hosted inside the launcher window, **not** a PTY program; its own repository `Cairn-Linux/footpath` with `docs/TERMINAL-DESIGN.md` as its design document, consumed by Cairn as a pinned submodule and packaged as the `footpath` RPM in P1-2. The tile stays "Terminal". | Closed |
 | **D10** | Content filtering (DESIGN §9.2 "TBD") | Two options, both local-config-only to honour §9.3: a **filtered upstream DNS resolver** (simple, but sends every query to a third party) or a **local resolver with blocklists** (private, needs list updates via the OS image). Decide in Phase 2 when the browser first appears at L2. | Phase 2 |
 | **D11** | Hardware floor (DESIGN §7 had a 2 GB minimum that contradicted its own 2013–2018 target) | **Closed 2026-09-03, ADR-0003.** Minimum: about 2013 or newer, 4 GB, Intel HD 4000+, UEFI, 64 GB. Recommended: 8 GB, discrete or modern integrated GPU, 128 GB. Published as a game-box Minimum/Recommended panel everywhere it appears. | Closed |
 | **D12** | Is Steam at L1/L2 a v1 requirement? (DESIGN §3 table said L3+, §8.3 said all levels) | **Closed 2026-09-03, ADR-0004: yes, all levels.** The maintainer's own kid-friendly Steam library is the use case. Steam integration moves from Phase 3 to Phase 1; containment is proven in Phase 0 (P0-10). | Closed |
@@ -121,7 +121,7 @@ first-boot wizard, quick-actions overlay, signed image, CI, ISO.
 | ID | Task |
 |---|---|
 | P1-1 | Measure image size and first-boot RAM on both hardware tiers with the Steam client resident. Disable Bazzite's first-boot portal, Game Mode session and Waydroid. |
-| P1-2 | Package launcher, shell and session as RPMs (in-tree spec files, built in a Containerfile stage or via a COPR). Name the shell (D9). |
+| P1-2 | Package launcher, shell and session as RPMs (in-tree spec files, built in a Containerfile stage or via a COPR). Footpath is packaged from its own repository (ADR-0014). |
 | P1-3 | Adopt `image-template`'s `Justfile` and `build.yml`; pin the Bazzite base to a digest (ADR-0006); generate cosign keys; add `SIGNING_SECRET`; publish to `ghcr.io/cairn-linux/cairn`. |
 | P1-4 | ISO via `bootc-image-builder` (`disk_config/iso.toml`); `build-disk.yml`. Test install on both tiers. |
 | P1-5 | Guardian tooling: a CLI first (`create-child`, `set-level`, `set-pin`, `allow-app`), then a minimal GUI on it. Level changes symmetric (DESIGN §3). |

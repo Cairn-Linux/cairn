@@ -1,9 +1,9 @@
-# shell
+# shell: Footpath
 
-The restricted, child-facing terminal (DESIGN §3.1). A purpose-built shell,
-not bash with a constrained `.bashrc`. Its name is **ROADMAP D9**; until
-then it is "the restricted shell", and `cairn-shell-core` below is a
-placeholder CMake target name.
+The child-facing terminal (DESIGN §3.1), named **Footpath** by ADR-0014,
+which closed ROADMAP D9. A purpose-built shell, not bash with a constrained
+`.bashrc`. The CMake target is `footpath-core`; the child sees a tile
+called "Terminal".
 
 Phase 0 task **P0-6** builds v0 in **C++ / Qt / QML** (ADR-0002), in slices.
 
@@ -14,8 +14,8 @@ Phase 0 task **P0-6** builds v0 in **C++ / Qt / QML** (ADR-0002), in slices.
   (TERMINAL-DESIGN §3), `exit` arrives, and the shell runs inside the
   launcher window from the Terminal tile: `launcher/qml/Terminal.qml` draws
   it and `launcher/src/TerminalSession` feeds it.
-- Next: a `--home` layout file, L2's words, and the split into the
-  terminal's own repository once D9 names it.
+- Next: the move to `Cairn-Linux/footpath` (ADR-0014), then a `--home`
+  layout file and L2's words there.
 
 ## What the shell sees (ADR-0013, TERMINAL-DESIGN §3)
 
@@ -107,7 +107,7 @@ Refresh the translation catalogue with
 
 ## Where this is going
 
-The terminal is to become its own project; its design, including the L2
-words and the L3 hand-off, is `../docs/TERMINAL-DESIGN.md`. What is here,
-with the surface and session in `../launcher/`, moves with it once D9
-names it.
+Footpath is its own project; its design, including the L2 words and the
+L3 hand-off, is `../docs/TERMINAL-DESIGN.md`. What is here, with the
+surface and session in `../launcher/`, moves to `Cairn-Linux/footpath` in
+the next change (ADR-0014) and comes back as a pinned submodule.

@@ -75,7 +75,7 @@ someone learning the language from it. That shapes every rule below.
 - **Tests from the first commit.** Qt Test for every C++ class with logic.
   The trust boundaries (session dispatch, PAM, PIN overlay, what the shell
   refuses to run) get the most tests and the plainest code in the repo.
-- **Dependencies: Qt only.** Anything else needs an ADR.
+- **Dependencies: Qt, and Footpath (ADR-0014).** Anything else needs an ADR.
 - **Every user-facing string is translatable from the first commit**
   (ADR-0007): `tr()` in C++, `qsTr()` in QML, `.ts` files in the repo.
   Translation later is a translation job, not a refactor.
@@ -108,13 +108,14 @@ someone learning the language from it. That shapes every rule below.
 - Shell scripts: `#!/bin/bash`, `set -ouex pipefail`, shellcheck-clean.
 - Python is for `tools/kidscan` and glue only: 3.12+, standard library first.
 - Docs: Markdown, wrapped at ~80 columns, one sentence per idea.
-- Names of not-yet-decided things (the shell) are proposals until an ADR
-  lands. Say "the restricted shell", not a made-up product name.
+- Names of not-yet-decided things are proposals until an ADR lands. The
+  shell is Footpath (ADR-0014); the child only ever sees "Terminal".
 
 ## Things that are not here
 
-- The C++ so far is the launcher in `launcher/` and the restricted shell's
-  interpreter in `shell/` (each README lists the slices that have landed).
+- The C++ so far is the launcher in `launcher/` and Footpath's interpreter
+  in `shell/` (each README lists the slices that have landed); Footpath is
+  moving to its own repository (ADR-0014).
   `tools/kidscan/` and the brand generator `brand/build.py` are
   standard-library Python by design. Run the tests with `ctest --preset debug`,
   `python3 tools/kidscan/tests/test_kidscan.py` and

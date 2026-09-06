@@ -1,7 +1,7 @@
-# The terminal — Design Document
+# Footpath — Design Document
 
-**Status:** Draft for discussion, revised 2026-09-05
-**Intended home:** its own repository once ROADMAP D9 names it; until then
+**Status:** Draft, revised 2026-09-05; named by ADR-0014
+**Intended home:** the `Cairn-Linux/footpath` repository; until the move,
 this file lives beside `DESIGN.md` and is argued with here
 **Depends on:** `DESIGN.md` §3.1 (the premise), ADR-0002 (C++/Qt/QML),
 ADR-0013 (what the L1 shell sees)
@@ -267,7 +267,7 @@ Quick Test the way the launcher's is.
 
 | # | Question | Notes |
 |---|---|---|
-| 1 | The name | ROADMAP D9. A package and project name, not something the child types. Decides the repository. |
+| 1 | The name | **Decided (ADR-0014): Footpath.** Package, repository and target; the child sees "Terminal". |
 | 2 | The exact L2 twelve | Table in §4 is the candidate. Child-tested. |
 | 3 | Can a grown-up add to `home`? | A note from a parent in `notes` would be a reason to `cat` something new. Cheap if the layout file is editable by the Guardian tool; decide after the first child test. |
 | 4 | Discoveries | Small things to find (`help` growing, a note that mentions another) could make exploring richer. Or they are clutter. Not in v1. |
