@@ -45,7 +45,10 @@ Exit status 2 means no Steam installation was found.
 4. **Runs `scummvm --detect` per install directory.** Titles ScummVM
    recognises get a native launch command, one tile per detected game (a
    Steam "pack" can hold several). Everything else gets
-   `steam -applaunch <appid>`.
+   `steam -applaunch <appid>`. The detector runs with SDL's dummy video and
+   audio drivers, because ScummVM opens a window before it reads a file and
+   there is no display during image build or over ssh. A detector that
+   exits non-zero is reported on stderr, not silently routed through Steam.
 5. **Writes the manifest**, sorted by title, and optionally `.desktop` files.
 
 ## Manifest format (version 1)
@@ -97,9 +100,9 @@ a detect table. No real Steam or ScummVM install is required.
   the root came from `~/.var/app/`.
 - **Flatpak ScummVM.** `shutil.which("scummvm")` will not find
   `org.scummvm.ScummVM`; pass `--scummvm` with a wrapper for now.
-- **Detect output parsing** has not been verified against a real ScummVM
-  build in this repo; the test uses a fake that prints the documented
-  three-column table.
+- **Detect output parsing** was verified on 2026-09-08 against ScummVM
+  2.9.1 on Fedora 44 with four Humongous titles from a real Steam library;
+  the test still uses a fake that prints the same three-column table.
 - **Naming.** `kid-` and `X-Kid-` predate the Cairn name; rename to
   `cairn-`/`X-Cairn-` when the launcher's manifest reader lands, in one
   change.
