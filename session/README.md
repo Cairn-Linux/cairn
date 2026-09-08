@@ -7,10 +7,12 @@ What is here:
 
 - `labwc/`: the kiosk compositor's configuration. `rc.xml`: no titlebars on
   any window, Wayland or X11; no default key or mouse bindings; no window
-  gets focus by asking for it; and a window rule that makes the launcher
-  fullscreen on sight. `environment`: the XKB option that takes the
-  Ctrl-Alt-Fn VT-switch keysyms out of the keymap, because labwc switches
-  VTs in code and offers no other way to stop it.
+  gets focus by asking for it; a window rule that makes the launcher
+  fullscreen on sight; and rules that iconify Steam's own windows on
+  sight while leaving the launcher able to hear about them
+  (`docs/research/steam-containment.md`). `environment`: the XKB option
+  that takes the Ctrl-Alt-Fn VT-switch keysyms out of the keymap, because
+  labwc switches VTs in code and offers no other way to stop it.
   Fullscreen is the compositor's decision, made per session, never a
   launcher option.
 - `bin/cairn-session`: the dispatcher (ADR-0012). Reads the account's
@@ -52,9 +54,11 @@ Phase 0 task **P0-3** wires this into the VM.
 
 - **Kiosk compositor.** labwc in kiosk configuration (ADR-0004): window
   rules keep Steam's forced windows off the screen and
-  wlr-foreign-toplevel-management tells the launcher when one appears. cage
-  is a measurement baseline only.
-  labwc remains proposed until P0-10 closes D3 with an ADR.
+  `ext-foreign-toplevel-list-v1` tells the launcher when one appears. cage
+  is a measurement baseline only. Both halves ran in the VM on 2026-09-08
+  with a signed-out client (`docs/research/steam-containment.md`); labwc
+  remains proposed until the signed-in rows run and P0-10 closes D3 with
+  an ADR.
 
 ## Files expected here
 

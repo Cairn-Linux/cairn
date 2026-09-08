@@ -3,10 +3,12 @@
 **Date:** 2026-09-06
 **For:** ROADMAP P0-4 (issue #3) and issue #41
 **Result:** Every row that can run nested on the dev PC passes, two of them
-only after changes to `session/labwc/` made in the same change. Three rows
-need the Bazzite VM or the test laptop and are listed at the end with the
-exact check to run. One row, a hung or trapped app (#41), fails with no
-mitigation yet.
+only after changes to `session/labwc/` made in the same change. The three
+rows that needed the VM ran there on 2026-09-08 during P0-10: the
+shortcut and VT rows pass at the real console; `pkcheck` as the child
+says polkit lets a child power off, mount and change Wi-Fi, so #35's rule
+is needed. One row, a hung or trapped app (#41), fails with no mitigation
+yet.
 
 ## How it was run
 
@@ -37,11 +39,11 @@ Where a row depends on how labwc is written, the 0.9.6 sources were read
 | Row | Result | What happened |
 |---|---|---|
 | A launched window appears on top; closing it returns to the launcher | **Pass** | Tux Paint at `--fullscreen=native` mapped as a fullscreen X11 window over the launcher and took focus. When it ended, focus returned to the launcher and the tiles were up. See "Tux Paint" below for the manifest bug this found. |
-| Alt-Tab, Super and other compositor shortcuts unreachable | **Pass by configuration** | The debug log shows no "load default key bindings" line, so the one no-op keybind did its job. See "Default bindings" for why this is fragile and how to confirm it by hand. |
-| Ctrl-Alt-Fn VT switching unreachable | **Mitigation named and checked at the keymap** | labwc switches VTs in code, before any keybind, with no rc.xml option to stop it. The keymap option `srvrkeys:none`, set in `session/labwc/environment`, removes the keysyms it looks for. The keymap labwc handed its clients had 24 `XF86Switch_VT` entries before and none after. Whether the kernel VT stays put needs the VM. |
+| Alt-Tab, Super and other compositor shortcuts unreachable | **Pass** (by configuration, then by keypress in the VM, 2026-09-08) | The debug log shows no "load default key bindings" line, so the one no-op keybind did its job. At the VM's console Alt-Tab reached the launcher as a plain Tab and moved its focus ring one tile; Super and Alt-F4 did nothing, no switcher or menu appeared, and the launcher and compositor were still running. See "Default bindings" for why this is fragile. |
+| Ctrl-Alt-Fn VT switching unreachable | **Pass** (VM, 2026-09-08) | labwc switches VTs in code, before any keybind, with no rc.xml option to stop it. The keymap option `srvrkeys:none`, set in `session/labwc/environment`, removes the keysyms it looks for. The keymap labwc handed its clients had 24 `XF86Switch_VT` entries before and none after. At the VM's console, Ctrl-Alt-F2 and Ctrl-Alt-F1 sent through the virtual keyboard left `/sys/class/tty/tty0/active` on the kiosk's `tty3`. |
 | A focus-stealing X11 client cannot take focus from the launcher | **Fail, then pass** | A raw X focus change (`XSetInputFocus`) is reverted by wlroots and never reached the launcher. An activation request (`_NET_ACTIVE_WINDOW`) was honoured: labwc un-minimised the X window and gave it focus over the launcher. With `ignoreFocusRequest="yes"` on every window the request is logged and ignored. |
 | Two X11 clients sharing one XWayland (#35) | **Same as above** | Between two xterms a raw focus change was reverted and an activation request switched focus. The same rule stops it. |
-| `pkcheck` as the child for power-off, mount, network and package actions (#35) | **Not run** | Needs a child account, which P0-2 creates in the VM. The polkit defaults on Fedora 44 are recorded below; they say a rule is needed. |
+| `pkcheck` as the child for power-off, mount, network and package actions (#35) | **Fail, rule needed** (VM, 2026-09-08) | With the L1 account's labwc as the subject, polkit says yes to power-off, reboot, suspend, hibernate, udisks2 mount and eject, NetworkManager enable-disable-wifi, network-control and modify-own-connections, Flatpak app-update and runtime-install, and rpm-ostree upgrade; it wants an admin password only for modify-system, Flatpak app-install, set-user-linger and rpm-ostree install. No Cairn rule exists in `/etc/polkit-1/rules.d/`. The full table is in `steam-containment.md`. |
 | A hung or trapped client can be exited without a reboot (#41) | **Fail, no mitigation** | With no bindings there is no way out but the app's own quit. Tux Paint ignored SIGTERM; only SIGKILL ended it. |
 | X11 windows carry no server decorations | **Fail, then pass** (new row) | An xterm got a titlebar with minimise, maximise and close buttons: `<decoration>client</decoration>` only governs Wayland clients. `serverDecoration="no"` on every window removes it. |
 
@@ -139,9 +141,9 @@ this note only adds the two facts above.
 
 | Row | Where | Check |
 |---|---|---|
-| Alt-Tab, Super and the rest by keypress | VM console or laptop | Two windows open under the kiosk labwc; the keys listed under "Default bindings" do nothing. |
-| Ctrl-Alt-Fn reaches no VT | VM console | `chvt` is not needed; press Ctrl-Alt-F2 at the kiosk session and stay on it. Also `HandlePowerKey` and friends in `logind.conf`, once P0-2 writes them. |
-| `pkcheck` as the child | VM, after P0-2 | `pkcheck --action-id org.freedesktop.login1.power-off --process $$` as the L1 user returns not authorised, likewise for the udisks2 and NetworkManager actions above. |
+| A hung or trapped app can be exited (#41) | Design first | No mitigation yet; see the row above. |
+| `HandlePowerKey` and friends in `logind.conf` | VM, once provisioning writes them | The power button ends the app or the session, never the machine mid-write. |
+| The polkit rule for the level groups (#35) | `session/polkit/`, then the VM | Rerun the `pkcheck` list from `steam-containment.md` as the child: every row that says yes today says no. |
 
 Screenshots and logs from the run are in the maintainer's work area, not the
 repository.

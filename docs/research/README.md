@@ -10,7 +10,14 @@ Files:
   blocker; compliance checklist for Phase 1.
 - `kiosk-containment.md` — 2026-09-06 P0-4 checklist under nested labwc:
   what a child can and cannot reach from inside the L1 session. Two rows
-  passed only after changes to `session/labwc/`; three rows wait for the VM.
+  passed only after changes to `session/labwc/`. The three VM rows ran on
+  2026-09-08: VT switching and the shortcuts hold; `pkcheck` as the child
+  says the polkit rule (#35) is needed.
+- `steam-containment.md` — 2026-09-08 P0-10 spike in the VM with a
+  signed-out client: which window rule hides Steam's windows and why, what
+  the launcher shows, what Settings › Family offers now, and the client's
+  memory against the 4 GB floor. The signed-in rows wait for the
+  maintainer's account.
 
 - `malcontent-plasma.md` — 2026-09-06 P0-7 check in the VM: malcontent 0.14
   blocks a blocklisted Flatpak and user installs under Plasma, and its
@@ -23,7 +30,5 @@ Planned files:
   on the Minimum tier (ADR-0003), against the 4 GB floor.
 - `child-test-01.md` — P0-9: who, how old, what hardware, twenty minutes,
   what happened. Observer does not intervene unless asked.
-- `steam-containment.md` — P0-10: client-window containment in the VM,
-  idle RSS against the 4 GB floor and VT switching on the Minimum-tier laptop.
 
 Write what happened, not what should have happened.
