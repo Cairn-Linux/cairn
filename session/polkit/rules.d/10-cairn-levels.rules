@@ -1,0 +1,76 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// What a child's session may ask the system to do (ADR-0011, issue #35).
+//
+// polkit decides whether a process may power the machine off, mount a USB
+// stick, change Wi-Fi, install or update software. Fedora's defaults say yes
+// to most of that for any user sitting at the console, which is right for a
+// laptop and wrong for a five-year-old. This file answers first, keyed off
+// the level groups, and returns NO where DESIGN §3.2 gives the action to the
+// Guardian. Anything not named here falls through to the defaults.
+//
+// Installed as /etc/polkit-1/rules.d/10-cairn-levels.rules. polkit reads
+// rule files in name order and the first answer wins, so the low number
+// keeps this ahead of anything the base image ships.
+
+// An action id "starts with" a prefix. Duktape, polkit's engine, has no
+// String.startsWith, so this is the plain form.
+function startsWith(id, prefix) {
+    return id.indexOf(prefix) === 0;
+}
+
+function startsWithAny(id, prefixes) {
+    for (var i = 0; i < prefixes.length; i++) {
+        if (startsWith(id, prefixes[i])) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// The Guardian owns Wi-Fi, updates and parental controls (DESIGN §3.2), at
+// every level of the ladder. Reading one's own parental-control settings is
+// left alone: malcontent's Flatpak check runs as the child and needs it.
+var guardianOnly = [
+    "org.freedesktop.NetworkManager.",
+    "org.freedesktop.Flatpak.",
+    "org.freedesktop.packagekit.",
+    "org.projectatomic.rpmostree1.",
+    "com.endlessm.ParentalControls.AccountInfo.Change",
+    "com.endlessm.ParentalControls.AppFilter.Change",
+    "com.endlessm.ParentalControls.SessionLimits.Change",
+    "org.freedesktop.Malcontent.WebFilter.Change",
+    "org.freedesktop.Malcontent.SessionLimits.Extend",
+    "org.freedesktop.MalcontentControl."
+];
+
+// The kiosk has nothing on screen that powers off, sleeps or mounts, so
+// nothing behind it may either. L3 and L4 run Plasma, whose menu offers
+// these; there Fedora's defaults stand. The set-reboot-* actions are
+// listed because logind's policy says being allowed them implies being
+// allowed to reboot, and they default to yes for anyone at the console.
+var notInTheKiosk = [
+    "org.freedesktop.login1.power-off",
+    "org.freedesktop.login1.reboot",
+    "org.freedesktop.login1.set-reboot-",
+    "org.freedesktop.login1.halt",
+    "org.freedesktop.login1.suspend",
+    "org.freedesktop.login1.hibernate",
+    "org.freedesktop.udisks2."
+];
+
+polkit.addRule(function (action, subject) {
+    var kiosk = subject.isInGroup("cairn-l1") || subject.isInGroup("cairn-l2");
+    var desktop = subject.isInGroup("cairn-l3") || subject.isInGroup("cairn-l4");
+
+    if (!kiosk && !desktop) {
+        return polkit.Result.NOT_HANDLED;
+    }
+    if (startsWithAny(action.id, guardianOnly)) {
+        return polkit.Result.NO;
+    }
+    if (kiosk && startsWithAny(action.id, notInTheKiosk)) {
+        return polkit.Result.NO;
+    }
+    return polkit.Result.NOT_HANDLED;
+});

@@ -12,7 +12,8 @@ Files:
   what a child can and cannot reach from inside the L1 session. Two rows
   passed only after changes to `session/labwc/`. The three VM rows ran on
   2026-09-08: VT switching and the shortcuts hold; `pkcheck` as the child
-  says the polkit rule (#35) is needed.
+  found polkit wide open, and the rule in `session/polkit/` (#35) closed
+  it the same day, with the before-and-after table.
 - `steam-containment.md` — 2026-09-08 P0-10 spike in the VM with a
   signed-out client: which window rule hides Steam's windows and why, what
   the launcher shows, what Settings › Family offers now, and the client's
