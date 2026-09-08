@@ -58,6 +58,23 @@ class LabwcConfigTest(unittest.TestCase):
         # Later rules win in labwc, so the catch-all must come first.
         self.assertIs(rules[0], rule)
 
+    def test_steam_windows_are_iconified_but_still_reported(self):
+        # The sign-in window came up centred over the grown-up screen until
+        # this rule existed (steam-containment.md). labwc matches the
+        # WM_CLASS instance, so "steamwebhelper" is the one that hides the
+        # client's windows; "steam" covers the bootstrapper.
+        rules = self.root.findall("./windowRules/windowRule")
+        by_id = {rule.get("identifier"): rule for rule in rules}
+        for identifier in ("steamwebhelper", "steam"):
+            rule = by_id.get(identifier)
+            self.assertIsNotNone(rule, f"a rule for {identifier}")
+            actions = [action.get("name") for action in rule.findall("action")]
+            self.assertEqual(actions, ["Iconify"])
+            # Dropping the foreign-toplevel handle would blind the launcher.
+            self.assertIsNone(rule.get("skipTaskbar"))
+            # The catch-all comes first, so these must come after it.
+            self.assertGreater(rules.index(rule), rules.index(by_id["*"]))
+
     def test_vt_switching_keysyms_are_removed_from_the_keymap(self):
         # labwc switches VTs on XF86Switch_VT keysyms in code, with no rc.xml
         # option; the XKB option takes the keysyms out of the keymap instead.

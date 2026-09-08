@@ -6,8 +6,9 @@
   `labwc -C <this directory> -S cairn-launcher`, so the compositor ends when
   the launcher does. On the dev PC, launcher/README.md shows the nested form.
 
-  Only what the launcher needs so far. Steam's window rules arrive with the
-  P0-10 spike; the escape hatch for hung apps is issue #41.
+  What the launcher needs, plus the Steam rules from the P0-10 spike
+  (docs/research/steam-containment.md). The escape hatch for hung apps is
+  issue #41.
 -->
 <labwc_config>
   <core>
@@ -59,6 +60,29 @@
     -->
     <windowRule identifier="cairn-launcher" serverDecoration="no" fixedPosition="yes">
       <action name="ToggleFullscreen" />
+    </windowRule>
+
+    <!--
+      Steam's own windows never reach the child: the sign-in prompt, the
+      main client, an update. They are X11 windows under XWayland, and
+      labwc matches `identifier` against the first half of WM_CLASS, the
+      instance, not the class: the client's windows are
+      "steamwebhelper", "steam", and a rule for "steam" did nothing while
+      one for "steamwebhelper" hid the sign-in window from its first map
+      (P0-10, 2026-09-08). "steam" is kept for the bootstrapper that runs
+      before the web helper exists.
+
+      Iconify hides the window but keeps its foreign-toplevel handle, so
+      the launcher still hears about it and shows "Something needs a
+      grown-up". skipTaskbar="yes" would drop the handle too, and then the
+      child would see the tiles and nothing else; that is not what DESIGN
+      §8.3 asks for, so it is not set.
+    -->
+    <windowRule identifier="steamwebhelper">
+      <action name="Iconify" />
+    </windowRule>
+    <windowRule identifier="steam">
+      <action name="Iconify" />
     </windowRule>
   </windowRules>
 </labwc_config>

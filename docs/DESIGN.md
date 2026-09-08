@@ -528,8 +528,11 @@ Mechanism:
 **Known failure modes.** Steam forces its window open for client updates, game
 updates, login expiry, Steam Guard prompts, and cloud save conflicts. Mitigations:
 
-1. Enable Family View with a PIN on the client itself, so that even when the
-   window surfaces, store/community/friends are locked. Defence in depth.
+1. The account signed in on the child's machine holds the child role in a
+   Steam Family (§8.4), so that even when the window surfaces, the store,
+   community and friends are restricted by Valve, not by us. Defence in
+   depth. (The client's older Family View PIN no longer exists; the P0-10
+   spike found Settings › Family offers Steam Families only.)
 2. The launcher watches for failed or slow launches and shows a plain
    "something needs a grown-up" screen rather than leaving the child staring at
    whatever Steam decided to display. **Graceful failure matters more at this age
