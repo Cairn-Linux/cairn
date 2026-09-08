@@ -168,10 +168,13 @@ install_flatpaks() {
 }
 
 # --- 6. Files: kiosk configuration, launcher, manifest --------------------------
+# Written beside the target and renamed into place, so a daemon that watches
+# the directory (polkitd does) sees a whole file rather than one mid-write.
 install_file() {
     local mode="$1" source="$2" target="$3"
     if ! cmp -s "$source" "$target"; then
-        install -D --mode="$mode" "$source" "$target"
+        install -D --mode="$mode" "$source" "$target.cairn-new"
+        mv "$target.cairn-new" "$target"
         changed "$target"
     fi
 }
@@ -182,6 +185,9 @@ install_session_files() {
     # The one session entry and its dispatcher (ADR-0012).
     install_file 755 "$REPO/session/bin/cairn-session" "$PREFIX/bin/cairn-session"
     install_file 644 "$REPO/session/sessions/cairn.desktop" "$SHARE/sessions/cairn.desktop"
+    # What a child's session may ask the system to do (issue #35). polkitd
+    # watches the directory, so the rule applies without a restart.
+    install_file 644 "$REPO/session/polkit/rules.d/10-cairn-levels.rules" /etc/polkit-1/rules.d/10-cairn-levels.rules
 }
 
 # --- 7. The display manager: SDDM, swapped in explicitly (ADR-0016) ---------
@@ -236,7 +242,7 @@ relabel() {
     if command -v restorecon > /dev/null; then
         restorecon -R "$PREFIX/bin/cairn-launcher" "$PREFIX/bin/cairn-session" \
             "$PREFIX/libexec/cairn" "$PREFIX/lib64/cairn" "$SHARE" \
-            /etc/sddm.conf.d /etc/pam.d/sddm
+            /etc/sddm.conf.d /etc/pam.d/sddm /etc/polkit-1/rules.d
     fi
 }
 

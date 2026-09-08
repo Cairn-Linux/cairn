@@ -6,9 +6,10 @@
 only after changes to `session/labwc/` made in the same change. The three
 rows that needed the VM ran there on 2026-09-08 during P0-10: the
 shortcut and VT rows pass at the real console; `pkcheck` as the child
-says polkit lets a child power off, mount and change Wi-Fi, so #35's rule
-is needed. One row, a hung or trapped app (#41), fails with no mitigation
-yet.
+said polkit lets a child power off, mount and change Wi-Fi, and the rule
+in `session/polkit/` (#35) closed that the same day, checked from inside
+the child's session. One row, a hung or trapped app (#41), fails with no
+mitigation yet.
 
 ## How it was run
 
@@ -43,7 +44,7 @@ Where a row depends on how labwc is written, the 0.9.6 sources were read
 | Ctrl-Alt-Fn VT switching unreachable | **Pass** (VM, 2026-09-08) | labwc switches VTs in code, before any keybind, with no rc.xml option to stop it. The keymap option `srvrkeys:none`, set in `session/labwc/environment`, removes the keysyms it looks for. The keymap labwc handed its clients had 24 `XF86Switch_VT` entries before and none after. At the VM's console, Ctrl-Alt-F2 and Ctrl-Alt-F1 sent through the virtual keyboard left `/sys/class/tty/tty0/active` on the kiosk's `tty3`. |
 | A focus-stealing X11 client cannot take focus from the launcher | **Fail, then pass** | A raw X focus change (`XSetInputFocus`) is reverted by wlroots and never reached the launcher. An activation request (`_NET_ACTIVE_WINDOW`) was honoured: labwc un-minimised the X window and gave it focus over the launcher. With `ignoreFocusRequest="yes"` on every window the request is logged and ignored. |
 | Two X11 clients sharing one XWayland (#35) | **Same as above** | Between two xterms a raw focus change was reverted and an activation request switched focus. The same rule stops it. |
-| `pkcheck` as the child for power-off, mount, network and package actions (#35) | **Fail, rule needed** (VM, 2026-09-08) | With the L1 account's labwc as the subject, polkit says yes to power-off, reboot, suspend, hibernate, udisks2 mount and eject, NetworkManager enable-disable-wifi, network-control and modify-own-connections, Flatpak app-update and runtime-install, and rpm-ostree upgrade; it wants an admin password only for modify-system, Flatpak app-install, set-user-linger and rpm-ostree install. No Cairn rule exists in `/etc/polkit-1/rules.d/`. The full table is in `steam-containment.md`. |
+| `pkcheck` as the child for power-off, mount, network and package actions (#35) | **Fail, then pass** (VM, 2026-09-08) | With the L1 account's labwc as the subject, polkit says yes to power-off, reboot, suspend, hibernate, udisks2 mount and eject, NetworkManager enable-disable-wifi, network-control and modify-own-connections, Flatpak app-update and runtime-install, and rpm-ostree upgrade; it wants an admin password only for modify-system, Flatpak app-install, set-user-linger and rpm-ostree install. No Cairn rule existed in `/etc/polkit-1/rules.d/`. With `10-cairn-levels.rules` installed, every one of those says no and reads of the child's own parental-control settings still say yes; the table is under "The rule" below. |
 | A hung or trapped client can be exited without a reboot (#41) | **Fail, no mitigation** | With no bindings there is no way out but the app's own quit. Tux Paint ignored SIGTERM; only SIGKILL ended it. |
 | X11 windows carry no server decorations | **Fail, then pass** (new row) | An xterm got a titlebar with minimise, maximise and close buttons: `<decoration>client</decoration>` only governs Wayland clients. `serverDecoration="no"` on every window removes it. |
 
@@ -128,6 +129,53 @@ when the subject is in `cairn-l1` or `cairn-l2`, and the `pkcheck` row runs
 in the VM once that account exists. Power-off from the launcher itself, if
 it ever exists, would go through the same rule.
 
+### The rule (#35)
+
+`session/polkit/rules.d/10-cairn-levels.rules`, installed by provisioning
+to `/etc/polkit-1/rules.d/`, keyed off the level groups. It only ever
+returns NO or steps aside. At every child level: NetworkManager, Flatpak,
+PackageKit, rpm-ostree, and changes to malcontent's parental controls,
+which DESIGN §3.2 gives the Guardian. At L1 and L2 as well: power-off,
+reboot, halt, suspend, hibernate and everything under udisks2. Reading
+one's own parental-control settings stays allowed because malcontent's
+Flatpak check runs as the child and needs it. Fedora's `50-default.rules`
+still names `wheel` as the admin identity, and `polkitd` reads a new file
+in the directory without a restart.
+
+Checked on 2026-09-08 in the VM (polkit 127, Bazzite `44.20260902`) with
+`pkcheck` run as `ada` from a process placed in her own session scope, and
+then by asking logind, which is what a real caller gets:
+
+| Action | Before | After |
+|---|---|---|
+| `login1.power-off`, `reboot`, `suspend`, `hibernate` | yes | no; logind `CanPowerOff`, `CanReboot`, `CanSuspend` answer "no" |
+| `login1.inhibit-block-idle` | yes | yes (untouched; games ask for it) |
+| `udisks2.filesystem-mount`, `eject-media` | yes | no |
+| `NetworkManager.enable-disable-wifi`, `network-control`, `settings.modify.own`, `wifi.scan` | yes | no |
+| `Flatpak.app-update`, `runtime-install` | yes | no |
+| `Flatpak.app-install`, `ParentalControls.AppFilter.ChangeOwn`, `Malcontent.SessionLimits.Extend`, `rpmostree1.upgrade` | password or yes | no |
+| `ParentalControls.AppFilter.ReadOwn`, `accounts.change-own-user-data` | yes | yes (untouched) |
+| The `bazzite` account's ssh shell (wheel, no level group), `login1.power-off` | admin password | admin password (untouched) |
+
+Two things the run taught. First, a prefix on `login1.reboot` was not
+enough: `pkcheck` kept answering yes for `reboot` alone while every other
+power action said no. polkit honours the `org.freedesktop.policykit.imply`
+annotation, and logind's policy says that being allowed
+`set-reboot-parameter`, `set-reboot-to-firmware-setup` or the two
+`set-reboot-to-boot-loader-*` actions, all "yes" for an active user,
+implies being allowed `reboot`. The rule now names `set-reboot-` too. The
+symptom to recognise: `pkcheck` prints `polkit.result=no` and still exits
+0, because the detail comes from the rule and the verdict from the imply.
+Second, `polkitd` logged "Error loading script" for this file on three
+of about twenty writes, with `install(1)` in place and with a rename
+alike, and the rules answered correctly every time afterwards. It watches
+the directory and reloads on every event, so a read can land before a
+write is complete; the retry on the next event is what makes it right.
+Provisioning now writes every file beside its target and renames it,
+which shortens the window but did not remove the line entirely. The
+file never changes while a child is logged in, so the line is a
+provisioning-time curiosity, not a hole.
+
 ### Hung or trapped apps (#41)
 
 Nothing in the session lets a child leave a window that will not close on
@@ -143,7 +191,6 @@ this note only adds the two facts above.
 |---|---|---|
 | A hung or trapped app can be exited (#41) | Design first | No mitigation yet; see the row above. |
 | `HandlePowerKey` and friends in `logind.conf` | VM, once provisioning writes them | The power button ends the app or the session, never the machine mid-write. |
-| The polkit rule for the level groups (#35) | `session/polkit/`, then the VM | Rerun the `pkcheck` list from `steam-containment.md` as the child: every row that says yes today says no. |
 
 Screenshots and logs from the run are in the maintainer's work area, not the
 repository.
