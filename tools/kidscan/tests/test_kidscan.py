@@ -147,6 +147,11 @@ class KidscanTests(unittest.TestCase):
             #!/bin/sh
             # Mimics `scummvm --detect --path=<dir>`: a three-column table where a
             # long description runs into the Full Path column with one space.
+            # Like the real binary, it refuses to start without a video device.
+            if [ "$SDL_VIDEODRIVER" != dummy ]; then
+              echo "Could not initialize SDL: No available video device!" >&2
+              exit 1
+            fi
             p=""
             for a in "$@"; do case "$a" in --path=*) p="${a#--path=}";; esac; done
             case "$p" in
@@ -177,6 +182,24 @@ class KidscanTests(unittest.TestCase):
         self.assertTrue(full["title"].startswith("Freddi Fish and the Case"))
         self.assertEqual([e["title"] for e in entries][:2],
                          ["Freddi Fish (Demo)", "Freddi Fish and the Case of the Missing Kelp Seeds"])
+
+    def test_scummvm_detect_warns_and_routes_through_steam_when_detect_fails(self):
+        fake = self.base / "scummvm"
+        fake.write_text(textwrap.dedent('''\
+            #!/bin/sh
+            echo "Could not initialize SDL: No available video device!" >&2
+            exit 1
+            '''))
+        fake.chmod(fake.stat().st_mode | stat.S_IEXEC)
+
+        err = io.StringIO()
+        with redirect_stderr(err):
+            found = kidscan.scummvm_detect(self.lib.root / "steamapps" / "common" / "Freddi Fish 1", str(fake))
+            entries = kidscan.build_entries([self.lib.root], str(fake), {})
+        self.assertEqual(found, [])
+        self.assertTrue(all(e["engine"] == "steam" for e in entries))
+        self.assertIn("scummvm --detect exited 1", err.getvalue())
+        self.assertIn("No available video device", err.getvalue())
 
     def test_write_desktop_files_quotes_paths_with_spaces(self):
         outdir = self.base / "apps"

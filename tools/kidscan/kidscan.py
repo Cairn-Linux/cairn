@@ -173,13 +173,25 @@ _DETECT_LINE_RE = re.compile(r"^([a-z0-9_.:-]+)\s{2,}(\S.*?)\s*$", re.I)
 
 def scummvm_detect(path, scummvm_bin):
     """Return [(target_id, description)] for SCUMM games under path."""
+    # ScummVM opens an SDL window before it looks at any file, even for
+    # --detect, and exits 1 with "No available video device" when there is
+    # no display. This runs headless during image build and over ssh, so
+    # give SDL its dummy drivers. A real display is never needed to detect.
+    env = dict(os.environ, SDL_VIDEODRIVER="dummy", SDL_AUDIODRIVER="dummy")
     try:
         result = subprocess.run(
             [scummvm_bin, "--detect", f"--path={path}"],
-            capture_output=True, text=True, timeout=60,
+            capture_output=True, text=True, timeout=60, env=env,
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
         print(f"warning: scummvm --detect failed for {path}: {exc}", file=sys.stderr)
+        return []
+    if result.returncode != 0:
+        # Do not fall through to Steam silently: a title routed through the
+        # Steam client for no reason is exactly what this tool exists to avoid.
+        reason = result.stderr.strip().splitlines()[-1:] or ["no output"]
+        print(f"warning: scummvm --detect exited {result.returncode} for {path}: "
+              f"{reason[0]}; routing through Steam instead", file=sys.stderr)
         return []
 
     found = []
