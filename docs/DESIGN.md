@@ -319,7 +319,7 @@ premise is that the child cannot get out of the launcher.
 
 | Level | Session |
 |---|---|
-| L1–L2 | Kiosk compositor running the launcher fullscreen: `labwc` in kiosk configuration, because §8.3 needs window rules and foreign-toplevel notifications that a single-app compositor such as `cage` lacks (ADR-0004) |
+| L1–L2 | Kiosk compositor running the launcher fullscreen: `labwc` in kiosk configuration, because §8.3 needs window rules and foreign-toplevel notifications that a single-app compositor such as `cage` lacks (ADR-0004, decided by ADR-0017) |
 | L3–L4 | KDE Plasma |
 
 Every first-party surface (launcher, greeter, shell, Guardian tool) is C++20
@@ -541,8 +541,9 @@ updates, login expiry, Steam Guard prompts, and cloud save conflicts. Mitigation
    windows (main client, login, update progress, Steam Guard) minimised or off
    the screen, and the compositor's foreign-toplevel protocol tells the launcher
    when one has appeared so it can show the grown-up screen instead. This is
-   why L1/L2 use `labwc` rather than a single-app kiosk compositor (§4.5). It
-   is proven in Phase 0 before the launcher is finished (§13).
+   why L1/L2 use `labwc` rather than a single-app kiosk compositor (§4.5,
+   ADR-0017). Proven in Phase 0 against a signed-out and a signed-in client
+   (`docs/research/steam-containment.md`).
 
 Combined with a child Steam account in a Steam Family with an explicit game
 allowlist, the exposed surface is small.
