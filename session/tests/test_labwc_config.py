@@ -75,6 +75,29 @@ class LabwcConfigTest(unittest.TestCase):
             # The catch-all comes first, so these must come after it.
             self.assertGreater(rules.index(rule), rules.index(by_id["*"]))
 
+    def test_the_grown_up_combination_runs_the_give_up_helper(self):
+        # ADR-0018: Ctrl-Alt-Home runs cairn-give-up, which ends a stuck app.
+        keybinds = {k.get("key"): k for k in self.root.findall("./keyboard/keybind")}
+        bind = keybinds.get("C-A-Home")
+        self.assertIsNotNone(bind, "a C-A-Home keybind")
+        commands = [a.get("command") for a in bind.findall("./action[@name='Execute']")]
+        self.assertEqual(commands, ["cairn-give-up"])
+
+    def test_the_power_button_is_a_tap_to_ignore_and_a_hold_to_power_off(self):
+        # ADR-0018, in logind's hands rather than the compositor's.
+        conf = (LABWC_DIR.parent / "logind.conf.d" / "10-cairn-power.conf").read_text()
+        settings = {}
+        for line in conf.splitlines():
+            line = line.strip()
+            if line and not line.startswith(("#", "[")):
+                name, _, value = line.partition("=")
+                settings[name] = value
+        self.assertEqual(settings.get("HandlePowerKey"), "ignore")
+        self.assertEqual(settings.get("HandlePowerKeyLongPress"), "poweroff")
+        # No power-button binding in the kiosk either, so a tap is nothing.
+        keys = [k.get("key") for k in self.root.findall("./keyboard/keybind")]
+        self.assertNotIn("XF86PowerOff", keys)
+
     def test_vt_switching_keysyms_are_removed_from_the_keymap(self):
         # labwc switches VTs on XF86Switch_VT keysyms in code, with no rc.xml
         # option; the XKB option takes the keysyms out of the keymap instead.

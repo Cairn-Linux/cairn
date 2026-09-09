@@ -8,8 +8,8 @@ rows that needed the VM ran there on 2026-09-08 during P0-10: the
 shortcut and VT rows pass at the real console; `pkcheck` as the child
 said polkit lets a child power off, mount and change Wi-Fi, and the rule
 in `session/polkit/` (#35) closed that the same day, checked from inside
-the child's session. One row, a hung or trapped app (#41), fails with no
-mitigation yet.
+the child's session. The hung or trapped app row (#41) now passes too:
+Ctrl-Alt-Home runs `cairn-give-up` (ADR-0018).
 
 ## How it was run
 
@@ -45,7 +45,7 @@ Where a row depends on how labwc is written, the 0.9.6 sources were read
 | A focus-stealing X11 client cannot take focus from the launcher | **Fail, then pass** | A raw X focus change (`XSetInputFocus`) is reverted by wlroots and never reached the launcher. An activation request (`_NET_ACTIVE_WINDOW`) was honoured: labwc un-minimised the X window and gave it focus over the launcher. With `ignoreFocusRequest="yes"` on every window the request is logged and ignored. |
 | Two X11 clients sharing one XWayland (#35) | **Same as above** | Between two xterms a raw focus change was reverted and an activation request switched focus. The same rule stops it. |
 | `pkcheck` as the child for power-off, mount, network and package actions (#35) | **Fail, then pass** (VM, 2026-09-08) | With the L1 account's labwc as the subject, polkit says yes to power-off, reboot, suspend, hibernate, udisks2 mount and eject, NetworkManager enable-disable-wifi, network-control and modify-own-connections, Flatpak app-update and runtime-install, and rpm-ostree upgrade; it wants an admin password only for modify-system, Flatpak app-install, set-user-linger and rpm-ostree install. No Cairn rule existed in `/etc/polkit-1/rules.d/`. With `10-cairn-levels.rules` installed, every one of those says no and reads of the child's own parental-control settings still say yes; the table is under "The rule" below. |
-| A hung or trapped client can be exited without a reboot (#41) | **Fail, no mitigation** | With no bindings there is no way out but the app's own quit. Tux Paint ignored SIGTERM; only SIGKILL ended it. |
+| A hung or trapped client can be exited without a reboot (#41) | **Fail, then pass** (VM, 2026-09-08) | With no bindings there was no way out but the app's own quit. Ctrl-Alt-Home now runs `cairn-give-up` (ADR-0018), which ends the app however frozen; the matrix is under "Hung or trapped apps" below. |
 | X11 windows carry no server decorations | **Fail, then pass** (new row) | An xterm got a titlebar with minimise, maximise and close buttons: `<decoration>client</decoration>` only governs Wayland clients. `serverDecoration="no"` on every window removes it. |
 
 The launcher behaved as designed throughout: each window opened from the
@@ -176,21 +176,55 @@ which shortens the window but did not remove the line entirely. The
 file never changes while a child is logged in, so the line is a
 provisioning-time curiosity, not a hole.
 
-### Hung or trapped apps (#41)
+### Hung or trapped apps (#41), and the way out (ADR-0018)
 
-Nothing in the session lets a child leave a window that will not close on
-its own. Tux Paint's quit is a button plus a dialog; ScummVM's is a key.
-Tux Paint also ignores SIGTERM, so a future "give up on this app" path in the
-launcher has to escalate to SIGKILL after a grace period. This row stays
-open on #41; the design question there is the compositor-level exit, and
-this note only adds the two facts above.
+Nothing in the session let a child leave a window that would not close on
+its own. Tux Paint's quit is a button and a dialog; ScummVM's is a key; a
+frozen window has none. The fix is a grown-up's key combination,
+Ctrl-Alt-Home, that runs `cairn-give-up` (`session/bin/`). Not a single key
+or a gesture: the stuck child fetches an adult and the adult presses it.
+
+The helper does not go through the launcher, which for a Flatpak or Steam
+app is already showing its tiles behind the fullscreen window: the app has
+reparented into its own session (a Flatpak tree under `bwrap`, a Steam game
+under Steam's `reaper`) and the launcher's own child exited seconds after
+the launch. So the helper signals those sandbox roots in the child's session
+directly, SIGCONT first so a stopped process can receive it, then SIGTERM,
+then SIGKILL. The launcher, the compositor, the terminal, the session
+services and the resident Steam client match none of the roots and are left
+running; when the app's window dies its tiles are uncovered.
+
+Run in the VM on 2026-09-08, each app started at the kiosk and ended with
+Ctrl-Alt-Home:
+
+| Case | Result |
+|---|---|
+| Live Tux Paint (XWayland Flatpak) | Ended; tiles back in 2.1 s; launcher, labwc, pipewire up. |
+| **Frozen Tux Paint** (SIGSTOP, `T` state, white canvas on screen) | Ended by the SIGCONT then SIGKILL; tiles back in 2.2 s. This is the case nothing could do before. |
+| Live GCompris (Wayland-native Flatpak) | Ended; tiles back in 2.1 s. |
+| Steam game (Putt-Putt via `reaper`) | Game ended; tiles back in 0.6 s; **the Steam client stayed signed in** (its `steamwebhelper` processes are not a `reaper` tree). |
+| Nothing running | Harmless: the helper matches nothing, exits 0, the frame is untouched. |
+| The frame after a give-up | Interactive: an arrow key moves the focus ring. |
+
+What it does not do: dismiss a Steam **client** window that forces itself
+open (sign-in, update). That is `steamwebhelper`, not a game, and ending it
+is a Guardian's `steam -shutdown`, not the panic key; the launcher's
+grown-up screen already covers it (DESIGN §8.3). A hard compositor or kernel
+lock is still the power button's job, below.
+
+### The power button (ADR-0018)
+
+`session/logind.conf.d/10-cairn-power.conf`: `HandlePowerKey=ignore` and
+`HandlePowerKeyLongPress=poweroff`. A tap does nothing at any level; a
+five-second hold powers off in order through logind. Verified in the VM: a
+tap left the kiosk running, a held press shut the domain off in about ten
+seconds. This is the layer below the give-up key, for when the compositor
+itself is gone.
 
 ## Remaining rows, and where
 
 | Row | Where | Check |
 |---|---|---|
-| A hung or trapped app can be exited (#41) | Design first | No mitigation yet; see the row above. |
-| `HandlePowerKey` and friends in `logind.conf` | VM, once provisioning writes them | The power button ends the app or the session, never the machine mid-write. |
 
 Screenshots and logs from the run are in the maintainer's work area, not the
 repository.
