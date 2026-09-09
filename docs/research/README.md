@@ -19,16 +19,18 @@ Files:
   the launcher shows, what Settings › Family offers now, and the client's
   memory against the 4 GB floor. The signed-in rows wait for the
   maintainer's account.
-
 - `malcontent-plasma.md` — 2026-09-06 P0-7 check in the VM: malcontent 0.14
   blocks a blocklisted Flatpak and user installs under Plasma, and its
   control app runs there. Its session timer and web filter are noted for
   P1-9 and D10.
+- `launcher-footprint.md` — 2026-09-08 P0-5 measurements in the VM: the
+  launcher idles at about 145 MB proportional and the whole L1 session at
+  about 235 MB, leaving 2.9 GB of the 4 GB floor; first frame 0.2 s after
+  exec, tiles 1.75 s after Enter at the greeter, Tux Paint 6 to 7 s from
+  tile to a usable screen under llvmpipe. The laptop run is still owed.
 
 Planned files:
 
-- `launcher-footprint.md` — P0-5: idle RSS and launch latency of the launcher
-  on the Minimum tier (ADR-0003), against the 4 GB floor.
 - `child-test-01.md` — P0-9: who, how old, what hardware, twenty minutes,
   what happened. Observer does not intervene unless asked.
 

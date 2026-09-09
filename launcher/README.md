@@ -24,6 +24,9 @@ Colours, type, focus rings and radii come from `Cairn.Brand.Tokens`.
   decides which rows are in the window; wheel and arrow keys move the
   focus one row at a time and the window follows by whole rows, the next
   row peeking at the edge.
+- **Footprint (2026-09-08):** about 145 MB proportional idle in the VM,
+  first frame 0.2 s after exec; the table is in
+  `../docs/research/launcher-footprint.md`.
 
 ## Build and run on the dev PC
 
