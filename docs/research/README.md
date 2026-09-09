@@ -17,8 +17,11 @@ Files:
 - `steam-containment.md` — 2026-09-08 P0-10 spike in the VM with a
   signed-out client: which window rule hides Steam's windows and why, what
   the launcher shows, what Settings › Family offers now, and the client's
-  memory against the 4 GB floor. The signed-in rows wait for the
-  maintainer's account.
+  memory against the 4 GB floor. The signed-in rows ran the same evening:
+  no window from a silent client, `-applaunch` from a tile up and back,
+  the login through a reboot, 1.4 GB proportional signed in. D3 closed
+  with ADR-0017.
+
 - `malcontent-plasma.md` — 2026-09-06 P0-7 check in the VM: malcontent 0.14
   blocks a blocklisted Flatpak and user installs under Plasma, and its
   control app runs there. Its session timer and web filter are noted for

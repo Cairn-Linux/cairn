@@ -61,15 +61,11 @@ this into the VM.
   it for SDDM explicitly. Breeze theme in Phase 0, the Cairn theme in
   Phase 1 (P1-16).
 
-## Proposed mechanism (pending ADRs)
-
-- **Kiosk compositor.** labwc in kiosk configuration (ADR-0004): window
-  rules keep Steam's forced windows off the screen and
-  `ext-foreign-toplevel-list-v1` tells the launcher when one appears. cage
-  is a measurement baseline only. Both halves ran in the VM on 2026-09-08
-  with a signed-out client (`docs/research/steam-containment.md`); labwc
-  remains proposed until the signed-in rows run and P0-10 closes D3 with
-  an ADR.
+- **labwc is the kiosk compositor (ADR-0017).** Window rules keep Steam's
+  forced windows off the screen and `ext-foreign-toplevel-list-v1` tells
+  the launcher when one appears. cage is a measurement baseline only. Both
+  halves held in the VM with a signed-out and a signed-in client
+  (`docs/research/steam-containment.md`).
 
 ## Files expected here
 
