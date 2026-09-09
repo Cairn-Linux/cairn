@@ -45,34 +45,43 @@ private slots:
         QCOMPARE(launcher.title(), QStringLiteral("Music"));
     }
 
-    void cleanExitReturnsToIdle() {
+    void launchThatOpensNoWindowReturnsToTilesAfterTheGrace() {
         AppLauncher launcher(this);
-        const QSignalSpy states(&launcher, &AppLauncher::stateChanged);
+        launcher.setLaunchGraceMilliseconds(150);
         launcher.launch(QStringLiteral("Story"),
                         {shell(), QStringLiteral("-c"), QStringLiteral("exit 0")});
-        QTRY_COMPARE(launcher.state(), AppLauncher::State::Idle);
-        // Starting, Running, Idle: the app came up and closed normally.
-        QCOMPARE(states.count(), 3);
+        // No window ever opens, so the grace timer, not the exit, ends the
+        // wait, and quietly: nothing failed.
+        QTRY_COMPARE_WITH_TIMEOUT(launcher.state(), AppLauncher::State::Idle, 5000);
+        QVERIFY(!launcher.needsGrownUp());
     }
 
     void lateBadExitIsNotAFailedLaunch() {
         AppLauncher launcher(this);
         launcher.setSettleMilliseconds(100);
+        launcher.setLaunchGraceMilliseconds(400);
         launcher.launch(QStringLiteral("Build"),
-                        {shell(), QStringLiteral("-c"), QStringLiteral("sleep 0.5; exit 3")});
-        QTRY_COMPARE(launcher.state(), AppLauncher::State::Running);
+                        {shell(), QStringLiteral("-c"), QStringLiteral("sleep 0.2; exit 3")});
+        // Past the settle window, an error exit is not a failed launch; with
+        // no window it just returns to the tiles when the grace ends.
         QTRY_COMPARE_WITH_TIMEOUT(launcher.state(), AppLauncher::State::Idle, 5000);
+        QVERIFY(!launcher.needsGrownUp());
     }
 
     void secondLaunchWhileRunningIsIgnored() {
         AppLauncher launcher(this);
         launcher.launch(QStringLiteral("Practice"),
-                        {shell(), QStringLiteral("-c"), QStringLiteral("sleep 1")});
-        QTRY_COMPARE(launcher.state(), AppLauncher::State::Running);
+                        {shell(), QStringLiteral("-c"), QStringLiteral("sleep 0.2")});
+        launcher.windowOpened(QStringLiteral("w1"), QStringLiteral("gcompris"),
+                              QStringLiteral("GCompris"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Running);
         launcher.launch(QStringLiteral("Terminal"), {});
         QCOMPARE(launcher.state(), AppLauncher::State::Running);
         QCOMPARE(launcher.title(), QStringLiteral("Practice"));
-        QTRY_COMPARE_WITH_TIMEOUT(launcher.state(), AppLauncher::State::Idle, 5000);
+        launcher.windowClosed(QStringLiteral("w1"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Idle);
+        // Let the launching process exit before the launcher goes out of scope.
+        QTest::qWait(400);
     }
 
     void dismissLeavesFailed() {
@@ -156,19 +165,40 @@ private slots:
         QCOMPARE(states.count(), 0);
     }
 
-    // The window that a launched program opens is expected, not an interruption.
-    void windowWhileRunningIsTheProgramsOwn() {
+    // The window a launched program opens is the app, not an interruption,
+    // and the launcher tracks the app by that window: it is Running while the
+    // window is up and returns to the tiles when it closes (issue #42).
+    void aLaunchedWindowIsTrackedUntilItCloses() {
         AppLauncher launcher(this);
-        launcher.setSettleMilliseconds(100);
         launcher.launch(QStringLiteral("Draw"),
-                        {shell(), QStringLiteral("-c"), QStringLiteral("sleep 0.5")});
-        QTRY_COMPARE(launcher.state(), AppLauncher::State::Running);
+                        {shell(), QStringLiteral("-c"), QStringLiteral("sleep 0.2")});
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
         launcher.windowOpened(QStringLiteral("w1"), QStringLiteral("tuxpaint"),
                               QStringLiteral("Tux Paint"));
         QCOMPARE(launcher.state(), AppLauncher::State::Running);
-        QTRY_COMPARE_WITH_TIMEOUT(launcher.state(), AppLauncher::State::Idle, 5000);
-        // It was never counted, so its closing later changes nothing either.
+        QVERIFY(!launcher.needsGrownUp());
+        // The tile keeps its own name; the window does not rename the frame.
+        QCOMPARE(launcher.title(), QStringLiteral("Draw"));
         launcher.windowClosed(QStringLiteral("w1"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Idle);
+        QTest::qWait(300); // reap the process before the launcher is destroyed.
+    }
+
+    // steam -applaunch and flatpak run return within a second while the app
+    // runs on; a window that opens after that exit is still the app (issue
+    // #42), so the launcher must not return to the tiles when the process
+    // ends, only when the window does.
+    void aWindowAfterTheLaunchProcessExitsIsStillTheApp() {
+        AppLauncher launcher(this);
+        launcher.launch(QStringLiteral("Putt-Putt"),
+                        {shell(), QStringLiteral("-c"), QStringLiteral("exit 0")});
+        QTest::qWait(50); // let the launching process exit, as steam does.
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+        launcher.windowOpened(QStringLiteral("g1"), QStringLiteral("scummvm"),
+                              QStringLiteral("Putt-Putt Joins the Parade"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Running);
+        QVERIFY(!launcher.needsGrownUp());
+        launcher.windowClosed(QStringLiteral("g1"));
         QCOMPARE(launcher.state(), AppLauncher::State::Idle);
     }
 

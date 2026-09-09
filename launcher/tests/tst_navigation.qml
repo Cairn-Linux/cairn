@@ -37,6 +37,7 @@ TestCase {
         appLauncher = findChild(launcher, "launcher");
         verify(appLauncher !== null);
         appLauncher.settleMilliseconds = 2000;
+        appLauncher.launchGraceMilliseconds = 200;
         grownUp = findChild(launcher, "grownUpScreen");
         verify(grownUp !== null);
         stateSpy.clear();
@@ -144,8 +145,9 @@ TestCase {
         tryCompare(grid.currentItem, "activeFocus", true);
     }
 
-    // A click focuses the tile and launches it; tile 4 quits cleanly, so the
-    // launcher goes Starting, Running, Idle and the tiles stay on screen.
+    // A click focuses the tile and launches it; tile 4 quits cleanly and opens
+    // no window, so the launcher returns to the tiles when the grace ends and
+    // never shows the grown-up screen.
     function test_mouseFocusAndLaunch() {
         const tile = grid.itemAtIndex(4);
         verify(tile !== null);
@@ -155,8 +157,8 @@ TestCase {
         compare(tile.Accessible.role, Accessible.Button);
         verify(tile.Accessible.name.length > 0);
         compare(tile.Accessible.focusable, true);
-        tryCompare(stateSpy, "count", 3);
-        compare(appLauncher.state, AppLauncher.Idle);
+        verify(stateSpy.count > 0);
+        tryCompare(appLauncher, "state", AppLauncher.Idle);
         compare(grownUp.visible, false);
     }
 
@@ -206,13 +208,13 @@ TestCase {
         compare(grownUp.appTitle, "Nothing set up");
     }
 
-    // Starting, Running, Idle: three changes prove the program really ran.
+    // A clean launch that opens no window returns to the tiles when the grace
+    // ends; the title proves the tile really launched.
     function test_cleanLaunchReturnsToTiles() {
         focusTile(1);
         keyClick(Qt.Key_Return);
-        tryCompare(stateSpy, "count", 3);
-        compare(appLauncher.state, AppLauncher.Idle);
         compare(appLauncher.title, "Quits cleanly");
+        tryCompare(appLauncher, "state", AppLauncher.Idle);
         compare(grownUp.visible, false);
         tryCompare(grid.currentItem, "activeFocus", true);
     }
@@ -260,6 +262,25 @@ TestCase {
         tryCompare(grownUp, "visible", false);
         compare(appLauncher.state, AppLauncher.Idle);
         tryCompare(grid.currentItem, "activeFocus", true);
+    }
+
+    // A window that opens after a launch is the app, not an interruption: the
+    // grown-up screen stays away and the launcher returns to the tiles only
+    // when that window closes (issue #42).
+    function test_aLaunchedWindowIsNotAnInterruption() {
+        appLauncher.launchGraceMilliseconds = 5000;
+        // Tile 1 exits at once, as steam -applaunch does; the launcher waits
+        // for the window rather than returning to the tiles.
+        focusTile(1);
+        keyClick(Qt.Key_Return);
+        tryCompare(appLauncher, "state", AppLauncher.Starting);
+        appLauncher.windowOpened("g1", "scummvm", "Putt-Putt Joins the Parade");
+        compare(appLauncher.state, AppLauncher.Running);
+        compare(grownUp.visible, false);
+        compare(grid.visible, true);
+        appLauncher.windowClosed("g1");
+        compare(appLauncher.state, AppLauncher.Idle);
+        wait(300); // let the launching process be reaped.
     }
 
     function test_ownWindowDoesNotInterrupt() {
