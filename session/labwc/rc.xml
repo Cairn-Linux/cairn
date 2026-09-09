@@ -29,6 +29,17 @@
     <keybind key="A-Tab">
       <action name="None" />
     </keybind>
+    <!--
+      The grown-up's way out of a stuck program (ADR-0018, issue #41).
+      A child cannot leave a game that has no obvious quit, or one that has
+      frozen. This ends whatever was launched and leaves the launcher, which
+      is already behind it, on screen. Deliberately not a plain key: it is
+      for the adult at the keyboard, not a combination a five-year-old finds.
+      cairn-give-up only ever ends sandboxed apps, never the frame.
+    -->
+    <keybind key="C-A-Home">
+      <action name="Execute" command="cairn-give-up" />
+    </keybind>
   </keyboard>
 
   <!-- Likewise for the default mousebinds, including the right-click root menu. -->

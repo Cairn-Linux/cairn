@@ -337,6 +337,13 @@ benefit: Qt/QML alignment with GCompris.
 
 The two session types share a visual identity (§6) but not a desktop.
 
+**Leaving a stuck program (L1/L2).** A game can freeze or hide its quit from
+a pre-reader, so the kiosk gives a grown-up one key combination that ends
+whatever the child launched and returns the tiles, and never appears to the
+child as a button to find (ADR-0018). The power button is a tap to ignore
+and a hold to power off in order; a child cannot switch the machine off by
+brushing it, and a grown-up never has to pull the plug.
+
 ### 4.6 What rolls back and what doesn't
 
 An important distinction that the "immutable OS" framing tends to obscure:

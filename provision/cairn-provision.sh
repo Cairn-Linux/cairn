@@ -184,10 +184,19 @@ install_session_files() {
     install_file 644 "$REPO/session/labwc/environment" "$SHARE/labwc/environment"
     # The one session entry and its dispatcher (ADR-0012).
     install_file 755 "$REPO/session/bin/cairn-session" "$PREFIX/bin/cairn-session"
+    # The grown-up's way out of a stuck program (ADR-0018, issue #41).
+    install_file 755 "$REPO/session/bin/cairn-give-up" "$PREFIX/bin/cairn-give-up"
     install_file 644 "$REPO/session/sessions/cairn.desktop" "$SHARE/sessions/cairn.desktop"
     # What a child's session may ask the system to do (issue #35). polkitd
     # watches the directory, so the rule applies without a restart.
     install_file 644 "$REPO/session/polkit/rules.d/10-cairn-levels.rules" /etc/polkit-1/rules.d/10-cairn-levels.rules
+    # The power button: a tap is ignored, a hold powers off (ADR-0018).
+    # logind reads its configuration at start, so this waits for a boot.
+    local before=$changes
+    install_file 644 "$REPO/session/logind.conf.d/10-cairn-power.conf" /etc/systemd/logind.conf.d/10-cairn-power.conf
+    if [ "$changes" != "$before" ]; then
+        reboot_needed=yes
+    fi
 }
 
 # --- 7. The display manager: SDDM, swapped in explicitly (ADR-0016) ---------
@@ -241,8 +250,9 @@ WRAPPER
 relabel() {
     if command -v restorecon > /dev/null; then
         restorecon -R "$PREFIX/bin/cairn-launcher" "$PREFIX/bin/cairn-session" \
+            "$PREFIX/bin/cairn-give-up" \
             "$PREFIX/libexec/cairn" "$PREFIX/lib64/cairn" "$SHARE" \
-            /etc/sddm.conf.d /etc/pam.d/sddm /etc/polkit-1/rules.d
+            /etc/sddm.conf.d /etc/pam.d/sddm /etc/polkit-1/rules.d /etc/systemd/logind.conf.d
     fi
 }
 

@@ -19,6 +19,13 @@ What is here:
   groups and execs labwc with the launcher for `cairn-l1` and `cairn-l2`,
   or `startplasma-wayland` for everyone else. An account in two level
   groups gets the more restricted session.
+- `bin/cairn-give-up`: the grown-up's way out of a stuck program
+  (ADR-0018, #41). Ctrl-Alt-Home in the kiosk runs it; it SIGCONTs then
+  SIGKILLs the sandbox roots a child can launch (Flatpak's `bwrap`, Steam's
+  `reaper`) in the child's own session, so a frozen app ends and the frame
+  and the Steam client stay up.
+- `logind.conf.d/10-cairn-power.conf`: the power button (ADR-0018). A tap
+  is ignored, a five-second hold powers off in order.
 - `sessions/cairn.desktop`: the one session entry the greeter offers.
 - `sddm/`: the display manager's configuration (ADR-0016). `SessionDir`
   names only Cairn's session directory; `pam.d/sddm` is Fedora's stock file
@@ -69,5 +76,5 @@ this into the VM.
 
 ## Files expected here
 
-`pam.d/` for any further rule, `logind.conf.d/` for the power and lid
-keys, and the Cairn theme under `sddm/theme/` when P1-16 lands.
+`pam.d/` for any further rule, and the Cairn theme under `sddm/theme/`
+when P1-16 lands.

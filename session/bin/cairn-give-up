@@ -1,0 +1,32 @@
+#!/bin/bash
+# SPDX-License-Identifier: Apache-2.0
+#
+# The way out of a stuck program at L1/L2 (ADR-0018, issue #41). The
+# compositor runs this on the grown-up's key combination. It ends whatever a
+# child launched, however frozen, and leaves the frame standing.
+#
+# Everything a tile or the terminal can start runs sandboxed: a Flatpak app is
+# a tree under `bwrap`, a Steam game a tree under Steam's `reaper`. The
+# launcher, the compositor, the terminal and the session's own services never
+# are, so matching the sandbox roots ends the app and nothing of ours. A
+# stopped process cannot act on a signal until it is continued, so every
+# process is sent SIGCONT before the kill; that is what reaches an app frozen
+# hard enough to ignore everything else.
+set -ouex pipefail
+
+# The one child session this runs in; never another user's.
+me="$(id -u)"
+
+# The sandbox roots. A Flatpak app roots at bwrap; a Steam game at reaper,
+# with pressure-vessel and its own bwrap below. The Steam client itself uses
+# neither, so it stays resident (DESIGN §8.3).
+pattern='bwrap|reaper SteamLaunch'
+
+# SIGCONT so a stopped process can receive what follows; SIGTERM as a courtesy
+# in case the app wants to flush; SIGKILL after a moment for anything left.
+pkill --uid "$me" --full "$pattern" --signal CONT || true
+pkill --uid "$me" --full "$pattern" --signal TERM || true
+sleep 2
+pkill --uid "$me" --full "$pattern" --signal KILL || true
+
+exit 0

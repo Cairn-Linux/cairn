@@ -13,7 +13,9 @@ Files:
   passed only after changes to `session/labwc/`. The three VM rows ran on
   2026-09-08: VT switching and the shortcuts hold; `pkcheck` as the child
   found polkit wide open, and the rule in `session/polkit/` (#35) closed
-  it the same day, with the before-and-after table.
+  it the same day. The hung-app row (#41) is answered by ADR-0018: a
+  grown-up key combination runs `cairn-give-up`, verified against a frozen
+  app; the power button taps to ignore and holds to power off.
 - `steam-containment.md` — 2026-09-08 P0-10 spike in the VM with a
   signed-out client: which window rule hides Steam's windows and why, what
   the launcher shows, what Settings › Family offers now, and the client's

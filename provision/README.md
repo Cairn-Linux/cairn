@@ -32,6 +32,7 @@ What it leaves on the machine:
 | labwc, ScummVM | Layered into the OS; Tux Paint and GCompris as system Flatpaks |
 | `/usr/local/share/cairn/labwc/` | The kiosk configuration from `../session/labwc/` |
 | `/usr/local/bin/cairn-session`, `/usr/local/share/cairn/sessions/cairn.desktop` | The one session entry and its dispatcher (ADR-0012) |
+| `/usr/local/bin/cairn-give-up`, `/etc/systemd/logind.conf.d/10-cairn-power.conf` | The grown-up's way out of a stuck program and the power button (ADR-0018, #41) |
 | sddm, sddm-breeze, sddm-wayland-plasma | Layered; `plasmalogin.service` disabled and `sddm.service` enabled (ADR-0016). `desktop-backgrounds-compat` is layered first from a downloaded RPM with `--force-replacefiles`, because the image carries its two wallpaper paths as symlinks no package owns |
 | `/etc/polkit-1/rules.d/10-cairn-levels.rules` | What a child's session may ask the system to do, keyed off the level groups (`../session/polkit/`, #35) |
 | `/etc/sddm.conf.d/`, `/etc/pam.d/sddm` | Only Cairn's session directory offered, Guardians hidden (generated from `cairn-guardian`), no autologin, and the greeter-only passwordless rule for L1 and L2 |
