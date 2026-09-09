@@ -24,6 +24,13 @@ Colours, type, focus rings and radii come from `Cairn.Brand.Tokens`.
   decides which rows are in the window; wheel and arrow keys move the
   focus one row at a time and the window follows by whole rows, the next
   row peeking at the edge.
+- **Slice 8 (2026-09-08):** the launcher tracks a launched app by its
+  window, not its process (#42). `flatpak run` and `steam -applaunch`
+  return within a second while the app runs on, so `AppLauncher` waits for
+  the app's window, stays Running while it is up, and returns to the tiles
+  when it closes. A launch that opens no window before a grace timer ends
+  goes back to the tiles quietly; a window that opens when nothing was
+  launched is still an interruption.
 - **Footprint (2026-09-08):** about 145 MB proportional idle in the VM,
   first frame 0.2 s after exec; the table is in
   `../docs/research/launcher-footprint.md`.

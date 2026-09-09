@@ -529,7 +529,10 @@ Mechanism:
 - Steam starts with `-silent` at session login, without a window. There is no
   tray in the L1/L2 kiosk, so the compositor keeps the client's windows off the
   screen (mitigation 3 below).
-- Each game is a tile running `steam -applaunch <appid>`.
+- Each game is a tile running `steam -applaunch <appid>`. That command
+  returns at once while the game loads, so the launcher tracks the game by
+  its **window**, not the process: it is "running" while the game's window
+  is up and returns to the tiles when the window closes (issue #42).
 - Proton work happens in the background; the game comes up fullscreen.
 
 **Known failure modes.** Steam forces its window open for client updates, game

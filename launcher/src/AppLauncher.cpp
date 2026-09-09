@@ -5,13 +5,21 @@
 
 namespace {
 constexpr int defaultSettleMilliseconds = 5000;
-}
+// Long enough for a Flatpak app or a Steam game to draw its first window on a
+// slow machine, short enough that a launch which produces nothing does not
+// leave the child staring. A first-time Steam download can outlast it; that
+// falls back to the grown-up screen and is refined in P1-13.
+constexpr int defaultLaunchGraceMilliseconds = 15000;
+} // namespace
 
-AppLauncher::AppLauncher(QObject* parent) : QObject(parent), m_process(this), m_settleTimer(this) {
+AppLauncher::AppLauncher(QObject* parent)
+    : QObject(parent), m_process(this), m_settleTimer(this), m_launchGraceTimer(this) {
     m_settleTimer.setSingleShot(true);
     m_settleTimer.setInterval(defaultSettleMilliseconds);
     connect(&m_settleTimer, &QTimer::timeout, this, [this] { m_settled = true; });
-    connect(&m_process, &QProcess::started, this, &AppLauncher::onStarted);
+    m_launchGraceTimer.setSingleShot(true);
+    m_launchGraceTimer.setInterval(defaultLaunchGraceMilliseconds);
+    connect(&m_launchGraceTimer, &QTimer::timeout, this, &AppLauncher::onLaunchGraceTimeout);
     connect(&m_process, &QProcess::errorOccurred, this, &AppLauncher::onErrorOccurred);
     connect(&m_process, &QProcess::finished, this, &AppLauncher::onFinished);
     // The child's app draws its own window; its terminal output is not for the child.
@@ -42,6 +50,18 @@ void AppLauncher::setSettleMilliseconds(int milliseconds) {
     emit settleMillisecondsChanged();
 }
 
+int AppLauncher::launchGraceMilliseconds() const {
+    return m_launchGraceTimer.interval();
+}
+
+void AppLauncher::setLaunchGraceMilliseconds(int milliseconds) {
+    if (milliseconds == m_launchGraceTimer.interval()) {
+        return;
+    }
+    m_launchGraceTimer.setInterval(milliseconds);
+    emit launchGraceMillisecondsChanged();
+}
+
 QString AppLauncher::ownAppId() const {
     return m_ownAppId;
 }
@@ -66,8 +86,11 @@ void AppLauncher::launch(const QString& title, const QStringList& exec) {
     }
 
     m_settled = false;
+    m_processGone = false;
+    m_ownedWindows.clear();
     setState(State::Starting);
     m_settleTimer.start();
+    m_launchGraceTimer.start();
     m_process.start(exec.first(), exec.mid(1));
 }
 
@@ -82,7 +105,12 @@ void AppLauncher::windowOpened(const QString& identifier, const QString& appId,
     if (!m_ownAppId.isEmpty() && appId == m_ownAppId) {
         return;
     }
+    // A window that arrives during or after a launch is the app we started.
+    // Claim it and stay Running until it closes, whatever the process did.
     if (m_state == State::Starting || m_state == State::Running) {
+        m_launchGraceTimer.stop();
+        m_ownedWindows.insert(identifier);
+        setState(State::Running);
         return;
     }
     QString name = title.isEmpty() ? appId : title;
@@ -100,6 +128,13 @@ void AppLauncher::windowOpened(const QString& identifier, const QString& appId,
 }
 
 void AppLauncher::windowClosed(const QString& identifier) {
+    if (m_ownedWindows.remove(identifier)) {
+        // The app's last window is gone: it has closed, so back to the tiles.
+        if (m_ownedWindows.isEmpty()) {
+            setState(State::Idle);
+        }
+        return;
+    }
     if (!m_unexpectedWindows.remove(identifier)) {
         return;
     }
@@ -124,13 +159,10 @@ void AppLauncher::setTitle(const QString& title) {
     emit titleChanged();
 }
 
-void AppLauncher::onStarted() {
-    setState(State::Running);
-}
-
 void AppLauncher::onErrorOccurred(QProcess::ProcessError error) {
     if (error == QProcess::FailedToStart) {
         m_settleTimer.stop();
+        m_launchGraceTimer.stop();
         qWarning().noquote() << QStringLiteral("The program for %1 did not start: %2")
                                     .arg(m_title, m_process.program());
         setState(State::Failed);
@@ -139,13 +171,30 @@ void AppLauncher::onErrorOccurred(QProcess::ProcessError error) {
 
 void AppLauncher::onFinished(int exitCode, QProcess::ExitStatus exitStatus) {
     m_settleTimer.stop();
+    m_processGone = true;
+    // If a window is already up, the launching process exiting is expected:
+    // `flatpak run` and `steam -applaunch` return while the app runs on. Stay
+    // Running; the window closing, not the process, ends the app.
+    if (!m_ownedWindows.isEmpty()) {
+        return;
+    }
     const bool quitBadly = exitStatus == QProcess::CrashExit || exitCode != 0;
     if (quitBadly && !m_settled) {
+        m_launchGraceTimer.stop();
         qWarning().noquote() << QStringLiteral("The program for %1 quit right away with code %2.")
                                     .arg(m_title)
                                     .arg(exitCode);
         setState(State::Failed);
         return;
     }
-    setState(State::Idle);
+    // A clean exit with no window yet is the fire-and-forget launcher handing
+    // off. Keep waiting for the app's window; the grace timer ends the wait.
+}
+
+void AppLauncher::onLaunchGraceTimeout() {
+    // The launch produced no window in time. Nothing is wrong to show a child;
+    // go back to the tiles, where they can try again.
+    if (m_ownedWindows.isEmpty() && m_state == State::Starting) {
+        setState(State::Idle);
+    }
 }
