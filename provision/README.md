@@ -14,8 +14,23 @@ ssh cairn-min                                                # then, in the VM
 cd cairn && sudo ./provision/cairn-provision.sh --guardian guardian --child ada
 ```
 
-`CAIRN_GUARDIAN_PASSWORD` in the environment sets the Guardian's password
-when the account is created; otherwise the script says to run `passwd`.
+When the script creates the Guardian and runs at a terminal, it runs
+`passwd` for that account, which asks for the password twice without
+showing it; the script never sees it. Without a terminal it says to run
+`passwd` afterwards. `CAIRN_GUARDIAN_PASSWORD` in the environment sets the
+password instead, but only from a root shell: `sudo
+--preserve-env=CAIRN_GUARDIAN_PASSWORD` writes the value into the system
+journal as part of sudo's log line, and `sudo CAIRN_GUARDIAN_PASSWORD=…`
+puts it on the command line as well. Both were checked in the VM on
+2026-09-30. The script traces every command (`set -x`) but never the
+password step, and hands the password to `chpasswd` on its standard input
+(#103).
+
+Before it changes anything the script checks the two names: plain login
+names, two different accounts, and a child that is not a system account and
+not in `wheel` or `cairn-guardian`. It refuses to install a file from the
+checkout that is a link to somewhere outside it, and checks the signature
+of the one package it downloads itself.
 Every step checks before it changes anything and prints `changed:` when it
 does, so the second run ends with `done: 0 change(s)`. The first run layers
 labwc and ScummVM with `rpm-ostree` and asks for a reboot; a rerun before
