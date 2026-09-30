@@ -132,6 +132,8 @@ class AccountCheckTest(unittest.TestCase):
             "child is a system account": ("gina", "sddm", {"sddm": (952, ["sddm"])}),
             "child is root": ("gina", "root", {"root": (0, ["root"])}),
             "guardian is a system account": ("root", "ada", {"root": (0, ["root"])}),
+            "Guardian is a child": ("ada", "ben", {"ada": (1002, ["ada", "cairn-l1"])}),
+            "Guardian is an older child": ("cy", "ben", {"cy": (1003, ["cy", "cairn-l3"])}),
             "same account twice": ("ada", "ada", None),
             "not a login name": ("gina", "ada;rm -rf", None),
             "capital letters": ("gina", "Ada", None),
@@ -143,6 +145,26 @@ class AccountCheckTest(unittest.TestCase):
                 self.assertEqual(code, 1, output)
                 self.assertIn("refused:", output)
                 self.assertEqual(calls, "", "nothing may change before the checks pass")
+
+
+def move(groups, wanted):
+    return run_steps(f"set_level_group ada {wanted}", {"ada": (1002, ["ada", *groups])})
+
+
+class LevelGroupTest(unittest.TestCase):
+    def test_the_new_level_is_added_before_the_old_one_goes(self):
+        # Cut off in between, the child is in two levels and gets the more
+        # restricted session, never in none (#100).
+        for old, new in (("cairn-l1", "cairn-l3"), ("cairn-l3", "cairn-l1")):
+            with self.subTest(old=old, new=new):
+                code, output, calls = move([old], new)
+                self.assertEqual(code, 0, output)
+                self.assertEqual(calls.splitlines(), [f"gpasswd -a ada {new}", f"gpasswd -d ada {old}"])
+
+    def test_already_there_changes_nothing(self):
+        code, output, calls = move(["cairn-l1"], "cairn-l1")
+        self.assertEqual(code, 0, output)
+        self.assertEqual(calls, "")
 
 
 class InstallFileTest(unittest.TestCase):

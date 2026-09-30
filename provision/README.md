@@ -27,8 +27,10 @@ password step, and hands the password to `chpasswd` on its standard input
 (#103).
 
 Before it changes anything the script checks the two names: plain login
-names, two different accounts, and a child that is not a system account and
-not in `wheel` or `cairn-guardian`. It refuses to install a file from the
+names, two different accounts, a child that is not a system account and
+not in `wheel` or `cairn-guardian`, and a Guardian that is not already in a
+level group. A level change adds the new group before it removes the old
+one, so a run cut off in between never leaves a child in none (ADR-0023). It refuses to install a file from the
 checkout that is a link to somewhere outside it, and checks the signature
 of the one package it downloads itself.
 Every step checks before it changes anything and prints `changed:` when it

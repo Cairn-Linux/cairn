@@ -169,6 +169,16 @@ done, and what could sink it. Decisions that change the design get an ADR in
   from the checkout that links outside it, and checks the signature of
   the package it downloads. Tested with stand-ins
   (`provision/tests/test_provision.py`) and in the VM.
+- **ADR-0023 (2026-09-30, #101, #100): one order for an account's role.**
+  PAM, `cairn-session`, the polkit rule and the login screen now read the
+  groups in the same order: an administrator (`cairn-guardian` or `wheel`)
+  first, then L1 and L2, then L3 and L4, then accounts Cairn did not make.
+  A Guardian in a level group had been let in by the greeter with no
+  password; checked in the VM, before and after. Provisioning adds a new
+  level before it drops the old one, so an interrupted change never leaves
+  a child in no group, and refuses to make an existing child the Guardian.
+  Accounts made in System Settings still get Plasma until the Guardian
+  tool owns family accounts (#113).
 - **Phase 0 begins.** Its whole purpose is to put a launcher in front of a
   real child before any image tooling exists.
 

@@ -8,6 +8,9 @@
 // laptop and wrong for a five-year-old. This file answers first, keyed off
 // the level groups, and returns NO where DESIGN §3.2 gives the action to the
 // Guardian. Anything not named here falls through to the defaults.
+// An administrator (cairn-guardian or wheel) is checked first and always
+// falls through, even from a level group, in the order PAM and the session
+// dispatcher use (ADR-0023, #101).
 //
 // Installed as /etc/polkit-1/rules.d/10-cairn-levels.rules. polkit reads
 // rule files in name order and the first answer wins, so the low number
@@ -60,6 +63,10 @@ var notInTheKiosk = [
 ];
 
 polkit.addRule(function (action, subject) {
+    if (subject.isInGroup("cairn-guardian") || subject.isInGroup("wheel")) {
+        return polkit.Result.NOT_HANDLED;
+    }
+
     var kiosk = subject.isInGroup("cairn-l1") || subject.isInGroup("cairn-l2");
     var desktop = subject.isInGroup("cairn-l3") || subject.isInGroup("cairn-l4");
 

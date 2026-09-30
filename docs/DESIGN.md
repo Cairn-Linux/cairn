@@ -291,6 +291,11 @@ The level is a supplementary group (ADR-0011), and one session entry
 dispatches on it (ADR-0012).
 The login screen is SDDM with a Cairn theme (ADR-0016, ADR-0020); the
 passwordless rule for L1 and L2 lives only in the greeter's PAM service.
+Everything that reads the groups uses one order (ADR-0023): an
+administrator (`cairn-guardian` or `wheel`) first, whatever else the
+account is in, then L1 and L2, then L3 and L4. An account Cairn did not
+make keeps what the machine gave it until the Guardian tool gives it a
+role.
 
 ### 4.3.1 First boot
 

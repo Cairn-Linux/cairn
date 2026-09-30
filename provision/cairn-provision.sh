@@ -79,18 +79,24 @@ ensure_groups() {
     done
 }
 
-# Exactly one level group per account: add the wanted one, drop the others.
+in_group() {
+    id -nG "$1" | tr ' ' '\n' | grep -qx -- "$2"
+}
+
+# Exactly one level group per account. The wanted one is added before the
+# others are dropped, so a run cut off in between leaves the account in two
+# groups, which every check reads as the more restricted, and never in none,
+# which the session would read as an account Cairn did not make (#100).
 set_level_group() {
     local user="$1" wanted="$2" group
+    if ! in_group "$user" "$wanted"; then
+        gpasswd -a "$user" "$wanted"
+        changed "$user joined $wanted"
+    fi
     for group in "${LEVEL_GROUPS[@]}"; do
-        if id -nG "$user" | tr ' ' '\n' | grep -qx "$group"; then
-            if [ "$group" != "$wanted" ]; then
-                gpasswd -d "$user" "$group"
-                changed "$user left $group"
-            fi
-        elif [ "$group" = "$wanted" ]; then
-            gpasswd -a "$user" "$group"
-            changed "$user joined $group"
+        if [ "$group" != "$wanted" ] && in_group "$user" "$group"; then
+            gpasswd -d "$user" "$group"
+            changed "$user left $group"
         fi
     done
 }
@@ -103,7 +109,8 @@ UID_MIN=1000
 # Checked before anything changes. The names go into useradd and into files
 # under /etc, so they must be plain login names. The child must be a person's
 # account that holds no power: an existing admin, system or Guardian account
-# would otherwise be put in a child level and keep what it had.
+# would otherwise be put in a child level and keep what it had. And the other
+# way: an existing child named as the Guardian would be given wheel (#101).
 check_accounts() {
     local name
     for name in "$guardian" "$child"; do
@@ -114,13 +121,19 @@ check_accounts() {
         [ "$(id -u "$child")" -ge "$UID_MIN" ] || refuse "$child is a system account"
         local group
         for group in wheel cairn-guardian; do
-            if id -nG "$child" | tr ' ' '\n' | grep -qx "$group"; then
+            if in_group "$child" "$group"; then
                 refuse "$child is in $group; a child account must not administer the machine"
             fi
         done
     fi
     if id "$guardian" > /dev/null 2>&1; then
         [ "$(id -u "$guardian")" -ge "$UID_MIN" ] || refuse "$guardian is a system account"
+        local level
+        for level in cairn-l1 cairn-l2 cairn-l3 cairn-l4; do
+            if in_group "$guardian" "$level"; then
+                refuse "$guardian is in $level; a child account cannot be made a Guardian here"
+            fi
+        done
     fi
 }
 

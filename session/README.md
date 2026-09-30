@@ -19,8 +19,10 @@ What is here:
   launcher option.
 - `bin/cairn-session`: the dispatcher (ADR-0012). Reads the account's
   groups and execs labwc with the launcher for `cairn-l1` and `cairn-l2`,
-  or `startplasma-wayland` for everyone else. An account in two level
-  groups gets the more restricted session. Before the kiosk it starts the
+  or `startplasma-wayland` for everyone else. An administrator
+  (`cairn-guardian` or `wheel`) gets Plasma whatever else they are in
+  (ADR-0023); an account in two level groups gets the more restricted
+  session. Before the kiosk it starts the
   child's sound (`pipewire-pulse.service`, which brings PipeWire and
   WirePlumber), because the first app of a session hung while PipeWire
   started on demand (#87); Plasma starts its own.
@@ -39,7 +41,8 @@ What is here:
 - `sddm/`: the display manager's configuration (ADR-0016). `SessionDir`
   names only Cairn's session directory; `pam.d/sddm` is Fedora's stock file
   plus the two lines that let `cairn-l1` and `cairn-l2` in without a
-  password. Nobody is hidden (ADR-0020); the theme is `../greeter/`, and
+  password, never an account also in `cairn-guardian` or `wheel`
+  (ADR-0023). Nobody is hidden (ADR-0020); the theme is `../greeter/`, and
   `GreeterEnvironment` puts Cairn's QML directory on its import path.
 - `security/faillock.conf`: the lockout after wrong passwords (ADR-0020).
   Fedora's defaults, but the count kept in `/var/lib/faillock`, which a
@@ -53,14 +56,15 @@ What is here:
   parental-control settings, which DESIGN §3.2 gives the Guardian; NO at
   L1 and L2 for power-off, reboot, suspend, hibernate and udisks2, which
   nothing in the kiosk offers. L3 and L4 keep Fedora's defaults for power
-  and removable media, since Plasma's menu offers them. The rule never
-  says YES.
+  and removable media, since Plasma's menu offers them. An administrator
+  (`cairn-guardian` or `wheel`) is checked first and always falls through,
+  even from a level group (ADR-0023). The rule never says YES.
 
-`tests/` checks that the labwc and logind files, the polkit rule and
-`cairn-give-up` say what this README promises, runs the dispatcher with
+`tests/` checks that the labwc and logind files, the greeter's PAM file,
+the polkit rule and `cairn-give-up` say what this README promises, runs the dispatcher with
 stand-ins for `id`, `labwc` and `startplasma-wayland`, and runs
 `cairn-log-out` with stand-ins for `id`, `pgrep`, `steam` and `loginctl`;
-CTest runs all five.
+CTest runs all six.
 What the configuration was tested against, and what is left for the VM, is in
 `docs/research/kiosk-containment.md` (P0-4). Phase 0 task **P0-3** wires
 this into the VM.

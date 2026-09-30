@@ -48,10 +48,19 @@ class PolkitRulesTest(unittest.TestCase):
         # First answer wins, in file name order across /etc and /usr/share.
         self.assertTrue(RULES.name.startswith("10-"))
 
-    def test_keys_off_every_child_level_and_never_the_guardian(self):
+    def test_keys_off_every_child_level(self):
         for group in ("cairn-l1", "cairn-l2", "cairn-l3", "cairn-l4"):
             self.assertIn(group, self.strings, f"a rule for {group}")
-        self.assertNotIn("cairn-guardian", self.strings)
+
+    def test_an_administrator_steps_aside_first(self):
+        # The rule's first statement, before any NO: Guardian first, even
+        # from a level group (ADR-0023, #101).
+        self.assertRegex(
+            self.text,
+            r"polkit\.addRule\(function \(action, subject\) \{\s*"
+            r'if \(subject\.isInGroup\("cairn-guardian"\) \|\| subject\.isInGroup\("wheel"\)\) \{\s*'
+            r"return polkit\.Result\.NOT_HANDLED;",
+        )
 
     def test_names_every_action_family_the_containment_run_found_open(self):
         for prefix in GUARDIAN_ONLY + NOT_IN_THE_KIOSK:

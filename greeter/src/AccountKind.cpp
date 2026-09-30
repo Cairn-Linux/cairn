@@ -8,6 +8,11 @@ AccountKind::Kind AccountKind::fromGroups(const QStringList& groups) {
     if (groups.contains(QStringLiteral("cairn-guardian"))) {
         return Kind::Guardian;
     }
+    // Any other administrator is never a child either, whatever else they
+    // are in: PAM asks them for a password (ADR-0023).
+    if (groups.contains(QStringLiteral("wheel"))) {
+        return Kind::NotFamily;
+    }
     if (groups.contains(QStringLiteral("cairn-l1")) ||
         groups.contains(QStringLiteral("cairn-l2"))) {
         return Kind::YoungChild;
