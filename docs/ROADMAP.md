@@ -150,6 +150,10 @@ done, and what could sink it. Decisions that change the design get an ADR in
   the next person. It leaves the Guardian's quick actions (P1-7). Checked
   in the VM: the login screen back in about a second, nothing of `ada`'s
   left running.
+- The first app after a child logs in hung until PipeWire was up (#87):
+  nothing in the kiosk session started it, so the child's first app did.
+  `cairn-session` starts it before the kiosk since 2026-09-30, checked in
+  the VM with Draw pressed as soon as the tiles showed.
 - **Phase 0 begins.** Its whole purpose is to put a launcher in front of a
   real child before any image tooling exists.
 
