@@ -10,9 +10,16 @@
 # Every step looks before it changes anything and says what it did, so a
 # second run on the same machine reports zero changes. Throwaway by design:
 # the Phase 1 image does all of this by construction (provision/README.md).
+#
+# The script traces every command (set -x) so a run can be read back, and
+# for that reason no secret is ever traced: see set_guardian_password. The
+# steps are functions and run from main, so the tests can load them with
+# stand-ins for the system's commands (tests/test_provision.py).
 set -ouex pipefail
 
-REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# The physical path: on Bazzite /home is a link to /var/home, and
+# install_file compares real paths against this one.
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 PREFIX=/usr/local
 SHARE="$PREFIX/share/cairn"
 FACTS=/var/lib/cairn/facts.txt
@@ -35,15 +42,10 @@ usage() {
     exit 2
 }
 
-while [ $# -gt 0 ]; do
-    case "$1" in
-        --guardian) guardian="$2"; shift 2 ;;
-        --child) child="$2"; shift 2 ;;
-        *) usage ;;
-    esac
-done
-[ -n "$guardian" ] && [ -n "$child" ] || usage
-[ "$(id -u)" -eq 0 ] || { echo "run as root" >&2; exit 1; }
+refuse() {
+    echo "refused: $*" >&2
+    exit 1
+}
 
 changed() {
     changes=$((changes + 1))
@@ -94,15 +96,60 @@ set_level_group() {
 }
 
 # --- 3. Accounts ---------------------------------------------------------------
+# The first uid useradd gives a person, from Fedora's login.defs. Anything
+# lower is a system account.
+UID_MIN=1000
+
+# Checked before anything changes. The names go into useradd and into files
+# under /etc, so they must be plain login names. The child must be a person's
+# account that holds no power: an existing admin, system or Guardian account
+# would otherwise be put in a child level and keep what it had.
+check_accounts() {
+    local name
+    for name in "$guardian" "$child"; do
+        [[ "$name" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] || refuse "\"$name\" is not a plain login name"
+    done
+    [ "$guardian" != "$child" ] || refuse "the Guardian and the child must be different accounts"
+    if id "$child" > /dev/null 2>&1; then
+        [ "$(id -u "$child")" -ge "$UID_MIN" ] || refuse "$child is a system account"
+        local group
+        for group in wheel cairn-guardian; do
+            if id -nG "$child" | tr ' ' '\n' | grep -qx "$group"; then
+                refuse "$child is in $group; a child account must not administer the machine"
+            fi
+        done
+    fi
+    if id "$guardian" > /dev/null 2>&1; then
+        [ "$(id -u "$guardian")" -ge "$UID_MIN" ] || refuse "$guardian is a system account"
+    fi
+}
+
+# The password must never reach the trace, a log or a command line (#103).
+# At a terminal, passwd asks for it: it does not echo, asks twice, and this
+# script never sees it. CAIRN_GUARDIAN_PASSWORD is for a run from a root
+# shell; tracing is off for this whole step, including the test that the
+# variable is set, which would show its value too. printf is a shell builtin,
+# so the password is never an argument another process could read; chpasswd
+# reads it on stdin. The variable is dropped afterwards.
+set_guardian_password() {
+    { set +x; } 2> /dev/null
+    if [ -n "${CAIRN_GUARDIAN_PASSWORD:-}" ]; then
+        printf '%s:%s\n' "$guardian" "$CAIRN_GUARDIAN_PASSWORD" | chpasswd
+        changed "password set for $guardian"
+    elif [ -t 0 ] && passwd "$guardian"; then
+        changed "password set for $guardian"
+    else
+        echo "note: $guardian has no password yet; set one with: passwd $guardian"
+    fi
+    unset CAIRN_GUARDIAN_PASSWORD
+    set -x
+}
+
 ensure_guardian() {
     if ! id "$guardian" > /dev/null 2>&1; then
         useradd --create-home --groups wheel "$guardian"
         changed "guardian account $guardian"
-        if [ -n "${CAIRN_GUARDIAN_PASSWORD:-}" ]; then
-            echo "$guardian:$CAIRN_GUARDIAN_PASSWORD" | chpasswd
-        else
-            echo "note: $guardian has no password yet; set one with: passwd $guardian"
-        fi
+        set_guardian_password
     fi
     set_level_group "$guardian" cairn-guardian
 }
@@ -145,6 +192,10 @@ layer_backgrounds_compat() {
     local dir
     dir="$(mktemp -d)"
     dnf5 download --quiet --destdir "$dir" desktop-backgrounds-compat
+    # Installed as root with files forced over the image's, so it must be
+    # Fedora's own package: its signature is checked against the keys the
+    # system already trusts.
+    rpm -K "$dir"/desktop-backgrounds-compat-*.rpm
     rpm-ostree install --idempotent --force-replacefiles "$dir"/desktop-backgrounds-compat-*.rpm
     rm -r "$dir"
     changed "layered desktop-backgrounds-compat over the image's wallpaper symlinks"
@@ -181,8 +232,19 @@ install_flatpaks() {
 # --- 6. Files: kiosk configuration, launcher, manifest --------------------------
 # Written beside the target and renamed into place, so a daemon that watches
 # the directory (polkitd does) sees a whole file rather than one mid-write.
+# Installed as root, often world-readable, so a source must be a regular
+# file, and one inside the checkout must stay inside it: a link in the tree
+# cannot carry some other file (a key, /etc/shadow) out into /usr/local.
+# The theme's mark is a link to brand/, which is inside, so it passes. The
+# only sources outside the checkout are files this script writes itself.
 install_file() {
-    local mode="$1" source="$2" target="$3"
+    local mode="$1" source="$2" target="$3" real
+    real="$(realpath -e "$source")" || refuse "$source does not exist"
+    [ -f "$real" ] || refuse "$source is not a regular file"
+    case "$real" in
+        "$REPO"/*) ;;
+        *) [ "$source" = "${source#"$REPO"/}" ] || refuse "$source leads outside the checkout" ;;
+    esac
     if ! cmp -s "$source" "$target"; then
         install -D --mode="$mode" "$source" "$target.cairn-new"
         mv "$target.cairn-new" "$target"
@@ -247,7 +309,9 @@ install_launcher() {
     install_file 644 "$REPO/provision/manifest.json" "$SHARE/manifest.json"
     # The binary finds its one shared library through the wrapper, which the
     # session dispatcher will call. Phase 1 packaging sets an rpath instead.
-    cat > /tmp/cairn-launcher.wrapper <<'WRAPPER'
+    local wrapper
+    wrapper="$(mktemp)"
+    cat > "$wrapper" <<'WRAPPER'
 #!/bin/bash
 # SPDX-License-Identifier: Apache-2.0
 # Installed by provision/cairn-provision.sh; not the Phase 1 packaging.
@@ -255,8 +319,8 @@ export LD_LIBRARY_PATH=/usr/local/lib64/cairn
 exec /usr/local/libexec/cairn/cairn-launcher --manifest /usr/local/share/cairn/manifest.json \
     --log-out /usr/local/bin/cairn-log-out "$@"
 WRAPPER
-    install_file 755 /tmp/cairn-launcher.wrapper "$PREFIX/bin/cairn-launcher"
-    rm /tmp/cairn-launcher.wrapper
+    install_file 755 "$wrapper" "$PREFIX/bin/cairn-launcher"
+    rm "$wrapper"
 }
 
 # --- 8. The login screen: the Cairn theme and its QML modules (ADR-0020) ----
@@ -306,21 +370,39 @@ relabel() {
     fi
 }
 
-record_facts
-ensure_groups
-ensure_guardian
-ensure_child
-layer_packages
-install_flatpaks
-install_session_files
-install_launcher
-install_display_manager
-install_greeter
-protect_guardians
-relabel
+main() {
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --guardian) guardian="$2"; shift 2 ;;
+            --child) child="$2"; shift 2 ;;
+            *) usage ;;
+        esac
+    done
+    [ -n "$guardian" ] && [ -n "$child" ] || usage
+    [ "$(id -u)" -eq 0 ] || { echo "run as root" >&2; exit 1; }
+    check_accounts
 
-set +x
-echo "done: $changes change(s)"
-if [ "$reboot_needed" = yes ]; then
-    echo "reboot: layered packages or the display manager change take effect at the next boot"
+    record_facts
+    ensure_groups
+    ensure_guardian
+    ensure_child
+    layer_packages
+    install_flatpaks
+    install_session_files
+    install_launcher
+    install_display_manager
+    install_greeter
+    protect_guardians
+    relabel
+
+    set +x
+    echo "done: $changes change(s)"
+    if [ "$reboot_needed" = yes ]; then
+        echo "reboot: layered packages or the display manager change take effect at the next boot"
+    fi
+}
+
+# Run when executed; only load the steps when a test sources the file.
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+    main "$@"
 fi

@@ -161,6 +161,14 @@ done, and what could sink it. Decisions that change the design get an ADR in
   same run fixed two places where a second provisioning run was not
   quiet: a package still waiting for its reboot, and the SELinux rule for
   `/var/lib/faillock`.
+- Provisioning no longer prints the Guardian's password (#103, 2026-09-30):
+  the script traces every command, and the password step was traced too.
+  At a terminal it now runs `passwd` for the new Guardian instead. It also
+  refuses a child account that is a system, `wheel` or Guardian
+  account, uses `mktemp` instead of a fixed path in `/tmp`, refuses a file
+  from the checkout that links outside it, and checks the signature of
+  the package it downloads. Tested with stand-ins
+  (`provision/tests/test_provision.py`) and in the VM.
 - **Phase 0 begins.** Its whole purpose is to put a launcher in front of a
   real child before any image tooling exists.
 
@@ -237,7 +245,7 @@ first-boot wizard, quick-actions overlay, signed image, CI, ISO.
 | P1-3 | Adopt `image-template`'s `Justfile` and `build.yml`; pin the Bazzite base to a digest (ADR-0006); generate cosign keys; add `SIGNING_SECRET`; publish to `ghcr.io/cairn-linux/cairn`. |
 | P1-4 | ISO via `bootc-image-builder` (`disk_config/iso.toml`); `build-disk.yml`. Test install on both tiers. The image ships no user accounts and `sshd` disabled, and the ISO configuration does not let the installer create a user; the first account is the Guardian from the first-boot wizard (ADR-0020). |
 | P1-5 | Guardian tooling: a CLI first (`create-child`, `set-level`, `set-pin`, `allow-app`, and `install-app` / `remove-app` from the curated list at `catalogue/`, ADR-0015), then a minimal GUI on it. Level changes symmetric (DESIGN §3). |
-| P1-6 | First-boot wizard (DESIGN §4.3.1): Guardian account (the only required step), PIN with its warning, an optional security key for the Guardian (ADR-0020), an optional first child, the starter set from the curated list with Tux Paint pre-ticked (ADR-0015), game scan offer, where creations live. Add Wi-Fi setup, which the design doc's list omits and the starter set needs. |
+| P1-6 | First-boot wizard (DESIGN §4.3.1): Guardian account (the only required step), PIN with its warning, an optional security key for the Guardian (ADR-0020), an optional first child, the starter set from the curated list with Tux Paint pre-ticked (ADR-0015), game scan offer, where creations live. Add Wi-Fi setup, which the design doc's list omits and the starter set needs. No secret (a password, the PIN) is ever traced, logged or passed as a command-line argument (#103). |
 | P1-7 | Quick-actions PIN overlay with the fixed allowlist (DESIGN §14 Q8): extend time, unlock one app this session. Logging out is the child's own since ADR-0021. Nothing persistent. |
 | P1-8 | Child account reset and creations export (DESIGN §11): skeleton home, one protected creations directory, sync to a Guardian-readable location. |
 | P1-9 | Time limits and schedules. malcontent does not do this; needs a session-side timer with a calm end-of-time screen and logind integration. (Gap in the design doc; add a section.) |
