@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: Apache-2.0
+[SddmGreeterTheme]
+Name=Cairn
+Description=The Cairn login screen (ADR-0020)
+Author=Cairn Linux
+License=Apache-2.0
+Type=sddm-theme
+Version=0.1
+Website=https://cairnlinux.com
+MainScript=Main.qml
+ConfigFile=theme.conf
+TranslationsDirectory=translations
+Theme-Id=cairn
+Theme-API=2.0
+QtVersion=6

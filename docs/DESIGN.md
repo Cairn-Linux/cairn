@@ -1,7 +1,7 @@
 # Cairn Linux — Design Document
 
 **Status:** Draft
-**Last updated:** 2026-09-29
+**Last updated:** 2026-09-30
 **Home:** cairnlinux.com
 
 A Linux system for children aged roughly 5–8 that grows with them, built for
@@ -275,16 +275,22 @@ the launcher, the shell, session plumbing, ScummVM.
 **Accounts, not modes.** Each child has a real user account. The level is a
 property of that account and determines which session type launches at login.
 
-- Login screen: large avatar tiles, no passwords for L1/L2 accounts.
+- Login screen: "Who's playing today?" and a large tile for everyone in the
+  family, children first, then Guardians (ADR-0020). A tile is a circle in a
+  brand colour with the first letter of the name; pictures a child chooses
+  are for later. No password for L1/L2 accounts.
 - Guardian accounts (§3.2) are standard administrative accounts, password
-  protected, and are not shown as avatar tiles alongside the children.
+  protected. Their tile asks for the password on the same screen, because
+  the family computer has to be as easy for a parent as for a child. A few
+  wrong passwords lock the account for a while, and a security key can be
+  added as a second step (ADR-0020).
 - File separation, per-child parental controls, and per-child app allowlists all
   fall out of standard Linux multi-user for free.
 
 The level is a supplementary group (ADR-0011), and one session entry
 dispatches on it (ADR-0012).
-The login screen is SDDM with a Cairn theme (ADR-0016); the passwordless
-rule for L1 and L2 lives only in the greeter's PAM service.
+The login screen is SDDM with a Cairn theme (ADR-0016, ADR-0020); the
+passwordless rule for L1 and L2 lives only in the greeter's PAM service.
 
 ### 4.3.1 First boot
 
@@ -294,7 +300,10 @@ first impression. A wizard that:
 1. Creates the first Guardian account and its password.
 2. Sets the quick-actions PIN (§3.2), with a plain warning that children will
    learn it and that it intentionally unlocks very little.
-3. Creates the first child account: name, avatar, level.
+3. Offers to create the first child account: name, avatar, level. Only the
+   Guardian account is required; a child can be added here or later from
+   the Guardian tool (ADR-0020). Offers a security key for the Guardian as
+   an option, with a plain note that a watched password is the weak point.
 4. Proposes a starter set of apps from the curated list (§5.2, ADR-0015),
    Tux Paint pre-ticked, and installs what is left ticked. Needs a network
    and says so plainly; skipping it is allowed and leaves the tiles empty.

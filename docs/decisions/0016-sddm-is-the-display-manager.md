@@ -1,6 +1,6 @@
 # ADR-0016: SDDM is the display manager; the login screen is an SDDM theme
 
-**Status:** accepted
+**Status:** amended by ADR-0020
 **Date:** 2026-09-06
 **Closes:** ROADMAP D6
 
