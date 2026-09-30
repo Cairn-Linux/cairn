@@ -190,6 +190,8 @@ pseudonym and a GitHub noreply address are fine. `git commit -s` adds the
 DCO trailer (ADR-0005). Git has no setting that adds it on every commit
 (`format.signOff` only affects `format-patch`), so keep `-s` a habit or
 enable the sign-off lines in the sample `prepare-commit-msg` hook git ships.
+Work an AI agent committed has no sign-off; squash-merge its pull request
+and add yours to the squash commit's message (ADR-0022, `GOVERNANCE.md`).
 Pushes go over HTTPS through `gh auth git-credential`, so no SSH key is
 needed, and GPG or SSH signatures are not required.
 

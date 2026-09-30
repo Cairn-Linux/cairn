@@ -69,8 +69,12 @@ decisions, and is responsible for accepting the resulting work.
 
 An AI agent cannot provide a Developer Certificate of Origin sign-off. The
 human submitting a commit must check its provenance well enough to make the
-DCO certification. Separately, Cairn requires submitted work to be reviewed,
-understood, and tested in proportion to its risk before it is accepted.
+DCO certification. An agent's commits therefore carry no `Signed-off-by`
+line; the maintainer squash-merges the pull request and adds their sign-off
+to the squash commit's message, so the commit that lands on `main` carries a
+human certification. Separately, Cairn requires submitted work to be
+reviewed, understood, and tested in proportion to its risk before it is
+accepted.
 
 ## Project name, marks, and accounts
 
