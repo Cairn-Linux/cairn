@@ -20,6 +20,9 @@ A cairn is a small stack of stones left by someone who walked the trail
 first — a marker that helps whoever comes next without walking the path for
 them. That is the design brief.
 
+Cairn is currently an independent open-source project founded and led by
+Mason Ball. It is not a company, foundation, or nonprofit organisation.
+
 > **Status: pre-alpha, Phase 0.** There is a working prototype, but no public
 > installer or release ready for everyday family use. The launcher, Footpath
 > terminal integration, game scanner and session plumbing have code and
@@ -75,6 +78,9 @@ The design follows these principles; not every planned feature is complete.
 | `docs/research/` | Research notes, measurements and child-test observations. |
 | `docs/brand-guide/` | Brand guidelines v0.1 as a design canvas (`.dc.html`). |
 | `brand/` | Brand as code: colour/type tokens (`tokens.css`, `tokens.json`) and the mark as SVG. |
+| `GOVERNANCE.md` | Project stewardship, decision authority, contribution ownership and succession. |
+| `CONTRIBUTING.md` | Where help is useful and what every contribution must include. |
+| `TRADEMARKS.md` | Permitted use of the Cairn name and stacked-stones mark. |
 | `Containerfile`, `build_files/`, `system_files/`, `disk_config/` | The bootc image, following the Universal Blue `image-template` layout. Not built until Phase 1. |
 | `cairn.env` | Universal Blue image-template variables; Phase 1, see issue #37. |
 | `CMakeLists.txt`, `CMakePresets.json` | The C++ build, first landed 2026-09-04. |
@@ -116,11 +122,10 @@ Developer Certificate of Origin.
 ## Licence
 
 Code is licensed under the [Apache License 2.0](LICENSE). Documentation and
-brand assets are licensed under
-[CC BY-SA 4.0](LICENSE-CC-BY-SA-4.0). The name "Cairn Linux" and the
-stacked-stones mark are trademarks of the project and are not covered by
-either licence; a modified build may not call itself Cairn Linux. See
-`brand/README.md`.
+brand assets, including the stacked-stones artwork, are licensed under
+[CC BY-SA 4.0](LICENSE-CC-BY-SA-4.0). Those copyright licences do not grant
+trademark rights in the name "Cairn Linux" or the stacked-stones mark. See the
+[trademark policy](TRADEMARKS.md) and [visual brand rules](brand/README.md).
 
 ---
 

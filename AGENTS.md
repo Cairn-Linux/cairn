@@ -94,7 +94,7 @@ someone learning the language from it. That shapes every rule below.
 ## Licence and sign-off (ADR-0005)
 
 - Code is Apache-2.0; docs and brand are CC BY-SA 4.0; the name and mark are
-  trademarks (`brand/README.md`). Do not add code under another licence
+  trademarks (`TRADEMARKS.md`). Do not add code under another licence
   without an ADR; record any vendored code in `NOTICE`.
 - Every source file starts with an SPDX line: `// SPDX-License-Identifier:
   Apache-2.0` in C++ and QML, `# SPDX-License-Identifier: Apache-2.0` in
