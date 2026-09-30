@@ -74,8 +74,8 @@ CC BY-SA 4.0 as described in the repository.
 ## The word "Linux"
 
 "Linux" is a registered trademark of Linus Torvalds. Cairn's use of that word
-does not grant anyone else rights in the Linux mark. The project's Linux Mark
-Institute sublicence remains pending, as recorded in the repository.
+does not grant anyone else rights in the Linux mark. The project has not yet
+applied to the Linux Mark Institute for a sublicence; that is issue #21.
 
 ## Questions and permission requests
 

@@ -28,7 +28,7 @@ responsible for accepting work.
   artwork, are CC BY-SA 4.0. By contributing you agree your contribution is
   under the same terms. Those copyright licences do not grant trademark rights
   in the project's name or mark (see [`TRADEMARKS.md`](TRADEMARKS.md)).
-- **Sign your commits.** Every commit carries a Developer Certificate of
+- **Sign off your commits.** Every commit carries a Developer Certificate of
   Origin sign-off, which `git commit -s` adds:
 
   ```

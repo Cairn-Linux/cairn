@@ -10,8 +10,8 @@ mark are project trademarks claimed by Mason Ball. The mark artwork is
 licensed under CC BY-SA 4.0; that copyright licence does not grant trademark
 rights. See TRADEMARKS.md.
 
-"Linux" is a registered trademark of Linus Torvalds, used under a pending
-sublicence from the Linux Mark Institute.
+"Linux" is a registered trademark of Linus Torvalds. The project has not yet
+applied to the Linux Mark Institute for a sublicence to use it in its name.
 
 Image build layout and, in Phase 1, build scripts are adopted from
 ublue-os/image-template, Copyright Universal Blue contributors, Apache-2.0.
