@@ -1,6 +1,6 @@
 # ADR-0005: Apache-2.0 for code, CC BY-SA 4.0 for docs and brand, public repository
 
-**Status:** accepted
+**Status:** amended by ADR-0022
 **Date:** 2026-09-03
 **Closes:** ROADMAP D1
 

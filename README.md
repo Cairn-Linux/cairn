@@ -130,5 +130,5 @@ trademark rights in the name "Cairn Linux" or the stacked-stones mark. See the
 ---
 
 Cairn Linux · cairnlinux.com · © 2026 Cairn Linux contributors.
-"Linux" is a registered trademark of Linus Torvalds; sublicence via the Linux
-Mark Institute is pending.
+"Linux" is a registered trademark of Linus Torvalds. The project has not yet
+applied to the Linux Mark Institute for a sublicence (issue #21).
