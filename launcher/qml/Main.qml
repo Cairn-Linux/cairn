@@ -12,6 +12,10 @@ Window {
     property string manifestPath: ""
     // The Terminal tile is open; the tiles are hidden behind it.
     property bool terminalOpen: false
+    // Set from the command line (--log-out). Empty means no Log out.
+    property string logOutProgram: ""
+    // The child chose Log out and is being asked whether they meant it.
+    property bool logOutAsked: false
 
     title: qsTr("Cairn")
     visibility: Window.Windowed
@@ -62,16 +66,25 @@ Window {
         id: closeRequest
     }
 
+    LogOut {
+        id: logOut
+
+        objectName: "logOut"
+        program: window.logOutProgram
+    }
+
     // The child's leave key (Super+Q, ADR-0019) asks the window in front to
     // close. When that is the launcher it means one step back, never the end
     // of the child's session; CloseRequest decides which.
     onClosing: close => {
-        const answer = closeRequest.answer(window.visibility === Window.FullScreen, window.terminalOpen, launcher.state);
+        const answer = closeRequest.answer(window.visibility === Window.FullScreen, window.terminalOpen, window.logOutAsked, launcher.state);
         close.accepted = answer === CloseRequest.Close;
         if (answer === CloseRequest.LeaveTerminal)
             window.closeTerminal();
         else if (answer === CloseRequest.Dismiss)
             launcher.dismiss();
+        else if (answer === CloseRequest.StayLoggedIn)
+            window.stayLoggedIn();
     }
 
     function openTerminal() {
@@ -85,10 +98,57 @@ Window {
         focusTiles();
     }
 
+    function askToLogOut() {
+        logOutAsked = true;
+    }
+
+    function stayLoggedIn() {
+        logOutAsked = false;
+        logOutTile.forceActiveFocus();
+    }
+
+    // If the program cannot start, the child is not left on a question that
+    // does nothing: they go back to where they chose Log out.
+    function logOutNow() {
+        if (!logOut.start())
+            stayLoggedIn();
+    }
+
     function focusTiles() {
         grid.forceActiveFocus();
         if (grid.currentItem)
             grid.currentItem.forceActiveFocus();
+    }
+
+    // Above the tiles, where it is always in view and never scrolls away: the
+    // child's own way to end their turn (ADR-0021). Up from the top row of
+    // tiles reaches it; Down goes back.
+    Item {
+        id: header
+
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.margins: Tokens.headingSize
+        // Level with the right edge of the tiles, which stop short of the
+        // window's by the gap between tiles.
+        anchors.rightMargin: Tokens.headingSize * 2
+        height: logOut.available ? Tokens.headingSize * 2 : 0
+        visible: logOut.available && tileWindow.visible
+
+        Tile {
+            id: logOutTile
+
+            objectName: "logOutTile"
+            anchors.right: parent.right
+            width: Tokens.displaySize * 4
+            height: parent.height
+            title: qsTr("Log out")
+            kind: TileModel.Machine
+            accessibleName: qsTr("Log out")
+            Keys.onDownPressed: window.focusTiles()
+            onActivated: window.askToLogOut()
+        }
     }
 
     // The window onto the tiles (ADR-0015): two whole rows, and when there are
@@ -101,10 +161,13 @@ Window {
         // Room for the focus ring around the outermost tiles, inside the clip.
         readonly property real ring: Tokens.focusOffset + Tokens.focusWidth
 
-        anchors.fill: parent
+        anchors.top: logOut.available ? header.bottom : parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
         anchors.margins: Tokens.headingSize - ring
         clip: true
-        visible: !grownUp.visible && !window.terminalOpen
+        visible: !grownUp.visible && !window.terminalOpen && !window.logOutAsked
 
         GridScroller {
             id: scroller
@@ -142,6 +205,14 @@ Window {
                 }
             }
 
+            // From the top row, Up goes to Log out when there is one;
+            // otherwise the grid wraps as before.
+            Keys.onUpPressed: event => {
+                if (logOut.available && currentIndex < scroller.columns)
+                    logOutTile.forceActiveFocus();
+                else
+                    event.accepted = false;
+            }
             Keys.onTabPressed: event => {
                 const step = (event.modifiers & Qt.ShiftModifier) ? count - 1 : 1;
                 currentIndex = (currentIndex + step) % count;
@@ -195,6 +266,16 @@ Window {
         lineHeight: Tokens.terminalLineHeight
         margin: Tokens.headingSize
         chipRadius: Tokens.radiusSm / 2
+    }
+
+    LogOutScreen {
+        id: logOutScreen
+
+        objectName: "logOutScreen"
+        anchors.fill: parent
+        visible: window.logOutAsked && !grownUp.visible
+        onStayed: window.stayLoggedIn()
+        onConfirmed: window.logOutNow()
     }
 
     GrownUpScreen {

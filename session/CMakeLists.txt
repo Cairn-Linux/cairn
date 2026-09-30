@@ -13,3 +13,6 @@ add_test(NAME polkit_rules
 add_test(NAME give_up
     COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_give_up.py"
 )
+add_test(NAME log_out
+    COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_log_out.py"
+)

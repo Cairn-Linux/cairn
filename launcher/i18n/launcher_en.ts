@@ -38,10 +38,45 @@
     </message>
 </context>
 <context>
+    <name>LogOutScreen</name>
+    <message>
+        <location filename="../qml/LogOutScreen.qml" line="40"/>
+        <source>Log out now?</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/LogOutScreen.qml" line="51"/>
+        <source>The next person can choose their name.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/LogOutScreen.qml" line="67"/>
+        <source>Back</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/LogOutScreen.qml" line="69"/>
+        <source>Back to the tiles</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/LogOutScreen.qml" line="80"/>
+        <location filename="../qml/LogOutScreen.qml" line="82"/>
+        <source>Log out</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>Main</name>
     <message>
-        <location filename="../qml/Main.qml" line="16"/>
+        <location filename="../qml/Main.qml" line="20"/>
         <source>Cairn</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/Main.qml" line="146"/>
+        <location filename="../qml/Main.qml" line="148"/>
+        <source>Log out</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

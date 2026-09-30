@@ -39,6 +39,11 @@ Colours, type, focus rings and radii come from `Cairn.Brand.Tokens`.
   the child was, and at the tiles nothing happens. A fullscreen launcher
   never closes, because the kiosk session ends with it; a windowed one,
   under Plasma, closes as usual.
+- **Slice 10 (2026-09-30):** a child logs themselves out (ADR-0021, #44).
+  `LogOut` runs the program the kiosk wrapper names with `--log-out`
+  (`../session/bin/cairn-log-out`); without it there is no Log out. The
+  button sits above the tiles, Up from the top row reaches it, and
+  `LogOutScreen.qml` asks once with the focus on Back.
 - **Footprint (2026-09-08):** about 145 MB proportional idle in the VM,
   first frame 0.2 s after exec; the table is in
   `../docs/research/launcher-footprint.md`.
@@ -58,10 +63,10 @@ The presets do not pin a compiler.
 Debug enables AddressSanitizer and UndefinedBehaviorSanitizer.
 Use `cmake --preset release && cmake --build --preset release` for a build
 without sanitizers.
-CTest runs eight suites offscreen: the tile model, the manifest reader, the
-app launcher, the grid scroller, the close request, the window list, the
-compiled brand tokens, and the QML navigation, scrolling, grown-up-screen,
-terminal and close-request behaviour. Footpath's own six
+CTest runs nine suites offscreen: the tile model, the manifest reader, the
+app launcher, the grid scroller, the close request, Log out, the window
+list, the compiled brand tokens, and the QML navigation, scrolling,
+grown-up-screen, terminal, close-request and Log out behaviour. Footpath's own six
 suites run in its repository.
 Qt on Fedora sends `qWarning` and `qInfo` lines to the journal when stderr
 is not a terminal; set `QT_FORCE_STDERR_LOGGING=1` to see them in a pipe.

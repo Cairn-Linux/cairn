@@ -1,0 +1,29 @@
+#!/bin/bash
+# SPDX-License-Identifier: Apache-2.0
+#
+# Ends a child's session when they choose Log out in the launcher (ADR-0021,
+# issue #44), so the login screen comes back for the next person in the
+# family. The launcher runs this with --log-out; it only ever ends the
+# account that runs it.
+#
+# Quitting the launcher alone would end labwc and the session, but not what
+# runs outside the session's scope: a Flatpak app in its own scope, or the
+# Steam client under the user's service manager. Those would stay up behind
+# the login screen. logind ends them all when asked to end the user, and a
+# user may always end their own sessions without a password.
+set -ouex pipefail
+
+me="$(id -u)"
+
+# Steam writes the last game's cloud save and its own state when told to shut
+# down, so it gets a moment to do that first. Only if it is running: asked to
+# shut down when it is not, it starts.
+if pgrep --uid "$me" --exact steam > /dev/null; then
+    steam -shutdown || true
+    for _ in $(seq 20); do
+        pgrep --uid "$me" --exact steam > /dev/null || break
+        sleep 0.5
+    done
+fi
+
+exec loginctl terminate-user "$me"
