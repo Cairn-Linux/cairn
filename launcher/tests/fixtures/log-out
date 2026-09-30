@@ -1,0 +1,8 @@
+#!/bin/bash
+# SPDX-License-Identifier: Apache-2.0
+# Stands in for session/bin/cairn-log-out in the tests: leaves a mark where
+# the test asked, and ends nothing.
+set -ouex pipefail
+if [ -n "${CAIRN_TEST_LOG_OUT_MARK:-}" ]; then
+    touch "$CAIRN_TEST_LOG_OUT_MARK"
+fi

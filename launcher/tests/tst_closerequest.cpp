@@ -34,7 +34,7 @@ private slots:
         QFETCH(const bool, terminalOpen);
         QFETCH(const State, launcherState);
         QFETCH(const Answer, expected);
-        QCOMPARE(CloseRequest::answer(true, terminalOpen, launcherState), expected);
+        QCOMPARE(CloseRequest::answer(true, terminalOpen, false, launcherState), expected);
     }
 
     // The kiosk never answers Close, whatever is showing: that would end the
@@ -43,17 +43,30 @@ private slots:
         for (const bool terminalOpen : {false, true}) {
             for (const State state : {State::Idle, State::Starting, State::Running, State::Failed,
                                       State::Interrupted}) {
-                QVERIFY(CloseRequest::answer(true, terminalOpen, state) != Answer::Close);
+                for (const bool logOutAsked : {false, true}) {
+                    QVERIFY(CloseRequest::answer(true, terminalOpen, logOutAsked, state) !=
+                            Answer::Close);
+                }
             }
         }
     }
 
+    // The question before logging out is one step from the tiles, so a
+    // close answers it as its Back does. A failed launch in front of it
+    // still answers first.
+    void inTheKioskACloseAnswersTheLogOutQuestionWithStay() {
+        QCOMPARE(CloseRequest::answer(true, false, true, State::Idle), Answer::StayLoggedIn);
+        QCOMPARE(CloseRequest::answer(true, false, true, State::Running), Answer::StayLoggedIn);
+        QCOMPARE(CloseRequest::answer(true, false, true, State::Failed), Answer::Dismiss);
+        QCOMPARE(CloseRequest::answer(true, false, true, State::Interrupted), Answer::Stay);
+    }
+
     // A windowed launcher is a grown-up's run under Plasma: an ordinary window.
     void aWindowedLauncherCloses() {
-        QCOMPARE(CloseRequest::answer(false, false, State::Idle), Answer::Close);
-        QCOMPARE(CloseRequest::answer(false, true, State::Idle), Answer::Close);
-        QCOMPARE(CloseRequest::answer(false, false, State::Failed), Answer::Close);
-        QCOMPARE(CloseRequest::answer(false, false, State::Interrupted), Answer::Close);
+        QCOMPARE(CloseRequest::answer(false, false, false, State::Idle), Answer::Close);
+        QCOMPARE(CloseRequest::answer(false, true, false, State::Idle), Answer::Close);
+        QCOMPARE(CloseRequest::answer(false, false, false, State::Failed), Answer::Close);
+        QCOMPARE(CloseRequest::answer(false, false, false, State::Interrupted), Answer::Close);
     }
 };
 

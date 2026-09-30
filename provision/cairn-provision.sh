@@ -186,6 +186,8 @@ install_session_files() {
     install_file 755 "$REPO/session/bin/cairn-session" "$PREFIX/bin/cairn-session"
     # The grown-up's way out of a stuck program (ADR-0018, issue #41).
     install_file 755 "$REPO/session/bin/cairn-give-up" "$PREFIX/bin/cairn-give-up"
+    # The child's own Log out in the launcher (ADR-0021, issue #44).
+    install_file 755 "$REPO/session/bin/cairn-log-out" "$PREFIX/bin/cairn-log-out"
     install_file 644 "$REPO/session/sessions/cairn.desktop" "$SHARE/sessions/cairn.desktop"
     # What a child's session may ask the system to do (issue #35). polkitd
     # watches the directory, so the rule applies without a restart.
@@ -239,7 +241,8 @@ install_launcher() {
 # SPDX-License-Identifier: Apache-2.0
 # Installed by provision/cairn-provision.sh; not the Phase 1 packaging.
 export LD_LIBRARY_PATH=/usr/local/lib64/cairn
-exec /usr/local/libexec/cairn/cairn-launcher --manifest /usr/local/share/cairn/manifest.json "$@"
+exec /usr/local/libexec/cairn/cairn-launcher --manifest /usr/local/share/cairn/manifest.json \
+    --log-out /usr/local/bin/cairn-log-out "$@"
 WRAPPER
     install_file 755 /tmp/cairn-launcher.wrapper "$PREFIX/bin/cairn-launcher"
     rm /tmp/cairn-launcher.wrapper
@@ -283,7 +286,7 @@ protect_guardians() {
 relabel() {
     if command -v restorecon > /dev/null; then
         restorecon -R "$PREFIX/bin/cairn-launcher" "$PREFIX/bin/cairn-session" \
-            "$PREFIX/bin/cairn-give-up" \
+            "$PREFIX/bin/cairn-give-up" "$PREFIX/bin/cairn-log-out" \
             "$PREFIX/libexec/cairn" "$PREFIX/lib64/cairn" "$SHARE" \
             /etc/sddm.conf.d /etc/pam.d/sddm /etc/polkit-1/rules.d /etc/systemd/logind.conf.d \
             /etc/security/faillock.conf

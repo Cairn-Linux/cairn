@@ -26,6 +26,10 @@ What is here:
   SIGKILLs the sandbox roots a child can launch (Flatpak's `bwrap`, Steam's
   `reaper`) in the child's own session, so a frozen app ends and the frame
   and the Steam client stay up.
+- `bin/cairn-log-out`: the child's Log out (ADR-0021, #44). The launcher
+  runs it when the child confirms. It asks a running Steam client to shut
+  down, then ends the child's own account with `loginctl terminate-user`,
+  so no app or Steam client is left for the next person.
 - `logind.conf.d/10-cairn-power.conf`: the power button (ADR-0018). A tap
   is ignored, a five-second hold powers off in order.
 - `sessions/cairn.desktop`: the one session entry the greeter offers.
@@ -50,8 +54,10 @@ What is here:
   says YES.
 
 `tests/` checks that the labwc and logind files, the polkit rule and
-`cairn-give-up` say what this README promises, and runs the dispatcher with
-stand-ins for `id`, `labwc` and `startplasma-wayland`; CTest runs all four.
+`cairn-give-up` say what this README promises, runs the dispatcher with
+stand-ins for `id`, `labwc` and `startplasma-wayland`, and runs
+`cairn-log-out` with stand-ins for `id`, `pgrep`, `steam` and `loginctl`;
+CTest runs all five.
 What the configuration was tested against, and what is left for the VM, is in
 `docs/research/kiosk-containment.md` (P0-4). Phase 0 task **P0-3** wires
 this into the VM.

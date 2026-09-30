@@ -51,6 +51,7 @@ Where a row depends on how labwc is written, the 0.9.6 sources were read
 | `pkcheck` as the child for power-off, mount, network and package actions (#35) | **Fail, then pass** (VM, 2026-09-08) | With the L1 account's labwc as the subject, polkit says yes to power-off, reboot, suspend, hibernate, udisks2 mount and eject, NetworkManager enable-disable-wifi, network-control and modify-own-connections, Flatpak app-update and runtime-install, and rpm-ostree upgrade; it wants an admin password only for modify-system, Flatpak app-install, set-user-linger and rpm-ostree install. No Cairn rule existed in `/etc/polkit-1/rules.d/`. With `10-cairn-levels.rules` installed, every one of those says no and reads of the child's own parental-control settings still say yes; the table is under "The rule" below. |
 | A hung or trapped client can be exited without a reboot (#41) | **Fail, then pass** (VM, 2026-09-08) | With no bindings there was no way out but the app's own quit. Ctrl-Alt-Home now runs `cairn-give-up` (ADR-0018), which ends the app however frozen; the matrix is under "Hung or trapped apps" below. |
 | A child can leave any app on their own (#77) | **Fail, then pass** (VM, 2026-09-29) | In the first child pilot (#8) a six-year-old needed help to leave every app. Super+Q now asks the app in front to close (ADR-0019), and in the launcher it is one step back that never ends the session; the matrix is under "Leaving an app" below. A frozen app still needs Ctrl-Alt-Home. |
+| A child can end their turn and leave nothing running (#44) | **Fail, then pass** (VM, 2026-09-30) | An L1 child had no way back to the login screen, and quitting the launcher would have left Flatpak apps and the Steam client running. A Log out button above the tiles now ends the child's whole account (ADR-0021); the matrix is under "Logging out" below. |
 | X11 windows carry no server decorations | **Fail, then pass** (new row) | An xterm got a titlebar with minimise, maximise and close buttons: `<decoration>client</decoration>` only governs Wayland clients. `serverDecoration="no"` on every window removes it. |
 
 The launcher behaved as designed throughout: each window opened from the
@@ -270,6 +271,26 @@ first-run guide (#78, #79) is where the child learns that the way out of
 Tux Paint is Super+Q and then the tick. And
 during the Steam run, Steam's own notification about Shift+Tab showed in a
 corner of the game, which is #74's to settle.
+
+### Logging out (#44, ADR-0021)
+
+A child ends their own turn from the launcher. The launcher runs
+`session/bin/cairn-log-out`, which asks a running Steam client to shut down
+and then runs `loginctl terminate-user` on the child's own uid. First,
+from inside `ada`'s session scope (the setpriv method above), `loginctl
+terminate-user ada` ran with no polkit prompt and left no process of hers:
+logind lets any user end their own sessions, and the level rule (#35) does
+not touch that.
+
+In the VM on 2026-09-30 as `ada`, keys through `virsh send-key`, with the
+Release launcher, `cairn-log-out` and the wrapper's `--log-out` installed:
+
+| Case | Result |
+|---|---|
+| At the tiles, Up from the top row | Focus moves to Log out, above the tiles, level with their right edge. |
+| Enter on Log out | "Log out now?" with Back and Log out, the focus on Back. |
+| Right, then Enter on Log out | The login screen was back in about a second. `loginctl` listed no session for `ada` and `pgrep -u ada` found nothing. |
+| A running Steam client | Not run in the VM: `ada`'s client had lost its sign-in (#25). `session/tests/test_log_out.py` checks with stand-ins that a running client is asked to shut down first and a stopped one is never started. |
 
 ## Remaining rows, and where
 

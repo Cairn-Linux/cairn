@@ -375,6 +375,106 @@ TestCase {
         tryCompare(grownUp, "visible", false);
     }
 
+    // ---- Log out (ADR-0021) ----
+
+    function giveLogOut(program) {
+        launcher.logOutProgram = program;
+        tryVerify(() => findChild(launcher, "logOutTile").visible);
+    }
+
+    function fixturePath(name) {
+        return Qt.resolvedUrl("fixtures/" + name).toString().replace("file://", "");
+    }
+
+    // A launcher run without --log-out, as under Plasma, has no Log out, and
+    // Up from the top row still wraps as it always did.
+    function test_noProgramNoLogOut() {
+        compare(findChild(launcher, "logOutTile").visible, false);
+        keyClick(Qt.Key_Up);
+        verify(grid.currentIndex !== 0);
+        tryCompare(grid.currentItem, "activeFocus", true);
+    }
+
+    function test_upFromTheTopRowReachesLogOutAndDownComesBack() {
+        giveLogOut(fixturePath("log-out"));
+        const logOutTile = findChild(launcher, "logOutTile");
+        focusTile(1);
+        keyClick(Qt.Key_Up);
+        tryCompare(logOutTile, "activeFocus", true);
+        keyClick(Qt.Key_Down);
+        tryCompare(grid.currentItem, "activeFocus", true);
+        compare(grid.currentIndex, 1);
+        // From the second row, Up is an ordinary move within the tiles.
+        focusTile(4);
+        keyClick(Qt.Key_Up);
+        compare(grid.currentIndex, 1);
+        tryCompare(grid.currentItem, "activeFocus", true);
+    }
+
+    // Log out asks first, and Back is where the focus starts, so Enter
+    // pressed twice by accident keeps the child where they were.
+    function test_logOutAsksFirstAndBackStays() {
+        giveLogOut(fixturePath("log-out"));
+        const logOutTile = findChild(launcher, "logOutTile");
+        const screen = findChild(launcher, "logOutScreen");
+        mouseClick(logOutTile);
+        tryCompare(screen, "visible", true);
+        compare(grid.visible, false);
+        tryCompare(findChild(screen, "stayTile"), "activeFocus", true);
+        keyClick(Qt.Key_Return);
+        tryCompare(screen, "visible", false);
+        compare(launcher.logOutAsked, false);
+        tryCompare(logOutTile, "activeFocus", true);
+    }
+
+    function test_escapeStays() {
+        giveLogOut(fixturePath("log-out"));
+        const screen = findChild(launcher, "logOutScreen");
+        mouseClick(findChild(launcher, "logOutTile"));
+        tryCompare(screen, "visible", true);
+        keyClick(Qt.Key_Escape);
+        tryCompare(screen, "visible", false);
+        compare(grid.visible, true);
+    }
+
+    function test_closeInTheKioskStays() {
+        enterKiosk();
+        giveLogOut(fixturePath("log-out"));
+        const screen = findChild(launcher, "logOutScreen");
+        mouseClick(findChild(launcher, "logOutTile"));
+        tryCompare(screen, "visible", true);
+        compare(launcher.close(), false);
+        tryCompare(screen, "visible", false);
+        compare(launcher.visible, true);
+    }
+
+    // Confirming starts the program; the session ends from there, so the
+    // question stays up until it does.
+    function test_confirmStartsTheProgram() {
+        giveLogOut(fixturePath("log-out"));
+        const screen = findChild(launcher, "logOutScreen");
+        mouseClick(findChild(launcher, "logOutTile"));
+        tryCompare(screen, "visible", true);
+        keyClick(Qt.Key_Right);
+        tryCompare(findChild(screen, "confirmLogOutTile"), "activeFocus", true);
+        keyClick(Qt.Key_Return);
+        compare(launcher.logOutAsked, true);
+        compare(screen.visible, true);
+    }
+
+    // A program that cannot start does not leave the child on a question
+    // that does nothing.
+    function test_aProgramThatCannotStartGoesBack() {
+        giveLogOut("/nonexistent/cairn-log-out");
+        const screen = findChild(launcher, "logOutScreen");
+        mouseClick(findChild(launcher, "logOutTile"));
+        tryCompare(screen, "visible", true);
+        mouseClick(findChild(screen, "confirmLogOutTile"));
+        tryCompare(screen, "visible", false);
+        compare(launcher.logOutAsked, false);
+        tryCompare(findChild(launcher, "logOutTile"), "activeFocus", true);
+    }
+
     // Under Plasma the launcher is an ordinary window, and closing it closes it.
     function test_closeWhenWindowedClosesTheWindow() {
         compare(launcher.visibility, Window.Windowed);

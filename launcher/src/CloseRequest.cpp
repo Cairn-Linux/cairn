@@ -3,7 +3,7 @@
 
 CloseRequest::CloseRequest(QObject* parent) : QObject(parent) {}
 
-CloseRequest::Answer CloseRequest::answer(bool fullscreen, bool terminalOpen,
+CloseRequest::Answer CloseRequest::answer(bool fullscreen, bool terminalOpen, bool logOutAsked,
                                           AppLauncher::State launcherState) {
     if (!fullscreen) {
         return Answer::Close;
@@ -15,6 +15,9 @@ CloseRequest::Answer CloseRequest::answer(bool fullscreen, bool terminalOpen,
     // The launcher never dismisses this screen; only the window closing does.
     if (launcherState == AppLauncher::State::Interrupted) {
         return Answer::Stay;
+    }
+    if (logOutAsked) {
+        return Answer::StayLoggedIn;
     }
     if (terminalOpen) {
         return Answer::LeaveTerminal;

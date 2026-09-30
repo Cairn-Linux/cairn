@@ -202,9 +202,9 @@ exposes a small, fixed, allowlisted set of actions and is **not a door to the
 full admin surface.** A leaked PIN should cost fifteen extra minutes of
 screen time, not the machine.
 
-Candidate quick actions: extend time, unlock a specific app for this session,
-exit to the login screen, switch user. Nothing that changes persistent
-configuration.
+Candidate quick actions: extend time, unlock a specific app for this session.
+Nothing that changes persistent configuration. Logging out is not among
+them: ending a turn is the child's own, from the launcher (ADR-0021).
 
 #### No remote management (deliberate)
 
@@ -359,6 +359,10 @@ button to find (ADR-0018). The power button is a tap to ignore and a hold
 to power off in order; a child cannot switch the machine off by brushing
 it, and a grown-up never has to pull the plug.
 
+**Leaving the computer (L1/L2).** A Log out button sits above the tiles.
+It asks once, with the focus on Back, then ends everything the child
+started and returns to the login screen for the next person (ADR-0021).
+
 ### 4.6 What rolls back and what doesn't
 
 An important distinction that the "immutable OS" framing tends to obscure:
@@ -438,6 +442,7 @@ The launcher **is the product.** Everything else is packaging.
   the next row showing at the edge (ADR-0015). The Guardian chooses what
   appears, including approved Steam titles. L2 adds a small dock with a
   files view.
+- Log out above the tiles, always in view (ADR-0021).
 - Colour groups by *kind* (make / practice / machine), not one colour per app.
 
 ### 6.2 Visual direction
