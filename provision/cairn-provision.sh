@@ -204,14 +204,12 @@ install_display_manager() {
     install_file 644 "$REPO/session/sddm/sddm.conf.d/10-cairn.conf" /etc/sddm.conf.d/10-cairn.conf
     install_file 644 "$REPO/session/sddm/sddm.conf.d/zz-cairn-no-autologin.conf" /etc/sddm.conf.d/zz-cairn-no-autologin.conf
     install_file 644 "$REPO/session/sddm/pam.d/sddm" /etc/pam.d/sddm
-    # Guardians are hidden from the greeter's tiles. The list changes with
-    # the accounts, so it is generated here rather than shipped.
-    local guardians
-    guardians="$(getent group cairn-guardian | cut -d: -f4)"
-    printf '# Written by provision/cairn-provision.sh; the members of cairn-guardian.\n[Users]\nHideUsers=%s\n' \
-        "$guardians" > /tmp/cairn-guardians.conf
-    install_file 644 /tmp/cairn-guardians.conf /etc/sddm.conf.d/20-cairn-guardians.conf
-    rm /tmp/cairn-guardians.conf
+    # Nobody is hidden from the login screen since ADR-0020; an earlier run
+    # wrote the Guardian list here.
+    if [ -e /etc/sddm.conf.d/20-cairn-guardians.conf ]; then
+        rm /etc/sddm.conf.d/20-cairn-guardians.conf
+        changed "/etc/sddm.conf.d/20-cairn-guardians.conf removed"
+    fi
     # The packages are layered above; until the reboot sddm.service is not
     # there to enable, so this step waits for the second run.
     if [ -f /usr/lib/systemd/system/sddm.service ]; then
@@ -247,12 +245,48 @@ WRAPPER
     rm /tmp/cairn-launcher.wrapper
 }
 
+# --- 8. The login screen: the Cairn theme and its QML modules (ADR-0020) ----
+install_greeter() {
+    local build="$REPO/build/release" qml="$PREFIX/lib64/cairn/qml" theme="$SHARE/sddm/themes/cairn"
+    local file
+    for file in Main.qml FamilyTile.qml PasswordRow.qml TextButton.qml metadata.desktop theme.conf mark-on-ink.svg; do
+        install_file 644 "$REPO/greeter/theme/$file" "$theme/$file"
+    done
+    # The tokens as plain QML, so the greeter needs no brand library.
+    install_file 644 "$REPO/brand/qml/Cairn/Brand/qmldir" "$qml/Cairn/Brand/qmldir"
+    install_file 644 "$REPO/brand/qml/Cairn/Brand/Tokens.qml" "$qml/Cairn/Brand/Tokens.qml"
+    # The plugin finds the library beside it through its rpath.
+    install_file 644 "$build/qml/Cairn/Greeter/qmldir" "$qml/Cairn/Greeter/qmldir"
+    install_file 644 "$build/qml/Cairn/Greeter/cairngreeter.qmltypes" "$qml/Cairn/Greeter/cairngreeter.qmltypes"
+    install_file 755 "$build/qml/Cairn/Greeter/libcairngreeterplugin.so" "$qml/Cairn/Greeter/libcairngreeterplugin.so"
+    install_file 755 "$build/greeter/libcairngreeter.so" "$qml/Cairn/Greeter/libcairngreeter.so"
+}
+
+# --- 9. The Guardian's password: a lockout that survives a reboot (ADR-0020) -
+protect_guardians() {
+    install_file 644 "$REPO/session/security/faillock.conf" /etc/security/faillock.conf
+    if ! semanage fcontext -l | grep -q '^/var/lib/faillock(/\.\*)?'; then
+        semanage fcontext -a -t faillog_t '/var/lib/faillock(/.*)?'
+        changed "SELinux label for /var/lib/faillock"
+    fi
+    if [ ! -d /var/lib/faillock ]; then
+        install -d --mode=755 /var/lib/faillock
+        changed "/var/lib/faillock"
+    fi
+    restorecon -R /var/lib/faillock
+    if ! authselect current | grep -qx -- '- with-faillock'; then
+        authselect enable-feature with-faillock
+        changed "authselect with-faillock"
+    fi
+}
+
 relabel() {
     if command -v restorecon > /dev/null; then
         restorecon -R "$PREFIX/bin/cairn-launcher" "$PREFIX/bin/cairn-session" \
             "$PREFIX/bin/cairn-give-up" \
             "$PREFIX/libexec/cairn" "$PREFIX/lib64/cairn" "$SHARE" \
-            /etc/sddm.conf.d /etc/pam.d/sddm /etc/polkit-1/rules.d /etc/systemd/logind.conf.d
+            /etc/sddm.conf.d /etc/pam.d/sddm /etc/polkit-1/rules.d /etc/systemd/logind.conf.d \
+            /etc/security/faillock.conf
     fi
 }
 
@@ -265,6 +299,8 @@ install_flatpaks
 install_session_files
 install_launcher
 install_display_manager
+install_greeter
+protect_guardians
 relabel
 
 set +x
