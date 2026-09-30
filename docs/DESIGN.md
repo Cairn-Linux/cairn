@@ -1,7 +1,7 @@
 # Cairn Linux — Design Document
 
 **Status:** Draft
-**Last updated:** 2026-09-03
+**Last updated:** 2026-09-29
 **Home:** cairnlinux.com
 
 A Linux system for children aged roughly 5–8 that grows with them, built for
@@ -337,12 +337,18 @@ benefit: Qt/QML alignment with GCompris.
 
 The two session types share a visual identity (§6) but not a desktop.
 
-**Leaving a stuck program (L1/L2).** A game can freeze or hide its quit from
-a pre-reader, so the kiosk gives a grown-up one key combination that ends
-whatever the child launched and returns the tiles, and never appears to the
-child as a button to find (ADR-0018). The power button is a tap to ignore
-and a hold to power off in order; a child cannot switch the machine off by
-brushing it, and a grown-up never has to pull the plug.
+**Leaving a program (L1/L2).** Every app hides its quit somewhere
+different, so the kiosk gives the child one key for all of them: Super+Q
+asks the app in front to close, as a titlebar's close button would. An app
+that asks about unsaved work still asks; Tux Paint asks once whether to
+quit, with a tick and a cross, then saves the picture without asking.
+Inside the launcher the same key is one step back and never ends the
+session (ADR-0019). A game can also freeze, and a frozen app
+cannot answer, so a grown-up has one key combination that ends whatever the
+child launched and returns the tiles; it never appears to the child as a
+button to find (ADR-0018). The power button is a tap to ignore and a hold
+to power off in order; a child cannot switch the machine off by brushing
+it, and a grown-up never has to pull the plug.
 
 ### 4.6 What rolls back and what doesn't
 

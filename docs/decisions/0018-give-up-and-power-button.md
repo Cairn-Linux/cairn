@@ -1,6 +1,6 @@
 # ADR-0018: A grown-up's way out of a stuck program, and the power button
 
-**Status:** accepted
+**Status:** amended by ADR-0019
 **Date:** 2026-09-08
 **Closes:** (none) — addresses issue #41
 

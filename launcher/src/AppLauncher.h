@@ -69,7 +69,7 @@ public:
     // tile yet.
     Q_INVOKABLE void launch(const QString& title, const QStringList& exec);
     // Leaves Failed and goes back to Idle. Interrupted ends only when the
-    // window closes, so a child cannot dismiss what a grown-up has to see.
+    // window closes; the launcher never dismisses it.
     Q_INVOKABLE void dismiss();
 
     // What the compositor reports. A window that opens while a launch is in

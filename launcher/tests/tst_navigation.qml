@@ -322,6 +322,66 @@ TestCase {
         tryCompare(grid.currentItem, "activeFocus", true);
     }
 
+    // In the kiosk the launcher is fullscreen, and a close request (the leave
+    // key, ADR-0019) is one step back that never closes it.
+    function enterKiosk() {
+        launcher.visibility = Window.FullScreen;
+        tryCompare(launcher, "visibility", Window.FullScreen);
+        launcher.requestActivate();
+        tryCompare(launcher, "active", true);
+    }
+
+    function test_closeInTheKioskKeepsTheTilesUp() {
+        enterKiosk();
+        focusTile(4);
+        compare(launcher.close(), false);
+        compare(launcher.visible, true);
+        compare(grid.visible, true);
+        compare(grid.currentIndex, 4);
+        tryCompare(grid.currentItem, "activeFocus", true);
+    }
+
+    function test_closeInTheKioskExitsTheTerminal() {
+        enterKiosk();
+        const terminal = findChild(launcher, "terminalScreen");
+        focusTile(5);
+        keyClick(Qt.Key_Return);
+        tryCompare(terminal, "visible", true);
+        compare(launcher.close(), false);
+        tryCompare(terminal, "visible", false);
+        compare(launcher.visible, true);
+        tryCompare(grid.currentItem, "activeFocus", true);
+    }
+
+    function test_closeInTheKioskDismissesAFailedLaunch() {
+        enterKiosk();
+        focusTile(0);
+        keyClick(Qt.Key_Return);
+        tryCompare(grownUp, "visible", true);
+        compare(launcher.close(), false);
+        tryCompare(grownUp, "visible", false);
+        compare(appLauncher.state, AppLauncher.Idle);
+        tryCompare(grid.currentItem, "activeFocus", true);
+    }
+
+    function test_closeInTheKioskKeepsTheGrownUpScreenForAWindowOnItsOwn() {
+        enterKiosk();
+        appLauncher.windowOpened("w1", "steam", "Steam");
+        tryCompare(grownUp, "visible", true);
+        compare(launcher.close(), false);
+        compare(grownUp.visible, true);
+        compare(appLauncher.state, AppLauncher.Interrupted);
+        appLauncher.windowClosed("w1");
+        tryCompare(grownUp, "visible", false);
+    }
+
+    // Under Plasma the launcher is an ordinary window, and closing it closes it.
+    function test_closeWhenWindowedClosesTheWindow() {
+        compare(launcher.visibility, Window.Windowed);
+        compare(launcher.close(), true);
+        compare(launcher.visible, false);
+    }
+
     // open from the shell goes through the same launcher; a bad launch shows
     // the grown-up screen and Back returns to the terminal, not the tiles.
     function test_openFromTheTerminalLaunchesThroughTheLauncher() {

@@ -62,7 +62,7 @@ sudo dnf install \
 ```sh
 sudo dnf install cage labwc sddm scummvm tuxpaint gcompris-qt \
   malcontent malcontent-control malcontent-tools malcontent-pam \
-  xdotool xterm xeyes foot wlr-randr podman
+  xdotool xterm xeyes foot wlr-randr wtype grim podman
 ```
 
 | Package | Version seen | Role |
@@ -73,6 +73,7 @@ sudo dnf install cage labwc sddm scummvm tuxpaint gcompris-qt \
 | `tuxpaint`, `gcompris-qt` | 0.9, 26.1 | Phase 0 app set. |
 | `malcontent`, `malcontent-control`, `malcontent-tools`, `malcontent-pam` | 0.14 | Parental controls. Fedora splits malcontent into daemons, the control app, the CLI and the PAM module; P0-7 needs all four. |
 | `xdotool`, `xterm`, `xeyes`, `foot`, `wlr-randr` | — | X11 and Wayland test clients for P0-4's focus-stealing and placeholder rows. |
+| `wtype`, `grim` | — | Keys and screenshots for a headless nested labwc: `wtype` sends Super+Q for the leave-key rows (ADR-0019), `grim` takes the screenshots the checklists read. |
 | `podman` | — | Builds the image locally in Phase 1; runs `bootc-image-builder`. |
 
 Steam: install the RPM (`sudo dnf install steam`, from `rpmfusion-nonfree`).

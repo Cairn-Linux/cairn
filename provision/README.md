@@ -36,11 +36,10 @@ What it leaves on the machine:
 | sddm, sddm-breeze, sddm-wayland-plasma | Layered; `plasmalogin.service` disabled and `sddm.service` enabled (ADR-0016). `desktop-backgrounds-compat` is layered first from a downloaded RPM with `--force-replacefiles`, because the image carries its two wallpaper paths as symlinks no package owns |
 | `/etc/polkit-1/rules.d/10-cairn-levels.rules` | What a child's session may ask the system to do, keyed off the level groups (`../session/polkit/`, #35) |
 | `/etc/sddm.conf.d/`, `/etc/pam.d/sddm` | Only Cairn's session directory offered, Guardians hidden (generated from `cairn-guardian`), no autologin, and the greeter-only passwordless rule for L1 and L2 |
-| `/usr/local/bin/cairn-launcher` | Wrapper that runs the release launcher from `/usr/local/libexec/cairn` with the manifest in `/usr/local/share/cairn/manifest.json` |
+| `/usr/local/bin/cairn-launcher` | Wrapper that runs the release launcher from `/usr/local/libexec/cairn` with the manifest in `/usr/local/share/cairn/manifest.json`. Its Draw tile runs Tux Paint with `--autosave --saveovernew`, so a child who leaves with Super+Q never loses a picture (ADR-0019) |
 
-Not yet: an avatar for the child, the Cairn greeter theme (P1-16), and the
-`logind.conf` keys for the power button and the lid
-(`../docs/research/kiosk-containment.md`).
+Not yet: an avatar for the child, the Cairn greeter theme (P1-16), and a
+`logind.conf` key for the lid.
 
 ## What it must do
 

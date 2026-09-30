@@ -6,8 +6,10 @@ Login-to-session plumbing. Makes "level is a property of the account"
 What is here:
 
 - `labwc/`: the kiosk compositor's configuration. `rc.xml`: no titlebars on
-  any window, Wayland or X11; no default key or mouse bindings; no window
-  gets focus by asking for it; a window rule that makes the launcher
+  any window, Wayland or X11; no default key or mouse bindings, only
+  Super+Q, the child's way out of an app (ADR-0019), and Ctrl-Alt-Home,
+  the grown-up's way out of a stuck one (ADR-0018); no window gets focus
+  by asking for it; a window rule that makes the launcher
   fullscreen on sight; and rules that iconify Steam's own windows on
   sight while leaving the launcher able to hear about them
   (`docs/research/steam-containment.md`). `environment`: the XKB option
@@ -42,10 +44,10 @@ What is here:
   and removable media, since Plasma's menu offers them. The rule never
   says YES.
 
-`tests/` checks the labwc files and the polkit rule say what this README
-promises and runs the dispatcher with stand-ins for `id`, `labwc` and
-`startplasma-wayland`; CTest runs all three. What the configuration was
-tested against, and what is left for the VM, is in
+`tests/` checks that the labwc and logind files, the polkit rule and
+`cairn-give-up` say what this README promises, and runs the dispatcher with
+stand-ins for `id`, `labwc` and `startplasma-wayland`; CTest runs all four.
+What the configuration was tested against, and what is left for the VM, is in
 `docs/research/kiosk-containment.md` (P0-4). Phase 0 task **P0-3** wires
 this into the VM.
 
