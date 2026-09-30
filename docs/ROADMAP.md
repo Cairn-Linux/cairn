@@ -154,6 +154,13 @@ done, and what could sink it. Decisions that change the design get an ADR in
   nothing in the kiosk session started it, so the child's first app did.
   `cairn-session` starts it before the kiosk since 2026-09-30, checked in
   the VM with Draw pressed as soon as the tiles showed.
+- Provisioning layers the brand's typefaces since 2026-09-30:
+  `atkinson-hyperlegible-next-fonts` and `-mono-fonts` are in Fedora but not
+  in the Bazzite image, so every Cairn screen had been in a fallback font.
+  Checked in the VM on the login screen, the tiles and the Terminal. The
+  same run fixed two places where a second provisioning run was not
+  quiet: a package still waiting for its reboot, and the SELinux rule for
+  `/var/lib/faillock`.
 - **Phase 0 begins.** Its whole purpose is to put a launcher in front of a
   real child before any image tooling exists.
 
