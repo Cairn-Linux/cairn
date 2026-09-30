@@ -15,7 +15,10 @@ Files:
   found polkit wide open, and the rule in `session/polkit/` (#35) closed
   it the same day. The hung-app row (#41) is answered by ADR-0018: a
   grown-up key combination runs `cairn-give-up`, verified against a frozen
-  app; the power button taps to ignore and holds to power off.
+  app; the power button taps to ignore and holds to power off. The child's
+  own way out (#77), missing in the first pilot, is Super+Q (ADR-0019),
+  checked in the VM on 2026-09-29 against Tux Paint, GCompris, a Steam
+  game and the frame.
 - `steam-containment.md` — 2026-09-08 P0-10 spike in the VM with a
   signed-out client: which window rule hides Steam's windows and why, what
   the launcher shows, what Settings › Family offers now, and the client's

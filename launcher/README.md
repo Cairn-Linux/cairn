@@ -31,6 +31,14 @@ Colours, type, focus rings and radii come from `Cairn.Brand.Tokens`.
   when it closes. A launch that opens no window before a grace timer ends
   goes back to the tiles quietly; a window that opens when nothing was
   launched is still an interruption.
+- **Slice 9 (2026-09-29):** a close request is one step back (ADR-0019).
+  The child's leave key, Super+Q, asks the window in front to close, and
+  when that is the launcher the request arrives at its window.
+  `CloseRequest` answers it as Escape would on the screen that is showing:
+  the Terminal goes back to the tiles, a failed launch goes back to where
+  the child was, and at the tiles nothing happens. A fullscreen launcher
+  never closes, because the kiosk session ends with it; a windowed one,
+  under Plasma, closes as usual.
 - **Footprint (2026-09-08):** about 145 MB proportional idle in the VM,
   first frame 0.2 s after exec; the table is in
   `../docs/research/launcher-footprint.md`.
@@ -50,10 +58,10 @@ The presets do not pin a compiler.
 Debug enables AddressSanitizer and UndefinedBehaviorSanitizer.
 Use `cmake --preset release && cmake --build --preset release` for a build
 without sanitizers.
-CTest runs seven suites offscreen: the tile model, the manifest reader, the
-app launcher, the grid scroller, the window list, the compiled brand
-tokens, and the QML navigation, scrolling, grown-up-screen and terminal
-behaviour. Footpath's own six
+CTest runs eight suites offscreen: the tile model, the manifest reader, the
+app launcher, the grid scroller, the close request, the window list, the
+compiled brand tokens, and the QML navigation, scrolling, grown-up-screen,
+terminal and close-request behaviour. Footpath's own six
 suites run in its repository.
 Qt on Fedora sends `qWarning` and `qInfo` lines to the journal when stderr
 is not a terminal; set `QT_FORCE_STDERR_LOGGING=1` to see them in a pipe.
@@ -127,9 +135,11 @@ Under a Wayland compositor that offers `ext-foreign-toplevel-list-v1`
 closes, with its app id and title.
 A window that opens while the tiles are up, and is not the launcher's own,
 is one nobody asked for: a Steam update, a sign-in prompt, a stray dialog.
-The grown-up screen names it ("Steam opened on its own.") with no Back tile,
-because a child cannot dismiss what a grown-up has to see, and the tiles
-return when the window closes.
+The grown-up screen names it ("Steam opened on its own.") with no Back tile:
+the launcher never dismisses it, only the window closing ends it, and the
+tiles return when it does. Steam's own windows are hidden where the child's
+leave key cannot reach them (ADR-0019), so their screen waits for a
+grown-up.
 Windows that open while a launched program is starting or running belong to
 that program and are left alone.
 The launcher's own windows carry the app id `cairn-launcher`, the name of
@@ -149,10 +159,6 @@ Then, from another terminal, open a window in that session
 (`WAYLAND_DISPLAY=wayland-1 foot`, for instance): the grown-up screen should
 name it and go away when the window is closed.
 This passed on the dev PC with labwc 0.9.6 on 2026-09-04.
-
-Known gap (issue #42): `steam -applaunch` returns at once, so a game window
-that opens after the process has exited would be treated as unexpected.
-The P0-10 spike designs the window-based lifecycle for that case.
 
 ## Requirements carried from the design
 

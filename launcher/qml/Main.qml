@@ -58,6 +58,22 @@ Window {
         session: session
     }
 
+    CloseRequest {
+        id: closeRequest
+    }
+
+    // The child's leave key (Super+Q, ADR-0019) asks the window in front to
+    // close. When that is the launcher it means one step back, never the end
+    // of the child's session; CloseRequest decides which.
+    onClosing: close => {
+        const answer = closeRequest.answer(window.visibility === Window.FullScreen, window.terminalOpen, launcher.state);
+        close.accepted = answer === CloseRequest.Close;
+        if (answer === CloseRequest.LeaveTerminal)
+            window.closeTerminal();
+        else if (answer === CloseRequest.Dismiss)
+            launcher.dismiss();
+    }
+
     function openTerminal() {
         session.reset();
         terminalOpen = true;

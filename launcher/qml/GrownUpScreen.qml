@@ -12,8 +12,8 @@ Rectangle {
     // The tile that was launched, or the window that opened, for the one
     // sentence that names it.
     required property string appTitle
-    // A window opened on its own. Only closing it ends this, so there is no
-    // Back tile: a child cannot dismiss what a grown-up has to see.
+    // A window opened on its own. Only closing that window ends this, so
+    // there is no Back tile.
     required property bool openedOnItsOwn
 
     signal dismissed

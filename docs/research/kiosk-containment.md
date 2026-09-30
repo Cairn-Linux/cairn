@@ -9,7 +9,9 @@ shortcut and VT rows pass at the real console; `pkcheck` as the child
 said polkit lets a child power off, mount and change Wi-Fi, and the rule
 in `session/polkit/` (#35) closed that the same day, checked from inside
 the child's session. The hung or trapped app row (#41) now passes too:
-Ctrl-Alt-Home runs `cairn-give-up` (ADR-0018).
+Ctrl-Alt-Home runs `cairn-give-up` (ADR-0018). On 2026-09-29 a row for
+the child's own way out was added after the first child pilot (#77):
+Super+Q closes the app in front (ADR-0019), checked in the VM.
 
 ## How it was run
 
@@ -27,9 +29,11 @@ fullscreen on map. Test windows were opened from a second terminal with
 at once). Focus was read from XWayland's side with `xdotool getwindowfocus`
 and the root window's `_NET_ACTIVE_WINDOW`, stacking from `grim` screenshots
 of the nested output, and the compositor's own decisions from its debug log.
-No key or pointer events were injected: no virtual-keyboard tool (`wtype`,
-`wlrctl`) is installed, and under Plasma a real Alt-Tab or Super never reaches
-a nested compositor because KWin takes it first.
+No key or pointer events were injected in this run: no virtual-keyboard tool
+(`wtype`, `wlrctl`) was installed yet, and under Plasma a real Alt-Tab or
+Super never reaches a nested compositor because KWin takes it first. The
+leave-key rows (#77) were later run headless with `wtype`; see "Leaving an
+app".
 
 Where a row depends on how labwc is written, the 0.9.6 sources were read
 (`src/input/keyboard.c`, `src/xwayland.c`, `src/config/rcxml.c`,
@@ -40,12 +44,13 @@ Where a row depends on how labwc is written, the 0.9.6 sources were read
 | Row | Result | What happened |
 |---|---|---|
 | A launched window appears on top; closing it returns to the launcher | **Pass** | Tux Paint at `--fullscreen=native` mapped as a fullscreen X11 window over the launcher and took focus. When it ended, focus returned to the launcher and the tiles were up. See "Tux Paint" below for the manifest bug this found. |
-| Alt-Tab, Super and other compositor shortcuts unreachable | **Pass** (by configuration, then by keypress in the VM, 2026-09-08) | The debug log shows no "load default key bindings" line, so the one no-op keybind did its job. At the VM's console Alt-Tab reached the launcher as a plain Tab and moved its focus ring one tile; Super and Alt-F4 did nothing, no switcher or menu appeared, and the launcher and compositor were still running. See "Default bindings" for why this is fragile. |
+| Alt-Tab, Super and other compositor shortcuts unreachable | **Pass** (by configuration, then by keypress in the VM, 2026-09-08) | The debug log shows no "load default key bindings" line, so the one no-op keybind did its job. At the VM's console Alt-Tab reached the launcher as a plain Tab and moved its focus ring one tile; Super and Alt-F4 did nothing, no switcher or menu appeared, and the launcher and compositor were still running. See "Default bindings" for what keeps them out. Since ADR-0019 one Super combination is bound on purpose, Super+Q (row below); Super on its own still does nothing. |
 | Ctrl-Alt-Fn VT switching unreachable | **Pass** (VM, 2026-09-08) | labwc switches VTs in code, before any keybind, with no rc.xml option to stop it. The keymap option `srvrkeys:none`, set in `session/labwc/environment`, removes the keysyms it looks for. The keymap labwc handed its clients had 24 `XF86Switch_VT` entries before and none after. At the VM's console, Ctrl-Alt-F2 and Ctrl-Alt-F1 sent through the virtual keyboard left `/sys/class/tty/tty0/active` on the kiosk's `tty3`. |
 | A focus-stealing X11 client cannot take focus from the launcher | **Fail, then pass** | A raw X focus change (`XSetInputFocus`) is reverted by wlroots and never reached the launcher. An activation request (`_NET_ACTIVE_WINDOW`) was honoured: labwc un-minimised the X window and gave it focus over the launcher. With `ignoreFocusRequest="yes"` on every window the request is logged and ignored. |
 | Two X11 clients sharing one XWayland (#35) | **Same as above** | Between two xterms a raw focus change was reverted and an activation request switched focus. The same rule stops it. |
 | `pkcheck` as the child for power-off, mount, network and package actions (#35) | **Fail, then pass** (VM, 2026-09-08) | With the L1 account's labwc as the subject, polkit says yes to power-off, reboot, suspend, hibernate, udisks2 mount and eject, NetworkManager enable-disable-wifi, network-control and modify-own-connections, Flatpak app-update and runtime-install, and rpm-ostree upgrade; it wants an admin password only for modify-system, Flatpak app-install, set-user-linger and rpm-ostree install. No Cairn rule existed in `/etc/polkit-1/rules.d/`. With `10-cairn-levels.rules` installed, every one of those says no and reads of the child's own parental-control settings still say yes; the table is under "The rule" below. |
 | A hung or trapped client can be exited without a reboot (#41) | **Fail, then pass** (VM, 2026-09-08) | With no bindings there was no way out but the app's own quit. Ctrl-Alt-Home now runs `cairn-give-up` (ADR-0018), which ends the app however frozen; the matrix is under "Hung or trapped apps" below. |
+| A child can leave any app on their own (#77) | **Fail, then pass** (VM, 2026-09-29) | In the first child pilot (#8) a six-year-old needed help to leave every app. Super+Q now asks the app in front to close (ADR-0019), and in the launcher it is one step back that never ends the session; the matrix is under "Leaving an app" below. A frozen app still needs Ctrl-Alt-Home. |
 | X11 windows carry no server decorations | **Fail, then pass** (new row) | An xterm got a titlebar with minimise, maximise and close buttons: `<decoration>client</decoration>` only governs Wayland clients. `serverDecoration="no"` on every window removes it. |
 
 The launcher behaved as designed throughout: each window opened from the
@@ -68,14 +73,18 @@ ones that apply to it.
 
 ### Default bindings
 
-labwc loads its default key and mouse bindings when the config defines none.
-`rc.xml` defines one keybind and one mousebind whose action is `None`, and
-labwc 0.9.6 drops those after checking whether the list is empty
-(`post_processing` before `deduplicate_key_bindings` in `rcxml.c`). The
-order is what keeps the defaults out. A labwc release that swaps the order
-would load Alt-Tab, Alt-F4, Super-Return and the window menu silently. The
-debug line to watch for on any labwc upgrade is `load default key bindings`;
-its absence is the pass.
+labwc loads its default key and mouse bindings when the config defines none
+of that kind. At the first run `rc.xml` had one keybind and one mousebind,
+both with the action `None`, and labwc 0.9.6 drops those only after checking
+whether the list is empty (`post_processing` before
+`deduplicate_key_bindings` in `rcxml.c`), so that order was all that kept
+the defaults out. The keyboard no longer depends on it: Ctrl-Alt-Home
+(ADR-0018) and Super+Q (ADR-0019) are real bindings that labwc never drops,
+and the `None` one for Alt-Tab stays only as a fallback. The mouse still
+does: its one binding is `None`, and a labwc release that swapped the order
+would silently load the root menu, the window menu and Super-drag. The
+debug lines to watch for on any labwc upgrade are `load default mouse
+bindings` and `load default key bindings`; their absence is the pass.
 
 To confirm by keypress, run the nested command above in the VM or on the
 laptop, open two windows and press Alt-Tab, Alt-F4, Super-Return, Super-A,
@@ -220,6 +229,47 @@ five-second hold powers off in order through logind. Verified in the VM: a
 tap left the kiosk running, a held press shut the domain off in about ten
 seconds. This is the layer below the give-up key, for when the compositor
 itself is gone.
+
+### Leaving an app (#77), and the leave key (ADR-0019)
+
+The first child pilot (#8, 2026-09-25) found that a six-year-old could not
+leave an app without help. Each app hides its quit somewhere different, and
+the only way out the frame had was the grown-up's. The fix is one key for
+the child: Super+Q runs labwc's `Close` on the window in front, the polite
+request a titlebar's close button sends. (An old X11 app that does not take
+that request is disconnected instead, as a titlebar's close button would
+do; every app here takes it.) When the launcher is in front the
+request reaches the launcher, which treats it as one step back and never
+closes (`launcher/src/CloseRequest.h`), because the session ends with it.
+
+It ran twice. Nested on the dev PC, headless labwc 0.9.6 with the kiosk
+config and the Debug launcher, keys sent with `wtype` through the virtual
+keyboard protocol, which labwc matches against its keybinds by keysym only;
+the VM run covers the keycode path a real keyboard takes. Then in
+the VM on 2026-09-29 as `ada`, keys sent with `virsh send-key` through the
+VM's own keyboard, with the Release launcher and this `rc.xml` installed.
+`xdotool` cannot reach the Flatpak Tux Paint, so pointer input in the VM
+came from a USB tablet hot-plugged for the run and removed after. Times
+were taken by polling over ssh every half second, so they are rough.
+
+| Case | Result |
+|---|---|
+| At the tiles | Nothing happens. The launcher keeps its pid and the tiles stay up (VM and nested). |
+| In the Terminal | Back to the tiles, focus on the Terminal tile. `exit` and Escape still work (VM and nested). |
+| On the grown-up screen after a failed launch (the empty Music tile) | Back to the tiles, focus on Music (VM and nested). |
+| A window that opened on its own: foot (Wayland) and xterm (X11) | Closed politely; the grown-up screen went when the window did (nested). |
+| Tux Paint, Flatpak, with a new stroke on the canvas | "Do you really want to quit?" with a tick and a cross. A second Super+Q is "No, take me back", and the stroke is still there. The tick quits in about 1.7 s and the tiles return. With `--autosave --saveovernew` the picture was saved with no further question (`~/.var/app/org.tuxpaint.Tuxpaint/.tuxpaint/saved/`). The same held nested with the Fedora package. |
+| GCompris, Flatpak, at its menu and inside an activity | Closes at once with no question, about 1.0 s; tiles return. |
+| Putt-Putt via Steam (ScummVM under `reaper`) | The game closes about 2.3 s after the key and the tiles return. The Steam client stays signed in. |
+| Super+Q held for two seconds at Tux Paint | Nothing while it is held; one close when it is let go, whichever key comes up first (VM, keys through QEMU, and nested). Before the binding acted on release, a nested run showed labwc repeating a held binding 25 times a second and Tux Paint's question opening and shutting about fourteen times in three seconds. |
+| Frozen Tux Paint (SIGSTOP) | Nothing, as expected: a stopped app cannot answer a polite close. Ctrl-Alt-Home ended it in about 3 s, and the Steam client stayed up. |
+
+Two things for later. Tux Paint's question is in words, but each answer
+has a picture, a tick or a cross, so a pre-reader can answer it. The
+first-run guide (#78, #79) is where the child learns that the way out of
+Tux Paint is Super+Q and then the tick. And
+during the Steam run, Steam's own notification about Shift+Tab showed in a
+corner of the game, which is #74's to settle.
 
 ## Remaining rows, and where
 

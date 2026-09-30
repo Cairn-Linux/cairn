@@ -1,7 +1,7 @@
 {
   "version": 1,
   "entries": [
-    {"title": "Draw", "category": "make", "exec": ["flatpak", "run", "org.tuxpaint.Tuxpaint", "--fullscreen=native"]},
+    {"title": "Draw", "category": "make", "exec": ["flatpak", "run", "org.tuxpaint.Tuxpaint", "--fullscreen=native", "--autosave", "--saveovernew"]},
     {"title": "Music", "category": "make", "exec": []},
     {"title": "Build", "category": "make", "exec": []},
     {"title": "Story", "category": "make", "exec": []},

@@ -4,7 +4,7 @@
 <context>
     <name>AppLauncher</name>
     <message>
-        <location filename="../src/AppLauncher.cpp" line="90"/>
+        <location filename="../src/AppLauncher.cpp" line="118"/>
         <source>Another program</source>
         <translation type="unfinished"></translation>
     </message>

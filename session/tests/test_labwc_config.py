@@ -83,6 +83,28 @@ class LabwcConfigTest(unittest.TestCase):
         commands = [a.get("command") for a in bind.findall("./action[@name='Execute']")]
         self.assertEqual(commands, ["cairn-give-up"])
 
+    def test_the_leave_key_politely_closes_the_window_in_front(self):
+        # ADR-0019: Super+Q is the child's way out of any app. Close, not
+        # Kill: the app gets to ask about unsaved work, and the launcher
+        # gets to turn the request into one step back.
+        keybinds = {k.get("key"): k for k in self.root.findall("./keyboard/keybind")}
+        bind = keybinds.get("W-q")
+        self.assertIsNotNone(bind, "a W-q keybind")
+        actions = [a.get("name") for a in bind.findall("action")]
+        self.assertEqual(actions, ["Close"])
+        # A held key would repeat the close 25 times a second.
+        self.assertEqual(bind.get("onRelease"), "yes")
+
+    def test_only_the_two_ways_out_are_bound(self):
+        # ADR-0018 and ADR-0019: Ctrl-Alt-Home for a grown-up, Super+Q for
+        # the child. Every other binding, Super alone included, does nothing.
+        active = {
+            k.get("key")
+            for k in self.root.findall("./keyboard/keybind")
+            if any(a.get("name") != "None" for a in k.findall("action"))
+        }
+        self.assertEqual(active, {"C-A-Home", "W-q"})
+
     def test_the_power_button_is_a_tap_to_ignore_and_a_hold_to_power_off(self):
         # ADR-0018, in logind's hands rather than the compositor's.
         conf = (LABWC_DIR.parent / "logind.conf.d" / "10-cairn-power.conf").read_text()

@@ -7,8 +7,8 @@
   the launcher does. On the dev PC, launcher/README.md shows the nested form.
 
   What the launcher needs, plus the Steam rules from the P0-10 spike
-  (docs/research/steam-containment.md). The escape hatch for hung apps is
-  issue #41.
+  (docs/research/steam-containment.md), the child's leave key (ADR-0019)
+  and the grown-up's key for a stuck app (ADR-0018).
 -->
 <labwc_config>
   <core>
@@ -18,12 +18,14 @@
 
   <!--
     labwc loads its default keybinds (Alt-Tab, Alt-F4, Super-Return, the
-    window menu and more) whenever a config defines none at all, so one
-    binding that does nothing is what turns them off. labwc drops a binding
-    with no action only after that check; the debug log line to watch for
-    on an upgrade is "load default key bindings", whose absence is the pass.
-    Ctrl-Alt-Fn VT switching is not a keybind and is handled in the
-    `environment` file beside this one. See docs/research/kiosk-containment.md.
+    window menu and more) whenever a config defines none at all. The two
+    real bindings below, the ways out, keep them off. The Alt-Tab binding
+    that does nothing is only a fallback in case those are ever removed:
+    labwc drops a binding with no action, but only after that check. The
+    debug log line to watch for on an upgrade is "load default key
+    bindings", whose absence is the pass. Ctrl-Alt-Fn VT switching is not a
+    keybind and is handled in the `environment` file beside this one. See
+    docs/research/kiosk-containment.md.
   -->
   <keyboard>
     <keybind key="A-Tab">
@@ -31,8 +33,8 @@
     </keybind>
     <!--
       The grown-up's way out of a stuck program (ADR-0018, issue #41).
-      A child cannot leave a game that has no obvious quit, or one that has
-      frozen. This ends whatever was launched and leaves the launcher, which
+      A frozen app cannot answer the child's leave key (Super+Q, below).
+      This ends whatever was launched and leaves the launcher, which
       is already behind it, on screen. Deliberately not a plain key: it is
       for the adult at the keyboard, not a combination a five-year-old finds.
       cairn-give-up only ever ends sandboxed apps, never the frame.
@@ -40,9 +42,29 @@
     <keybind key="C-A-Home">
       <action name="Execute" command="cairn-give-up" />
     </keybind>
+    <!--
+      The child's own way out of an app (ADR-0019, issue #77): Super+Q asks
+      the window in front to close, as a titlebar's close button would, so
+      an app that asks "save first?" still asks. When the launcher is in
+      front the request reaches it too, and there it is one step back,
+      never the end of the session (launcher/src/CloseRequest.h). A frozen
+      app ignores a polite close; that stays Ctrl-Alt-Home's job above.
+      On release, because labwc repeats a held binding 25 times a second,
+      and a held key would open and close Tux Paint's question over and
+      over; on release it closes once, however long the key is held.
+    -->
+    <keybind key="W-q" onRelease="yes">
+      <action name="Close" />
+    </keybind>
   </keyboard>
 
-  <!-- Likewise for the default mousebinds, including the right-click root menu. -->
+  <!--
+    The mouse has no real binding, so this one that does nothing is all that
+    keeps labwc's default mousebinds out: the right-click root menu, the
+    window menu and Super-drag. It works only because labwc drops it after
+    the empty-list check; watch for "load default mouse bindings" on an
+    upgrade.
+  -->
   <mouse>
     <context name="Root">
       <mousebind button="Right" action="Press">

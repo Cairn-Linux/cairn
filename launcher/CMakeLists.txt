@@ -22,6 +22,7 @@ set(launcher_model_sources
     src/Manifest.h src/Manifest.cpp
     src/AppLauncher.h src/AppLauncher.cpp
     src/GridScroller.h src/GridScroller.cpp
+    src/CloseRequest.h src/CloseRequest.cpp
 )
 # Needs a Wayland session to do anything, so it stays out of the model tests.
 set(launcher_window_sources src/ForeignWindowList.h src/ForeignWindowList.cpp)
@@ -67,6 +68,11 @@ target_include_directories(tst_gridscroller PRIVATE src)
 target_link_libraries(tst_gridscroller PRIVATE Qt6::Qml Qt6::Test)
 add_test(NAME gridscroller COMMAND tst_gridscroller)
 
+qt_add_executable(tst_closerequest tests/tst_closerequest.cpp ${launcher_model_sources})
+target_include_directories(tst_closerequest PRIVATE src)
+target_link_libraries(tst_closerequest PRIVATE Qt6::Qml Qt6::Test)
+add_test(NAME closerequest COMMAND tst_closerequest)
+
 qt_add_executable(tst_foreignwindowlist tests/tst_foreignwindowlist.cpp ${launcher_window_sources})
 target_include_directories(tst_foreignwindowlist PRIVATE src)
 target_link_libraries(tst_foreignwindowlist PRIVATE Qt6::Gui Qt6::Qml Qt6::Test cairn-foreign-toplevel)
@@ -94,6 +100,6 @@ target_compile_definitions(tst_navigation PRIVATE
 )
 add_test(NAME navigation COMMAND tst_navigation)
 
-set_tests_properties(tilemodel manifest applauncher gridscroller foreignwindowlist tokens_loaded navigation PROPERTIES
+set_tests_properties(tilemodel manifest applauncher gridscroller closerequest foreignwindowlist tokens_loaded navigation PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QML_IMPORT_PATH=${QT_QML_OUTPUT_DIRECTORY}"
 )
