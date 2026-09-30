@@ -17,7 +17,11 @@ PREFIX=/usr/local
 SHARE="$PREFIX/share/cairn"
 FACTS=/var/lib/cairn/facts.txt
 LEVEL_GROUPS=(cairn-l1 cairn-l2 cairn-l3 cairn-l4 cairn-guardian)
-LAYERED_PACKAGES=(labwc scummvm sddm sddm-breeze sddm-wayland-plasma)
+# The brand's typefaces (DESIGN §6.2, brand/tokens.json) are in Fedora but
+# not in the Bazzite image; without them every Cairn screen falls back to
+# another font, losing the letterforms early readers need (I/l/1, O/0).
+LAYERED_PACKAGES=(labwc scummvm sddm sddm-breeze sddm-wayland-plasma
+    atkinson-hyperlegible-next-fonts atkinson-hyperlegible-mono-fonts)
 FLATPAKS=(org.kde.gcompris org.tuxpaint.Tuxpaint)
 
 guardian=""
@@ -120,9 +124,16 @@ ensure_child() {
 # --- 4. Packages: the kiosk compositor and ScummVM live in the OS -------------
 # A package layered by an earlier run is not in the booted deployment until
 # the reboot, so rpm-ostree's own list of layered packages counts too.
+# Installed, or asked for in the newest deployment and waiting for a reboot.
+# The JSON, because the text form wraps a long LayeredPackages list over
+# several lines.
 package_present() {
-    rpm -q "$1" > /dev/null 2>&1 \
-        || rpm-ostree status | grep -E '^\s*LayeredPackages:' | tr ' ' '\n' | grep -qx "$1"
+    rpm -q "$1" > /dev/null 2>&1 && return
+    rpm-ostree status --json | python3 -c '
+import json, sys
+newest = json.load(sys.stdin)["deployments"][0]
+sys.exit(0 if sys.argv[1] in newest.get("requested-packages", []) else 1)
+' "$1"
 }
 
 # sddm requires desktop-backgrounds-compat, whose two wallpaper paths exist
@@ -268,7 +279,9 @@ install_greeter() {
 # --- 9. The Guardian's password: a lockout that survives a reboot (ADR-0020) -
 protect_guardians() {
     install_file 644 "$REPO/session/security/faillock.conf" /etc/security/faillock.conf
-    if ! semanage fcontext -l | grep -q '^/var/lib/faillock(/\.\*)?'; then
+    # Only the local rules, read to the end: grep -q would stop at the first
+    # match, semanage would die of SIGPIPE, and pipefail would call it a miss.
+    if ! semanage fcontext -l -C | grep -F '/var/lib/faillock(/.*)?' > /dev/null; then
         semanage fcontext -a -t faillog_t '/var/lib/faillock(/.*)?'
         changed "SELinux label for /var/lib/faillock"
     fi

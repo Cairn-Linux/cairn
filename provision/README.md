@@ -30,6 +30,7 @@ What it leaves on the machine:
 | the Guardian account | In `wheel` and `cairn-guardian`, password from the environment or set later |
 | the child account | In `cairn-l1`, password locked: the greeter lets an L1 child in, `su` and `ssh` do not (#35) |
 | labwc, ScummVM | Layered into the OS; Tux Paint and GCompris as system Flatpaks |
+| `atkinson-hyperlegible-next-fonts`, `atkinson-hyperlegible-mono-fonts` | Layered: the brand's typefaces for the login screen, the launcher and the Terminal (DESIGN §6.2), which the Bazzite image does not carry |
 | `/usr/local/share/cairn/labwc/` | The kiosk configuration from `../session/labwc/` |
 | `/usr/local/bin/cairn-session`, `/usr/local/share/cairn/sessions/cairn.desktop` | The one session entry and its dispatcher (ADR-0012) |
 | `/usr/local/bin/cairn-give-up`, `/etc/systemd/logind.conf.d/10-cairn-power.conf` | The grown-up's way out of a stuck program and the power button (ADR-0018, #41) |
