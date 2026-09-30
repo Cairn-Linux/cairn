@@ -22,14 +22,20 @@ proprietary fork mattered more than ecosystem fit and contributor ease.
   other than code): Creative Commons Attribution-ShareAlike 4.0
   International (`LICENSE-CC-BY-SA-4.0`).
 - **The name "Cairn Linux", the word "cairn" as used for this project, and
-  the stacked-stones mark are trademarks of the project**, carved out of both
-  licences. Anyone may build and redistribute the code; a modified build may
-  not call itself Cairn Linux. Policy in `brand/README.md`. The Linux Mark
+  the stacked-stones mark are project trademarks.** The copyright licences do
+  not grant trademark rights. Anyone may build and redistribute the code;
+  modified builds follow the naming policy in `TRADEMARKS.md`. The Linux Mark
   Institute sublicence (DESIGN §12.2) assumes this control of the name.
 - **Contributions** are accepted under the Developer Certificate of Origin
   (`Signed-off-by:` on every commit), not a contributor licence agreement.
 - **Source files carry an SPDX header**: `SPDX-License-Identifier: Apache-2.0`.
 - **The repository is public** from this decision onward.
+
+**Clarification, 2026-09-30:** The SVG artwork for the stacked-stones mark is
+licensed under CC BY-SA 4.0 with the other brand assets. That copyright licence
+does not grant trademark rights in the artwork, the Cairn Linux name, or the
+word "cairn" as used for this project. The current policy and rights holder are
+recorded in [`TRADEMARKS.md`](../../TRADEMARKS.md).
 
 ## Consequences
 

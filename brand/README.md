@@ -59,27 +59,11 @@ names cannot be mistaken for signal handlers: `Tokens.practiceLabel` maps to
 ## Trademarks
 
 The name **Cairn Linux**, the word **cairn** as the name of this project, and
-the **stacked-stones mark** in this directory are trademarks of the Cairn
-Linux project. They are not covered by the Apache-2.0 or CC BY-SA 4.0 licences
-that cover the code and the rest of the brand assets.
+the **stacked-stones mark** in this directory are project trademarks. The SVG
+artwork is covered by CC BY-SA 4.0, but that copyright licence does not grant
+trademark rights or permission to imply project endorsement.
 
-You may:
-
-- Use the name and mark to refer to this project, to link to it, or to say
-  that something works with it.
-- Redistribute unmodified builds and images of Cairn Linux under the name.
-- Use the tokens, type scale and layout patterns in this directory for
-  anything at all; they are CC BY-SA 4.0.
-
-You may not, without permission:
-
-- Call a modified build, fork or derivative "Cairn Linux" or "Cairn", or use
-  the mark on one. Ship it under your own name; the code licence lets you.
-- Use the name or mark in a way that suggests the project endorses or
-  produced something it did not.
-- Alter the mark (colour, proportion, outline, rotation, decoration) and
-  present the result as the project's mark.
-
-"Linux" is a registered trademark of Linus Torvalds and is used under a
-pending sublicence from the Linux Mark Institute; this policy does not grant
-any rights in it.
+The full [`TRADEMARKS.md`](../TRADEMARKS.md) policy explains permitted
+references, modified builds, permission requests, and current stewardship.
+The shape, contrast, and clear-space rules above apply whenever the policy
+allows use of the mark.
