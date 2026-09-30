@@ -20,7 +20,10 @@ What is here:
 - `bin/cairn-session`: the dispatcher (ADR-0012). Reads the account's
   groups and execs labwc with the launcher for `cairn-l1` and `cairn-l2`,
   or `startplasma-wayland` for everyone else. An account in two level
-  groups gets the more restricted session.
+  groups gets the more restricted session. Before the kiosk it starts the
+  child's sound (`pipewire-pulse.service`, which brings PipeWire and
+  WirePlumber), because the first app of a session hung while PipeWire
+  started on demand (#87); Plasma starts its own.
 - `bin/cairn-give-up`: the grown-up's way out of a stuck program
   (ADR-0018, #41). Ctrl-Alt-Home in the kiosk runs it; it SIGCONTs then
   SIGKILLs the sandbox roots a child can launch (Flatpak's `bwrap`, Steam's

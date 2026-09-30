@@ -8,8 +8,8 @@
 # Guardian). Nothing else is decided here.
 #
 # This is a trust boundary (CLAUDE.md), so it stays short: the tests in
-# ../tests/test_cairn_session.py run it with stand-ins for `id`, `labwc` and
-# `startplasma-wayland` and check which one it chose.
+# ../tests/test_cairn_session.py run it with stand-ins for `id`, `labwc`,
+# `startplasma-wayland` and `systemctl` and check which one it chose.
 set -ouex pipefail
 
 # Where provisioning puts the kiosk configuration (provision/README.md).
@@ -27,6 +27,12 @@ in_group() {
 # The kiosk is checked first. An account that is somehow in two level
 # groups gets the more restricted session, never the less.
 if in_group cairn-l1 || in_group cairn-l2; then
+    # Sound before the first app (#87). PipeWire starts on demand, when the
+    # first program opens audio, and at login that is the child's first app,
+    # which hung while it started. Plasma starts it for itself; the kiosk
+    # does not. pipewire-pulse brings PipeWire and WirePlumber with it.
+    # No sound must never mean no login.
+    systemctl --user start pipewire-pulse.service || true
     exec labwc -C "$labwc_config" -S cairn-launcher
 fi
 

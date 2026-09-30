@@ -52,6 +52,7 @@ Where a row depends on how labwc is written, the 0.9.6 sources were read
 | A hung or trapped client can be exited without a reboot (#41) | **Fail, then pass** (VM, 2026-09-08) | With no bindings there was no way out but the app's own quit. Ctrl-Alt-Home now runs `cairn-give-up` (ADR-0018), which ends the app however frozen; the matrix is under "Hung or trapped apps" below. |
 | A child can leave any app on their own (#77) | **Fail, then pass** (VM, 2026-09-29) | In the first child pilot (#8) a six-year-old needed help to leave every app. Super+Q now asks the app in front to close (ADR-0019), and in the launcher it is one step back that never ends the session; the matrix is under "Leaving an app" below. A frozen app still needs Ctrl-Alt-Home. |
 | A child can end their turn and leave nothing running (#44) | **Fail, then pass** (VM, 2026-09-30) | An L1 child had no way back to the login screen, and quitting the launcher would have left Flatpak apps and the Steam client running. A Log out button above the tiles now ends the child's whole account (ADR-0021); the matrix is under "Logging out" below. |
+| The first app after login comes up (#87) | **Fail, then pass** (VM, 2026-09-30) | Tux Paint launched right after login hung before drawing a window, and the launcher, handling one app at a time, ignored every other tile. PipeWire had been started on demand by that first app. `cairn-session` now starts it before the kiosk; see "Sound at login" below. |
 | X11 windows carry no server decorations | **Fail, then pass** (new row) | An xterm got a titlebar with minimise, maximise and close buttons: `<decoration>client</decoration>` only governs Wayland clients. `serverDecoration="no"` on every window removes it. |
 
 The launcher behaved as designed throughout: each window opened from the
@@ -291,6 +292,34 @@ Release launcher, `cairn-log-out` and the wrapper's `--log-out` installed:
 | Enter on Log out | "Log out now?" with Back and Log out, the focus on Back. |
 | Right, then Enter on Log out | The login screen was back in about a second. `loginctl` listed no session for `ada` and `pgrep -u ada` found nothing. |
 | A running Steam client | Not run in the VM: `ada`'s client had lost its sign-in (#25). `session/tests/test_log_out.py` checks with stand-ins that a running client is asked to shut down first and a stopped one is never started. |
+
+### Sound at login (#87)
+
+PipeWire is socket-activated in the user's session. Plasma starts it; the
+kiosk session did not, so the first program to open audio started it, and
+at login that was the child's first app. On 2026-09-30 in the VM, Tux Paint
+launched within seconds of login sat for four minutes on 117 ms of CPU
+with no window, its main thread waiting beside its two PulseAudio threads,
+and the journal showed `pipewire`, `wireplumber` and `pipewire-pulse`
+starting in the same second as its scope. A second launch worked.
+
+`cairn-session` now runs `systemctl --user start pipewire-pulse.service`
+before labwc, for L1 and L2 only; the unit's dependencies bring PipeWire
+and WirePlumber. A failure is ignored, so no sound never means no login.
+
+| Case | Result |
+|---|---|
+| Fresh login, Draw as soon as the tiles show, three times | PipeWire, WirePlumber and pipewire-pulse were already running when the launcher started. Tux Paint started every time; in the two runs checked by screenshot its splash was up within a second and its tools within a few. |
+| Super+Q at that Tux Paint | "Do you really want to quit?", as in ADR-0019's run. |
+
+One thing is left. In one of those runs Tux Paint's SDL audio thread ran
+at a full core, although the app drew, answered keys and took Super+Q
+normally. It was seen only in the VM, whose sound card is an emulated
+Intel HDA, so it needs checking on real hardware before it counts against
+the Minimum tier (ADR-0003). An earlier Tux Paint that stopped answering
+altogether had PipeWire started by hand from outside the session, which is
+the likeliest cause; it did not happen again once the session started
+PipeWire itself.
 
 ## Remaining rows, and where
 
