@@ -99,8 +99,12 @@ someone learning the language from it. That shapes every rule below.
 - Every source file starts with an SPDX line: `// SPDX-License-Identifier:
   Apache-2.0` in C++ and QML, `# SPDX-License-Identifier: Apache-2.0` in
   scripts and CMake.
-- Every commit carries a Developer Certificate of Origin sign-off. Use
-  `git commit -s`; the line is `Signed-off-by: Name <email>`.
+- Every commit on `main` carries a Developer Certificate of Origin
+  sign-off from a human (ADR-0022); the line is `Signed-off-by: Name
+  <email>`. A person committing their own work uses `git commit -s`. An AI
+  agent never adds a `Signed-off-by` line, not even the maintainer's: it
+  commits without `-s`, and the maintainer squash-merges the pull request
+  and adds their sign-off to the squash commit's message.
 
 ## Other conventions
 
