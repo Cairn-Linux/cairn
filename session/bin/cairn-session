@@ -45,6 +45,13 @@ if in_group cairn-l1 || in_group cairn-l2; then
     # does not. pipewire-pulse brings PipeWire and WirePlumber with it.
     # No sound must never mean no login.
     systemctl --user start pipewire-pulse.service || true
+    # Everything the kiosk prints goes to the journal, where a grown-up can
+    # read it after the next login (#122): `journalctl -t cairn-kiosk`.
+    # Otherwise SDDM puts it in the child's own ~/.cache/wayland-errors and
+    # replaces it at every login. No journal must never mean no login.
+    if systemd-cat --identifier=cairn-kiosk true > /dev/null 2>&1; then
+        exec systemd-cat --identifier=cairn-kiosk labwc -C "$labwc_config" -S cairn-launcher
+    fi
     exec labwc -C "$labwc_config" -S cairn-launcher
 fi
 

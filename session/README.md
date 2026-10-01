@@ -25,7 +25,9 @@ What is here:
   session. Before the kiosk it starts the
   child's sound (`pipewire-pulse.service`, which brings PipeWire and
   WirePlumber), because the first app of a session hung while PipeWire
-  started on demand (#87); Plasma starts its own.
+  started on demand (#87); Plasma starts its own. The kiosk's output goes
+  to the journal as `cairn-kiosk`, so it outlasts the next login (#122);
+  without a journal the session starts all the same.
 - `bin/cairn-give-up`: the grown-up's way out of a stuck program
   (ADR-0018, #41). Ctrl-Alt-Home in the kiosk runs it; it SIGCONTs, then
   SIGTERMs, then SIGKILLs the launcher's app scopes (`cairn-app-*.scope`,
