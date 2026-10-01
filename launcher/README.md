@@ -105,15 +105,21 @@ Refresh the English translation catalogue with
 
 `--manifest <file>` reads the version-1 JSON that `tools/kidscan` writes: an
 `entries` array of `{title, category, exec}`.
-`category` must be `make`, `practice` or `machine`; kidscan's `play` is
-refused until the fourth tile kind is decided (issue #20).
+`category` is `make`, `practice`, `games` or `machine` (ADR-0024); kidscan
+writes `games`.
+An entry with any other category, no title or no `exec` list is left out,
+with one sentence in the terminal for the parent, and the rest still load.
 `exec` is the program and its arguments as a list; an empty list means
 nothing is set up for that tile yet, and launching it shows the grown-up
 screen.
 Without `--manifest` the six built-in tiles appear, none of which launches
 anything.
-A manifest that cannot be read is reported in the terminal for the parent,
-and the child sees the built-in tiles.
+A manifest that cannot be read, or has no entry the launcher can use, is
+reported in the terminal for the parent, and the child sees the built-in
+tiles.
+To put a parent's games on the tiles, run `tools/kidscan` as the child and
+copy its entries into the manifest; the round trip is tested
+(`tst_kidscanmanifest`, #97).
 `manifests/dev-pc.json` names Tux Paint for Draw and GCompris for Practice
 only; Build, Music and Story are empty until the catalogue survey (issue
 #26) picks a program for each. GCompris is a practice-folder app, never
@@ -173,8 +179,9 @@ This passed on the dev PC with labwc 0.9.6 on 2026-09-04.
   row showing at the edge (ADR-0015). L2 adds a files view to the dock.
 - No reading required beyond app names, paired with distinct icons.
 - **Colour codes kind, never app**: ochre = make, moss = practice,
-  fjord = machine. Use `Tokens.make` / `Tokens.makeLabel`,
-  `Tokens.practice` / `Tokens.practiceLabel`, and
+  paper with a hairline edge = games, fjord = machine. Use `Tokens.make` /
+  `Tokens.makeLabel`, `Tokens.practice` / `Tokens.practiceLabel`,
+  `Tokens.games` / `Tokens.gamesLabel` / `Tokens.gamesEdge`, and
   `Tokens.machine` / `Tokens.machineLabel` from
   `../brand/qml/Cairn/Brand/Tokens.qml`, never a literal.
 - Watches launches. Slow or failed launches show "Something needs a

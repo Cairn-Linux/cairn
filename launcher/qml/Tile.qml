@@ -20,11 +20,16 @@ Rectangle {
             return Tokens.make;
         case TileModel.Practice:
             return Tokens.practice;
+        case TileModel.Games:
+            return Tokens.games;
         case TileModel.Machine:
             return Tokens.machine;
         }
         return Tokens.make;
     }
+    // A games tile is a quiet card, so its edge keeps it a tile on the ground.
+    border.width: kind === TileModel.Games ? Tokens.strokeHairline : 0
+    border.color: Tokens.gamesEdge
 
     Accessible.role: Accessible.Button
     Accessible.name: accessibleName
@@ -57,6 +62,8 @@ Rectangle {
                 return Tokens.makeLabel;
             case TileModel.Practice:
                 return Tokens.practiceLabel;
+            case TileModel.Games:
+                return Tokens.gamesLabel;
             case TileModel.Machine:
                 return Tokens.machineLabel;
             }

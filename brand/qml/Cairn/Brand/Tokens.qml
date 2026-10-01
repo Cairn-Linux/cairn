@@ -12,9 +12,9 @@ QtObject {
     readonly property color ochre: "#D9A03C"  // Make tiles (draw, music, build). Large fills only, never text
     readonly property color moss: "#7C956A"  // Practice tiles (GCompris, Tux). Large fills only, never text
     readonly property color sand: "#F4EDE0"  // Everyday ground
-    readonly property color paper: "#FBF7EF"  // Cards on Sand
+    readonly property color paper: "#FBF7EF"  // Cards on Sand, and games tiles (ADR-0024)
     readonly property color pebble: "#E8DFCC"  // Pill and chip fill on Sand (derived tint used in the guide)
-    readonly property color line: "#E0D5BF"  // Hairline borders on Sand and Paper (derived tint used in the guide)
+    readonly property color line: "#E0D5BF"  // Hairline borders on Sand and Paper, and the edge of a games tile (derived tint used in the guide)
 
     // ---- semantic: use these in UI, not the palette names ----
     readonly property color ground: sand
@@ -31,10 +31,14 @@ QtObject {
     // kind — colour codes what a tile does, never which app it is
     readonly property color make: ochre
     readonly property color practice: moss
+    readonly property color games: paper
     readonly property color machine: fjord
+    readonly property color gamesEdge: line  // a games tile is a quiet card, so it carries a hairline edge
+    readonly property int strokeHairline: 2
     // Label pair comments are measured contrast ratios against each ground.
     readonly property color makeLabel: ink  // 5.69:1
     readonly property color practiceLabel: ink  // 4.01:1
+    readonly property color gamesLabel: ink  // 12.37:1
     readonly property color machineLabel: sand  // 5.77:1
     readonly property color inkLabel: sand  // 11.36:1
     readonly property color sandLabel: ink  // 11.36:1

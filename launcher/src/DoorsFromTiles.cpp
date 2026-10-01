@@ -9,6 +9,8 @@ World::Kind worldKind(TileModel::Kind kind) {
         return World::Kind::Make;
     case TileModel::Kind::Practice:
         return World::Kind::Practice;
+    case TileModel::Kind::Games:
+        return World::Kind::Games;
     case TileModel::Kind::Machine:
         return World::Kind::Machine;
     }

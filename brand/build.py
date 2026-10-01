@@ -179,10 +179,15 @@ def render_css(tokens):
   /* kind — colour codes what a tile does, never which app it is */
   --cairn-make:        var(--cairn-{semantic['kind']['make']});
   --cairn-practice:    var(--cairn-{semantic['kind']['practice']});
+  --cairn-games:       var(--cairn-{semantic['kind']['games']});
   --cairn-machine:     var(--cairn-{semantic['kind']['machine']});
+  /* a games tile is a quiet card, so it carries a hairline edge */
+  --cairn-games-edge:  var(--cairn-{semantic['edge']['games']});
+  --cairn-stroke-hairline: {tokens['stroke']['hairline']}px;
   /* label colour pairs and their measured contrast ratios */
   --cairn-on-make:     var(--cairn-{semantic['on']['make']});   /* {label_ratio_comment(tokens, 'make')} */
   --cairn-on-practice: var(--cairn-{semantic['on']['practice']});   /* {label_ratio_comment(tokens, 'practice')} */
+  --cairn-on-games:    var(--cairn-{semantic['on']['games']});   /* {label_ratio_comment(tokens, 'games')} */
   --cairn-on-machine:  var(--cairn-{semantic['on']['machine']});  /* {label_ratio_comment(tokens, 'machine')} */
   --cairn-on-ink:      var(--cairn-{semantic['on']['ink']});  /* {label_ratio_comment(tokens, 'ink')} */
   --cairn-on-sand:     var(--cairn-{semantic['on']['sand']});   /* {label_ratio_comment(tokens, 'sand')} */
@@ -265,7 +270,15 @@ def render_qml(tokens):
         "    // kind — colour codes what a tile does, never which app it is",
         qml_property("color", "make", camel(semantic["kind"]["make"])),
         qml_property("color", "practice", camel(semantic["kind"]["practice"])),
+        qml_property("color", "games", camel(semantic["kind"]["games"])),
         qml_property("color", "machine", camel(semantic["kind"]["machine"])),
+        qml_property(
+            "color",
+            "gamesEdge",
+            camel(semantic["edge"]["games"]),
+            "a games tile is a quiet card, so it carries a hairline edge",
+        ),
+        qml_property("int", "strokeHairline", str(tokens["stroke"]["hairline"])),
         "    // Label pair comments are measured contrast ratios against each ground.",
     ]
     for label_name, color_name in semantic["on"].items():

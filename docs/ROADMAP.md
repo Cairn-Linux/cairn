@@ -179,6 +179,15 @@ done, and what could sink it. Decisions that change the design get an ADR in
   a child in no group, and refuses to make an existing child the Guardian.
   Accounts made in System Settings still get Plasma until the Guardian
   tool owns family accounts (#113).
+- **ADR-0024 (2026-09-30, #97, #76): games are a fourth kind.** kidscan's
+  manifest now loads in the launcher as it stands: its titles are `games`
+  tiles, drawn as the brand sketch draws a game (a Paper card with a
+  hairline edge, no new colour), and Footpath 0.2.0 lists them under
+  `games` in the Terminal with an outlined chip. kidscan no longer passes
+  the Windows-only `--no-console` to ScummVM, and one bad manifest entry no
+  longer refuses the rest. A round-trip test runs kidscan's output through
+  the launcher's reader. Checked in the VM with Putt-Putt Joins the Parade
+  in native ScummVM, from the tile and from `open`.
 - **Phase 0 begins.** Its whole purpose is to put a launcher in front of a
   real child before any image tooling exists.
 

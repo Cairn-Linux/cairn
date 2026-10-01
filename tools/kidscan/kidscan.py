@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """kidscan - discover installed games and emit a launcher manifest.
 
 Scans Steam libraries, works out which titles can run under native ScummVM
@@ -236,7 +237,8 @@ def build_entries(roots, scummvm_bin, category_map):
                 seen_appids.add(app["appid"])
 
                 detected = scummvm_detect(app["path"], scummvm_bin) if scummvm_bin else []
-                category = category_map.get(app["appid"], "play")
+                # A tile kind the launcher knows (ADR-0024); a map can say otherwise.
+                category = category_map.get(app["appid"], "games")
 
                 if detected:
                     # One tile per detected game: a Steam "pack" can hold several.
@@ -247,8 +249,10 @@ def build_entries(roots, scummvm_bin, category_map):
                             "title": title,
                             "category": category,
                             "engine": "scummvm",
+                            # Only options ScummVM takes on Linux: it rejects
+                            # the Windows-only --no-console and exits (#97).
                             "exec": [
-                                scummvm_bin, "--fullscreen", "--no-console",
+                                scummvm_bin, "--fullscreen",
                                 f"--path={app['path']}", target,
                             ],
                             "source": {"store": "steam", "appid": app["appid"]},
@@ -318,7 +322,7 @@ def main(argv=None):
     parser.add_argument("--desktop-dir", default=None,
                         help="also write .desktop files into this directory")
     parser.add_argument("--categories", default=None,
-                        help='JSON file mapping appid to category, e.g. {"294660": "play"}')
+                        help='JSON file mapping appid to category, e.g. {"294660": "games"}')
     args = parser.parse_args(argv)
 
     roots = find_steam_roots(args.steam_root)

@@ -95,6 +95,31 @@ target_compile_definitions(tst_tokens_loaded PRIVATE
 )
 add_test(NAME tokens_loaded COMMAND tst_tokens_loaded)
 
+qt_add_executable(tst_doorsfromtiles tests/tst_doorsfromtiles.cpp
+    ${launcher_model_sources} ${launcher_terminal_sources})
+target_include_directories(tst_doorsfromtiles PRIVATE src)
+target_link_libraries(tst_doorsfromtiles PRIVATE Qt6::Qml Qt6::Test footpath footpathplugin)
+add_test(NAME doorsfromtiles COMMAND tst_doorsfromtiles)
+
+# kidscan's own manifest, read by the launcher (#97). The first test scans a
+# synthetic Steam library and writes the file; CTest always runs it before
+# the second, which reads it, because one sets up the fixture the other needs.
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+set(kidscan_manifest "${CMAKE_CURRENT_BINARY_DIR}/kidscan-roundtrip.json")
+add_test(NAME kidscan_writes_manifest
+    COMMAND Python3::Interpreter
+        "${PROJECT_SOURCE_DIR}/tools/kidscan/tests/roundtrip_manifest.py" "${kidscan_manifest}"
+)
+set_tests_properties(kidscan_writes_manifest PROPERTIES FIXTURES_SETUP kidscan_manifest)
+qt_add_executable(tst_kidscanmanifest tests/tst_kidscanmanifest.cpp ${launcher_model_sources})
+target_include_directories(tst_kidscanmanifest PRIVATE src)
+target_link_libraries(tst_kidscanmanifest PRIVATE Qt6::Qml Qt6::Test)
+add_test(NAME launcher_reads_kidscan COMMAND tst_kidscanmanifest)
+set_tests_properties(launcher_reads_kidscan PROPERTIES
+    FIXTURES_REQUIRED kidscan_manifest
+    ENVIRONMENT "KIDSCAN_MANIFEST=${kidscan_manifest}"
+)
+
 # Compile the same module into the Quick Test host, including the real Main.qml.
 qt_add_executable(tst_navigation tests/tst_navigation.cpp)
 qt_add_qml_module(tst_navigation
@@ -110,6 +135,6 @@ target_compile_definitions(tst_navigation PRIVATE
 )
 add_test(NAME navigation COMMAND tst_navigation)
 
-set_tests_properties(tilemodel manifest applauncher gridscroller closerequest logout foreignwindowlist tokens_loaded navigation PROPERTIES
+set_tests_properties(tilemodel manifest applauncher gridscroller closerequest logout foreignwindowlist tokens_loaded doorsfromtiles navigation PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QML_IMPORT_PATH=${QT_QML_OUTPUT_DIRECTORY}"
 )
