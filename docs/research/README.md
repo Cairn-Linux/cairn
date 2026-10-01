@@ -5,6 +5,10 @@ strength of what is written here, not on what was built.
 
 Files:
 
+- `child-test-01.md` — the plan and notes sheet for P0-9, the first test
+  with children on a laptop (two cousins, 9 and 10, at L1 and L2), planned
+  for 2026-10-02: setup steps rehearsed in the VM the evening before, the
+  ways out, what to watch, and where the journal keeps what went wrong.
 - `base-image-policy.md` — 2026-09-03 review of Bazzite, Universal Blue and
   Fedora trademark and licence terms for building Cairn on Bazzite. No
   blocker; compliance checklist for Phase 1.

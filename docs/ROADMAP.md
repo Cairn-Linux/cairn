@@ -179,6 +179,12 @@ done, and what could sink it. Decisions that change the design get an ADR in
   a child in no group, and refuses to make an existing child the Guardian.
   Accounts made in System Settings still get Plasma until the Guardian
   tool owns family accounts (#113).
+- **Ready for a first test on a laptop (2026-10-01).** Two cousins, 9 and
+  10, are to try it on 2026-10-02 (P0-9, `docs/research/child-test-01.md`).
+  The evening before: empty tiles say "coming soon" instead of asking for
+  a grown-up, a laptop's volume keys work in the kiosk (#43), provisioning
+  makes more than one child at L1 or L2, and a fresh install from stock
+  Bazzite was rehearsed in the VM with all of it.
 - **The kiosk's notes reach the journal (2026-10-01, #122).** Everything
   the kiosk printed, the launcher's notes for a grown-up included, went to
   the child's own `~/.cache/wayland-errors`, which SDDM replaces at every
