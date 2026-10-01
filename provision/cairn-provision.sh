@@ -330,7 +330,7 @@ install_launcher() {
 # Installed by provision/cairn-provision.sh; not the Phase 1 packaging.
 export LD_LIBRARY_PATH=/usr/local/lib64/cairn
 exec /usr/local/libexec/cairn/cairn-launcher --manifest /usr/local/share/cairn/manifest.json \
-    --log-out /usr/local/bin/cairn-log-out "$@"
+    --log-out /usr/local/bin/cairn-log-out --scope-apps "$@"
 WRAPPER
     install_file 755 "$wrapper" "$PREFIX/bin/cairn-launcher"
     rm "$wrapper"

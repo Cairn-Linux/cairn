@@ -46,6 +46,9 @@ class AppLauncher : public QObject {
     // Windows with this app id are the launcher's own and never interrupt.
     // Empty means no window is treated as ours.
     Q_PROPERTY(QString ownAppId READ ownAppId WRITE setOwnAppId NOTIFY ownAppIdChanged)
+    // Start each program in a systemd user scope of its own (AppScope), so the
+    // grown-up's give-up key can end it. The kiosk session turns this on.
+    Q_PROPERTY(bool scoped MEMBER m_scoped NOTIFY scopedChanged)
 
 public:
     enum class State : std::uint8_t { Idle, Starting, Running, Failed, Interrupted };
@@ -86,6 +89,7 @@ signals:
     void settleMillisecondsChanged();
     void launchGraceMillisecondsChanged();
     void ownAppIdChanged();
+    void scopedChanged();
 
 private:
     void setState(State state);
@@ -109,4 +113,6 @@ private:
     // the app may have only just opened its window.
     bool m_processGone = false;
     bool m_settled = false;
+    bool m_scoped = false;
+    int m_launches = 0;
 };

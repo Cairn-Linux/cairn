@@ -27,10 +27,12 @@ What is here:
   WirePlumber), because the first app of a session hung while PipeWire
   started on demand (#87); Plasma starts its own.
 - `bin/cairn-give-up`: the grown-up's way out of a stuck program
-  (ADR-0018, #41). Ctrl-Alt-Home in the kiosk runs it; it SIGCONTs then
-  SIGKILLs the sandbox roots a child can launch (Flatpak's `bwrap`, Steam's
-  `reaper`) in the child's own session, so a frozen app ends and the frame
-  and the Steam client stay up.
+  (ADR-0018, #41). Ctrl-Alt-Home in the kiosk runs it; it SIGCONTs, then
+  SIGTERMs, then SIGKILLs the launcher's app scopes (`cairn-app-*.scope`,
+  ADR-0025, #98), which hold a native program such as ScummVM and whatever
+  it started, and the sandbox roots a Flatpak app or a Steam game moves into
+  (Flatpak's `bwrap`, Steam's `reaper`), all in the child's own session, so
+  a frozen app ends and the frame stays up.
 - `bin/cairn-log-out`: the child's Log out (ADR-0021, #44). The launcher
   runs it when the child confirms. It asks a running Steam client to shut
   down, then ends the child's own account with `loginctl terminate-user`,
@@ -63,8 +65,10 @@ What is here:
 `tests/` checks that the labwc and logind files, the greeter's PAM file,
 the polkit rule and `cairn-give-up` say what this README promises, runs the dispatcher with
 stand-ins for `id`, `labwc` and `startplasma-wayland`, and runs
-`cairn-log-out` with stand-ins for `id`, `pgrep`, `steam` and `loginctl`;
-CTest runs all six.
+`cairn-log-out` with stand-ins for `id`, `pgrep`, `steam` and `loginctl`.
+Where a systemd user manager is running, it also runs `cairn-give-up` for
+real against a frozen stand-in in a scope of its own, with `pkill` stubbed
+out so no real app is touched; CTest runs all six.
 What the configuration was tested against, and what is left for the VM, is in
 `docs/research/kiosk-containment.md` (P0-4). Phase 0 task **P0-3** wires
 this into the VM.

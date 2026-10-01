@@ -360,7 +360,9 @@ Inside the launcher the same key is one step back and never ends the
 session (ADR-0019). A game can also freeze, and a frozen app
 cannot answer, so a grown-up has one key combination that ends whatever the
 child launched and returns the tiles; it never appears to the child as a
-button to find (ADR-0018). The power button is a tap to ignore and a hold
+button to find (ADR-0018). Every program a child starts runs in a systemd
+scope of its own, so that key ends a native game and whatever it started as
+surely as a Flatpak app (ADR-0025). The power button is a tap to ignore and a hold
 to power off in order; a child cannot switch the machine off by brushing
 it, and a grown-up never has to pull the plug.
 
