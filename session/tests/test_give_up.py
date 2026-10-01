@@ -45,6 +45,13 @@ class GiveUpHelperTest(unittest.TestCase):
         order = [m.group(1) for m in re.finditer(r"--signal (CONT|TERM|KILL)", self.text)]
         self.assertEqual(order, ["CONT", "CONT", "TERM", "TERM", "KILL", "KILL"])
 
+    def test_tells_the_launcher_last(self):
+        # The launcher goes back to the tiles when this file changes
+        # (ADR-0026), so it is written after every signal has been sent.
+        told = self.text.index('> "$told"')
+        self.assertGreater(told, self.text.rindex("--signal KILL"))
+        self.assertIn("/cairn/give-up", self.text)
+
     def test_only_ever_signals_the_childs_own_processes(self):
         # Never another user's: --uid on every pkill, and only this user's
         # own systemd manager.
@@ -84,6 +91,22 @@ def state(pid):
     return ""
 
 
+class GiveUpWithNoLauncherTest(unittest.TestCase):
+    def test_makes_no_file_when_no_launcher_listens(self):
+        with tempfile.TemporaryDirectory() as bin_dir:
+            for name in ("pkill", "systemctl"):
+                stub = pathlib.Path(bin_dir, name)
+                stub.write_text("#!/bin/sh\nexit 1\n")
+                stub.chmod(0o755)
+            told = pathlib.Path(bin_dir, "cairn", "give-up")
+            env = dict(os.environ, PATH=f"{bin_dir}:/usr/bin:/bin", CAIRN_GIVE_UP_FILE=str(told))
+            result = subprocess.run(
+                [str(HELPER)], env=env, capture_output=True, text=True, timeout=30, check=False
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertFalse(told.exists())
+
+
 @unittest.skipUnless(user_manager_available(), "needs a systemd user manager")
 class GiveUpEndsAScopedProgramTest(unittest.TestCase):
     def test_a_frozen_native_program_ends_and_everything_else_stays(self):
@@ -106,11 +129,20 @@ class GiveUpEndsAScopedProgramTest(unittest.TestCase):
                 os.kill(app.pid, signal.SIGSTOP)
                 self.assertTrue(wait_for(lambda: state(app.pid) == "T"), "the stand-in should be frozen")
 
-                env = dict(os.environ, PATH=f"{bin_dir}:/usr/bin:/bin", CAIRN_APP_UNITS=f"{tag}-*.scope")
+                # The file the launcher would have made and watches.
+                told = pathlib.Path(bin_dir, "give-up")
+                told.touch()
+                env = dict(
+                    os.environ,
+                    PATH=f"{bin_dir}:/usr/bin:/bin",
+                    CAIRN_APP_UNITS=f"{tag}-*.scope",
+                    CAIRN_GIVE_UP_FILE=str(told),
+                )
                 result = subprocess.run(
                     [str(HELPER)], env=env, capture_output=True, text=True, timeout=30, check=False
                 )
                 self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertTrue(told.read_text().strip().isdigit(), "the launcher is told")
 
                 app.wait(timeout=10)
                 self.assertIn(app.returncode, (-signal.SIGTERM, -signal.SIGKILL))

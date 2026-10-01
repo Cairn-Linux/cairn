@@ -36,7 +36,7 @@ sudo dnf install \
   gcc-c++ clang clang-tools-extra git-clang-format cmake ninja-build \
   libasan libubsan gdb \
   qt6-qtbase-devel qt6-qtdeclarative-devel qt6-qtsvg-devel qt6-qttools-devel \
-  qt6-qtwayland-devel wayland-protocols-devel qt6-linguist qt6-doc \
+  qt6-qtwayland-devel wlr-protocols-devel qt6-linguist qt6-doc \
   qt-creator ShellCheck just
 ```
 
@@ -52,7 +52,7 @@ sudo dnf install \
 | `qt6-qtsvg-devel` | 6.11 | Renders the mark and tile icons from SVG. |
 | `qt6-qttools-devel` | 6.11 | Designer, `qdbus`, `pixeltool` and friends. Not the QML tools and not the translation tools. |
 | `qt6-linguist` | 6.11 | `lupdate` and `lrelease`. Needed from the first commit because every string is translatable (ADR-0007). |
-| `qt6-qtwayland-devel`, `wayland-protocols-devel` | 6.11, 1.49 | Generate the Wayland client binding the launcher needs to hear about foreign windows (P0-10). The scanner is `/usr/lib64/qt6/libexec/qtwaylandscanner`; CMake finds it. |
+| `qt6-qtwayland-devel`, `wlr-protocols-devel` | 6.11, 2025-08-16 snapshot | Generate the Wayland client binding the launcher needs to hear about foreign windows, whether they are hidden, and which window they belong to (`wlr-foreign-toplevel-management-unstable-v1`, ADR-0026). The scanner is `/usr/lib64/qt6/libexec/qtwaylandscanner`; CMake finds it. |
 | `qt6-doc` | 6.9 | Offline Qt documentation, browsable in Qt Creator's Help mode. It trails the libraries by two minor versions. |
 | `qt-creator` | 20.0 | Optional but recommended for a learner: jump-to-definition, a debugger with a GUI, a live QML preview. The binary is `qtcreator`. |
 | `ShellCheck`, `just` | — | CLAUDE.md's shell-script rule; the upstream image `Justfile` in Phase 1. |

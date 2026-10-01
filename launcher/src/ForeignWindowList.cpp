@@ -30,6 +30,7 @@ ForeignWindowList::ForeignWindowList(QObject* parent)
     m_list = new ForeignToplevelList(this);
     connect(m_list, &ForeignToplevelList::activeChanged, this, &ForeignWindowList::onActiveChanged);
     connect(m_list, &ForeignToplevelList::windowOpened, this, &ForeignWindowList::windowOpened);
+    connect(m_list, &ForeignToplevelList::windowChanged, this, &ForeignWindowList::windowChanged);
     connect(m_list, &ForeignToplevelList::windowClosed, this, &ForeignWindowList::windowClosed);
     // The compositor answers the registry before this fires, so a list that is
     // still unavailable here is one the compositor does not offer.

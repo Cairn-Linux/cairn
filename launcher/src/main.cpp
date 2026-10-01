@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
+#include "GiveUpWatch.h"
+
 #include <QCommandLineOption>
 #include <QCommandLineParser>
 #include <QGuiApplication>
@@ -36,6 +38,7 @@ int main(int argc, char* argv[]) {
         {QStringLiteral("manifestPath"), parser.value(manifestOption)},
         {QStringLiteral("logOutProgram"), parser.value(logOutOption)},
         {QStringLiteral("scopeApps"), parser.isSet(scopeAppsOption)},
+        {QStringLiteral("giveUpFile"), GiveUpWatch::sessionPath()},
     });
     engine.loadFromModule("Cairn.Launcher", "Main");
     if (engine.rootObjects().isEmpty()) {
