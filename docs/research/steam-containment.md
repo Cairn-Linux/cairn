@@ -163,6 +163,24 @@ launched, the tiles back when it closes, and the title in the sentence.
 The one thing it cannot know is whether a hidden window is one a grown-up
 needs to see; today every foreign window is.
 
+### Steam's own windows and the launcher (#99, ADR-0026)
+
+Run in the VM on 2026-09-30 with the signed-in client started in the
+child's session by hand (`steam -silent`) and its main window forced with
+`steam steam://open/main`. labwc hid it at once (`_NET_WM_STATE_HIDDEN`), as
+the rules intend, but the launcher of the time counted it:
+
+| Case | Before (2026-09-30) | After ADR-0026 (2026-10-01) |
+|---|---|---|
+| Main window forced while a game runs, then the game left with Super+Q | The launcher took the hidden window for part of the game and kept waiting for it: Enter on two tiles did nothing for 20 s each; only Log out worked. `steam -shutdown` freed it. | One Enter started the game again, the hidden window still open. |
+| A new Steam window at the tiles | "Something needs a grown-up. Steam opened on its own." with no buttons; Escape, Super+Q and Enter did nothing; the window, hidden, never closes. | No grown-up screen ("Friends List", hidden); the tiles still worked. |
+| Ctrl-Alt-Home | Cleared the stuck screen only by accident: give-up's `bwrap` match caught Steam's web helper in its `srt-bwrap` sandbox and ended Steam's interface (#117). | Ended the game, then wrote `$XDG_RUNTIME_DIR/cairn/give-up`; the launcher went back to the tiles and the next launch worked. |
+
+Two more things the run showed. ScummVM runs under XWayland here (class
+`scummvm`). And `flatpak run` does not exit early: it becomes the app's
+`bwrap`, in Flatpak's own scope, and lives as long as the app, so the
+launcher's own child ending means the app has ended.
+
 ## Remaining rows, and where
 
 | Row | Where | Check |

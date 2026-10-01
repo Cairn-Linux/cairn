@@ -277,6 +277,150 @@ private slots:
         launcher.windowClosed(QStringLiteral("w1"));
         QCOMPARE(launcher.state(), AppLauncher::State::Idle);
     }
+
+    // #99, as it happened in the VM: Steam opened its main window while a game
+    // ran, labwc hid it, and the launcher took it for part of the game, so once
+    // the game was over the tiles did nothing. A hidden window never counts.
+    void aHiddenHelperLeftAfterTheGameDoesNotHoldTheTiles() {
+        AppLauncher launcher(this);
+        launcher.launch(QStringLiteral("Putt-Putt"),
+                        {shell(), QStringLiteral("-c"), QStringLiteral("exit 0")});
+        launcher.windowOpened(QStringLiteral("g1"), QStringLiteral("scummvm"),
+                              QStringLiteral("Putt-Putt Joins the Parade"));
+        launcher.windowOpened(QStringLiteral("h1"), QStringLiteral("steam"),
+                              QStringLiteral("Steam"), true);
+        QCOMPARE(launcher.state(), AppLauncher::State::Running);
+        launcher.windowClosed(QStringLiteral("g1"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Idle);
+        launcher.launch(QStringLiteral("Draw"),
+                        {shell(), QStringLiteral("-c"), QStringLiteral("exit 0")});
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+    }
+
+    // The other half of #99: the same hidden window at the tiles put up a
+    // grown-up screen that nothing could clear.
+    void aHiddenWindowAtTheTilesDoesNotInterrupt() {
+        AppLauncher launcher(this);
+        const QSignalSpy states(&launcher, &AppLauncher::stateChanged);
+        launcher.windowOpened(QStringLiteral("h1"), QStringLiteral("steam"),
+                              QStringLiteral("Steam"), true);
+        QCOMPARE(launcher.state(), AppLauncher::State::Idle);
+        QCOMPARE(states.count(), 0);
+        // Shown, it is on the screen, and it opened on its own.
+        launcher.windowChanged(QStringLiteral("h1"), false);
+        QCOMPARE(launcher.state(), AppLauncher::State::Interrupted);
+        QCOMPARE(launcher.title(), QStringLiteral("Steam"));
+        launcher.windowChanged(QStringLiteral("h1"), true);
+        QCOMPARE(launcher.state(), AppLauncher::State::Idle);
+    }
+
+    // A window's name is whatever its program chose, so a second window with
+    // the game's own app id and title is still not the game's.
+    void aSecondWindowIsAGrownUpsJobWhateverItIsCalled() {
+        AppLauncher launcher(this);
+        launcher.launch(QStringLiteral("Putt-Putt"),
+                        {shell(), QStringLiteral("-c"), QStringLiteral("sleep 0.2")});
+        launcher.windowOpened(QStringLiteral("g1"), QStringLiteral("scummvm"),
+                              QStringLiteral("Putt-Putt Joins the Parade"));
+        launcher.windowOpened(QStringLiteral("g2"), QStringLiteral("scummvm"),
+                              QStringLiteral("Putt-Putt Joins the Parade"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Interrupted);
+        launcher.windowClosed(QStringLiteral("g2"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Running);
+        QCOMPARE(launcher.title(), QStringLiteral("Putt-Putt"));
+        launcher.windowClosed(QStringLiteral("g1"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Idle);
+        QTest::qWait(300); // reap the process before the launcher is destroyed.
+    }
+
+    // The compositor says which window a dialog belongs to; that one is the app.
+    void aDialogOfTheAppIsTheApp() {
+        AppLauncher launcher(this);
+        launcher.launch(QStringLiteral("Draw"),
+                        {shell(), QStringLiteral("-c"), QStringLiteral("exit 0")});
+        launcher.windowOpened(QStringLiteral("g1"), QStringLiteral("tuxpaint"),
+                              QStringLiteral("Tux Paint"));
+        launcher.windowOpened(QStringLiteral("d1"), QStringLiteral("tuxpaint"),
+                              QStringLiteral("Open"), false, QStringLiteral("g1"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Running);
+        launcher.windowClosed(QStringLiteral("g1"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Running);
+        launcher.windowClosed(QStringLiteral("d1"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Idle);
+    }
+
+    // When the program the launcher started has run and then exits, the app
+    // is over; a window of it still up after a moment is a grown-up's job.
+    void aWindowLeftAfterTheProgramEndsIsAGrownUpsJob() {
+        AppLauncher launcher(this);
+        launcher.setSettleMilliseconds(50);
+        launcher.launch(QStringLiteral("Story"),
+                        {shell(), QStringLiteral("-c"), QStringLiteral("sleep 0.3")});
+        launcher.windowOpened(QStringLiteral("g1"), QStringLiteral("story"),
+                              QStringLiteral("Story"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Running);
+        QTRY_COMPARE_WITH_TIMEOUT(launcher.state(), AppLauncher::State::Interrupted, 5000);
+    }
+
+    // The usual end: the window goes with the program, and the moment between
+    // the two never flashes the grown-up screen.
+    void aWindowThatGoesWithItsProgramNeedsNoGrownUp() {
+        AppLauncher launcher(this);
+        launcher.setSettleMilliseconds(50);
+        launcher.launch(QStringLiteral("Story"),
+                        {shell(), QStringLiteral("-c"), QStringLiteral("sleep 0.3")});
+        launcher.windowOpened(QStringLiteral("g1"), QStringLiteral("story"),
+                              QStringLiteral("Story"));
+        QTest::qWait(500); // the program has exited; its window is a moment behind.
+        launcher.windowClosed(QStringLiteral("g1"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Idle);
+        QTest::qWait(2500);
+        QCOMPARE(launcher.state(), AppLauncher::State::Idle);
+        QVERIFY(!launcher.needsGrownUp());
+    }
+
+    // A program from an earlier launch that hid its window and runs on must
+    // not stop the next one starting.
+    void aRelaunchWhileAnOldProgramRunsStartsANewOne() {
+        const QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString started = dir.filePath(QStringLiteral("started"));
+        AppLauncher launcher(this);
+        launcher.launch(QStringLiteral("Putt-Putt"),
+                        {shell(), QStringLiteral("-c"), QStringLiteral("sleep 30")});
+        launcher.windowOpened(QStringLiteral("g1"), QStringLiteral("scummvm"),
+                              QStringLiteral("Putt-Putt Joins the Parade"));
+        launcher.windowChanged(QStringLiteral("g1"), true);
+        QCOMPARE(launcher.state(), AppLauncher::State::Idle);
+        launcher.launch(QStringLiteral("Draw"),
+                        {shell(), QStringLiteral("-c"), QStringLiteral("touch '%1'").arg(started)});
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+        QTRY_VERIFY(QFile::exists(started));
+    }
+
+    // The grown-up's key always brings the tiles back, whatever is still open.
+    void giveUpAlwaysBringsTheTilesBack() {
+        AppLauncher launcher(this);
+        launcher.windowOpened(QStringLiteral("w1"), QStringLiteral("steam"),
+                              QStringLiteral("Steam"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Interrupted);
+        launcher.giveUp();
+        QCOMPARE(launcher.state(), AppLauncher::State::Idle);
+        QVERIFY(!launcher.needsGrownUp());
+        launcher.windowClosed(QStringLiteral("w1"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Idle);
+
+        launcher.launch(QStringLiteral("Practice"),
+                        {shell(), QStringLiteral("-c"), QStringLiteral("exit 0")});
+        launcher.windowOpened(QStringLiteral("g1"), QStringLiteral("gcompris"),
+                              QStringLiteral("GCompris"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Running);
+        launcher.giveUp();
+        QCOMPARE(launcher.state(), AppLauncher::State::Idle);
+        launcher.launch(QStringLiteral("Draw"),
+                        {shell(), QStringLiteral("-c"), QStringLiteral("exit 0")});
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+    }
 };
 
 } // namespace

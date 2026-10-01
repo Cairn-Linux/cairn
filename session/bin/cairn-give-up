@@ -28,6 +28,9 @@ pattern='bwrap|reaper SteamLaunch'
 # The launcher's scopes, in this user's own systemd. The tests name their own.
 units="${CAIRN_APP_UNITS:-cairn-app-*.scope}"
 
+# The file the launcher watches to hear that this ran (ADR-0026).
+told="${CAIRN_GIVE_UP_FILE:-${XDG_RUNTIME_DIR:-/nonexistent}/cairn/give-up}"
+
 # SIGCONT so a stopped process can receive what follows; SIGTERM as a courtesy
 # in case the app wants to flush; SIGKILL after a moment for anything left.
 pkill --uid "$me" --full "$pattern" --signal CONT || true
@@ -37,5 +40,12 @@ systemctl --user kill --signal TERM "$units" || true
 sleep 2
 pkill --uid "$me" --full "$pattern" --signal KILL || true
 systemctl --user kill --signal KILL "$units" || true
+
+# Then tell the launcher, so the tiles come back even if a window it was
+# waiting on never closes. It made the file when it started; none means no
+# launcher is listening.
+if [ -f "$told" ]; then
+    date +%s > "$told"
+fi
 
 exit 0

@@ -1,6 +1,6 @@
 # ADR-0017: labwc is the kiosk compositor for L1 and L2
 
-**Status:** accepted
+**Status:** amended by ADR-0026
 **Date:** 2026-09-08
 **Closes:** ROADMAP D3
 

@@ -16,6 +16,8 @@ Window {
     property string logOutProgram: ""
     // Set from the command line (--scope-apps): every program in its own scope.
     property bool scopeApps: false
+    // The file cairn-give-up writes, set by main.cpp. Empty watches nothing.
+    property string giveUpFile: ""
     // The child chose Log out and is being asked whether they meant it.
     property bool logOutAsked: false
 
@@ -38,8 +40,15 @@ Window {
     ForeignWindowList {
         id: windows
 
-        onWindowOpened: (identifier, appId, title) => launcher.windowOpened(identifier, appId, title)
+        onWindowOpened: (identifier, appId, title, hidden, belongsTo) => launcher.windowOpened(identifier, appId, title, hidden, belongsTo)
+        onWindowChanged: (identifier, hidden, belongsTo) => launcher.windowChanged(identifier, hidden, belongsTo)
         onWindowClosed: identifier => launcher.windowClosed(identifier)
+    }
+
+    // The grown-up's give-up key always brings the tiles back (ADR-0026).
+    GiveUpWatch {
+        path: window.giveUpFile
+        onPressed: launcher.giveUp()
     }
 
     AppLauncher {

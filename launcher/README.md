@@ -145,20 +145,35 @@ the child's screen.
 
 ## Windows that open on their own
 
-Under a Wayland compositor that offers `ext-foreign-toplevel-list-v1`
-(labwc 0.8.2 and later), the launcher hears about every window that opens or
-closes, with its app id and title.
-A window that opens while the tiles are up, and is not the launcher's own,
-is one nobody asked for: a Steam update, a sign-in prompt, a stray dialog.
-The grown-up screen names it ("Steam opened on its own.") with no Back tile:
-the launcher never dismisses it, only the window closing ends it, and the
-tiles return when it does. Steam's own windows are hidden where the child's
-leave key cannot reach them (ADR-0019), so their screen waits for a
-grown-up.
-Windows that open while a launched program is starting or running belong to
-that program and are left alone.
+Under a Wayland compositor that offers
+`wlr-foreign-toplevel-management-unstable-v1` (labwc does), the launcher
+hears about every window that opens, closes, is hidden or shown, with its
+app id, its title, and the window it belongs to (ADR-0026).
+`LaunchWindows` decides whose each window is, from what the compositor
+says and never from a window's name:
+
+- A hidden window never counts. labwc hides Steam's own windows the moment
+  they open; one of those must not keep the tiles waiting or bring up the
+  grown-up screen (#99).
+- During a launch, the first window on the screen is the app's, and so is
+  any window that belongs to one of the app's, such as its dialogs. While
+  one is on the screen the launcher is Running; when the last one leaves,
+  the tiles are back.
+- Any other window on the screen opened on its own: a stray dialog, a
+  browser a game opened. The grown-up screen names it ("Steam opened on its
+  own.") with no Back tile, and the tiles return when it closes.
+- When the program the launcher started has run and then exits, the app is
+  over. Its windows get two seconds to close; any still up count as opened
+  on their own.
+
+The grown-up's give-up key always brings the tiles back: `cairn-give-up`
+writes `$XDG_RUNTIME_DIR/cairn/give-up` after it has ended the child's
+programs, and `GiveUpWatch` hears it.
+Each launch has its own process, so a program left from an earlier one,
+such as a game that hid its window, never stops the next launch.
 The launcher's own windows carry the app id `cairn-launcher`, the name of
-the executable, which is what Qt reports when no desktop file is set.
+the executable, which is what Qt reports when no desktop file is set; that
+is the one place an app id decides anything.
 
 KWin does not offer the protocol, so under Plasma the launcher says so once
 in the terminal and only watches processes.
@@ -173,7 +188,9 @@ labwc -C session/labwc -S './build/debug/launcher/cairn-launcher \
 Then, from another terminal, open a window in that session
 (`WAYLAND_DISPLAY=wayland-1 foot`, for instance): the grown-up screen should
 name it and go away when the window is closed.
-This passed on the dev PC with labwc 0.9.6 on 2026-09-04.
+This passed on the dev PC with labwc 0.9.6 on 2026-09-04, with the earlier
+protocol; the window rules of ADR-0026 were checked in the VM on
+2026-10-01 (`docs/research/steam-containment.md`).
 
 ## Requirements carried from the design
 

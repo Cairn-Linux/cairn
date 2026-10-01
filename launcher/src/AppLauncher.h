@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
-#include <QHash>
+#include "LaunchWindows.h"
+
 #include <QObject>
 #include <QProcess>
 #include <QQmlEngine>
-#include <QSet>
 #include <QStringList>
 #include <QTimer>
 
@@ -14,18 +14,19 @@
 // Starts one program at a time for a tile and decides whether the launch went
 // well enough to leave the child alone.
 //
-// The program a child runs is not the process the launcher starts. `flatpak
-// run` and `steam -applaunch` hand the real app to a background service and
-// exit within a second, so the launcher cannot watch the app by its process:
-// it would think the app had closed the moment it opened. Instead the launcher
-// watches for the app's window. A window that appears after a launch is the
-// app; while it is up the launcher is Running, and it returns to Idle when
-// that window closes, whatever the launching process did in between (issue
-// #42). A launch that produces no window before the grace timer ends returns
-// to Idle quietly; a program that fails to start, or exits with an error
-// before any window and before the settle window, is a Failed launch. A window
-// that appears while nothing was launched is an Interruption. Failed and
-// Interrupted both show "Something needs a grown-up".
+// The program a child runs is not always the process the launcher starts:
+// `steam -applaunch` hands the game to the Steam client and exits within a
+// second. So the launcher watches the app's windows, and LaunchWindows decides
+// which those are (ADR-0026): while one is on the screen the launcher is
+// Running, and when the last leaves the screen it returns to Idle (issue #42).
+// A launch that produces no window before the grace timer ends returns to Idle
+// quietly; a program that fails to start, or exits with an error before any
+// window and before the settle window, is a Failed launch. A window on the
+// screen that opened on its own is an Interruption until it closes. Failed and
+// Interrupted both show "Something needs a grown-up". When the program the
+// launcher started exits after the settle window, the app is over, and any of
+// its windows still up count as opened on their own. The grown-up's give-up
+// key always brings the tiles back.
 class AppLauncher : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -43,8 +44,9 @@ class AppLauncher : public QObject {
     // nothing came and returning to the tiles. Tests set it short.
     Q_PROPERTY(int launchGraceMilliseconds READ launchGraceMilliseconds WRITE
                    setLaunchGraceMilliseconds NOTIFY launchGraceMillisecondsChanged)
-    // Windows with this app id are the launcher's own and never interrupt.
-    // Empty means no window is treated as ours.
+    // Windows with this app id are the launcher's own and never count. The one
+    // place an app id decides anything; a program that copied it would not
+    // interrupt.
     Q_PROPERTY(QString ownAppId READ ownAppId WRITE setOwnAppId NOTIFY ownAppIdChanged)
     // Start each program in a systemd user scope of its own (AppScope), so the
     // grown-up's give-up key can end it. The kiosk session turns this on.
@@ -67,20 +69,24 @@ public:
     void setOwnAppId(const QString& appId);
 
     // Ignored while a launch is in flight (Starting), an app's window is up
-    // (Running), or a window that opened on its own is still open
-    // (Interrupted). An empty exec fails at once: nothing is set up for that
-    // tile yet.
+    // (Running), or a window that opened on its own is up (Interrupted). An
+    // empty exec fails at once: nothing is set up for that tile yet.
     Q_INVOKABLE void launch(const QString& title, const QStringList& exec);
     // Leaves Failed and goes back to Idle. Interrupted ends only when the
-    // window closes; the launcher never dismisses it.
+    // window closes or a grown-up gives up.
     Q_INVOKABLE void dismiss();
+    // The grown-up's give-up key (ADR-0018, ADR-0026): forget the launch and
+    // every window open now, and go back to the tiles.
+    Q_INVOKABLE void giveUp();
 
-    // What the compositor reports. A window that opens while a launch is in
-    // flight or an app is running is that app's, and keeps the launcher
-    // Running until it closes. A window that opens while nothing was launched
-    // is an interruption.
+    // What the compositor reports. Whether a window is hidden and which window
+    // it belongs to come from the compositor; the app id and title only name
+    // it.
     Q_INVOKABLE void windowOpened(const QString& identifier, const QString& appId,
-                                  const QString& title);
+                                  const QString& title, bool hidden = false,
+                                  const QString& belongsTo = QString());
+    Q_INVOKABLE void windowChanged(const QString& identifier, bool hidden,
+                                   const QString& belongsTo = QString());
     Q_INVOKABLE void windowClosed(const QString& identifier);
 
 signals:
@@ -94,24 +100,26 @@ signals:
 private:
     void setState(State state);
     void setTitle(const QString& title);
-    void onErrorOccurred(QProcess::ProcessError error);
-    void onFinished(int exitCode, QProcess::ExitStatus exitStatus);
+    // Works out the state from the windows on the screen and the launch.
+    void update();
+    void endLaunch();
+    void fail(const QString& reason);
+    void onErrorOccurred(QProcess* process, QProcess::ProcessError error);
+    void onFinished(QProcess* process, int exitCode, QProcess::ExitStatus exitStatus);
     void onLaunchGraceTimeout();
 
-    QProcess m_process;
+    // The program started for the current launch, or nullptr once the launch
+    // is over. One from an earlier launch may still be running, a game that
+    // hid its window or the Steam client it started; it runs on until it exits.
+    QProcess* m_process = nullptr;
     QTimer m_settleTimer;
     QTimer m_launchGraceTimer;
+    QTimer m_exitGraceTimer;
+    LaunchWindows m_windows;
     State m_state = State::Idle;
     QString m_title;
+    QString m_launchTitle;
     QString m_ownAppId;
-    // The launched app's windows, by identifier. While any is open the app is
-    // on screen and the launcher is Running.
-    QSet<QString> m_ownedWindows;
-    // Windows that opened on their own and are still open, by identifier.
-    QHash<QString, QString> m_unexpectedWindows;
-    // True once the launching process has exited. On its own it means nothing:
-    // the app may have only just opened its window.
-    bool m_processGone = false;
     bool m_settled = false;
     bool m_scoped = false;
     int m_launches = 0;

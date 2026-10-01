@@ -1,16 +1,21 @@
 # SPDX-License-Identifier: Apache-2.0
 find_package(Qt6 REQUIRED COMPONENTS LinguistTools WaylandClient)
 find_package(PkgConfig REQUIRED)
-pkg_get_variable(WAYLAND_PROTOCOLS_DIR wayland-protocols pkgdatadir)
+pkg_get_variable(WLR_PROTOCOLS_DIR wlr-protocols pkgdatadir)
+if(NOT WLR_PROTOCOLS_DIR)
+    message(FATAL_ERROR "The launcher needs wlr-protocols-devel: dnf install wlr-protocols-devel")
+endif()
 
-# The client side of ext-foreign-toplevel-list-v1, generated from the protocol
-# XML that wayland-protocols-devel installs. Only the window sources use it.
+# The client side of wlr-foreign-toplevel-management-unstable-v1, generated
+# from the protocol XML that wlr-protocols-devel installs. It reports whether a
+# window is hidden and which window it belongs to (ADR-0026). Only the window
+# sources use it.
 qt_add_library(cairn-foreign-toplevel STATIC
     src/ForeignToplevel.h src/ForeignToplevel.cpp
     src/ForeignToplevelList.h src/ForeignToplevelList.cpp
 )
 qt_generate_wayland_protocol_client_sources(cairn-foreign-toplevel
-    FILES "${WAYLAND_PROTOCOLS_DIR}/staging/ext-foreign-toplevel-list/ext-foreign-toplevel-list-v1.xml"
+    FILES "${WLR_PROTOCOLS_DIR}/unstable/wlr-foreign-toplevel-management-unstable-v1.xml"
 )
 target_include_directories(cairn-foreign-toplevel PUBLIC src "${CMAKE_CURRENT_BINARY_DIR}")
 # PRIVATE on purpose: the QML module targets that link this library would
@@ -22,6 +27,8 @@ set(launcher_model_sources
     src/Manifest.h src/Manifest.cpp
     src/AppLauncher.h src/AppLauncher.cpp
     src/AppScope.h src/AppScope.cpp
+    src/LaunchWindows.h src/LaunchWindows.cpp
+    src/GiveUpWatch.h src/GiveUpWatch.cpp
     src/GridScroller.h src/GridScroller.cpp
     src/CloseRequest.h src/CloseRequest.cpp
     src/LogOut.h src/LogOut.cpp
@@ -65,6 +72,16 @@ qt_add_executable(tst_applauncher tests/tst_applauncher.cpp ${launcher_model_sou
 target_include_directories(tst_applauncher PRIVATE src)
 target_link_libraries(tst_applauncher PRIVATE Qt6::Qml Qt6::Test)
 add_test(NAME applauncher COMMAND tst_applauncher)
+
+qt_add_executable(tst_launchwindows tests/tst_launchwindows.cpp src/LaunchWindows.h src/LaunchWindows.cpp)
+target_include_directories(tst_launchwindows PRIVATE src)
+target_link_libraries(tst_launchwindows PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME launchwindows COMMAND tst_launchwindows)
+
+qt_add_executable(tst_giveupwatch tests/tst_giveupwatch.cpp ${launcher_model_sources})
+target_include_directories(tst_giveupwatch PRIVATE src)
+target_link_libraries(tst_giveupwatch PRIVATE Qt6::Qml Qt6::Test)
+add_test(NAME giveupwatch COMMAND tst_giveupwatch)
 
 qt_add_executable(tst_appscope tests/tst_appscope.cpp src/AppScope.h src/AppScope.cpp)
 target_include_directories(tst_appscope PRIVATE src)
@@ -141,6 +158,6 @@ target_compile_definitions(tst_navigation PRIVATE
 )
 add_test(NAME navigation COMMAND tst_navigation)
 
-set_tests_properties(tilemodel manifest applauncher appscope gridscroller closerequest logout foreignwindowlist tokens_loaded doorsfromtiles navigation PROPERTIES
+set_tests_properties(tilemodel manifest applauncher appscope launchwindows giveupwatch gridscroller closerequest logout foreignwindowlist tokens_loaded doorsfromtiles navigation PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QML_IMPORT_PATH=${QT_QML_OUTPUT_DIRECTORY}"
 )

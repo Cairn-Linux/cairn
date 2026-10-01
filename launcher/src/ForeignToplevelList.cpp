@@ -6,19 +6,25 @@
 #include <QDebug>
 
 namespace {
-constexpr int protocolVersion = 1;
-}
+// Version 3 is the first to say which window another belongs to.
+constexpr int protocolVersion = 3;
+} // namespace
 
 ForeignToplevelList::ForeignToplevelList(QObject* parent)
     : QWaylandClientExtensionTemplate(protocolVersion) {
     setParent(parent);
 }
 
-void ForeignToplevelList::ext_foreign_toplevel_list_v1_toplevel(
-    struct ::ext_foreign_toplevel_handle_v1* toplevel) {
-    auto* window = new ForeignToplevel(toplevel, this);
+void ForeignToplevelList::zwlr_foreign_toplevel_manager_v1_toplevel(
+    struct ::zwlr_foreign_toplevel_handle_v1* toplevel) {
+    ++m_windowsSeen;
+    auto* window = new ForeignToplevel(toplevel, QString::number(m_windowsSeen), this);
     connect(window, &ForeignToplevel::ready, this, [this, window] {
-        emit windowOpened(window->identifier(), window->appId(), window->title());
+        emit windowOpened(window->identifier(), window->appId(), window->title(), window->hidden(),
+                          window->belongsTo());
+    });
+    connect(window, &ForeignToplevel::changed, this, [this, window] {
+        emit windowChanged(window->identifier(), window->hidden(), window->belongsTo());
     });
     connect(window, &ForeignToplevel::closed, this, [this, window] {
         emit windowClosed(window->identifier());
@@ -26,7 +32,7 @@ void ForeignToplevelList::ext_foreign_toplevel_list_v1_toplevel(
     });
 }
 
-void ForeignToplevelList::ext_foreign_toplevel_list_v1_finished() {
+void ForeignToplevelList::zwlr_foreign_toplevel_manager_v1_finished() {
     qWarning().noquote() << QStringLiteral(
         "The compositor stopped reporting windows; none will be noticed now.");
 }

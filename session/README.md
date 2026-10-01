@@ -32,7 +32,9 @@ What is here:
   ADR-0025, #98), which hold a native program such as ScummVM and whatever
   it started, and the sandbox roots a Flatpak app or a Steam game moves into
   (Flatpak's `bwrap`, Steam's `reaper`), all in the child's own session, so
-  a frozen app ends and the frame stays up.
+  a frozen app ends and the frame stays up. Then it writes
+  `$XDG_RUNTIME_DIR/cairn/give-up`, which the launcher watches, so the tiles
+  come back even if a window it was waiting on never closes (ADR-0026).
 - `bin/cairn-log-out`: the child's Log out (ADR-0021, #44). The launcher
   runs it when the child confirms. It asks a running Steam client to shut
   down, then ends the child's own account with `loginctl terminate-user`,
@@ -93,8 +95,9 @@ this into the VM.
   (ADR-0020, P0-11): every family member has a tile, Guardians included.
 
 - **labwc is the kiosk compositor (ADR-0017).** Window rules keep Steam's
-  forced windows off the screen and `ext-foreign-toplevel-list-v1` tells
-  the launcher when one appears. cage is a measurement baseline only. Both
+  forced windows off the screen, and the compositor's window list tells the
+  launcher when one appears and that it is hidden, so it never holds the
+  tiles (`wlr-foreign-toplevel-management`, ADR-0026). cage is a measurement baseline only. Both
   halves held in the VM with a signed-out and a signed-in client
   (`docs/research/steam-containment.md`).
 

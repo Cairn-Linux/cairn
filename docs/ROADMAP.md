@@ -179,6 +179,15 @@ done, and what could sink it. Decisions that change the design get an ADR in
   a child in no group, and refuses to make an existing child the Guardian.
   Accounts made in System Settings still get Plasma until the Guardian
   tool owns family accounts (#113).
+- **ADR-0026 (2026-10-01, #99): what counts as the app's window.** In the
+  VM a hidden Steam window could stop the tiles working after a game, or
+  hold a grown-up screen nothing could clear. The launcher now reads the
+  compositor's other window list, which says whether a window is hidden
+  and which window it belongs to: a hidden window never counts, the first
+  window of a launch and its dialogs are the app, and any other window gets
+  the grown-up screen. A program that has run and exits ends its launch,
+  each launch has its own process, and Ctrl-Alt-Home always brings the
+  tiles back. Checked in the VM. Builds now need `wlr-protocols-devel`.
 - **ADR-0025 (2026-09-30, #98): every launch runs in a scope of its own.**
   The grown-up's Ctrl-Alt-Home matched only the roots of Flatpak apps and
   Steam games, so a frozen native ScummVM survived it. The launcher now
