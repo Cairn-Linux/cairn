@@ -26,10 +26,12 @@ Mason Ball. It is not a company, foundation, or nonprofit organisation.
 > **Status: pre-alpha, Phase 0.** There is a working prototype, but no public
 > installer or release ready for everyday family use. The launcher, Footpath
 > terminal integration, game scanner and session plumbing have code and
-> recorded tests. Permission hardening, recovery paths and remaining Steam
-> checks still need work before the real-hardware child trial.
+> recorded tests, and the first test with children on a real laptop is next.
 > See the [roadmap](docs/ROADMAP.md) for current progress and the
 > [design specification](docs/DESIGN.md) for the intended experience.
+>
+> Comfortable installing Linux, with a spare computer or a virtual machine?
+> You can [try the prototype](docs/TRY.md) now.
 
 ## Help shape the experience
 
