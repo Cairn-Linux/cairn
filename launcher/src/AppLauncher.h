@@ -23,10 +23,11 @@
 // quietly; a program that fails to start, or exits with an error before any
 // window and before the settle window, is a Failed launch. A window on the
 // screen that opened on its own is an Interruption until it closes. Failed and
-// Interrupted both show "Something needs a grown-up". When the program the
-// launcher started exits after the settle window, the app is over, and any of
-// its windows still up count as opened on their own. The grown-up's give-up
-// key always brings the tiles back.
+// Interrupted both show "Something needs a grown-up". A tile with nothing set
+// up yet is ComingSoon: the screen says so, with a Back, and needs no
+// grown-up. When the program the launcher started exits after the settle
+// window, the app is over, and any of its windows still up count as opened on
+// their own. The grown-up's give-up key always brings the tiles back.
 class AppLauncher : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -53,7 +54,7 @@ class AppLauncher : public QObject {
     Q_PROPERTY(bool scoped MEMBER m_scoped NOTIFY scopedChanged)
 
 public:
-    enum class State : std::uint8_t { Idle, Starting, Running, Failed, Interrupted };
+    enum class State : std::uint8_t { Idle, Starting, Running, Failed, Interrupted, ComingSoon };
     Q_ENUM(State)
 
     explicit AppLauncher(QObject* parent = nullptr);
@@ -70,10 +71,10 @@ public:
 
     // Ignored while a launch is in flight (Starting), an app's window is up
     // (Running), or a window that opened on its own is up (Interrupted). An
-    // empty exec fails at once: nothing is set up for that tile yet.
+    // empty exec is ComingSoon at once: nothing is set up for that tile yet.
     Q_INVOKABLE void launch(const QString& title, const QStringList& exec);
-    // Leaves Failed and goes back to Idle. Interrupted ends only when the
-    // window closes or a grown-up gives up.
+    // Leaves Failed or ComingSoon and goes back to Idle. Interrupted ends only
+    // when the window closes or a grown-up gives up.
     Q_INVOKABLE void dismiss();
     // The grown-up's give-up key (ADR-0018, ADR-0026): forget the launch and
     // every window open now, and go back to the tiles.
