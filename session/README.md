@@ -7,8 +7,9 @@ What is here:
 
 - `labwc/`: the kiosk compositor's configuration. `rc.xml`: no titlebars on
   any window, Wayland or X11; no default key or mouse bindings, only
-  Super+Q, the child's way out of an app (ADR-0019), and Ctrl-Alt-Home,
-  the grown-up's way out of a stuck one (ADR-0018); no window gets focus
+  Super+Q, the child's way out of an app (ADR-0019), Ctrl-Alt-Home,
+  the grown-up's way out of a stuck one (ADR-0018), and a laptop's volume
+  keys through PipeWire's `wpctl`, up to 100% and no louder (#43); no window gets focus
   by asking for it; a window rule that makes the launcher
   fullscreen on sight; and rules that iconify Steam's own windows on
   sight while leaving the launcher able to hear about them
