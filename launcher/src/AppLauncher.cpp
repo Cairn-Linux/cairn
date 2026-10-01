@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "AppLauncher.h"
 
+#include "AppScope.h"
+
 #include <QDebug>
 
 namespace {
@@ -91,7 +93,9 @@ void AppLauncher::launch(const QString& title, const QStringList& exec) {
     setState(State::Starting);
     m_settleTimer.start();
     m_launchGraceTimer.start();
-    m_process.start(exec.first(), exec.mid(1));
+    ++m_launches;
+    const QStringList command = m_scoped ? AppScope::command(exec, m_launches) : exec;
+    m_process.start(command.first(), command.mid(1));
 }
 
 void AppLauncher::dismiss() {

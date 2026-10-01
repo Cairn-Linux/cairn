@@ -5,13 +5,16 @@
 # compositor runs this on the grown-up's key combination. It ends whatever a
 # child launched, however frozen, and leaves the frame standing.
 #
-# Everything a tile or the terminal can start runs sandboxed: a Flatpak app is
-# a tree under `bwrap`, a Steam game a tree under Steam's `reaper`. The
-# launcher, the compositor, the terminal and the session's own services never
-# are, so matching the sandbox roots ends the app and nothing of ours. A
-# stopped process cannot act on a signal until it is continued, so every
-# process is sent SIGCONT before the kill; that is what reaches an app frozen
-# hard enough to ignore everything else.
+# The launcher starts every program in a systemd user scope of its own,
+# cairn-app-*.scope (ADR-0025, #98), so ending those scopes ends a native
+# program such as ScummVM and everything it started. A Flatpak app and a Steam
+# game leave that scope for their own: a Flatpak app is a tree under `bwrap`, a
+# Steam game a tree under Steam's `reaper`, so those roots are matched too. The
+# launcher, the compositor, the terminal and the session's own services are
+# none of these, so nothing of ours is touched. A stopped process cannot act on
+# a signal until it is continued, so every process is sent SIGCONT before the
+# kill; that is what reaches an app frozen hard enough to ignore everything
+# else.
 set -ouex pipefail
 
 # The one child session this runs in; never another user's.
@@ -22,11 +25,17 @@ me="$(id -u)"
 # neither, so it stays resident (DESIGN §8.3).
 pattern='bwrap|reaper SteamLaunch'
 
+# The launcher's scopes, in this user's own systemd. The tests name their own.
+units="${CAIRN_APP_UNITS:-cairn-app-*.scope}"
+
 # SIGCONT so a stopped process can receive what follows; SIGTERM as a courtesy
 # in case the app wants to flush; SIGKILL after a moment for anything left.
 pkill --uid "$me" --full "$pattern" --signal CONT || true
+systemctl --user kill --signal CONT "$units" || true
 pkill --uid "$me" --full "$pattern" --signal TERM || true
+systemctl --user kill --signal TERM "$units" || true
 sleep 2
 pkill --uid "$me" --full "$pattern" --signal KILL || true
+systemctl --user kill --signal KILL "$units" || true
 
 exit 0

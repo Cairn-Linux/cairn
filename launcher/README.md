@@ -136,6 +136,10 @@ A program that quits cleanly, or that quits with an error after the window,
 returns to the tiles without comment.
 The launcher runs one program at a time; a second Enter while one is
 starting or running is ignored.
+With `--scope-apps`, which the kiosk wrapper passes, every program starts
+in a systemd user scope of its own, `cairn-app-<launcher pid>-<n>.scope`,
+so the grown-up's give-up key can end it and whatever it started
+(ADR-0025). The launcher still watches the program's own process.
 The program's own terminal output goes to the launcher's terminal, never to
 the child's screen.
 

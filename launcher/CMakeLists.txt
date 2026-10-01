@@ -21,6 +21,7 @@ set(launcher_model_sources
     src/TileModel.h src/TileModel.cpp
     src/Manifest.h src/Manifest.cpp
     src/AppLauncher.h src/AppLauncher.cpp
+    src/AppScope.h src/AppScope.cpp
     src/GridScroller.h src/GridScroller.cpp
     src/CloseRequest.h src/CloseRequest.cpp
     src/LogOut.h src/LogOut.cpp
@@ -64,6 +65,11 @@ qt_add_executable(tst_applauncher tests/tst_applauncher.cpp ${launcher_model_sou
 target_include_directories(tst_applauncher PRIVATE src)
 target_link_libraries(tst_applauncher PRIVATE Qt6::Qml Qt6::Test)
 add_test(NAME applauncher COMMAND tst_applauncher)
+
+qt_add_executable(tst_appscope tests/tst_appscope.cpp src/AppScope.h src/AppScope.cpp)
+target_include_directories(tst_appscope PRIVATE src)
+target_link_libraries(tst_appscope PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME appscope COMMAND tst_appscope)
 
 qt_add_executable(tst_gridscroller tests/tst_gridscroller.cpp ${launcher_model_sources})
 target_include_directories(tst_gridscroller PRIVATE src)
@@ -135,6 +141,6 @@ target_compile_definitions(tst_navigation PRIVATE
 )
 add_test(NAME navigation COMMAND tst_navigation)
 
-set_tests_properties(tilemodel manifest applauncher gridscroller closerequest logout foreignwindowlist tokens_loaded doorsfromtiles navigation PROPERTIES
+set_tests_properties(tilemodel manifest applauncher appscope gridscroller closerequest logout foreignwindowlist tokens_loaded doorsfromtiles navigation PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QML_IMPORT_PATH=${QT_QML_OUTPUT_DIRECTORY}"
 )

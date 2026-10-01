@@ -217,6 +217,16 @@ Ctrl-Alt-Home:
 | Nothing running | Harmless: the helper matches nothing, exits 0, the frame is untouched. |
 | The frame after a give-up | Interactive: an arrow key moves the focus ring. |
 
+Run again on 2026-09-30 with every launch in a scope of its own (ADR-0025,
+#98), the launcher started with `--scope-apps`:
+
+| Case | Result |
+|---|---|
+| **Frozen native ScummVM** (Putt-Putt from kidscan's tile, SIGSTOP, `T` state) | In `cairn-app-4858-1.scope` with the speech-dispatcher it had started for text-to-speech. Both ended 0.7 s after Ctrl-Alt-Home, the scope was gone, and the launcher, labwc and PipeWire stayed up. Before this the game survived the key. |
+| Frozen Tux Paint (Flatpak) | Flatpak moved it into its own `app-flatpak-…scope` and the launch scope emptied and went away. It ended through the `bwrap` match as before; an arrow key then moved the focus ring. |
+| A game opened from the Terminal | In a scope of its own, `cairn-app-4858-3.scope`, the session's third launch. |
+| Nothing running | The helper exited 0 and the frame was untouched. |
+
 What it does not do: dismiss a Steam **client** window that forces itself
 open (sign-in, update). That is `steamwebhelper`, not a game, and ending it
 is a Guardian's `steam -shutdown`, not the panic key; the launcher's

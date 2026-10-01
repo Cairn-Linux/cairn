@@ -24,12 +24,18 @@ int main(int argc, char* argv[]) {
                        "Without it there is no Log out."),
         QStringLiteral("program"));
     parser.addOption(logOutOption);
+    const QCommandLineOption scopeAppsOption(
+        QStringLiteral("scope-apps"),
+        QStringLiteral("Start each program in a systemd user scope of its own, so the grown-up's "
+                       "give-up key can end it. The kiosk session sets this."));
+    parser.addOption(scopeAppsOption);
     parser.process(application);
 
     QQmlApplicationEngine engine(&application);
     engine.setInitialProperties({
         {QStringLiteral("manifestPath"), parser.value(manifestOption)},
         {QStringLiteral("logOutProgram"), parser.value(logOutOption)},
+        {QStringLiteral("scopeApps"), parser.isSet(scopeAppsOption)},
     });
     engine.loadFromModule("Cairn.Launcher", "Main");
     if (engine.rootObjects().isEmpty()) {

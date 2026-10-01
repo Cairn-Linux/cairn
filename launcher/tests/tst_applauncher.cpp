@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "AppLauncher.h"
 
+#include <QCoreApplication>
+#include <QFile>
+#include <QFileInfo>
 #include <QSignalSpy>
+#include <QTemporaryDir>
 #include <QTest>
 
 namespace {
@@ -34,6 +38,47 @@ private slots:
         AppLauncher launcher(this);
         launcher.launch(QStringLiteral("Draw"), {QStringLiteral("/nonexistent/cairn-app")});
         QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
+    }
+
+    // In the kiosk every program starts in a scope of its own, which is what
+    // cairn-give-up ends (ADR-0025, #98). A stand-in systemd-run on PATH
+    // writes down what it was asked and runs the program after the --.
+    void aScopedLaunchStartsTheProgramInsideSystemdRun() {
+        const QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString log = dir.filePath(QStringLiteral("asked"));
+        QFile fake(dir.filePath(QStringLiteral("systemd-run")));
+        QVERIFY(fake.open(QIODevice::WriteOnly));
+        fake.write(QStringLiteral("#!/bin/sh\n"
+                                  "printf '%s\\n' \"$@\" > '%1'\n"
+                                  "while [ \"$1\" != -- ]; do shift; done\n"
+                                  "shift\n"
+                                  "exec \"$@\"\n")
+                       .arg(log)
+                       .toUtf8());
+        fake.close();
+        QVERIFY(fake.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
+        const QByteArray path = qgetenv("PATH");
+        qputenv("PATH", dir.path().toUtf8() + ':' + path);
+
+        AppLauncher launcher(this);
+        launcher.setProperty("scoped", true);
+        launcher.launch(QStringLiteral("Putt-Putt"),
+                        {shell(), QStringLiteral("-c"), QStringLiteral("exit 0")});
+        // The program was found when it started, so PATH can go back now.
+        qputenv("PATH", path);
+
+        QTRY_VERIFY(QFileInfo(log).size() > 0);
+        QFile asked(log);
+        QVERIFY(asked.open(QIODevice::ReadOnly));
+        const QString unit =
+            QStringLiteral("--unit=cairn-app-%1-1").arg(QCoreApplication::applicationPid());
+        QCOMPARE(QString::fromUtf8(asked.readAll()).split(QLatin1Char('\n'), Qt::SkipEmptyParts),
+                 (QStringList{QStringLiteral("--user"), QStringLiteral("--scope"),
+                              QStringLiteral("--quiet"), QStringLiteral("--collect"), unit,
+                              QStringLiteral("--"), shell(), QStringLiteral("-c"),
+                              QStringLiteral("exit 0")}));
+        QVERIFY(launcher.state() != AppLauncher::State::Failed);
     }
 
     void earlyBadExitFails() {

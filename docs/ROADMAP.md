@@ -179,6 +179,14 @@ done, and what could sink it. Decisions that change the design get an ADR in
   a child in no group, and refuses to make an existing child the Guardian.
   Accounts made in System Settings still get Plasma until the Guardian
   tool owns family accounts (#113).
+- **ADR-0025 (2026-09-30, #98): every launch runs in a scope of its own.**
+  The grown-up's Ctrl-Alt-Home matched only the roots of Flatpak apps and
+  Steam games, so a frozen native ScummVM survived it. The launcher now
+  starts each program in `cairn-app-*.scope` in the kiosk, and
+  `cairn-give-up` ends those scopes as well. Checked in the VM: a frozen
+  Putt-Putt and the speech-dispatcher it had started ended in 0.7 s, and
+  Flatpak apps still end as before. A behavioural test freezes a stand-in
+  in a scope and runs the real helper.
 - **ADR-0024 (2026-09-30, #97, #76): games are a fourth kind.** kidscan's
   manifest now loads in the launcher as it stands: its titles are `games`
   tiles, drawn as the brand sketch draws a game (a Paper card with a

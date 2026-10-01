@@ -14,6 +14,8 @@ Window {
     property bool terminalOpen: false
     // Set from the command line (--log-out). Empty means no Log out.
     property string logOutProgram: ""
+    // Set from the command line (--scope-apps): every program in its own scope.
+    property bool scopeApps: false
     // The child chose Log out and is being asked whether they meant it.
     property bool logOutAsked: false
 
@@ -45,6 +47,7 @@ Window {
 
         objectName: "launcher"
         ownAppId: windows.ownAppId
+        scoped: window.scopeApps
     }
 
     // Footpath, the terminal (ADR-0014). The tiles are its doors; open there
