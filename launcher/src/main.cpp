@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "GiveUpWatch.h"
+#include "Manifest.h"
+#include "SteamAtLogin.h"
 
 #include <QCommandLineOption>
 #include <QCommandLineParser>
@@ -31,7 +33,17 @@ int main(int argc, char* argv[]) {
         QStringLiteral("Start each program in a systemd user scope of its own, so the grown-up's "
                        "give-up key can end it. The kiosk session sets this."));
     parser.addOption(scopeAppsOption);
+    const QCommandLineOption startSteamOption(
+        QStringLiteral("start-steam"),
+        QStringLiteral("Start the Steam client in the background when a tile runs a Steam game. "
+                       "The kiosk session sets this."));
+    parser.addOption(startSteamOption);
     parser.process(application);
+
+    if (parser.isSet(startSteamOption) &&
+        SteamAtLogin::wanted(Manifest::read(parser.value(manifestOption)).tiles)) {
+        SteamAtLogin::start();
+    }
 
     QQmlApplicationEngine engine(&application);
     engine.setInitialProperties({

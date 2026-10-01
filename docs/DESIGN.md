@@ -555,9 +555,11 @@ owns is the point of §8.6. This is a **v1 requirement** (ADR-0004), not a
 stretch goal. But the **client UI** is never what a child touches.
 
 Mechanism:
-- Steam starts with `-silent` at session login, without a window. There is no
-  tray in the L1/L2 kiosk, so the compositor keeps the client's windows off the
-  screen (mitigation 3 below).
+- Steam starts with `-silent` at session login, without a window, for a child
+  who has a Steam tile. The client costs about a gigabyte of memory, so a
+  child without one never starts it (ADR-0027). There is no tray in the L1/L2
+  kiosk, so the compositor keeps the client's windows off the screen
+  (mitigation 3 below).
 - Each game is a tile running `steam -applaunch <appid>`. That command
   returns at once while the game loads, so the launcher tracks the game by
   its **window**, not the process: it is "running" while the game's window
