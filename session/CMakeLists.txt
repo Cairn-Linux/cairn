@@ -7,6 +7,9 @@ add_test(NAME labwc_config
 add_test(NAME cairn_session
     COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_cairn_session.py"
 )
+add_test(NAME pam_sddm
+    COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_pam_sddm.py"
+)
 add_test(NAME polkit_rules
     COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_polkit_rules.py"
 )

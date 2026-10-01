@@ -23,6 +23,8 @@ private slots:
         QTest::newRow("Guardian in a level group too")
             << QStringList{"dad", "cairn-l1", "cairn-guardian"} << Kind::Guardian;
         QTest::newRow("installer's admin") << QStringList{"bazzite", "wheel"} << Kind::NotFamily;
+        QTest::newRow("admin in a level group too")
+            << QStringList{"bazzite", "wheel", "cairn-l1"} << Kind::NotFamily;
         QTest::newRow("no groups") << QStringList{} << Kind::NotFamily;
         QTest::newRow("a name that only looks like a level")
             << QStringList{"cairn-l1x", "xcairn-l2", "Cairn-L1"} << Kind::NotFamily;

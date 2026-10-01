@@ -83,8 +83,23 @@ class CairnSessionTest(unittest.TestCase):
                 self.assertEqual(code, 0)
                 self.assertEqual(out, "startplasma-wayland")
 
-    def test_an_account_with_no_level_group_gets_plasma(self):
-        code, out, _ = run_dispatcher("bazzite wheel")
+    def test_an_administrator_gets_plasma_whatever_else_they_are_in(self):
+        # PAM asked them for a password, so they are never a child (#101).
+        for groups in (
+            "bazzite wheel",
+            "dad cairn-guardian cairn-l1",
+            "mum wheel cairn-l2",
+            "gran cairn-guardian cairn-l3",
+        ):
+            with self.subTest(groups=groups):
+                code, out, before = run_dispatcher(groups)
+                self.assertEqual(code, 0)
+                self.assertEqual(out, "startplasma-wayland")
+                self.assertEqual(before, [])
+
+    def test_an_account_cairn_did_not_make_gets_plasma(self):
+        # Made in System Settings, say. Adopting it is the Guardian tool's job.
+        code, out, _ = run_dispatcher("grandpa")
         self.assertEqual(code, 0)
         self.assertEqual(out, "startplasma-wayland")
 

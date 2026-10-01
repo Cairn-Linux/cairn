@@ -5,9 +5,12 @@
 # and nowhere else, so su, ssh and the lock screen still find the account's
 # password locked (issue #35). Provisioning replaces the stock file with this
 # one; the rest of the file matches sddm-0.21 in Fedora 44.
+# A Guardian or an administrator is never let in this way, even from a level
+# group: the administrator comes first in every check (ADR-0023, #101).
+# pam_succeed_if succeeds only when every condition on its line holds.
 auth     [success=done ignore=ignore default=bad] pam_selinux_permit.so
-auth        sufficient    pam_succeed_if.so quiet user ingroup cairn-l1
-auth        sufficient    pam_succeed_if.so quiet user ingroup cairn-l2
+auth        sufficient    pam_succeed_if.so quiet user ingroup cairn-l1 user notingroup cairn-guardian:wheel
+auth        sufficient    pam_succeed_if.so quiet user ingroup cairn-l2 user notingroup cairn-guardian:wheel
 auth        substack      password-auth
 -auth        optional      pam_gnome_keyring.so
 -auth        optional      pam_kwallet5.so

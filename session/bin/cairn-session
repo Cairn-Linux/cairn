@@ -7,6 +7,10 @@
 # either the kiosk compositor with the launcher (L1, L2) or Plasma (L3, L4,
 # Guardian). Nothing else is decided here.
 #
+# The order is the one PAM, polkit and the greeter use (ADR-0023): an
+# administrator (cairn-guardian or wheel) first, then the kiosk levels, then
+# the desktop levels, then accounts Cairn did not make.
+#
 # This is a trust boundary (CLAUDE.md), so it stays short: the tests in
 # ../tests/test_cairn_session.py run it with stand-ins for `id`, `labwc`,
 # `startplasma-wayland` and `systemctl` and check which one it chose.
@@ -24,8 +28,16 @@ in_group() {
     grep -qx -- "$1" <<< "$groups"
 }
 
-# The kiosk is checked first. An account that is somehow in two level
-# groups gets the more restricted session, never the less.
+# An administrator is checked first. PAM asked them for a password even if
+# they are also in a level group (#101), so the kiosk would only lock a
+# parent out of their own machine.
+if in_group cairn-guardian || in_group wheel; then
+    exec startplasma-wayland
+fi
+
+# Then the kiosk. An account that is somehow in two level groups gets the
+# more restricted session, never the less; provisioning passes through that
+# state when it moves a child between levels (#100).
 if in_group cairn-l1 || in_group cairn-l2; then
     # Sound before the first app (#87). PipeWire starts on demand, when the
     # first program opens audio, and at login that is the child's first app,
@@ -36,10 +48,11 @@ if in_group cairn-l1 || in_group cairn-l2; then
     exec labwc -C "$labwc_config" -S cairn-launcher
 fi
 
-if in_group cairn-l3 || in_group cairn-l4 || in_group cairn-guardian; then
+if in_group cairn-l3 || in_group cairn-l4; then
     exec startplasma-wayland
 fi
 
 # Not a Cairn account at all. Plasma is what the machine gave it before
-# Cairn arrived, so nothing is taken away and nothing is granted.
+# Cairn arrived, so nothing is taken away and nothing is granted. Giving
+# such an account a level is the Guardian tool's job (ADR-0023).
 exec startplasma-wayland
