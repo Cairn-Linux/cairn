@@ -60,6 +60,8 @@ slice. Idle means sixty seconds without input.
 | GCompris running, 25 s | 146.2 | 86.7 | 303.8 | 595 | 2739 |
 | Back from GCompris, idle 60 s | 146.6 | 79.2 | — | 284 | 2900 |
 | Launcher alone, nested headless, 15 s after exec | 95 | — | — | — | — |
+| 2026-10-01: fresh login, no Steam tile, idle 30 s | — | — | — | 250 | 3168 |
+| 2026-10-01: fresh login with a Steam tile, client signed in and idle 30 s (ADR-0027) | — | — | Steam ≈ 1440 | 1694 | 2119 |
 
 Resident set size is larger and less honest: the launcher's `Rss` is
 197 to 201 MB against a `Pss` of 145, and 113 MB of it is private. The
@@ -93,6 +95,9 @@ thing to watch on the laptop.
 | Enter at the SDDM greeter | tiles on screen | 1.75 |
 | Enter on Draw | something on screen (Tux Paint's white window) | 0.49, 0.54 |
 | Enter on Draw | Tux Paint's tools drawn | 6.91, 6.38 |
+| Enter at the SDDM greeter, with a Steam tile (ADR-0027) | Steam's interface running | 9 |
+| Enter on a Steam tile, client started at login | the game's process | 4.5 |
+| Enter on a Steam tile, no client running | the game's process | 14.9 |
 | Enter on Practice | something on screen (GCompris's splash) | 0.87 |
 | Enter on Practice | GCompris's home screen | 2.11, 2.24 |
 | App killed | tiles back on screen | 0.16 to 0.19 |

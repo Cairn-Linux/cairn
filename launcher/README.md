@@ -136,6 +136,11 @@ A program that quits cleanly, or that quits with an error after the window,
 returns to the tiles without comment.
 The launcher runs one program at a time; a second Enter while one is
 starting or running is ignored.
+With `--start-steam`, which the kiosk wrapper also passes, the launcher
+starts the Steam client in the background at login when a tile runs
+`steam -applaunch`, as a service of the child's own systemd called
+`cairn-steam` (ADR-0027). The first game then starts without waiting for
+the client, and a child with no Steam tile never pays its memory.
 With `--scope-apps`, which the kiosk wrapper passes, every program starts
 in a systemd user scope of its own, `cairn-app-<launcher pid>-<n>.scope`,
 so the grown-up's give-up key can end it and whatever it started

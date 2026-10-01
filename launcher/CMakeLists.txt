@@ -29,6 +29,7 @@ set(launcher_model_sources
     src/AppScope.h src/AppScope.cpp
     src/LaunchWindows.h src/LaunchWindows.cpp
     src/GiveUpWatch.h src/GiveUpWatch.cpp
+    src/SteamAtLogin.h src/SteamAtLogin.cpp
     src/GridScroller.h src/GridScroller.cpp
     src/CloseRequest.h src/CloseRequest.cpp
     src/LogOut.h src/LogOut.cpp
@@ -82,6 +83,11 @@ qt_add_executable(tst_giveupwatch tests/tst_giveupwatch.cpp ${launcher_model_sou
 target_include_directories(tst_giveupwatch PRIVATE src)
 target_link_libraries(tst_giveupwatch PRIVATE Qt6::Qml Qt6::Test)
 add_test(NAME giveupwatch COMMAND tst_giveupwatch)
+
+qt_add_executable(tst_steamatlogin tests/tst_steamatlogin.cpp ${launcher_model_sources})
+target_include_directories(tst_steamatlogin PRIVATE src)
+target_link_libraries(tst_steamatlogin PRIVATE Qt6::Qml Qt6::Test)
+add_test(NAME steamatlogin COMMAND tst_steamatlogin)
 
 qt_add_executable(tst_appscope tests/tst_appscope.cpp src/AppScope.h src/AppScope.cpp)
 target_include_directories(tst_appscope PRIVATE src)
@@ -158,6 +164,6 @@ target_compile_definitions(tst_navigation PRIVATE
 )
 add_test(NAME navigation COMMAND tst_navigation)
 
-set_tests_properties(tilemodel manifest applauncher appscope launchwindows giveupwatch gridscroller closerequest logout foreignwindowlist tokens_loaded doorsfromtiles navigation PROPERTIES
+set_tests_properties(tilemodel manifest applauncher appscope launchwindows giveupwatch steamatlogin gridscroller closerequest logout foreignwindowlist tokens_loaded doorsfromtiles navigation PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QML_IMPORT_PATH=${QT_QML_OUTPUT_DIRECTORY}"
 )

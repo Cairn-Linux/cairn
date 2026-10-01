@@ -179,6 +179,13 @@ done, and what could sink it. Decisions that change the design get an ADR in
   a child in no group, and refuses to make an existing child the Guardian.
   Accounts made in System Settings still get Plasma until the Guardian
   tool owns family accounts (#113).
+- **ADR-0027 (2026-10-01, #119): Steam starts at login for a child with a
+  Steam tile.** The launcher starts the client in the background as its own
+  service when a tile runs `steam -applaunch`, so the first game starts in
+  4.5 s instead of 14.9 s, Steam's own windows come before play, and the
+  give-up key leaves the client alone. A child with no Steam tile never
+  starts it: the idle client costs about a gigabyte of the 4 GB floor.
+  Checked in the VM, with the memory in `launcher-footprint.md`.
 - **Give-up spares Steam's interface again (2026-10-01, #117).** A Steam
   update moved Steam's own interface into a sandbox called `srt-bwrap`,
   which the give-up key's `bwrap` match caught. Flatpak's sandbox is now
@@ -296,7 +303,7 @@ first-boot wizard, quick-actions overlay, signed image, CI, ISO.
 | P1-10 | Update policy: `bootc upgrade` timer, apply on reboot; rollback documented as a one-command Guardian operation. |
 | P1-11 | Documentation site skeleton: install, hardware tiers stated plainly, "what this does not do" (no remote management), rollback, getting creations out. |
 | P1-12 | Guardian-loss recovery path (DESIGN §14 Q9) decided and documented. |
-| P1-13 | Steam integration (moved from Phase 3 by ADR-0004): client `-silent` at login, `steam -applaunch` tiles from the `kidscan` manifest, launch watchdog with the "needs a grown-up" screen, Family View PIN, Steam Families documented as the family's relationship with Valve, Flatpak-vs-RPM client decision. Builds on P0-10. |
+| P1-13 | Steam integration (moved from Phase 3 by ADR-0004): client `-silent` at login (done for a child with a Steam tile, ADR-0027), `steam -applaunch` tiles from the `kidscan` manifest, launch watchdog with the "needs a grown-up" screen, Family View PIN, Steam Families documented as the family's relationship with Valve, Flatpak-vs-RPM client decision. Builds on P0-10. |
 | P1-14 | Base image compliance: rewrite `os-release`, swap `fedora-logos` for `cairn-logos`, replace `fedora-release-notes`, Fedora "not provided or supported" notice on the About screen and website, own installer artwork, Bazzite and Universal Blue attribution in `NOTICE`. Checklist in `docs/research/base-image-policy.md`. Blocks publishing any image. |
 | P1-15 | High-contrast and large-text modes as per-child Guardian settings, driven by token-set variants from `brand/build.py` (ADR-0008). |
 
