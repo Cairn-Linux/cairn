@@ -4,7 +4,7 @@
 <context>
     <name>AppLauncher</name>
     <message>
-        <location filename="../src/AppLauncher.cpp" line="118"/>
+        <location filename="../src/AppLauncher.cpp" line="142"/>
         <source>Another program</source>
         <translation type="unfinished"></translation>
     </message>
@@ -12,27 +12,37 @@
 <context>
     <name>GrownUpScreen</name>
     <message>
-        <location filename="../qml/GrownUpScreen.qml" line="39"/>
+        <location filename="../qml/GrownUpScreen.qml" line="41"/>
         <source>Something needs a grown-up.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GrownUpScreen.qml" line="50"/>
+        <location filename="../qml/GrownUpScreen.qml" line="41"/>
+        <source>%1 is coming soon.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/GrownUpScreen.qml" line="52"/>
         <source>%1 did not start.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GrownUpScreen.qml" line="50"/>
+        <location filename="../qml/GrownUpScreen.qml" line="52"/>
         <source>%1 opened on its own.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GrownUpScreen.qml" line="63"/>
-        <source>Back</source>
+        <location filename="../qml/GrownUpScreen.qml" line="52"/>
+        <source>It is not ready yet. Try something else.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/GrownUpScreen.qml" line="65"/>
+        <source>Back</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/GrownUpScreen.qml" line="67"/>
         <source>Back to the tiles</source>
         <translation type="unfinished"></translation>
     </message>
@@ -69,13 +79,13 @@
 <context>
     <name>Main</name>
     <message>
-        <location filename="../qml/Main.qml" line="20"/>
+        <location filename="../qml/Main.qml" line="24"/>
         <source>Cairn</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="146"/>
-        <location filename="../qml/Main.qml" line="148"/>
+        <location filename="../qml/Main.qml" line="158"/>
+        <location filename="../qml/Main.qml" line="160"/>
         <source>Log out</source>
         <translation type="unfinished"></translation>
     </message>

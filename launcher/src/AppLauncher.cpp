@@ -92,7 +92,7 @@ void AppLauncher::launch(const QString& title, const QStringList& exec) {
     setTitle(title);
     if (exec.isEmpty()) {
         qWarning().noquote() << QStringLiteral("No program is set up for the tile %1.").arg(title);
-        setState(State::Failed);
+        setState(State::ComingSoon);
         return;
     }
 
@@ -120,7 +120,7 @@ void AppLauncher::launch(const QString& title, const QStringList& exec) {
 }
 
 void AppLauncher::dismiss() {
-    if (m_state == State::Failed) {
+    if (m_state == State::Failed || m_state == State::ComingSoon) {
         setState(State::Idle);
     }
 }
@@ -192,7 +192,7 @@ void AppLauncher::update() {
     } else if (m_windows.launching()) {
         setTitle(m_launchTitle);
         setState(State::Starting);
-    } else if (m_state != State::Failed) {
+    } else if (m_state != State::Failed && m_state != State::ComingSoon) {
         setState(State::Idle);
     }
 }

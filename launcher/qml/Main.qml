@@ -297,9 +297,10 @@ Window {
 
         objectName: "grownUpScreen"
         anchors.fill: parent
-        visible: launcher.needsGrownUp
+        visible: launcher.needsGrownUp || launcher.state === AppLauncher.ComingSoon
         appTitle: launcher.title
         openedOnItsOwn: launcher.state === AppLauncher.Interrupted
+        comingSoon: launcher.state === AppLauncher.ComingSoon
         onDismissed: launcher.dismiss()
         onVisibleChanged: {
             if (visible)

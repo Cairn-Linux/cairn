@@ -193,6 +193,24 @@ TestCase {
         verify(back.Accessible.name.length > 0);
     }
 
+    // A tile with nothing set up yet says it is coming soon, with a Back, and
+    // asks for no grown-up.
+    function test_aTileWithNothingSetUpIsComingSoon() {
+        focusTile(3);
+        keyClick(Qt.Key_Return);
+        tryCompare(appLauncher, "state", AppLauncher.ComingSoon);
+        tryCompare(grownUp, "visible", true);
+        compare(grownUp.comingSoon, true);
+        compare(grownUp.Accessible.name, "Nothing set up is coming soon.");
+        compare(appLauncher.needsGrownUp, false);
+        const back = findChild(grownUp, "backTile");
+        tryCompare(back, "activeFocus", true);
+        keyClick(Qt.Key_Escape);
+        tryCompare(grownUp, "visible", false);
+        compare(appLauncher.state, AppLauncher.Idle);
+        tryCompare(grid.currentItem, "activeFocus", true);
+    }
+
     function test_missingProgramShowsGrownUpScreen() {
         focusTile(2);
         keyClick(Qt.Key_Return);

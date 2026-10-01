@@ -25,6 +25,10 @@ private slots:
         QTest::newRow("terminal, app starting") << true << State::Starting << Answer::LeaveTerminal;
         QTest::newRow("failed from the tiles") << false << State::Failed << Answer::Dismiss;
         QTest::newRow("failed from the terminal") << true << State::Failed << Answer::Dismiss;
+        QTest::newRow("coming soon from the tiles")
+            << false << State::ComingSoon << Answer::Dismiss;
+        QTest::newRow("coming soon from the terminal")
+            << true << State::ComingSoon << Answer::Dismiss;
         QTest::newRow("window on its own") << false << State::Interrupted << Answer::Stay;
         QTest::newRow("window on its own, terminal behind")
             << true << State::Interrupted << Answer::Stay;
@@ -42,7 +46,7 @@ private slots:
     void theKioskNeverCloses() {
         for (const bool terminalOpen : {false, true}) {
             for (const State state : {State::Idle, State::Starting, State::Running, State::Failed,
-                                      State::Interrupted}) {
+                                      State::Interrupted, State::ComingSoon}) {
                 for (const bool logOutAsked : {false, true}) {
                     QVERIFY(CloseRequest::answer(true, terminalOpen, logOutAsked, state) !=
                             Answer::Close);

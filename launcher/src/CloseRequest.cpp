@@ -8,8 +8,10 @@ CloseRequest::Answer CloseRequest::answer(bool fullscreen, bool terminalOpen, bo
     if (!fullscreen) {
         return Answer::Close;
     }
-    // The grown-up screen is in front of everything else, so it answers first.
-    if (launcherState == AppLauncher::State::Failed) {
+    // The grown-up screen is in front of everything else, so it answers first;
+    // the coming-soon screen is the same screen and goes back the same way.
+    if (launcherState == AppLauncher::State::Failed ||
+        launcherState == AppLauncher::State::ComingSoon) {
         return Answer::Dismiss;
     }
     // The launcher never dismisses this screen; only the window closing does.

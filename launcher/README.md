@@ -110,8 +110,9 @@ writes `games`.
 An entry with any other category, no title or no `exec` list is left out,
 with one sentence in the terminal for the parent, and the rest still load.
 `exec` is the program and its arguments as a list; an empty list means
-nothing is set up for that tile yet, and launching it shows the grown-up
-screen.
+nothing is set up for that tile yet, and launching it says so: "Music is
+coming soon. It is not ready yet. Try something else.", with a Back tile.
+That is not a grown-up's job, so it does not say one is needed.
 Without `--manifest` the six built-in tiles appear, none of which launches
 anything.
 A manifest that cannot be read, or has no entry the launcher can use, is

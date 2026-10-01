@@ -25,12 +25,14 @@ private slots:
         QVERIFY(launcher.title().isEmpty());
     }
 
-    void emptyExecFailsAtOnce() {
+    // A tile with nothing set up yet says so and needs no grown-up.
+    void emptyExecIsComingSoonAtOnce() {
         AppLauncher launcher(this);
         const QSignalSpy states(&launcher, &AppLauncher::stateChanged);
-        launcher.launch(QStringLiteral("Draw"), {});
-        QCOMPARE(launcher.state(), AppLauncher::State::Failed);
-        QCOMPARE(launcher.title(), QStringLiteral("Draw"));
+        launcher.launch(QStringLiteral("Music"), {});
+        QCOMPARE(launcher.state(), AppLauncher::State::ComingSoon);
+        QVERIFY(!launcher.needsGrownUp());
+        QCOMPARE(launcher.title(), QStringLiteral("Music"));
         QCOMPARE(states.count(), 1);
     }
 
@@ -129,14 +131,28 @@ private slots:
         QTest::qWait(400);
     }
 
-    void dismissLeavesFailed() {
+    void dismissLeavesComingSoonAndFailed() {
         AppLauncher launcher(this);
-        launcher.launch(QStringLiteral("Draw"), {});
-        QCOMPARE(launcher.state(), AppLauncher::State::Failed);
+        launcher.launch(QStringLiteral("Music"), {});
+        QCOMPARE(launcher.state(), AppLauncher::State::ComingSoon);
+        launcher.dismiss();
+        QCOMPARE(launcher.state(), AppLauncher::State::Idle);
+        launcher.launch(QStringLiteral("Draw"), {QStringLiteral("/nonexistent/cairn-app")});
+        QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
         launcher.dismiss();
         QCOMPARE(launcher.state(), AppLauncher::State::Idle);
         launcher.dismiss();
         QCOMPARE(launcher.state(), AppLauncher::State::Idle);
+    }
+
+    // A hidden window changing says nothing about the coming-soon screen.
+    void comingSoonStaysUntilDismissed() {
+        AppLauncher launcher(this);
+        launcher.launch(QStringLiteral("Music"), {});
+        launcher.windowOpened(QStringLiteral("h1"), QStringLiteral("steam"),
+                              QStringLiteral("Steam"), true);
+        launcher.windowClosed(QStringLiteral("h1"));
+        QCOMPARE(launcher.state(), AppLauncher::State::ComingSoon);
     }
 
     // A window nobody launched, while the tiles are up, is a grown-up's job.
@@ -266,10 +282,10 @@ private slots:
         QCOMPARE(launcher.title(), QStringLiteral("Steam"));
     }
 
-    void windowAfterAFailedLaunchTakesOver() {
+    void windowAfterComingSoonTakesOver() {
         AppLauncher launcher(this);
         launcher.launch(QStringLiteral("Draw"), {});
-        QCOMPARE(launcher.state(), AppLauncher::State::Failed);
+        QCOMPARE(launcher.state(), AppLauncher::State::ComingSoon);
         launcher.windowOpened(QStringLiteral("w1"), QStringLiteral("steam"),
                               QStringLiteral("Steam"));
         QCOMPARE(launcher.state(), AppLauncher::State::Interrupted);
