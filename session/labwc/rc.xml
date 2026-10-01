@@ -56,6 +56,21 @@
     <keybind key="W-q" onRelease="yes">
       <action name="Close" />
     </keybind>
+    <!--
+      A laptop's volume keys (#43). labwc's own defaults bind them, but the
+      kiosk turns those off, so they are bound again here, through
+      PipeWire's wpctl. Volume stops at 100%, never louder than the speaker
+      was made for; a held key steps on, as it does anywhere else.
+    -->
+    <keybind key="XF86_AudioRaiseVolume">
+      <action name="Execute" command="wpctl set-volume --limit 1.0 @DEFAULT_AUDIO_SINK@ 5%+" />
+    </keybind>
+    <keybind key="XF86_AudioLowerVolume">
+      <action name="Execute" command="wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-" />
+    </keybind>
+    <keybind key="XF86_AudioMute">
+      <action name="Execute" command="wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle" />
+    </keybind>
   </keyboard>
 
   <!--

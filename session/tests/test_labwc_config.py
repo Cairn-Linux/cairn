@@ -95,15 +95,30 @@ class LabwcConfigTest(unittest.TestCase):
         # A held key would repeat the close 25 times a second.
         self.assertEqual(bind.get("onRelease"), "yes")
 
-    def test_only_the_two_ways_out_are_bound(self):
+    def test_only_the_ways_out_and_the_volume_keys_are_bound(self):
         # ADR-0018 and ADR-0019: Ctrl-Alt-Home for a grown-up, Super+Q for
-        # the child. Every other binding, Super alone included, does nothing.
+        # the child; and a laptop's volume keys (#43). Every other binding,
+        # Super alone included, does nothing.
         active = {
             k.get("key")
             for k in self.root.findall("./keyboard/keybind")
             if any(a.get("name") != "None" for a in k.findall("action"))
         }
-        self.assertEqual(active, {"C-A-Home", "W-q"})
+        self.assertEqual(
+            active,
+            {"C-A-Home", "W-q", "XF86_AudioRaiseVolume", "XF86_AudioLowerVolume", "XF86_AudioMute"},
+        )
+
+    def test_volume_keys_go_through_pipewire_and_stop_at_full(self):
+        keybinds = {k.get("key"): k for k in self.root.findall("./keyboard/keybind")}
+        commands = {
+            key: keybinds[key].find("action").get("command")
+            for key in ("XF86_AudioRaiseVolume", "XF86_AudioLowerVolume", "XF86_AudioMute")
+        }
+        for command in commands.values():
+            self.assertTrue(command.startswith("wpctl "), command)
+            self.assertIn("@DEFAULT_AUDIO_SINK@", command)
+        self.assertIn("--limit 1.0", commands["XF86_AudioRaiseVolume"])
 
     def test_the_power_button_is_a_tap_to_ignore_and_a_hold_to_power_off(self):
         # ADR-0018, in logind's hands rather than the compositor's.
