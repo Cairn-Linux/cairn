@@ -115,8 +115,9 @@ screen.
 Without `--manifest` the six built-in tiles appear, none of which launches
 anything.
 A manifest that cannot be read, or has no entry the launcher can use, is
-reported in the terminal for the parent, and the child sees the built-in
-tiles.
+reported for the parent, and the child sees the built-in tiles.
+Under a terminal that report is on its screen; in the kiosk, everything the
+launcher reports is in the journal, `journalctl -t cairn-launcher` (#122).
 To put a parent's games on the tiles, run `tools/kidscan` as the child and
 copy its entries into the manifest; the round trip is tested
 (`tst_kidscanmanifest`, #97).

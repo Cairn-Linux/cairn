@@ -167,6 +167,48 @@ class LevelGroupTest(unittest.TestCase):
         self.assertEqual(calls, "")
 
 
+def launcher_wrapper():
+    """The wrapper install_launcher writes, as the file it installs."""
+    text = SCRIPT.read_text()
+    start = text.index("<<'WRAPPER'\n") + len("<<'WRAPPER'\n")
+    return text[start:text.index("\nWRAPPER\n", start) + 1]
+
+
+class LauncherWrapperTest(unittest.TestCase):
+    # The launcher's notes for a grown-up go to the journal under their own
+    # name (#122), with every option the kiosk needs and any it is given.
+    def test_starts_the_launcher_under_its_own_journal_name(self):
+        with tempfile.TemporaryDirectory() as work:
+            wrapper = pathlib.Path(work, "cairn-launcher")
+            wrapper.write_text(launcher_wrapper())
+            stub = pathlib.Path(work, "systemd-cat")
+            stub.write_text('#!/bin/sh\necho "systemd-cat $*"\n')
+            stub.chmod(0o755)
+            result = subprocess.run(
+                ["bash", str(wrapper), "--extra"],
+                env={"PATH": f"{work}:/usr/bin:/bin"},
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            result.stdout.strip(),
+            "systemd-cat --identifier=cairn-launcher /usr/local/libexec/cairn/cairn-launcher"
+            " --manifest /usr/local/share/cairn/manifest.json"
+            " --log-out /usr/local/bin/cairn-log-out --scope-apps --start-steam --extra",
+        )
+
+    def test_no_journal_still_starts_the_launcher(self):
+        # The fallback runs the launcher itself, after the journal is tried.
+        lines = launcher_wrapper().splitlines()
+        self.assertEqual(lines[-1], 'exec "${launcher[@]}"')
+        self.assertLess(
+            next(i for i, line in enumerate(lines) if "systemd-cat --identifier=cairn-launcher true" in line),
+            len(lines) - 1,
+        )
+
+
 class InstallFileTest(unittest.TestCase):
     def install(self, make_source):
         with tempfile.TemporaryDirectory() as work:

@@ -57,7 +57,19 @@ What it leaves on the machine:
 | `/etc/sddm.conf.d/`, `/etc/pam.d/sddm` | Only Cairn's session directory offered, the Cairn theme, no autologin, and the greeter-only passwordless rule for L1 and L2. A `20-cairn-guardians.conf` from an earlier run, which hid the Guardians, is removed (ADR-0020) |
 | `/usr/local/share/cairn/sddm/themes/cairn/`, `/usr/local/lib64/cairn/qml/` | The login screen from `../greeter/theme/`, and the `Cairn.Brand` and `Cairn.Greeter` QML modules it imports (ADR-0020) |
 | `/etc/security/faillock.conf`, `/var/lib/faillock` | A lockout after wrong passwords for every account that has one: `authselect`'s `with-faillock`, with its count kept where a reboot does not clear it, and an SELinux rule labelling that directory `faillog_t` (ADR-0020) |
-| `/usr/local/bin/cairn-launcher` | Wrapper that runs the release launcher from `/usr/local/libexec/cairn` with the manifest in `/usr/local/share/cairn/manifest.json` and `--log-out /usr/local/bin/cairn-log-out`, which gives the tiles a Log out button, `--scope-apps`, which starts each program in a scope the give-up key can end (ADR-0025), and `--start-steam`, which starts the Steam client at login for a child with a Steam tile (ADR-0027). Its Draw tile runs Tux Paint with `--autosave --saveovernew`, so a child who leaves with Super+Q never loses a picture (ADR-0019) |
+| `/usr/local/bin/cairn-launcher` | Wrapper that runs the release launcher from `/usr/local/libexec/cairn` with the manifest in `/usr/local/share/cairn/manifest.json` and `--log-out /usr/local/bin/cairn-log-out`, which gives the tiles a Log out button, `--scope-apps`, which starts each program in a scope the give-up key can end (ADR-0025), and `--start-steam`, which starts the Steam client at login for a child with a Steam tile (ADR-0027). The launcher writes to the journal under `cairn-launcher` (#122). Its Draw tile runs Tux Paint with `--autosave --saveovernew`, so a child who leaves with Super+Q never loses a picture (ADR-0019) |
+
+When something needed a grown-up, the reason is in the journal, kept
+across logins. From the Guardian's account, no sudo needed:
+
+```sh
+journalctl -t cairn-launcher --since today   # what the launcher noticed
+journalctl -t cairn-kiosk --since today      # the kiosk, give-up and Log out
+```
+
+The launcher's lines include what the child's apps printed. Before #122 all
+of it went to the child's own `~/.cache/wayland-errors`, which SDDM replaces
+at every login.
 
 Not yet: a picture for the child's tile (ADR-0020 leaves it for later) and
 a `logind.conf` key for the lid. Re-running the script puts back the

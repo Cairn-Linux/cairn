@@ -329,8 +329,14 @@ install_launcher() {
 # SPDX-License-Identifier: Apache-2.0
 # Installed by provision/cairn-provision.sh; not the Phase 1 packaging.
 export LD_LIBRARY_PATH=/usr/local/lib64/cairn
-exec /usr/local/libexec/cairn/cairn-launcher --manifest /usr/local/share/cairn/manifest.json \
-    --log-out /usr/local/bin/cairn-log-out --scope-apps --start-steam "$@"
+launcher=(/usr/local/libexec/cairn/cairn-launcher --manifest /usr/local/share/cairn/manifest.json
+    --log-out /usr/local/bin/cairn-log-out --scope-apps --start-steam "$@")
+# The launcher's notes for a grown-up go to the journal under their own name
+# (#122): journalctl -t cairn-launcher. No journal must never mean no tiles.
+if systemd-cat --identifier=cairn-launcher true > /dev/null 2>&1; then
+    exec systemd-cat --identifier=cairn-launcher "${launcher[@]}"
+fi
+exec "${launcher[@]}"
 WRAPPER
     install_file 755 "$wrapper" "$PREFIX/bin/cairn-launcher"
     rm "$wrapper"

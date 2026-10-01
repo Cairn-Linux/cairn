@@ -179,6 +179,13 @@ done, and what could sink it. Decisions that change the design get an ADR in
   a child in no group, and refuses to make an existing child the Guardian.
   Accounts made in System Settings still get Plasma until the Guardian
   tool owns family accounts (#113).
+- **The kiosk's notes reach the journal (2026-10-01, #122).** Everything
+  the kiosk printed, the launcher's notes for a grown-up included, went to
+  the child's own `~/.cache/wayland-errors`, which SDDM replaces at every
+  login. `cairn-session` now starts labwc under `systemd-cat` as
+  `cairn-kiosk` and the launcher's wrapper starts it as `cairn-launcher`,
+  so a Guardian reads them with `journalctl -t cairn-launcher` after the
+  child has logged in again. Checked in the VM.
 - **ADR-0027 (2026-10-01, #119): Steam starts at login for a child with a
   Steam tile.** The launcher starts the client in the background as its own
   service when a tile runs `steam -applaunch`, so the first game starts in

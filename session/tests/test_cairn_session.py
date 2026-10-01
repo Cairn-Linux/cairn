@@ -4,8 +4,9 @@
 picks for each level group (ADR-0012).
 
 Standard library only. The stand-ins are tiny shell scripts: `id` prints
-the groups a test asks for, and `labwc`, `startplasma-wayland` and
-`systemctl` print their name and arguments instead of starting anything.
+the groups a test asks for, and `labwc`, `startplasma-wayland`, `systemctl`
+and `systemd-cat` print their name and arguments instead of starting
+anything.
 """
 
 import os
@@ -17,13 +18,14 @@ import unittest
 DISPATCHER = pathlib.Path(__file__).resolve().parent.parent / "bin" / "cairn-session"
 
 
-def run_dispatcher(groups, systemctl_fails=False):
+def run_dispatcher(groups, systemctl_fails=False, journal_missing=False):
     with tempfile.TemporaryDirectory() as bin_dir:
         stubs = {
             "id": f'#!/bin/sh\necho "{groups}"\n',
             "labwc": '#!/bin/sh\necho "labwc $*"\n',
             "startplasma-wayland": '#!/bin/sh\necho "startplasma-wayland $*"\n',
             "systemctl": f'#!/bin/sh\necho "systemctl $*"\nexit {1 if systemctl_fails else 0}\n',
+            "systemd-cat": f'#!/bin/sh\necho "systemd-cat $*"\nexit {1 if journal_missing else 0}\n',
         }
         for name, body in stubs.items():
             stub = pathlib.Path(bin_dir, name)
@@ -39,7 +41,8 @@ def run_dispatcher(groups, systemctl_fails=False):
         return result.returncode, lines[-1] if lines else "", lines[:-1]
 
 
-KIOSK = "labwc -C /kiosk -S cairn-launcher"
+# Everything the kiosk prints goes to the journal (#122).
+KIOSK = "systemd-cat --identifier=cairn-kiosk labwc -C /kiosk -S cairn-launcher"
 AUDIO = "systemctl --user start pipewire-pulse.service"
 
 
@@ -52,6 +55,14 @@ class CairnSessionTest(unittest.TestCase):
                 self.assertEqual(code, 0)
                 self.assertEqual(out, KIOSK)
                 self.assertEqual(before, [AUDIO])
+
+    def test_no_journal_still_logs_the_child_in(self):
+        # Without a journal to write to, the kiosk starts as it always did and
+        # its output goes where SDDM sends it.
+        code, out, before = run_dispatcher("ada cairn-l1", journal_missing=True)
+        self.assertEqual(code, 0)
+        self.assertEqual(out, "labwc -C /kiosk -S cairn-launcher")
+        self.assertEqual(before, [AUDIO])
 
     def test_no_sound_still_logs_the_child_in(self):
         code, out, before = run_dispatcher("ada cairn-l1", systemctl_fails=True)
@@ -69,12 +80,12 @@ class CairnSessionTest(unittest.TestCase):
     def test_l1_gets_the_kiosk_with_the_launcher(self):
         code, out, _ = run_dispatcher("ada cairn-l1")
         self.assertEqual(code, 0)
-        self.assertEqual(out, "labwc -C /kiosk -S cairn-launcher")
+        self.assertEqual(out, KIOSK)
 
     def test_l2_gets_the_kiosk_too(self):
         code, out, _ = run_dispatcher("ben cairn-l2")
         self.assertEqual(code, 0)
-        self.assertEqual(out, "labwc -C /kiosk -S cairn-launcher")
+        self.assertEqual(out, KIOSK)
 
     def test_l3_l4_and_guardian_get_plasma(self):
         for groups in ("cat cairn-l3", "dan cairn-l4", "guardian wheel cairn-guardian"):
@@ -106,7 +117,7 @@ class CairnSessionTest(unittest.TestCase):
     def test_two_level_groups_means_the_more_restricted_one(self):
         code, out, _ = run_dispatcher("odd cairn-l3 cairn-l1")
         self.assertEqual(code, 0)
-        self.assertEqual(out, "labwc -C /kiosk -S cairn-launcher")
+        self.assertEqual(out, KIOSK)
 
     def test_a_group_name_must_match_whole(self):
         # "cairn-l1x" or "xcairn-l1" is not the L1 group.
