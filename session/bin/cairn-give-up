@@ -9,21 +9,42 @@
 # cairn-app-*.scope (ADR-0025, #98), so ending those scopes ends a native
 # program such as ScummVM and everything it started. A Flatpak app and a Steam
 # game leave that scope for their own: a Flatpak app is a tree under `bwrap`, a
-# Steam game a tree under Steam's `reaper`, so those roots are matched too. The
-# launcher, the compositor, the terminal and the session's own services are
-# none of these, so nothing of ours is touched. A stopped process cannot act on
-# a signal until it is continued, so every process is sent SIGCONT before the
-# kill; that is what reaches an app frozen hard enough to ignore everything
-# else.
+# Steam game a tree under Steam's `reaper`, so those are found too. The
+# launcher, the compositor, the terminal, the session's own services and the
+# Steam client are none of these, so nothing of ours is touched. A stopped
+# process cannot act on a signal until it is continued, so every process is
+# sent SIGCONT before the kill; that is what reaches an app frozen hard enough
+# to ignore everything else.
 set -ouex pipefail
 
 # The one child session this runs in; never another user's.
 me="$(id -u)"
 
-# The sandbox roots. A Flatpak app roots at bwrap; a Steam game at reaper,
-# with pressure-vessel and its own bwrap below. The Steam client itself uses
-# neither, so it stays resident (DESIGN §8.3).
-pattern='bwrap|reaper SteamLaunch'
+# A Flatpak app roots at a process called exactly `bwrap`. Steam's own
+# interface runs in a sandbox called `srt-bwrap`, so the name is matched
+# whole, never as part of a command line (#117).
+flatpak_root='bwrap'
+
+# A Steam game roots at Steam's reaper: a process called exactly `reaper`
+# started with the argument `SteamLaunch`. Both are checked, because the
+# reaper's children are ended too and a command line that only mentions
+# those words must never count. The game runs in the container the reaper
+# starts. That container is an `srt-bwrap` like Steam's interface, but only
+# a game's has a reaper for a parent, so it is found as a reaper's child,
+# never by its name (#117). All are found now, before anything is
+# signalled: once a reaper has gone, its children move to another parent.
+mapfile -t named_reaper < <(pgrep --uid "$me" --exact reaper || true)
+reapers=()
+for pid in "${named_reaper[@]}"; do
+    if grep --quiet --line-regexp --null-data SteamLaunch "/proc/$pid/cmdline" 2> /dev/null; then
+        reapers+=("$pid")
+    fi
+done
+containers=()
+for reaper in "${reapers[@]}"; do
+    mapfile -t -O "${#containers[@]}" containers < <(pgrep --uid "$me" --parent "$reaper" || true)
+done
+games=("${containers[@]}" "${reapers[@]}")
 
 # The launcher's scopes, in this user's own systemd. The tests name their own.
 units="${CAIRN_APP_UNITS:-cairn-app-*.scope}"
@@ -33,12 +54,15 @@ told="${CAIRN_GIVE_UP_FILE:-${XDG_RUNTIME_DIR:-/nonexistent}/cairn/give-up}"
 
 # SIGCONT so a stopped process can receive what follows; SIGTERM as a courtesy
 # in case the app wants to flush; SIGKILL after a moment for anything left.
-pkill --uid "$me" --full "$pattern" --signal CONT || true
+pkill --uid "$me" --exact "$flatpak_root" --signal CONT || true
+[ "${#games[@]}" -eq 0 ] || kill -s CONT "${games[@]}" 2> /dev/null || true
 systemctl --user kill --signal CONT "$units" || true
-pkill --uid "$me" --full "$pattern" --signal TERM || true
+pkill --uid "$me" --exact "$flatpak_root" --signal TERM || true
+[ "${#games[@]}" -eq 0 ] || kill -s TERM "${games[@]}" 2> /dev/null || true
 systemctl --user kill --signal TERM "$units" || true
 sleep 2
-pkill --uid "$me" --full "$pattern" --signal KILL || true
+pkill --uid "$me" --exact "$flatpak_root" --signal KILL || true
+[ "${#games[@]}" -eq 0 ] || kill -s KILL "${games[@]}" 2> /dev/null || true
 systemctl --user kill --signal KILL "$units" || true
 
 # Then tell the launcher, so the tiles come back even if a window it was

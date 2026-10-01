@@ -174,7 +174,7 @@ the rules intend, but the launcher of the time counted it:
 |---|---|---|
 | Main window forced while a game runs, then the game left with Super+Q | The launcher took the hidden window for part of the game and kept waiting for it: Enter on two tiles did nothing for 20 s each; only Log out worked. `steam -shutdown` freed it. | One Enter started the game again, the hidden window still open. |
 | A new Steam window at the tiles | "Something needs a grown-up. Steam opened on its own." with no buttons; Escape, Super+Q and Enter did nothing; the window, hidden, never closes. | No grown-up screen ("Friends List", hidden); the tiles still worked. |
-| Ctrl-Alt-Home | Cleared the stuck screen only by accident: give-up's `bwrap` match caught Steam's web helper in its `srt-bwrap` sandbox and ended Steam's interface (#117). | Ended the game, then wrote `$XDG_RUNTIME_DIR/cairn/give-up`; the launcher went back to the tiles and the next launch worked. |
+| Ctrl-Alt-Home | Cleared the stuck screen only by accident: give-up's `bwrap` match caught Steam's web helper in its `srt-bwrap` sandbox and ended Steam's interface (#117, since fixed; `kiosk-containment.md`). | Ended the game, then wrote `$XDG_RUNTIME_DIR/cairn/give-up`; the launcher went back to the tiles and the next launch worked. |
 
 Two more things the run showed. ScummVM runs under XWayland here (class
 `scummvm`). And `flatpak run` does not exit early: it becomes the app's

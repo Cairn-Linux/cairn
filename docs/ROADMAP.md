@@ -179,6 +179,14 @@ done, and what could sink it. Decisions that change the design get an ADR in
   a child in no group, and refuses to make an existing child the Guardian.
   Accounts made in System Settings still get Plasma until the Guardian
   tool owns family accounts (#113).
+- **Give-up spares Steam's interface again (2026-10-01, #117).** A Steam
+  update moved Steam's own interface into a sandbox called `srt-bwrap`,
+  which the give-up key's `bwrap` match caught. Flatpak's sandbox is now
+  matched by its whole name, and a Steam game's container is found as the
+  child of its `reaper`. Checked in the VM: a frozen Steam game and a
+  frozen Tux Paint end, and Steam's interface stays up. A new test runs the
+  real helper in a PID namespace of its own, so it can never touch a real
+  app on the machine running it.
 - **ADR-0026 (2026-10-01, #99): what counts as the app's window.** In the
   VM a hidden Steam window could stop the tiles working after a game, or
   hold a grown-up screen nothing could clear. The launcher now reads the

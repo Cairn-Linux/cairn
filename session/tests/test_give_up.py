@@ -34,16 +34,25 @@ class GiveUpHelperTest(unittest.TestCase):
         # Flatpak app; reaper is every Steam game. The launcher, the
         # compositor and the Steam client are none of these.
         self.assertIn("cairn-app-*.scope", self.text)
-        self.assertIn("bwrap", self.text)
-        self.assertIn("reaper SteamLaunch", self.text)
+        self.assertIn("flatpak_root='bwrap'", self.text)
+        self.assertIn("pgrep --uid \"$me\" --exact reaper", self.text)
+        self.assertIn("SteamLaunch", self.text)
         for safe in ("cairn-launcher", "labwc", "steamwebhelper", "pipewire"):
             self.assertNotIn(safe, self.text, f"{safe} must never be a target")
+
+    def test_flatpaks_sandbox_is_matched_by_its_whole_name(self):
+        # Steam's interface runs in srt-bwrap, which a match inside a command
+        # line would catch (#117).
+        for line in self.text.splitlines():
+            if line.startswith("pkill") and "flatpak_root" in line:
+                self.assertIn("--exact", line)
+        self.assertIsNone(re.search(r"--full[^\n]*bwrap", self.text))
 
     def test_continues_a_stopped_process_before_killing_it(self):
         # A stopped process cannot act on TERM or KILL until it is continued,
         # so every CONT comes first, and every KILL after every TERM.
-        order = [m.group(1) for m in re.finditer(r"--signal (CONT|TERM|KILL)", self.text)]
-        self.assertEqual(order, ["CONT", "CONT", "TERM", "TERM", "KILL", "KILL"])
+        order = [m.group(1) for m in re.finditer(r"(?:--signal|kill -s) (CONT|TERM|KILL)", self.text)]
+        self.assertEqual(order, ["CONT"] * 3 + ["TERM"] * 3 + ["KILL"] * 3)
 
     def test_tells_the_launcher_last(self):
         # The launcher goes back to the tiles when this file changes
@@ -91,10 +100,82 @@ def state(pid):
     return ""
 
 
+def private_pid_namespace_available():
+    try:
+        result = subprocess.run(
+            ["unshare", "--user", "--map-root-user", "--pid", "--fork", "--mount-proc", "true"],
+            capture_output=True,
+            timeout=10,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return result.returncode == 0
+
+
+# Runs inside a PID namespace of its own, where pkill and pgrep see only the
+# stand-ins below, never a real app on the machine running the test. Prints
+# each stand-in's name and whether it is still running.
+SANDBOXES = r"""
+set -u
+here="$1"
+cp /usr/bin/sleep "$here/bwrap"
+cp /usr/bin/sleep "$here/srt-bwrap"
+# A stand-in for Steam's reaper: a script called reaper, started with the
+# arguments Steam gives it. It starts the game's container, an srt-bwrap,
+# and waits for it.
+printf '#!/bin/bash\n"$(dirname "$0")/srt-bwrap" 300 &\nwait\n' > "$here/reaper"
+chmod +x "$here/reaper"
+"$here/bwrap" 300 &
+flatpak=$!
+"$here/srt-bwrap" 300 &
+steam_ui=$!
+"$here/reaper" SteamLaunch AppId=1 &
+reaper=$!
+# Only mentions the words; it is called sleep, not reaper, so it is no game.
+bash -c 'exec -a "reaper SteamLaunch AppId=2" sleep 300' &
+mention=$!
+game=""
+for _ in $(seq 50); do
+    game=$(pgrep --parent "$reaper") && break
+    sleep 0.1
+done
+[ -n "$game" ] || { echo "no game started" >&2; exit 1; }
+kill -s STOP "$game"
+CAIRN_GIVE_UP_FILE=/nonexistent CAIRN_APP_UNITS=none "$2" > /dev/null 2>&1
+sleep 0.5
+for name in flatpak steam_ui mention reaper game; do
+    pid=${!name}
+    state=$(awk '{print $3}' "/proc/$pid/stat" 2> /dev/null || echo gone)
+    if [ "$state" = gone ] || [ "$state" = Z ]; then echo "$name gone"; else echo "$name running"; fi
+done
+"""
+
+
+@unittest.skipUnless(private_pid_namespace_available(), "needs unprivileged user and PID namespaces")
+class GiveUpSparesSteamsInterfaceTest(unittest.TestCase):
+    def test_ends_flatpak_apps_and_steam_games_but_not_steams_interface(self):
+        with tempfile.TemporaryDirectory() as here:
+            result = subprocess.run(
+                ["unshare", "--user", "--map-root-user", "--pid", "--fork", "--mount-proc",
+                 "bash", "-c", SANDBOXES, "sandboxes", here, str(HELPER)],
+                capture_output=True,
+                text=True,
+                timeout=60,
+                check=False,
+            )
+        states = dict(line.split() for line in result.stdout.splitlines())
+        self.assertEqual(
+            states,
+            {"flatpak": "gone", "steam_ui": "running", "mention": "running", "reaper": "gone", "game": "gone"},
+            result.stderr,
+        )
+
+
 class GiveUpWithNoLauncherTest(unittest.TestCase):
     def test_makes_no_file_when_no_launcher_listens(self):
         with tempfile.TemporaryDirectory() as bin_dir:
-            for name in ("pkill", "systemctl"):
+            for name in ("pkill", "pgrep", "systemctl"):
                 stub = pathlib.Path(bin_dir, name)
                 stub.write_text("#!/bin/sh\nexit 1\n")
                 stub.chmod(0o755)
@@ -112,11 +193,13 @@ class GiveUpEndsAScopedProgramTest(unittest.TestCase):
     def test_a_frozen_native_program_ends_and_everything_else_stays(self):
         tag = f"cairn-test-{os.getpid()}-{uuid.uuid4().hex[:8]}"
         with tempfile.TemporaryDirectory() as bin_dir:
-            # The sandbox roots on the machine running the test are someone's
-            # real apps, so pkill is a stand-in that matches nothing.
-            stub = pathlib.Path(bin_dir, "pkill")
-            stub.write_text("#!/bin/sh\nexit 1\n")
-            stub.chmod(0o755)
+            # The sandbox roots and Steam games on the machine running the test
+            # are someone's real apps, so pkill and pgrep are stand-ins that
+            # find nothing.
+            for name in ("pkill", "pgrep"):
+                stub = pathlib.Path(bin_dir, name)
+                stub.write_text("#!/bin/sh\nexit 1\n")
+                stub.chmod(0o755)
             # A native program as the launcher starts it, and a program in no
             # scope of ours standing in for the frame.
             app = subprocess.Popen(
