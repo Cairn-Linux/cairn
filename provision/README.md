@@ -11,7 +11,7 @@ with a real child **before** any image, ISO or CI exists (DESIGN §13 Phase 0).
 cmake --preset release && cmake --build --preset release   # on the dev PC
 rsync -a --exclude build/debug --exclude .git . cairn-min:cairn/
 ssh cairn-min                                                # then, in the VM
-cd cairn && sudo ./provision/cairn-provision.sh --guardian guardian --child ada
+cd cairn && sudo ./provision/cairn-provision.sh --guardian guardian --child ada --child ben:2
 ```
 
 When the script creates the Guardian and runs at a terminal, it runs
@@ -45,7 +45,7 @@ What it leaves on the machine:
 | `/var/lib/cairn/facts.txt` | What the stock system shipped: image id, display manager, sddm and greetd presence |
 | groups `cairn-l1` … `cairn-guardian` | System groups, one per level (ADR-0011) |
 | the Guardian account | In `wheel` and `cairn-guardian`, password from the environment or set later |
-| the child account | In `cairn-l1`, password locked: the greeter lets an L1 child in, `su` and `ssh` do not (#35) |
+| each child's account | One per `--child`, in `cairn-l1`, or `cairn-l2` when the name ends `:2`; password locked: the greeter lets an L1 or L2 child in, `su` and `ssh` do not (#35). Today L2 gets the same kiosk and tiles as L1 |
 | labwc, ScummVM | Layered into the OS; Tux Paint and GCompris as system Flatpaks |
 | `atkinson-hyperlegible-next-fonts`, `atkinson-hyperlegible-mono-fonts` | Layered: the brand's typefaces for the login screen, the launcher and the Terminal (DESIGN §6.2), which the Bazzite image does not carry |
 | `/usr/local/share/cairn/labwc/` | The kiosk configuration from `../session/labwc/` |
