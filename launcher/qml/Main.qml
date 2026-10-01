@@ -260,12 +260,14 @@ Window {
         noteColor: Tokens.paper
         makeColor: Tokens.make
         practiceColor: Tokens.practice
+        gamesColor: Tokens.games
         machineColor: Tokens.fjord
         fontFamily: Tokens.fontFamilyMono
         fontSize: Tokens.terminalSize
         lineHeight: Tokens.terminalLineHeight
         margin: Tokens.headingSize
         chipRadius: Tokens.radiusSm / 2
+        chipLineWidth: Tokens.strokeHairline
     }
 
     LogOutScreen {

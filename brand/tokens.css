@@ -28,10 +28,15 @@
   /* kind — colour codes what a tile does, never which app it is */
   --cairn-make:        var(--cairn-ochre);
   --cairn-practice:    var(--cairn-moss);
+  --cairn-games:       var(--cairn-paper);
   --cairn-machine:     var(--cairn-fjord);
+  /* a games tile is a quiet card, so it carries a hairline edge */
+  --cairn-games-edge:  var(--cairn-line);
+  --cairn-stroke-hairline: 2px;
   /* label colour pairs and their measured contrast ratios */
   --cairn-on-make:     var(--cairn-ink);   /* 5.69:1 */
   --cairn-on-practice: var(--cairn-ink);   /* 4.01:1 */
+  --cairn-on-games:    var(--cairn-ink);   /* 12.37:1 */
   --cairn-on-machine:  var(--cairn-sand);  /* 5.77:1 */
   --cairn-on-ink:      var(--cairn-sand);  /* 11.36:1 */
   --cairn-on-sand:     var(--cairn-ink);   /* 11.36:1 */

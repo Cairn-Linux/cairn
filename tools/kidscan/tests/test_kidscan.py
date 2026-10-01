@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """Tests for kidscan against a synthetic Steam library. Standard library only.
 
 Run:  python3 tools/kidscan/tests/test_kidscan.py
@@ -30,6 +31,33 @@ def acf(appid, name, installdir):
         \t"installdir"\t\t"{installdir}"
         }}
         ''')
+
+
+def write_fake_scummvm(path):
+    """A stand-in for `scummvm --detect --path=<dir>` that knows Freddi Fish 1."""
+    path.write_text(textwrap.dedent('''\
+        #!/bin/sh
+        # Mimics `scummvm --detect --path=<dir>`: a three-column table where a
+        # long description runs into the Full Path column with one space.
+        # Like the real binary, it refuses to start without a video device.
+        if [ "$SDL_VIDEODRIVER" != dummy ]; then
+          echo "Could not initialize SDL: No available video device!" >&2
+          exit 1
+        fi
+        p=""
+        for a in "$@"; do case "$a" in --path=*) p="${a#--path=}";; esac; done
+        case "$p" in
+          *"Freddi Fish 1")
+            echo "GameID                         Description                                        Full Path"
+            echo "------------------------------ -------------------------------------------------- ---------"
+            echo "scumm:freddi                   Freddi Fish and the Case of the Missing Kelp Seeds $p"
+            echo "scumm:freddi-demo              Freddi Fish (Demo)                                 $p/demo"
+            ;;
+          *) exit 0 ;;
+        esac
+        '''))
+    path.chmod(path.stat().st_mode | stat.S_IEXEC)
+    return path
 
 
 class FakeLibrary:
@@ -138,43 +166,26 @@ class KidscanTests(unittest.TestCase):
         portal = next(e for e in entries if e["title"] == "Portal")
         self.assertEqual(portal["exec"], ["steam", "-applaunch", "400"])
         self.assertEqual(portal["category"], "puzzle")
+        portal_2 = next(e for e in entries if e["title"] == "Portal 2")
+        self.assertEqual(portal_2["category"], "games")
         self.assertTrue(portal["needs_steam_running"])
         self.assertTrue(all(e["engine"] == "steam" for e in entries))
 
     def test_scummvm_detect_parses_table_and_yields_one_tile_per_target(self):
-        fake = self.base / "scummvm"
-        fake.write_text(textwrap.dedent('''\
-            #!/bin/sh
-            # Mimics `scummvm --detect --path=<dir>`: a three-column table where a
-            # long description runs into the Full Path column with one space.
-            # Like the real binary, it refuses to start without a video device.
-            if [ "$SDL_VIDEODRIVER" != dummy ]; then
-              echo "Could not initialize SDL: No available video device!" >&2
-              exit 1
-            fi
-            p=""
-            for a in "$@"; do case "$a" in --path=*) p="${a#--path=}";; esac; done
-            case "$p" in
-              *"Freddi Fish 1")
-                echo "GameID                         Description                                        Full Path"
-                echo "------------------------------ -------------------------------------------------- ---------"
-                echo "scumm:freddi                   Freddi Fish and the Case of the Missing Kelp Seeds $p"
-                echo "scumm:freddi-demo              Freddi Fish (Demo)                                 $p/demo"
-                ;;
-              *) exit 0 ;;
-            esac
-            '''))
-        fake.chmod(fake.stat().st_mode | stat.S_IEXEC)
+        fake = write_fake_scummvm(self.base / "scummvm")
+        freddi = self.lib.root / "steamapps" / "common" / "Freddi Fish 1"
 
-        found = kidscan.scummvm_detect(self.lib.root / "steamapps" / "common" / "Freddi Fish 1", str(fake))
+        found = kidscan.scummvm_detect(freddi, str(fake))
         self.assertEqual([t for t, _ in found], ["scumm:freddi", "scumm:freddi-demo"])
 
         entries = kidscan.build_entries([self.lib.root], str(fake), {})
         native = {e["exec"][-1]: e for e in entries if e["engine"] == "scummvm"}
         self.assertEqual(set(native), {"scumm:freddi", "scumm:freddi-demo"})
         full = native["scumm:freddi"]
-        self.assertEqual(full["exec"][0], str(fake))
-        self.assertIn("--fullscreen", full["exec"])
+        # The whole argv: ScummVM on Linux exits at once on an option it does
+        # not know, such as the Windows-only --no-console (#97).
+        self.assertEqual(full["exec"], [str(fake), "--fullscreen", f"--path={freddi}", "scumm:freddi"])
+        self.assertEqual(full["category"], "games")
         self.assertFalse(full["needs_steam_running"])
         self.assertEqual(full["source"], {"store": "steam", "appid": "294660"})
         # Multiple detections in one Steam app use the detected description as the title,
@@ -204,7 +215,7 @@ class KidscanTests(unittest.TestCase):
     def test_write_desktop_files_quotes_paths_with_spaces(self):
         outdir = self.base / "apps"
         entry = {
-            "id": "freddi", "title": "Freddi Fish", "category": "play", "engine": "scummvm",
+            "id": "freddi", "title": "Freddi Fish", "category": "games", "engine": "scummvm",
             "exec": ["/usr/bin/scummvm", "--path=/games/Freddi Fish 1", "scumm:freddi"],
         }
         written = kidscan.write_desktop_files([entry], outdir)

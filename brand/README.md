@@ -19,7 +19,10 @@ guideline (a design canvas, v0.1); this directory is what programs import.
 ## Rules that code must keep
 
 - **Colour codes kind, never app.** Ochre = make, moss = practice,
-  fjord = machine. Use `--cairn-make` etc., not the raw hue names, in UI.
+  paper = games, fjord = machine. Use `--cairn-make` etc., not the raw hue
+  names, in UI. A games tile is a quiet card, so it carries a hairline edge
+  (`--cairn-games-edge`, `--cairn-stroke-hairline`) and no colour of its own
+  (ADR-0024).
 - **Label colour follows the tokens.** `--cairn-on-practice` is Ink, not
   Sand. Ink on Moss measures 4.01:1; Sand on Moss measures 2.83:1, below
   the project's 3:1 label minimum. The tokens correct the v0.1 sketch.

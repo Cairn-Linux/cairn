@@ -448,7 +448,9 @@ The launcher **is the product.** Everything else is packaging.
   appears, including approved Steam titles. L2 adds a small dock with a
   files view.
 - Log out above the tiles, always in view (ADR-0021).
-- Colour groups by *kind* (make / practice / machine), not one colour per app.
+- Colour groups by *kind* (make / practice / games / machine), not one colour
+  per app. Games are quiet Paper cards with a hairline edge, so making stays
+  the loudest thing in the grid (ADR-0024).
 
 ### 6.2 Visual direction
 
@@ -625,6 +627,8 @@ Flatpak path, parses `libraryfolders.vdf` for secondary drives, reads every
 `appmanifest_*.acf`, runs `scummvm --detect` per install directory, and emits a
 launcher-agnostic JSON manifest plus optional `.desktop` files. Titles ScummVM
 recognises get native launch commands; everything else routes through Steam.
+Every title is a `games` tile unless a Guardian says otherwise (ADR-0024),
+and the launcher reads kidscan's output as it stands.
 Filters out Proton, Steam Linux Runtimes, and Steamworks Redistributables so
 they don't appear as games.
 

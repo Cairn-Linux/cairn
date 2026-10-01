@@ -26,7 +26,7 @@ Prototype imported 2026-09-03 (issue #7). No GUI yet; that is Phase 3.
 ./kidscan.py --no-scummvm
 
 # Assign categories by appid (a parent never does this by hand; the Phase 3 GUI will)
-./kidscan.py --categories categories.json   # {"294660": "play"}
+./kidscan.py --categories categories.json   # {"294660": "games"}
 ```
 
 Exit status 2 means no Steam installation was found.
@@ -62,9 +62,9 @@ Exit status 2 means no Steam installation was found.
     {
       "id": "freddi-fish-scumm-freddi",
       "title": "Freddi Fish and the Case of the Missing Kelp Seeds",
-      "category": "play",
+      "category": "games",
       "engine": "scummvm",
-      "exec": ["/usr/bin/scummvm", "--fullscreen", "--no-console", "--path=/…/Freddi Fish", "scumm:freddi"],
+      "exec": ["/usr/bin/scummvm", "--fullscreen", "--path=/…/Freddi Fish", "scumm:freddi"],
       "source": {"store": "steam", "appid": "294660"},
       "needs_steam_running": false
     }
@@ -74,8 +74,10 @@ Exit status 2 means no Steam installation was found.
 
 `engine` is `scummvm` or `steam`. `needs_steam_running` tells the launcher
 whether the silent Steam client (DESIGN §8.3) must be up before this tile can
-launch. `category` defaults to `play`; the launcher maps it to a tile colour
-by kind (games are neutral Paper tiles in the brand sketch).
+launch. `category` defaults to `games`, the tile kind the launcher draws as a
+quiet Paper card and the Terminal lists under `games` (ADR-0024). A category
+map may say `make`, `practice`, `games` or `machine`; the launcher leaves out
+an entry with any other value and keeps the rest.
 
 `.desktop` files are named `kid-<id>.desktop` and carry `X-Kid-Category` and
 `X-Kid-Engine` keys.
@@ -91,6 +93,10 @@ folders, a denylisted redistributable, a Proton build, a manifest with no
 install directory, a title present in both libraries, and an escaped quote in
 a VDF value. ScummVM detection is exercised with a fake `scummvm` that prints
 a detect table. No real Steam or ScummVM install is required.
+
+CTest also runs the round trip (#97): `tests/roundtrip_manifest.py` writes a
+manifest from the same synthetic library, and the launcher's
+`tst_kidscanmanifest` reads it, so the two halves cannot drift apart.
 
 ## Known limitations (tracked in the issue tracker)
 

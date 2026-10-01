@@ -19,7 +19,7 @@ class TileModel : public QAbstractListModel {
     Q_PROPERTY(QString loadError READ loadError NOTIFY loadErrorChanged)
 
 public:
-    enum class Kind : std::uint8_t { Make, Practice, Machine };
+    enum class Kind : std::uint8_t { Make, Practice, Games, Machine };
     Q_ENUM(Kind)
 
     enum Role : std::uint16_t {

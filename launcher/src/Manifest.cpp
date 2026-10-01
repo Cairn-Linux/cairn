@@ -18,14 +18,17 @@ QString localPath(const QString& pathOrUrl) {
     return url.isLocalFile() ? url.toLocalFile() : pathOrUrl;
 }
 
-// The tile kinds the brand defines. "play" from kidscan is not one of them
-// yet; issue #20 decides the fourth kind, so it is refused rather than guessed.
+// The tile kinds the brand defines (DESIGN §6.1, ADR-0024). Anything else is
+// refused rather than guessed.
 std::optional<TileModel::Kind> kindFromCategory(const QString& category) {
     if (category == QStringLiteral("make")) {
         return TileModel::Kind::Make;
     }
     if (category == QStringLiteral("practice")) {
         return TileModel::Kind::Practice;
+    }
+    if (category == QStringLiteral("games")) {
+        return TileModel::Kind::Games;
     }
     if (category == QStringLiteral("machine")) {
         return TileModel::Kind::Machine;
@@ -53,14 +56,17 @@ Manifest::Result Manifest::read(const QString& path) {
     const QString file = localPath(path);
     QFile source(file);
     if (!source.open(QIODevice::ReadOnly)) {
-        return {.tiles = {}, .error = QStringLiteral("Could not open the manifest %1.").arg(file)};
+        return {.tiles = {},
+                .error = QStringLiteral("Could not open the manifest %1.").arg(file),
+                .skipped = {}};
     }
 
     QJsonParseError parseError;
     const QJsonDocument document = QJsonDocument::fromJson(source.readAll(), &parseError);
     if (parseError.error != QJsonParseError::NoError || !document.isObject()) {
         return {.tiles = {},
-                .error = QStringLiteral("The manifest %1 is not valid JSON.").arg(file)};
+                .error = QStringLiteral("The manifest %1 is not valid JSON.").arg(file),
+                .skipped = {}};
     }
 
     const QJsonObject root = document.object();
@@ -68,7 +74,8 @@ Manifest::Result Manifest::read(const QString& path) {
         return {.tiles = {},
                 .error = QStringLiteral("The manifest %1 is not version %2.")
                              .arg(file)
-                             .arg(supportedVersion)};
+                             .arg(supportedVersion),
+                .skipped = {}};
     }
 
     Result result;
@@ -79,18 +86,22 @@ Manifest::Result Manifest::read(const QString& path) {
         const std::optional<TileModel::Kind> kind = kindFromCategory(category);
         const std::optional<QStringList> exec = execFromJson(entry.value(QStringLiteral("exec")));
 
+        // One bad entry costs only its own tile (#97).
         if (title.isEmpty() || !kind || !exec) {
-            return {.tiles = {},
-                    .error =
-                        QStringLiteral("The manifest %1 has an entry without a title, a "
-                                       "category of make, practice or machine, or an exec "
-                                       "list: %2.")
-                            .arg(file, title.isEmpty() ? QStringLiteral("(untitled)") : title)};
+            result.skipped.append(
+                QStringLiteral("The manifest %1 has an entry without a title, a category of "
+                               "make, practice, games or machine, or an exec list: %2. It "
+                               "was left out.")
+                    .arg(file, title.isEmpty() ? QStringLiteral("(untitled)") : title));
+            continue;
         }
         result.tiles.append({.title = title, .kind = *kind, .exec = *exec, .opensTerminal = false});
     }
     if (result.tiles.isEmpty()) {
-        return {.tiles = {}, .error = QStringLiteral("The manifest %1 has no entries.").arg(file)};
+        result.error =
+            result.skipped.isEmpty()
+                ? QStringLiteral("The manifest %1 has no entries.").arg(file)
+                : QStringLiteral("The manifest %1 has no entries the launcher can use.").arg(file);
     }
     return result;
 }

@@ -77,6 +77,11 @@ void TileModel::setManifestPath(const QString& path) {
         replaceTiles(defaultTiles());
     } else {
         const Manifest::Result result = Manifest::read(path);
+        // A parent reads these in the terminal or the journal; the child sees
+        // the tiles that did load.
+        for (const QString& sentence : result.skipped) {
+            qWarning().noquote() << sentence;
+        }
         m_loadError = result.error;
         if (result.error.isEmpty()) {
             QList<Tile> tiles = result.tiles;

@@ -18,6 +18,9 @@ TestCase {
         // Palette properties carry the exact values generated from tokens.json.
         compare(Tokens.makeLabel, Tokens.ink);
         compare(Tokens.practiceLabel, Tokens.ink);
+        compare(Tokens.gamesLabel, Tokens.ink);
+        compare(Tokens.games, Tokens.paper);
+        compare(Tokens.gamesEdge, Tokens.line);
         compare(Tokens.machineLabel, Tokens.sand);
         compare(Tokens.inkLabel, Tokens.sand);
         compare(Tokens.sandLabel, Tokens.ink);
