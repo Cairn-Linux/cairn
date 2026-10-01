@@ -65,7 +65,7 @@ def run_steps(snippet, accounts=None, env_extra=None):
         return result.returncode, result.stdout + result.stderr, calls
 
 
-NEW_GUARDIAN = "guardian=gina; child=ada; ensure_guardian"
+NEW_GUARDIAN = "guardian=gina; children=(ada); levels=(1); ensure_guardian"
 
 
 class PasswordTest(unittest.TestCase):
@@ -112,8 +112,11 @@ class PasswordTest(unittest.TestCase):
         self.assertNotIn(SECRET, output)
 
 
-def check(guardian, child, accounts=None):
-    return run_steps(f"guardian={shlex.quote(guardian)}; child={shlex.quote(child)}; check_accounts", accounts)
+def check(guardian, children, accounts=None):
+    """check_accounts for a Guardian and one child, or a list of children."""
+    names = [children] if isinstance(children, str) else children
+    quoted = " ".join(shlex.quote(name) for name in names)
+    return run_steps(f"guardian={shlex.quote(guardian)}; children=({quoted}); check_accounts", accounts)
 
 
 class AccountCheckTest(unittest.TestCase):
@@ -123,6 +126,10 @@ class AccountCheckTest(unittest.TestCase):
 
     def test_an_existing_plain_child_passes(self):
         code, output, _ = check("gina", "ada", {"ada": (1002, ["ada", "cairn-l1"])})
+        self.assertEqual(code, 0, output)
+
+    def test_two_children_pass(self):
+        code, output, _ = check("gina", ["ada", "ben"], {"ben": (1003, ["ben", "cairn-l1"])})
         self.assertEqual(code, 0, output)
 
     def test_refusals(self):
@@ -138,6 +145,8 @@ class AccountCheckTest(unittest.TestCase):
             "not a login name": ("gina", "ada;rm -rf", None),
             "capital letters": ("gina", "Ada", None),
             "an option in disguise": ("--help", "ada", None),
+            "the same child twice": ("gina", ["ada", "ada"], None),
+            "a second child that is the Guardian": ("gina", ["ada", "gina"], None),
         }
         for label, (guardian, child, accounts) in cases.items():
             with self.subTest(label):
@@ -145,6 +154,47 @@ class AccountCheckTest(unittest.TestCase):
                 self.assertEqual(code, 1, output)
                 self.assertIn("refused:", output)
                 self.assertEqual(calls, "", "nothing may change before the checks pass")
+
+
+def parse(*arguments):
+    """parse_arguments, then what it set: the children and their levels."""
+    quoted = " ".join(shlex.quote(a) for a in arguments)
+    return run_steps(f'parse_arguments {quoted}; echo "${{children[*]}}|${{levels[*]}}|$guardian"')
+
+
+class ArgumentsTest(unittest.TestCase):
+    # Two cousins at two levels, for the first test on a laptop.
+    def test_children_at_level_1_unless_a_level_follows(self):
+        code, output, _ = parse("--guardian", "gina", "--child", "ada", "--child", "ben:2")
+        self.assertEqual(code, 0, output)
+        # The script traces every command, so the echo's own line is looked for.
+        self.assertIn("ada ben|1 2|gina", output.splitlines())
+
+    def test_only_the_kiosk_levels_are_given(self):
+        for level in ("3", "4", "0", "two", ""):
+            with self.subTest(level=level):
+                code, output, _ = parse("--guardian", "gina", "--child", f"ben:{level}")
+                self.assertEqual(code, 1, output)
+                self.assertIn("refused:", output)
+
+    def test_a_guardian_and_a_child_are_needed(self):
+        for arguments in (("--guardian", "gina"), ("--child", "ada"), ()):
+            with self.subTest(arguments=arguments):
+                code, output, _ = parse(*arguments)
+                self.assertEqual(code, 2, output)
+                self.assertIn("usage:", output)
+
+
+class ChildrenTest(unittest.TestCase):
+    def test_each_child_is_made_at_its_own_level(self):
+        code, output, calls = run_steps(
+            "changed() { :; }; children=(ada ben); levels=(1 2); ensure_children"
+        )
+        self.assertEqual(code, 0, output)
+        lines = calls.splitlines()
+        for expected in ("useradd --create-home ada", "passwd --lock ada", "gpasswd -a ada cairn-l1",
+                         "useradd --create-home ben", "passwd --lock ben", "gpasswd -a ben cairn-l2"):
+            self.assertIn(expected, lines)
 
 
 def move(groups, wanted):

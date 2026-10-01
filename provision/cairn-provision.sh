@@ -5,7 +5,9 @@
 # P0-2, issue #1). Run as root from a checkout of this repository that has a
 # release build in build/release:
 #
-#   sudo provision/cairn-provision.sh --guardian NAME --child NAME
+#   sudo provision/cairn-provision.sh --guardian NAME --child NAME [--child NAME:2]
+#
+# Each --child is a child's account, at level 1 unless a :2 follows the name.
 #
 # Every step looks before it changes anything and says what it did, so a
 # second run on the same machine reports zero changes. Throwaway by design:
@@ -32,14 +34,43 @@ LAYERED_PACKAGES=(labwc scummvm sddm sddm-breeze sddm-wayland-plasma
 FLATPAKS=(org.kde.gcompris org.tuxpaint.Tuxpaint)
 
 guardian=""
-child=""
+# The children's accounts and their levels, in the same order.
+children=()
+levels=()
 changes=0
 reboot_needed=no
 
 usage() {
-    echo "usage: $0 --guardian NAME --child NAME" >&2
+    echo "usage: $0 --guardian NAME --child NAME[:LEVEL] [--child NAME[:LEVEL]]..." >&2
+    echo "  LEVEL is 1 (the default) or 2, the two levels the kiosk serves." >&2
     echo "  CAIRN_GUARDIAN_PASSWORD sets the Guardian's password on creation." >&2
     exit 2
+}
+
+# One --child: a name, and a level after a colon if it is not 1. Levels 3
+# and 4 are a desktop session no child has been given yet, so they wait.
+add_child() {
+    local name="${1%%:*}" level=1
+    if [ "$1" != "$name" ]; then
+        level="${1#*:}"
+    fi
+    case "$level" in
+        1 | 2) ;;
+        *) refuse "\"$level\" is not a level this script gives; use 1 or 2" ;;
+    esac
+    children+=("$name")
+    levels+=("$level")
+}
+
+parse_arguments() {
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --guardian) guardian="$2"; shift 2 ;;
+            --child) add_child "$2"; shift 2 ;;
+            *) usage ;;
+        esac
+    done
+    [ -n "$guardian" ] && [ "${#children[@]}" -gt 0 ] || usage
 }
 
 refuse() {
@@ -113,19 +144,27 @@ UID_MIN=1000
 # way: an existing child named as the Guardian would be given wheel (#101).
 check_accounts() {
     local name
-    for name in "$guardian" "$child"; do
+    for name in "$guardian" "${children[@]}"; do
         [[ "$name" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] || refuse "\"$name\" is not a plain login name"
     done
-    [ "$guardian" != "$child" ] || refuse "the Guardian and the child must be different accounts"
-    if id "$child" > /dev/null 2>&1; then
-        [ "$(id -u "$child")" -ge "$UID_MIN" ] || refuse "$child is a system account"
-        local group
-        for group in wheel cairn-guardian; do
-            if in_group "$child" "$group"; then
-                refuse "$child is in $group; a child account must not administer the machine"
-            fi
+    local child other
+    for child in "${children[@]}"; do
+        [ "$guardian" != "$child" ] || refuse "the Guardian and a child must be different accounts"
+        local seen=0
+        for other in "${children[@]}"; do
+            [ "$other" != "$child" ] || seen=$((seen + 1))
         done
-    fi
+        [ "$seen" -eq 1 ] || refuse "$child is named twice; each child is one account"
+        if id "$child" > /dev/null 2>&1; then
+            [ "$(id -u "$child")" -ge "$UID_MIN" ] || refuse "$child is a system account"
+            local group
+            for group in wheel cairn-guardian; do
+                if in_group "$child" "$group"; then
+                    refuse "$child is in $group; a child account must not administer the machine"
+                fi
+            done
+        fi
+    done
     if id "$guardian" > /dev/null 2>&1; then
         [ "$(id -u "$guardian")" -ge "$UID_MIN" ] || refuse "$guardian is a system account"
         local level
@@ -167,18 +206,22 @@ ensure_guardian() {
     set_level_group "$guardian" cairn-guardian
 }
 
-ensure_child() {
-    if ! id "$child" > /dev/null 2>&1; then
-        # No password: the greeter lets an L1 child in without one (P0-3),
-        # and a locked password keeps su and ssh out (issue #35).
-        useradd --create-home "$child"
-        changed "child account $child"
-    fi
-    if [ "$(passwd --status "$child" | awk '{print $2}')" != "L" ]; then
-        passwd --lock "$child"
-        changed "$child password locked"
-    fi
-    set_level_group "$child" cairn-l1
+ensure_children() {
+    local i child
+    for i in "${!children[@]}"; do
+        child="${children[$i]}"
+        if ! id "$child" > /dev/null 2>&1; then
+            # No password: the greeter lets an L1 or L2 child in without one
+            # (P0-3), and a locked password keeps su and ssh out (issue #35).
+            useradd --create-home "$child"
+            changed "child account $child"
+        fi
+        if [ "$(passwd --status "$child" | awk '{print $2}')" != "L" ]; then
+            passwd --lock "$child"
+            changed "$child password locked"
+        fi
+        set_level_group "$child" "cairn-l${levels[$i]}"
+    done
 }
 
 # --- 4. Packages: the kiosk compositor and ScummVM live in the OS -------------
@@ -390,21 +433,14 @@ relabel() {
 }
 
 main() {
-    while [ $# -gt 0 ]; do
-        case "$1" in
-            --guardian) guardian="$2"; shift 2 ;;
-            --child) child="$2"; shift 2 ;;
-            *) usage ;;
-        esac
-    done
-    [ -n "$guardian" ] && [ -n "$child" ] || usage
+    parse_arguments "$@"
     [ "$(id -u)" -eq 0 ] || { echo "run as root" >&2; exit 1; }
     check_accounts
 
     record_facts
     ensure_groups
     ensure_guardian
-    ensure_child
+    ensure_children
     layer_packages
     install_flatpaks
     install_session_files
