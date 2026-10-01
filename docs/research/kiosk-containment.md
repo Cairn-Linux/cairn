@@ -227,6 +227,21 @@ Run again on 2026-09-30 with every launch in a scope of its own (ADR-0025,
 | A game opened from the Terminal | In a scope of its own, `cairn-app-4858-3.scope`, the session's third launch. |
 | Nothing running | The helper exited 0 and the frame was untouched. |
 
+Run again on 2026-10-01 after #117. A Steam client update had moved Steam's
+own interface into a sandbox called `srt-bwrap`, which the helper's old
+`bwrap` match caught as part of a command line, so every give-up ended
+Steam's interface. The helper now matches Flatpak's sandbox by its whole
+name, `bwrap`, and finds a Steam game's container as the child of the
+game's reaper, a process called exactly `reaper` started with
+`SteamLaunch`, since a TERM to the reaper alone left the container and the
+game running:
+
+| Case | Result |
+|---|---|
+| Steam idle, signed in | Ctrl-Alt-Home left all 10 web-helper processes and the client running. Before the fix it ended them. |
+| **Frozen Steam game** (Putt-Putt through Steam, its bundled `scummvm` stopped) | The reaper and the game's `srt-bwrap` container ended; Steam's `pv-adverb` then ended the game 1.3 s after the key. Steam's interface and client stayed up; the tiles came back. |
+| Frozen Tux Paint (Flatpak) | Ended through the exact `bwrap` match; the launcher, labwc and Steam's interface stayed up. |
+
 What it does not do: dismiss a Steam **client** window that forces itself
 open (sign-in, update). That is `steamwebhelper`, not a game, and ending it
 is a Guardian's `steam -shutdown`, not the panic key; the launcher's

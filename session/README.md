@@ -30,9 +30,13 @@ What is here:
   (ADR-0018, #41). Ctrl-Alt-Home in the kiosk runs it; it SIGCONTs, then
   SIGTERMs, then SIGKILLs the launcher's app scopes (`cairn-app-*.scope`,
   ADR-0025, #98), which hold a native program such as ScummVM and whatever
-  it started, and the sandbox roots a Flatpak app or a Steam game moves into
-  (Flatpak's `bwrap`, Steam's `reaper`), all in the child's own session, so
-  a frozen app ends and the frame stays up. Then it writes
+  it started, and the roots a Flatpak app or a Steam game moves into: a
+  process called exactly `bwrap` for a Flatpak app, and for a Steam game
+  Steam's reaper (a process called exactly `reaper`, started with
+  `SteamLaunch`) with the container it started. Steam's own
+  interface runs in a sandbox called `srt-bwrap` under no reaper, so it is
+  never matched (#117). All of it is in the child's own session, so a frozen
+  app ends and the frame and the Steam client stay up. Then it writes
   `$XDG_RUNTIME_DIR/cairn/give-up`, which the launcher watches, so the tiles
   come back even if a window it was waiting on never closes (ADR-0026).
 - `bin/cairn-log-out`: the child's Log out (ADR-0021, #44). The launcher
