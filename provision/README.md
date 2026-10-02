@@ -1,5 +1,8 @@
 # provision
 
+To try Cairn on a spare computer, follow [`docs/TRY.md`](../docs/TRY.md);
+this page is the script's reference.
+
 Phase 0 only. A script that turns a stock Bazzite KDE install (ADR-0006)
 into a Cairn machine, so the experience can be tested on real hardware and
 with a real child **before** any image, ISO or CI exists (DESIGN §13 Phase 0).
