@@ -15,6 +15,8 @@ QString shell() {
     return QStringLiteral("/bin/sh");
 }
 
+// Cases about whose a window is set the steady wait to zero, so the app is
+// open the moment its window is up; the cases about the wait set it short.
 class AppLauncherTest : public QObject {
     Q_OBJECT
 
@@ -117,6 +119,7 @@ private slots:
 
     void secondLaunchWhileRunningIsIgnored() {
         AppLauncher launcher(this);
+        launcher.setSteadyMilliseconds(0);
         launcher.launch(QStringLiteral("Practice"),
                         {shell(), QStringLiteral("-c"), QStringLiteral("sleep 0.2")});
         launcher.windowOpened(QStringLiteral("w1"), QStringLiteral("gcompris"),
@@ -231,6 +234,7 @@ private slots:
     // window is up and returns to the tiles when it closes (issue #42).
     void aLaunchedWindowIsTrackedUntilItCloses() {
         AppLauncher launcher(this);
+        launcher.setSteadyMilliseconds(0);
         launcher.launch(QStringLiteral("Draw"),
                         {shell(), QStringLiteral("-c"), QStringLiteral("sleep 0.2")});
         QCOMPARE(launcher.state(), AppLauncher::State::Starting);
@@ -251,6 +255,7 @@ private slots:
     // ends, only when the window does.
     void aWindowAfterTheLaunchProcessExitsIsStillTheApp() {
         AppLauncher launcher(this);
+        launcher.setSteadyMilliseconds(0);
         launcher.launch(QStringLiteral("Putt-Putt"),
                         {shell(), QStringLiteral("-c"), QStringLiteral("exit 0")});
         QTest::qWait(50); // let the launching process exit, as steam does.
@@ -299,6 +304,7 @@ private slots:
     // the game was over the tiles did nothing. A hidden window never counts.
     void aHiddenHelperLeftAfterTheGameDoesNotHoldTheTiles() {
         AppLauncher launcher(this);
+        launcher.setSteadyMilliseconds(0);
         launcher.launch(QStringLiteral("Putt-Putt"),
                         {shell(), QStringLiteral("-c"), QStringLiteral("exit 0")});
         launcher.windowOpened(QStringLiteral("g1"), QStringLiteral("scummvm"),
@@ -334,6 +340,7 @@ private slots:
     // the game's own app id and title is still not the game's.
     void aSecondWindowIsAGrownUpsJobWhateverItIsCalled() {
         AppLauncher launcher(this);
+        launcher.setSteadyMilliseconds(0);
         launcher.launch(QStringLiteral("Putt-Putt"),
                         {shell(), QStringLiteral("-c"), QStringLiteral("sleep 0.2")});
         launcher.windowOpened(QStringLiteral("g1"), QStringLiteral("scummvm"),
@@ -352,6 +359,7 @@ private slots:
     // The compositor says which window a dialog belongs to; that one is the app.
     void aDialogOfTheAppIsTheApp() {
         AppLauncher launcher(this);
+        launcher.setSteadyMilliseconds(0);
         launcher.launch(QStringLiteral("Draw"),
                         {shell(), QStringLiteral("-c"), QStringLiteral("exit 0")});
         launcher.windowOpened(QStringLiteral("g1"), QStringLiteral("tuxpaint"),
@@ -369,6 +377,7 @@ private slots:
     // is over; a window of it still up after a moment is a grown-up's job.
     void aWindowLeftAfterTheProgramEndsIsAGrownUpsJob() {
         AppLauncher launcher(this);
+        launcher.setSteadyMilliseconds(0);
         launcher.setSettleMilliseconds(50);
         launcher.launch(QStringLiteral("Story"),
                         {shell(), QStringLiteral("-c"), QStringLiteral("sleep 0.3")});
@@ -382,6 +391,7 @@ private slots:
     // the two never flashes the grown-up screen.
     void aWindowThatGoesWithItsProgramNeedsNoGrownUp() {
         AppLauncher launcher(this);
+        launcher.setSteadyMilliseconds(0);
         launcher.setSettleMilliseconds(50);
         launcher.launch(QStringLiteral("Story"),
                         {shell(), QStringLiteral("-c"), QStringLiteral("sleep 0.3")});
@@ -402,6 +412,7 @@ private slots:
         QVERIFY(dir.isValid());
         const QString started = dir.filePath(QStringLiteral("started"));
         AppLauncher launcher(this);
+        launcher.setSteadyMilliseconds(0);
         launcher.launch(QStringLiteral("Putt-Putt"),
                         {shell(), QStringLiteral("-c"), QStringLiteral("sleep 30")});
         launcher.windowOpened(QStringLiteral("g1"), QStringLiteral("scummvm"),
@@ -414,9 +425,169 @@ private slots:
         QTRY_VERIFY(QFile::exists(started));
     }
 
+    // A launch stays Starting until the app's window has stayed on the screen
+    // for the steady wait, so the starting screen does not go with a window
+    // that is only on its way (ADR-0028).
+    void theAppIsOpenOnceItsWindowStaysUp() {
+        AppLauncher launcher(this);
+        launcher.setSteadyMilliseconds(300);
+        launcher.launch(QStringLiteral("Putt-Putt"),
+                        {shell(), QStringLiteral("-c"), QStringLiteral("exit 0")});
+        launcher.windowOpened(QStringLiteral("g1"), QStringLiteral("scummvm"),
+                              QStringLiteral("Putt-Putt Joins the Parade"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+        QTRY_COMPARE(launcher.state(), AppLauncher::State::Running);
+        launcher.windowClosed(QStringLiteral("g1"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Idle);
+    }
+
+    // As on the first laptop: a game shows a window for a moment, closes it,
+    // and opens its own. That is one start, not a game that ended and a
+    // window that opened on its own.
+    void aSplashBeforeTheGameIsPartOfTheStart() {
+        AppLauncher launcher(this);
+        launcher.setSteadyMilliseconds(300);
+        launcher.setLaunchGraceMilliseconds(5000);
+        const QSignalSpy states(&launcher, &AppLauncher::stateChanged);
+        launcher.launch(QStringLiteral("Pajama Sam"),
+                        {shell(), QStringLiteral("-c"), QStringLiteral("exit 0")});
+        QTest::qWait(300); // `steam -applaunch` hands off before any window.
+        launcher.windowOpened(QStringLiteral("s1"), QStringLiteral("steam_app_1"), {});
+        QTest::qWait(100);
+        launcher.windowClosed(QStringLiteral("s1"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+        launcher.windowOpened(QStringLiteral("g1"), QStringLiteral("steam_app_1"),
+                              QStringLiteral("Pajama Sam"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+        QTRY_COMPARE(launcher.state(), AppLauncher::State::Running);
+        QCOMPARE(launcher.title(), QStringLiteral("Pajama Sam"));
+        // Starting, then Running: nothing in between reached the screen.
+        QCOMPARE(states.count(), 2);
+    }
+
+    // While the app is opening, a second window beside the first is the
+    // app's too; a game may open its own before its splash has gone.
+    void everyWindowWhileOpeningIsTheApp() {
+        AppLauncher launcher(this);
+        launcher.setSteadyMilliseconds(300);
+        launcher.launch(QStringLiteral("Spy Fox"),
+                        {shell(), QStringLiteral("-c"), QStringLiteral("exit 0")});
+        launcher.windowOpened(QStringLiteral("s1"), QStringLiteral("steam_app_2"), {});
+        launcher.windowOpened(QStringLiteral("g1"), QStringLiteral("steam_app_2"),
+                              QStringLiteral("Spy Fox"));
+        QVERIFY(!launcher.needsGrownUp());
+        launcher.windowClosed(QStringLiteral("s1"));
+        QTRY_COMPARE(launcher.state(), AppLauncher::State::Running);
+        launcher.windowClosed(QStringLiteral("g1"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Idle);
+    }
+
+    // A window that comes and goes with nothing after it is a launch that did
+    // not open: the tiles come back when the grace ends, with no grown-up.
+    void aWindowThatComesAndGoesAloneReturnsToTheTiles() {
+        AppLauncher launcher(this);
+        launcher.setSteadyMilliseconds(300);
+        launcher.setLaunchGraceMilliseconds(500);
+        launcher.launch(QStringLiteral("Pep"),
+                        {shell(), QStringLiteral("-c"), QStringLiteral("exit 0")});
+        launcher.windowOpened(QStringLiteral("g1"), QStringLiteral("steam_app_3"), {});
+        launcher.windowClosed(QStringLiteral("g1"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+        QTRY_COMPARE(launcher.state(), AppLauncher::State::Idle);
+        QVERIFY(!launcher.needsGrownUp());
+    }
+
+    // A window that is up when the grace ends gets the rest of its steady
+    // wait; if it then stays, the app is open.
+    void aWindowUpAtTheEndOfTheGraceGetsItsWait() {
+        AppLauncher launcher(this);
+        launcher.setSteadyMilliseconds(400);
+        launcher.setLaunchGraceMilliseconds(200);
+        launcher.launch(QStringLiteral("Freddi Fish"),
+                        {shell(), QStringLiteral("-c"), QStringLiteral("exit 0")});
+        QTest::qWait(100);
+        launcher.windowOpened(QStringLiteral("g1"), QStringLiteral("scummvm"),
+                              QStringLiteral("Freddi Fish"));
+        QTest::qWait(200);
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+        QTRY_COMPARE(launcher.state(), AppLauncher::State::Running);
+    }
+
+    // Past the grace, a window that goes before its wait is over ends the
+    // launch: nothing is left to wait for.
+    void aWindowThatGoesAfterTheGraceEndsTheLaunch() {
+        AppLauncher launcher(this);
+        launcher.setSteadyMilliseconds(5000);
+        launcher.setLaunchGraceMilliseconds(100);
+        launcher.launch(QStringLiteral("Freddi Fish"),
+                        {shell(), QStringLiteral("-c"), QStringLiteral("exit 0")});
+        launcher.windowOpened(QStringLiteral("g1"), QStringLiteral("scummvm"),
+                              QStringLiteral("Freddi Fish"));
+        QTest::qWait(200);
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+        launcher.windowClosed(QStringLiteral("g1"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Idle);
+        QVERIFY(!launcher.needsGrownUp());
+    }
+
+    // A window that comes up while the app is opening gets the whole steady
+    // wait, even if an earlier window has been up nearly as long.
+    void eachNewWindowGetsTheWholeWait() {
+        AppLauncher launcher(this);
+        launcher.setSteadyMilliseconds(400);
+        launcher.setLaunchGraceMilliseconds(5000);
+        launcher.launch(QStringLiteral("Spy Fox"),
+                        {shell(), QStringLiteral("-c"), QStringLiteral("exit 0")});
+        launcher.windowOpened(QStringLiteral("s1"), QStringLiteral("steam_app_2"), {});
+        QTest::qWait(300);
+        launcher.windowOpened(QStringLiteral("g1"), QStringLiteral("steam_app_2"),
+                              QStringLiteral("Spy Fox"));
+        launcher.windowClosed(QStringLiteral("s1"));
+        QTest::qWait(200);
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+        QTRY_COMPARE(launcher.state(), AppLauncher::State::Running);
+    }
+
+    // The same for a hidden window that is shown.
+    void aWindowShownWhileOpeningGetsTheWholeWait() {
+        AppLauncher launcher(this);
+        launcher.setSteadyMilliseconds(400);
+        launcher.setLaunchGraceMilliseconds(5000);
+        launcher.launch(QStringLiteral("Spy Fox"),
+                        {shell(), QStringLiteral("-c"), QStringLiteral("exit 0")});
+        launcher.windowOpened(QStringLiteral("s1"), QStringLiteral("steam_app_2"), {});
+        launcher.windowOpened(QStringLiteral("g1"), QStringLiteral("steam_app_2"),
+                              QStringLiteral("Spy Fox"), true);
+        QTest::qWait(300);
+        launcher.windowChanged(QStringLiteral("g1"), false);
+        launcher.windowClosed(QStringLiteral("s1"));
+        QTest::qWait(200);
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+        QTRY_COMPARE(launcher.state(), AppLauncher::State::Running);
+    }
+
+    // A program that quits after its own window came up is the app ending, as
+    // when a child closes it at once: when the window goes, the tiles come
+    // back without waiting out the grace.
+    void anAppThatQuitsWhileOpeningEndsWithItsWindow() {
+        AppLauncher launcher(this);
+        launcher.setSteadyMilliseconds(5000);
+        launcher.setLaunchGraceMilliseconds(15000);
+        launcher.launch(QStringLiteral("Draw"),
+                        {shell(), QStringLiteral("-c"), QStringLiteral("sleep 0.2; exit 3")});
+        launcher.windowOpened(QStringLiteral("w1"), QStringLiteral("tuxpaint"),
+                              QStringLiteral("Tux Paint"));
+        QTest::qWait(600); // the program has quit; its window is a moment behind.
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+        launcher.windowClosed(QStringLiteral("w1"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Idle);
+        QVERIFY(!launcher.needsGrownUp());
+    }
+
     // The grown-up's key always brings the tiles back, whatever is still open.
     void giveUpAlwaysBringsTheTilesBack() {
         AppLauncher launcher(this);
+        launcher.setSteadyMilliseconds(0);
         launcher.windowOpened(QStringLiteral("w1"), QStringLiteral("steam"),
                               QStringLiteral("Steam"));
         QCOMPARE(launcher.state(), AppLauncher::State::Interrupted);

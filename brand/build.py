@@ -10,6 +10,7 @@ import argparse
 import json
 import re
 import sys
+import textwrap
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -143,6 +144,17 @@ def label_ratio_comment(tokens, label_name):
     return f"{label_contrast(tokens, label_name):.2f}:1"
 
 
+def motion_tokens(tokens):
+    return {name: value for name, value in tokens["motion"].items() if name != "note"}
+
+
+def motion_css(tokens):
+    return "\n".join(
+        f"  --cairn-motion-{name}: {value}ms;"
+        for name, value in motion_tokens(tokens).items()
+    )
+
+
 def render_css(tokens):
     colors = color_values(tokens)
     semantic = tokens["semantic"]
@@ -214,8 +226,8 @@ def render_css(tokens):
   --cairn-radius-terminal: {tokens['radius']['terminal']}px;
   --cairn-radius-pill:     {tokens['radius']['pill']}px;
 
-  /* motion: the one animation, rows of tiles sliding into view */
-  --cairn-motion-row: {tokens['motion']['row']}ms;
+  /* motion: only to say something true (ADR-0028) */
+{motion_css(tokens)}
 }}
 
 /* Dark surfaces (terminal, login, boot): the only dark ground is Ink. */
@@ -350,11 +362,26 @@ def render_qml(tokens):
         property_name = "radius" + camel(name)[0].upper() + camel(name)[1:]
         lines.append(qml_property("int", property_name, str(value)))
     lines += ["", "    // ---- motion (milliseconds) ----"]
-    for name, value in tokens["motion"].items():
-        if name == "note":
-            continue
+    lines += [
+        f"    // {line}"
+        for line in textwrap.wrap(tokens["motion"]["note"], width=72)
+    ]
+    for name, value in motion_tokens(tokens).items():
         property_name = "motion" + camel(name)[0].upper() + camel(name)[1:]
-        lines.append(qml_property("int", property_name, str(value), tokens["motion"]["note"]))
+        lines.append(qml_property("int", property_name, str(value)))
+    mark = tokens["mark"]
+    _, _, mark_width, mark_height = mark["viewBox"].split()
+    stones = ", ".join(
+        f"[{x}, {y}, {width}, {height}]" for x, y, width, height in mark["stones"]
+    )
+    lines += [
+        "",
+        "    // ---- mark: the stones in the units of its viewBox, top stone first ----",
+        qml_property("int", "markWidth", mark_width),
+        qml_property("int", "markHeight", mark_height),
+        qml_property("int", "markStoneRadius", str(mark["rx"])),
+        qml_property("var", "markStones", f"[{stones}]", "[x, y, width, height]"),
+    ]
     lines += ["}", ""]
     qml = "\n".join(lines)
     validate_qml_property_names(qml)

@@ -73,5 +73,16 @@ QtObject {
     readonly property int radiusPill: 999
 
     // ---- motion (milliseconds) ----
-    readonly property int motionRow: 160  // Milliseconds. One motion earns its place (DESIGN 6.1): rows of tiles sliding into view. Nothing else animates.
+    // Milliseconds. Motion only says something true (ADR-0028): rows of tiles
+    // sliding into view, the mark building one stone at a time while a tile
+    // starts. Never to decorate, distract, reward, or hold a child's
+    // attention; slow and small, and nothing flashes.
+    readonly property int motionRow: 160
+    readonly property int motionStone: 500
+
+    // ---- mark: the stones in the units of its viewBox, top stone first ----
+    readonly property int markWidth: 120
+    readonly property int markHeight: 110
+    readonly property int markStoneRadius: 8
+    readonly property var markStones: [[54, 8, 24, 16], [34, 30, 44, 16], [30, 52, 64, 16], [16, 74, 88, 16]]  // [x, y, width, height]
 }
