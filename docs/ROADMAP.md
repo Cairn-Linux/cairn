@@ -206,7 +206,16 @@ done, and what could sink it. Decisions that change the design get an ADR in
   move. Now motion may show that something is happening, never decorate or
   hold a child's attention, and a pressed tile shows the Cairn mark building
   itself stone by stone over "… is starting." until the app's window is
-  up. Tested in the QML suite.
+  up. Tested in the QML suite. On 2026-10-08 the screen also waits until
+  the game's window has stayed up for 3 s, so a game's splash does not
+  take it away.
+- **ADR-0029 (2026-10-08, #132): a Steam game is waited for while Steam
+  works on it.** Pressed 3 s after login, a game on the laptop came up
+  21.5 s after the tap, after the launcher's 15 s wait had ended, so its
+  window counted as one that opened on its own. A Steam tile's launch now
+  waits past the 15 s while the client started at login is younger than a
+  minute or Steam's `reaper` for the game runs, up to two minutes. Other
+  tiles keep the 15 s. Tested with a stand-in `/proc`.
 - **Give-up spares Steam's interface again (2026-10-01, #117).** A Steam
   update moved Steam's own interface into a sandbox called `srt-bwrap`,
   which the give-up key's `bwrap` match caught. Flatpak's sandbox is now

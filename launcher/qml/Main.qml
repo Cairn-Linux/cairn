@@ -18,6 +18,8 @@ Window {
     property bool scopeApps: false
     // The file cairn-give-up writes, set by main.cpp. Empty watches nothing.
     property string giveUpFile: ""
+    // The Steam client was started at login (ADR-0027, ADR-0029).
+    property bool steamStartedAtLogin: false
     // The child chose Log out and is being asked whether they meant it.
     property bool logOutAsked: false
 
@@ -57,6 +59,7 @@ Window {
         objectName: "launcher"
         ownAppId: windows.ownAppId
         scoped: window.scopeApps
+        steamStartedAtLogin: window.steamStartedAtLogin
     }
 
     // Footpath, the terminal (ADR-0014). The tiles are its doors; open there

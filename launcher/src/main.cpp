@@ -40,8 +40,10 @@ int main(int argc, char* argv[]) {
     parser.addOption(startSteamOption);
     parser.process(application);
 
-    if (parser.isSet(startSteamOption) &&
-        SteamAtLogin::wanted(Manifest::read(parser.value(manifestOption)).tiles)) {
+    const bool startSteam =
+        parser.isSet(startSteamOption) &&
+        SteamAtLogin::wanted(Manifest::read(parser.value(manifestOption)).tiles);
+    if (startSteam) {
         SteamAtLogin::start();
     }
 
@@ -51,6 +53,7 @@ int main(int argc, char* argv[]) {
         {QStringLiteral("logOutProgram"), parser.value(logOutOption)},
         {QStringLiteral("scopeApps"), parser.isSet(scopeAppsOption)},
         {QStringLiteral("giveUpFile"), GiveUpWatch::sessionPath()},
+        {QStringLiteral("steamStartedAtLogin"), startSteam},
     });
     engine.loadFromModule("Cairn.Launcher", "Main");
     if (engine.rootObjects().isEmpty()) {

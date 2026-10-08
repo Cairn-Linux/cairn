@@ -584,6 +584,49 @@ private slots:
         QVERIFY(!launcher.needsGrownUp());
     }
 
+    // Right after login the Steam client is still starting and takes a game
+    // up after the usual grace; the launch waits for it rather than going
+    // back to the tiles and calling its window one that opened on its own
+    // (ADR-0029, #132). A stand-in steam on PATH hands off at once, as the
+    // real one does.
+    void aSteamGameWhileSteamStartsIsWaitedFor() {
+        const QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        QFile fake(dir.filePath(QStringLiteral("steam")));
+        QVERIFY(fake.open(QIODevice::WriteOnly));
+        fake.write("#!/bin/sh\nexit 0\n");
+        fake.close();
+        QVERIFY(fake.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
+        const QByteArray path = qgetenv("PATH");
+        qputenv("PATH", dir.path().toUtf8() + ':' + path);
+
+        AppLauncher launcher(this);
+        launcher.setSteadyMilliseconds(0);
+        launcher.setLaunchGraceMilliseconds(200);
+        launcher.setSteamStartedAtLogin(true);
+        launcher.launch(
+            QStringLiteral("Putt-Putt Goes to the Moon"),
+            {QStringLiteral("steam"), QStringLiteral("-applaunch"), QStringLiteral("294650")});
+        QTest::qWait(700);
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+        launcher.windowOpened(QStringLiteral("g1"), QStringLiteral("scummvm"),
+                              QStringLiteral("Putt-Putt Goes to the Moon"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Running);
+        QVERIFY(!launcher.needsGrownUp());
+        qputenv("PATH", path);
+    }
+
+    // A tile that is not a Steam game is not waited for because Steam is
+    // starting.
+    void anotherTileWhileSteamStartsGivesUpAtTheGrace() {
+        AppLauncher launcher(this);
+        launcher.setLaunchGraceMilliseconds(200);
+        launcher.setSteamStartedAtLogin(true);
+        launcher.launch(QStringLiteral("Draw"),
+                        {shell(), QStringLiteral("-c"), QStringLiteral("exit 0")});
+        QTRY_COMPARE(launcher.state(), AppLauncher::State::Idle);
+    }
+
     // The grown-up's key always brings the tiles back, whatever is still open.
     void giveUpAlwaysBringsTheTilesBack() {
         AppLauncher launcher(this);
