@@ -133,6 +133,8 @@ private:
     QString m_launchTitle;
     QString m_ownAppId;
     bool m_settled = false;
+    // The program quit after the app's window came up, before the app was open.
+    bool m_quitWhileOpening = false;
     bool m_scoped = false;
     int m_launches = 0;
 };

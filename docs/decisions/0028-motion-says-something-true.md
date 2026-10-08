@@ -58,10 +58,13 @@ the game's own window, coming after the app's first had gone, could count
 as one that opened on its own. The maintainer would rather the stones stay
 a little long, even under the game's window, than see windows come and go.
 So a launch is opening until one of the app's windows has stayed on the
-screen for 3 s (`AppLauncher`'s steady wait). While it is opening, every
+screen for 3 s (`AppLauncher`'s steady wait); each window that comes up
+starts the wait again. While it is opening, every
 window on the screen is the app's, which amends ADR-0026's rule 2 ("the
 first window on the screen is the app's"), and the app's windows leaving
-the screen does not end the launch while the grace timer runs. After the
+the screen does not end the launch while the grace timer runs, unless the
+program the launcher started has quit since its window came up: that is
+the app ending, as when a child closes it at once. After the
 app is open, ADR-0026's rules stand unchanged. The launcher cannot draw over
 another program's window, so the stones show behind and between the game's
 windows; the game covering them is fine.
@@ -83,11 +86,19 @@ windows; the game covering them is fine.
   something else opened it. Steam's own windows are hidden by the kiosk's
   rules and never count, and a launch rarely coincides with anything else.
   The window stays the app's after the app is open, as a dialog would.
-- A game that closes itself within 3 s of its window appearing (#133)
-  leaves the stones up until the grace timer ends, then the tiles return.
-  The window leaving no longer flashes the tiles first.
+- A Steam game that closes itself within 3 s of its window appearing
+  (#133) leaves the stones up until the grace timer ends, then the tiles
+  return; `steam -applaunch` has handed off, so the launcher cannot tell
+  it from a splash. An app the launcher started itself, such as a Flatpak,
+  ends with its window as before.
+- A splash that stays up longer than 3 s still opens the app, and the
+  game's own window after it counts as one that opened on its own. Whether
+  any of the laptop's games do that is checked there before more is built
+  for it.
 - Tested in C++: a splash before the game is one start, with no state
-  between Starting and Running; two windows at once are both the app's; a
+  between Starting and Running; two windows at once are both the app's;
+  each window that comes up, or is shown, gets the whole wait; an app that
+  quits while opening ends when its window goes; a
   window that comes and goes alone returns to the tiles at the grace; one
   up when the grace ends gets the rest of its wait; one that goes after
   the grace ends the launch.

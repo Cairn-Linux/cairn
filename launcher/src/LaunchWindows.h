@@ -37,6 +37,8 @@ public:
     void changed(const QString& identifier, bool hidden, const QString& belongsTo);
     void closed(const QString& identifier);
 
+    // Whether a window is known and hidden; an unknown window is not.
+    bool hidden(const QString& identifier) const;
     bool launching() const;
     // A launch is under way and the app is not open yet.
     bool opening() const;

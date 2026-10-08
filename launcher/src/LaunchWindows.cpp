@@ -60,6 +60,11 @@ void LaunchWindows::closed(const QString& identifier) {
     m_order.removeOne(identifier);
 }
 
+bool LaunchWindows::hidden(const QString& identifier) const {
+    const auto found = m_windows.constFind(identifier);
+    return found != m_windows.constEnd() && found->hidden;
+}
+
 bool LaunchWindows::launching() const {
     return m_launching;
 }

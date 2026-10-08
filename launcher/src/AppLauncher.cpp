@@ -18,7 +18,7 @@ constexpr int defaultLaunchGraceMilliseconds = 15000;
 constexpr int exitGraceMilliseconds = 2000;
 // How long the app's window must stay up before the app counts as open. A
 // Steam or Proton game often shows a window for a moment and replaces it; on
-// the first laptop (2026-10-07) the starting screen went with that first
+// the laptop (2026-10-08) the starting screen went with that first
 // window and the tiles flashed between it and the game's own.
 constexpr int defaultSteadyMilliseconds = 3000;
 } // namespace
@@ -123,6 +123,7 @@ void AppLauncher::launch(const QString& title, const QStringList& exec) {
     }
 
     m_settled = false;
+    m_quitWhileOpening = false;
     m_windows.startLaunch();
     setState(State::Starting);
     m_settleTimer.start();
@@ -167,11 +168,19 @@ void AppLauncher::windowOpened(const QString& identifier, const QString& appId,
     if (name.isEmpty()) {
         name = tr("Another program");
     }
+    if (!hidden) {
+        // Each window that comes up while the app is opening gets the whole
+        // steady wait, so a splash's last moment does not open the app.
+        m_steadyTimer.stop();
+    }
     m_windows.opened(identifier, name, hidden, belongsTo);
     update();
 }
 
 void AppLauncher::windowChanged(const QString& identifier, bool hidden, const QString& belongsTo) {
+    if (m_windows.hidden(identifier) && !hidden) {
+        m_steadyTimer.stop();
+    }
     m_windows.changed(identifier, hidden, belongsTo);
     update();
 }
@@ -199,8 +208,11 @@ void AppLauncher::setTitle(const QString& title) {
 
 void AppLauncher::update() {
     // While the app is still opening and the grace timer runs, a window that
-    // came and went was a splash; keep waiting for the next.
-    const bool stillOpening = m_windows.opening() && m_launchGraceTimer.isActive();
+    // came and went was a splash; keep waiting for the next. Not when the
+    // program itself has quit since its window came up: that is the app
+    // ending, and nothing more will come.
+    const bool stillOpening =
+        m_windows.opening() && m_launchGraceTimer.isActive() && !m_quitWhileOpening;
     if (m_windows.launching() && m_windows.appWasOnScreen() && !m_windows.appOnScreen() &&
         !stillOpening) {
         // The app's last window has left the screen, so the app has too.
@@ -245,6 +257,7 @@ void AppLauncher::appIsOpen() {
 
 void AppLauncher::endLaunch() {
     m_windows.endLaunch();
+    m_quitWhileOpening = false;
     m_steadyTimer.stop();
     m_settleTimer.stop();
     m_launchGraceTimer.stop();
@@ -287,8 +300,14 @@ void AppLauncher::onFinished(QProcess* process, int exitCode, QProcess::ExitStat
     m_settleTimer.stop();
     // If the app's window is already up, the launching process exiting is
     // expected: `steam -applaunch` returns while the game runs on, and the
-    // window closing, not the process, ends the app.
+    // window closing, not the process, ends the app. A program that quits
+    // after its own window came up is the app ending, as when a child closes
+    // it at once; `steam -applaunch` hands off before any window.
     if (m_windows.appWasOnScreen()) {
+        if (m_windows.opening()) {
+            m_quitWhileOpening = true;
+            update();
+        }
         return;
     }
     if (exitStatus == QProcess::CrashExit || exitCode != 0) {
