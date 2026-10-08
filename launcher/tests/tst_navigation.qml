@@ -44,6 +44,7 @@ TestCase {
         verify(appLauncher !== null);
         appLauncher.settleMilliseconds = 2000;
         appLauncher.launchGraceMilliseconds = 200;
+        appLauncher.steadyMilliseconds = 0;
         grownUp = findChild(launcher, "grownUpScreen");
         verify(grownUp !== null);
         stateSpy.clear();
@@ -327,8 +328,16 @@ TestCase {
         const changes = stateSpy.count;
         keyClick(Qt.Key_Return);
         compare(stateSpy.count, changes);
+        // A splash that comes and goes keeps the screen up; the app's window
+        // takes it away once it has stayed up for the steady wait.
+        appLauncher.steadyMilliseconds = 300;
+        appLauncher.windowOpened("s1", "steam_app_1", "");
+        appLauncher.windowClosed("s1");
+        compare(starting.visible, true);
+        compare(grid.visible, false);
         appLauncher.windowOpened("g1", "scummvm", "Putt-Putt Joins the Parade");
-        compare(appLauncher.state, AppLauncher.Running);
+        compare(starting.visible, true);
+        tryCompare(appLauncher, "state", AppLauncher.Running);
         compare(starting.visible, false);
         compare(grid.visible, true);
         appLauncher.windowClosed("g1");

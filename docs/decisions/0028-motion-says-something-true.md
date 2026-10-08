@@ -1,8 +1,8 @@
 # ADR-0028: Motion says something true; a starting tile builds the mark
 
 **Status:** accepted
-**Date:** 2026-10-07
-**Closes:** (none) — addresses issue #129
+**Date:** 2026-10-07, amended 2026-10-08
+**Closes:** (none) — addresses issue #129; amends ADR-0026
 
 ## Context
 
@@ -44,10 +44,27 @@ until the mark is whole. The whole mark stays for one step, fades for one,
 and the building starts again from the bottom. Under it, one sentence names
 the tile: "Putt-Putt Joins the Circus is starting." The stones are the
 mark's own, from the `mark` tokens. The screen goes when the launcher leaves
-Starting: the app's window is up, the launch failed (the grown-up screen
+Starting: the app is open, the launch failed (the grown-up screen
 takes over), the grace timer ended with no window (the tiles come back), or
 a grown-up gave up. Keys and taps while it shows do nothing; the launcher
 already runs one program at a time, and the screen now makes that visible.
+
+**The app is open when its window stays up.** The maintainer watched the
+screen on the laptop on 2026-10-08: it went as soon as the game's first
+window appeared, before the game was really there. A Steam or Proton game
+often shows a window for a moment, a splash or a blank one, closes it and
+opens its own. The tiles flashed between them, and under ADR-0026's rules
+the game's own window, coming after the app's first had gone, could count
+as one that opened on its own. The maintainer would rather the stones stay
+a little long, even under the game's window, than see windows come and go.
+So a launch is opening until one of the app's windows has stayed on the
+screen for 3 s (`AppLauncher`'s steady wait). While it is opening, every
+window on the screen is the app's, which amends ADR-0026's rule 2 ("the
+first window on the screen is the app's"), and the app's windows leaving
+the screen does not end the launch while the grace timer runs. After the
+app is open, ADR-0026's rules stand unchanged. The launcher cannot draw over
+another program's window, so the stones show behind and between the game's
+windows; the game covering them is fine.
 
 ## Consequences
 
@@ -60,8 +77,20 @@ already runs one program at a time, and the screen now makes that visible.
   box (`markStones`, `markWidth`, `markHeight`, `markStoneRadius`), so a
   screen can draw the mark without a shape of its own. The CSS gains
   `--cairn-motion-stone`.
-- Launches that come up fast, such as Tux Paint, show the screen only
-  for a moment.
+- Launches that come up fast, such as Tux Paint, show the screen for the
+  steady wait, mostly behind the app's window.
+- A window that opens during those first seconds is the app's even if
+  something else opened it. Steam's own windows are hidden by the kiosk's
+  rules and never count, and a launch rarely coincides with anything else.
+  The window stays the app's after the app is open, as a dialog would.
+- A game that closes itself within 3 s of its window appearing (#133)
+  leaves the stones up until the grace timer ends, then the tiles return.
+  The window leaving no longer flashes the tiles first.
+- Tested in C++: a splash before the game is one start, with no state
+  between Starting and Running; two windows at once are both the app's; a
+  window that comes and goes alone returns to the tiles at the grace; one
+  up when the grace ends gets the rest of its wait; one that goes after
+  the grace ends the launch.
 - The 15 s grace timer still ends a launch that has no window yet. A Steam
   game pressed right after login can take longer than that, and its
   window then counts as one that opened on its own. That is the timer's

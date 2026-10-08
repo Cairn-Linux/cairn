@@ -17,11 +17,13 @@
 // The program a child runs is not always the process the launcher starts:
 // `steam -applaunch` hands the game to the Steam client and exits within a
 // second. So the launcher watches the app's windows, and LaunchWindows decides
-// which those are (ADR-0026): while one is on the screen the launcher is
-// Running, and when the last leaves the screen it returns to Idle (issue #42).
-// A launch that produces no window before the grace timer ends returns to Idle
-// quietly; a program that fails to start, or exits with an error before any
-// window and before the settle window, is a Failed launch. A window on the
+// which those are (ADR-0026). The launcher stays Starting until one of them
+// has stayed on the screen for the steady wait, so a splash that comes and
+// goes before the game's own window is part of the start (ADR-0028). Then it
+// is Running, and when the app's last window leaves the screen it returns to
+// Idle (issue #42). A launch whose app is not open before the grace timer
+// ends, and has no window up then, returns to Idle quietly; a program that fails to start, or exits
+// with an error before any window and before the settle window, is a Failed launch. A window on the
 // screen that opened on its own is an Interruption until it closes. Failed and
 // Interrupted both show "Something needs a grown-up". A tile with nothing set
 // up yet is ComingSoon: the screen says so, with a Back, and needs no
@@ -45,6 +47,10 @@ class AppLauncher : public QObject {
     // nothing came and returning to the tiles. Tests set it short.
     Q_PROPERTY(int launchGraceMilliseconds READ launchGraceMilliseconds WRITE
                    setLaunchGraceMilliseconds NOTIFY launchGraceMillisecondsChanged)
+    // How long the app's window must stay on the screen before the app counts
+    // as open and the starting screen goes. Zero means at once. Tests set it.
+    Q_PROPERTY(int steadyMilliseconds READ steadyMilliseconds WRITE setSteadyMilliseconds NOTIFY
+                   steadyMillisecondsChanged)
     // Windows with this app id are the launcher's own and never count. The one
     // place an app id decides anything; a program that copied it would not
     // interrupt.
@@ -66,6 +72,8 @@ public:
     void setSettleMilliseconds(int milliseconds);
     int launchGraceMilliseconds() const;
     void setLaunchGraceMilliseconds(int milliseconds);
+    int steadyMilliseconds() const;
+    void setSteadyMilliseconds(int milliseconds);
     QString ownAppId() const;
     void setOwnAppId(const QString& appId);
 
@@ -95,6 +103,7 @@ signals:
     void titleChanged();
     void settleMillisecondsChanged();
     void launchGraceMillisecondsChanged();
+    void steadyMillisecondsChanged();
     void ownAppIdChanged();
     void scopedChanged();
 
@@ -103,6 +112,7 @@ private:
     void setTitle(const QString& title);
     // Works out the state from the windows on the screen and the launch.
     void update();
+    void appIsOpen();
     void endLaunch();
     void fail(const QString& reason);
     void onErrorOccurred(QProcess* process, QProcess::ProcessError error);
@@ -116,6 +126,7 @@ private:
     QTimer m_settleTimer;
     QTimer m_launchGraceTimer;
     QTimer m_exitGraceTimer;
+    QTimer m_steadyTimer;
     LaunchWindows m_windows;
     State m_state = State::Idle;
     QString m_title;

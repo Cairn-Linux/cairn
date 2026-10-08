@@ -48,7 +48,8 @@ Colours, type, focus rings and radii come from `Cairn.Brand.Tokens`.
   #129). `StartingScreen.qml` stands in front of the tiles, or the
   Terminal, while `AppLauncher` is Starting: the Cairn mark builds itself
   a stone at a time from the brand tokens, over "Putt-Putt Joins the Circus
-  is starting.", and the screen goes when the app's window is up.
+  is starting.", and the screen goes when the app's window has stayed up
+  for three seconds, so a game's splash does not take it away.
 - **Footprint (2026-09-08):** about 145 MB proportional idle in the VM,
   first frame 0.2 s after exec; the table is in
   `../docs/research/launcher-footprint.md`.
@@ -172,10 +173,14 @@ says and never from a window's name:
 - A hidden window never counts. labwc hides Steam's own windows the moment
   they open; one of those must not keep the tiles waiting or bring up the
   grown-up screen (#99).
-- During a launch, the first window on the screen is the app's, and so is
-  any window that belongs to one of the app's, such as its dialogs. While
-  one is on the screen the launcher is Running; when the last one leaves,
-  the tiles are back.
+- While a launch is opening, every window on the screen is the app's: a
+  game may show a splash, or a window it replaces at once, before its own.
+  The app is open once one of its windows has stayed up for three seconds
+  (ADR-0028); until then the launcher is Starting, and a window that comes
+  and goes does not end the launch. After that, a window that belongs to
+  one of the app's, such as a dialog, is the app's too. While one is on the
+  screen the launcher is Running; when the last one leaves, the tiles are
+  back.
 - Any other window on the screen opened on its own: a stray dialog, a
   browser a game opened. The grown-up screen names it ("Steam opened on its
   own.") with no Back tile, and the tiles return when it closes.

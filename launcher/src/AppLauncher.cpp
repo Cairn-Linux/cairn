@@ -16,16 +16,30 @@ constexpr int defaultLaunchGraceMilliseconds = 15000;
 // still up count as opened on their own. Without it the moment between a
 // game's process ending and its window going would flash the grown-up screen.
 constexpr int exitGraceMilliseconds = 2000;
+// How long the app's window must stay up before the app counts as open. A
+// Steam or Proton game often shows a window for a moment and replaces it; on
+// the first laptop (2026-10-07) the starting screen went with that first
+// window and the tiles flashed between it and the game's own.
+constexpr int defaultSteadyMilliseconds = 3000;
 } // namespace
 
 AppLauncher::AppLauncher(QObject* parent)
-    : QObject(parent), m_settleTimer(this), m_launchGraceTimer(this), m_exitGraceTimer(this) {
+    : QObject(parent), m_settleTimer(this), m_launchGraceTimer(this), m_exitGraceTimer(this),
+      m_steadyTimer(this) {
     m_settleTimer.setSingleShot(true);
     m_settleTimer.setInterval(defaultSettleMilliseconds);
     connect(&m_settleTimer, &QTimer::timeout, this, [this] { m_settled = true; });
     m_launchGraceTimer.setSingleShot(true);
     m_launchGraceTimer.setInterval(defaultLaunchGraceMilliseconds);
     connect(&m_launchGraceTimer, &QTimer::timeout, this, &AppLauncher::onLaunchGraceTimeout);
+    m_steadyTimer.setSingleShot(true);
+    m_steadyTimer.setInterval(defaultSteadyMilliseconds);
+    connect(&m_steadyTimer, &QTimer::timeout, this, [this] {
+        if (m_windows.opening() && m_windows.appOnScreen()) {
+            appIsOpen();
+            update();
+        }
+    });
     m_exitGraceTimer.setSingleShot(true);
     m_exitGraceTimer.setInterval(exitGraceMilliseconds);
     connect(&m_exitGraceTimer, &QTimer::timeout, this, [this] {
@@ -70,6 +84,18 @@ void AppLauncher::setLaunchGraceMilliseconds(int milliseconds) {
     }
     m_launchGraceTimer.setInterval(milliseconds);
     emit launchGraceMillisecondsChanged();
+}
+
+int AppLauncher::steadyMilliseconds() const {
+    return m_steadyTimer.interval();
+}
+
+void AppLauncher::setSteadyMilliseconds(int milliseconds) {
+    if (milliseconds == m_steadyTimer.interval()) {
+        return;
+    }
+    m_steadyTimer.setInterval(milliseconds);
+    emit steadyMillisecondsChanged();
 }
 
 QString AppLauncher::ownAppId() const {
@@ -172,7 +198,11 @@ void AppLauncher::setTitle(const QString& title) {
 }
 
 void AppLauncher::update() {
-    if (m_windows.launching() && m_windows.appWasOnScreen() && !m_windows.appOnScreen()) {
+    // While the app is still opening and the grace timer runs, a window that
+    // came and went was a splash; keep waiting for the next.
+    const bool stillOpening = m_windows.opening() && m_launchGraceTimer.isActive();
+    if (m_windows.launching() && m_windows.appWasOnScreen() && !m_windows.appOnScreen() &&
+        !stillOpening) {
         // The app's last window has left the screen, so the app has too.
         endLaunch();
     }
@@ -185,8 +215,19 @@ void AppLauncher::update() {
         }
         return;
     }
-    if (m_windows.appOnScreen()) {
-        m_launchGraceTimer.stop();
+    if (m_windows.opening() && m_windows.appOnScreen() && m_steadyTimer.interval() <= 0) {
+        appIsOpen();
+    }
+    if (m_windows.opening()) {
+        // The app is open once its window has stayed up for the steady wait.
+        if (!m_windows.appOnScreen()) {
+            m_steadyTimer.stop();
+        } else if (!m_steadyTimer.isActive()) {
+            m_steadyTimer.start();
+        }
+        setTitle(m_launchTitle);
+        setState(State::Starting);
+    } else if (m_windows.appOnScreen()) {
         setTitle(m_launchTitle);
         setState(State::Running);
     } else if (m_windows.launching()) {
@@ -197,8 +238,14 @@ void AppLauncher::update() {
     }
 }
 
+void AppLauncher::appIsOpen() {
+    m_windows.appIsOpen();
+    m_launchGraceTimer.stop();
+}
+
 void AppLauncher::endLaunch() {
     m_windows.endLaunch();
+    m_steadyTimer.stop();
     m_settleTimer.stop();
     m_launchGraceTimer.stop();
     m_exitGraceTimer.stop();
@@ -255,9 +302,11 @@ void AppLauncher::onFinished(QProcess* process, int exitCode, QProcess::ExitStat
 }
 
 void AppLauncher::onLaunchGraceTimeout() {
-    // The launch produced no window in time. Nothing is wrong to show a child;
-    // go back to the tiles, where they can try again.
-    if (m_windows.launching() && !m_windows.appWasOnScreen()) {
+    // The app did not open in time and no window of it is up: nothing came,
+    // or a window came and went. Nothing is wrong to show a child; go back to
+    // the tiles, where they can try again. A window that is up now gets the
+    // rest of its steady wait.
+    if (m_windows.launching() && !m_windows.appOnScreen()) {
         endLaunch();
         update();
     }
