@@ -61,9 +61,9 @@ class AppLauncher : public QObject {
     // Start each program in a systemd user scope of its own (AppScope), so the
     // grown-up's give-up key can end it. The kiosk session turns this on.
     Q_PROPERTY(bool scoped MEMBER m_scoped NOTIFY scopedChanged)
-    // The kiosk started the Steam client at login (ADR-0027), so a Steam game
-    // pressed in the next minute is waited for while it starts (ADR-0029).
-    // Set once, when the launcher starts.
+    // The kiosk started the Steam client at login (ADR-0027). Until a minute
+    // after that, a Steam game with no window when the grace ends gets another
+    // grace while Steam starts (ADR-0029). Set once, when the launcher starts.
     Q_PROPERTY(bool steamStartedAtLogin READ steamStartedAtLogin WRITE setSteamStartedAtLogin NOTIFY
                    steamStartedAtLoginChanged)
 
