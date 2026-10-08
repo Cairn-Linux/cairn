@@ -3,6 +3,7 @@
 **Status:** accepted
 **Date:** 2026-10-07, amended 2026-10-08
 **Closes:** (none) — addresses issue #129; amends ADR-0026
+**Amended by:** ADR-0029 (a Steam game is waited for past the grace while Steam works on it)
 
 ## Context
 
@@ -105,7 +106,7 @@ windows; the game covering them is fine.
 - The 15 s grace timer still ends a launch that has no window yet. A Steam
   game pressed right after login can take longer than that, and its
   window then counts as one that opened on its own. That is the timer's
-  to fix, not the screen's: #132.
+  to fix, not the screen's: #132, answered for Steam games by ADR-0029.
 - A child who needs less motion has no way to ask for it yet. A
   reduced-motion setting belongs with the Phase 3 accessibility work
   (ADR-0008); the screen still says what is happening without the stones.
