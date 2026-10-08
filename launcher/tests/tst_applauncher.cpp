@@ -616,6 +616,38 @@ private slots:
         qputenv("PATH", path);
     }
 
+    // A splash up at the moment a grace ends, and gone before its steady
+    // wait, is still part of the start while Steam is working on the game.
+    void aSplashAcrossAGraceWhileSteamStartsIsPartOfTheStart() {
+        const QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        QFile fake(dir.filePath(QStringLiteral("steam")));
+        QVERIFY(fake.open(QIODevice::WriteOnly));
+        fake.write("#!/bin/sh\nexit 0\n");
+        fake.close();
+        QVERIFY(fake.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
+        const QByteArray path = qgetenv("PATH");
+        qputenv("PATH", dir.path().toUtf8() + ':' + path);
+
+        AppLauncher launcher(this);
+        launcher.setSteadyMilliseconds(3000);
+        launcher.setLaunchGraceMilliseconds(300);
+        launcher.setSteamStartedAtLogin(true);
+        launcher.launch(
+            QStringLiteral("Pajama Sam"),
+            {QStringLiteral("steam"), QStringLiteral("-applaunch"), QStringLiteral("294660")});
+        QTest::qWait(450);
+        launcher.windowOpened(QStringLiteral("s1"), QStringLiteral("steam_app_294660"), {});
+        QTest::qWait(400); // a grace ends while the splash is up.
+        launcher.windowClosed(QStringLiteral("s1"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+        launcher.windowOpened(QStringLiteral("g1"), QStringLiteral("steam_app_294660"),
+                              QStringLiteral("Pajama Sam"));
+        QVERIFY(!launcher.needsGrownUp());
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+        qputenv("PATH", path);
+    }
+
     // A tile that is not a Steam game is not waited for because Steam is
     // starting.
     void anotherTileWhileSteamStartsGivesUpAtTheGrace() {

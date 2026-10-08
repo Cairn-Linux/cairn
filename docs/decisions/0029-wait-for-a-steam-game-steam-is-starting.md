@@ -41,7 +41,13 @@ the grace ends with no window of the app on the screen, and the tile runs
   than 60 s ago, or
 - Steam's reaper for that app id is running.
 
-It then looks again. It never waits more than 120 s from the tap. When
+It then looks again, with or without a window of the app up, so a splash
+that closes after a grace has ended is still part of the start. It stops
+looking once 120 s have passed since the tap, so the wait can run one grace
+past that. A reaper that was already running when the tile was pressed is
+the same game left from an earlier start and does not count. The exit of
+`steam -applaunch` never ends a Steam game's launch, however late it
+comes: right after login it can wait for the client before handing over. When
 neither fact holds, or the limit is reached, the launch ends quietly in the
 tiles as before. `SteamGameWait` makes the decision. It reads `/proc` the
 way `cairn-give-up` does, and only when a grace ends. Any other tile still
@@ -56,6 +62,13 @@ gets the usual 15 s.
 - A game whose reaper has gone ends the wait at the next grace, up to 15 s
   later. A Steam game that closes itself at once (#133) is not shortened by
   this.
+- With Steam up, a game Steam must first download or update (a game
+  update, the Steam Linux Runtime, a first Proton setup) has no reaper
+  until that is done. Its launch still ends at 15 s and its window counts
+  as one that opened on its own. A download the child cannot see is a
+  P1-13 question, not this one's.
+- Steam's age is checked when a grace ends, not at the tap: a game pressed
+  50 s after login is checked at 65 s, by its reaper alone.
 - 60 s and 120 s come from one laptop. A slower machine, or Steam updating
   itself at login, may need more; both are constants in `SteamGameWait`.
 - A game outside Steam that takes longer than 15 s, such as a Flatpak app
@@ -64,4 +77,6 @@ gets the usual 15 s.
   the reaper matched by name and both arguments only, Steam starting at
   login, the outer limit, and a non-Steam tile left alone. An `AppLauncher`
   test runs a stand-in `steam` with Steam started at login and keeps the
-  launch Starting past the grace.
+  launch Starting past the grace, and another keeps a splash that closes
+  just after a grace ends part of the start. A reaper from before the press
+  does not count.

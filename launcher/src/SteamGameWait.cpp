@@ -5,6 +5,7 @@
 #include <QFile>
 #include <QFileInfo>
 
+#include <algorithm>
 #include <unistd.h>
 #include <utility>
 
@@ -26,7 +27,12 @@ void SteamGameWait::steamStartedAtLogin() {
 
 void SteamGameWait::startLaunch(const QStringList& exec) {
     m_appId = appIdOf(exec);
+    m_reapersBefore = m_appId.isEmpty() ? QStringList() : reapers();
     m_sinceLaunch.start();
+}
+
+bool SteamGameWait::steamGame() const {
+    return !m_appId.isEmpty();
 }
 
 bool SteamGameWait::stillComing() const {
@@ -36,7 +42,12 @@ bool SteamGameWait::stillComing() const {
     }
     const bool steamStarting =
         m_sinceSteamStarted.isValid() && m_sinceSteamStarted.elapsed() < m_startupMilliseconds;
-    return steamStarting || reaperRunning();
+    if (steamStarting) {
+        return true;
+    }
+    const QStringList now = reapers();
+    return std::ranges::any_of(
+        now, [this](const QString& pid) { return !m_reapersBefore.contains(pid); });
 }
 
 void SteamGameWait::setStartupMilliseconds(int milliseconds) {
@@ -61,10 +72,11 @@ QString SteamGameWait::appIdOf(const QStringList& exec) {
     return number ? appId : QString();
 }
 
-bool SteamGameWait::reaperRunning() const {
+QStringList SteamGameWait::reapers() const {
     const QByteArray appIdArgument = QStringLiteral("AppId=%1").arg(m_appId).toUtf8();
     const QDir root(m_processRoot);
     const QStringList processes = root.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+    QStringList found;
     for (const QString& pid : processes) {
         bool number = false;
         pid.toUInt(&number);
@@ -77,8 +89,8 @@ bool SteamGameWait::reaperRunning() const {
         const QList<QByteArray> arguments =
             readAll(root.filePath(pid + QStringLiteral("/cmdline"))).split('\0');
         if (arguments.contains("SteamLaunch") && arguments.contains(appIdArgument)) {
-            return true;
+            found.append(pid);
         }
     }
-    return false;
+    return found;
 }

@@ -3,6 +3,7 @@
 **Status:** accepted
 **Date:** 2026-10-07, amended 2026-10-08
 **Closes:** (none) — addresses issue #129; amends ADR-0026
+**Amended by:** ADR-0029 (a Steam game is waited for past the grace while Steam works on it)
 
 ## Context
 

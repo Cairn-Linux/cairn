@@ -88,11 +88,27 @@ private slots:
 
     void theGamesReaperIsWaitedFor() {
         const QTemporaryDir root;
+        SteamGameWait wait(root.path());
+        wait.startLaunch(steamGame());
+        QVERIFY(wait.steamGame());
+        QVERIFY(!wait.stillComing());
         addProcess(root, QStringLiteral("8447"), "reaper",
                    {"/home/zelda/.local/share/Steam/ubuntu12_32/reaper", "SteamLaunch",
                     "AppId=294650", "--", "steam-launch-wrapper"});
+        QVERIFY(wait.stillComing());
+    }
+
+    // The same game left running from an earlier start brings no new window;
+    // its reaper does not keep a new press waiting.
+    void aReaperFromBeforeThePressDoesNotCount() {
+        const QTemporaryDir root;
+        addProcess(root, QStringLiteral("8447"), "reaper",
+                   {"reaper", "SteamLaunch", "AppId=294650"});
         SteamGameWait wait(root.path());
         wait.startLaunch(steamGame());
+        QVERIFY(!wait.stillComing());
+        addProcess(root, QStringLiteral("9001"), "reaper",
+                   {"reaper", "SteamLaunch", "AppId=294650"});
         QVERIFY(wait.stillComing());
     }
 
@@ -116,9 +132,9 @@ private slots:
         QFETCH(const QByteArray, name);
         QFETCH(const QList<QByteArray>, arguments);
         const QTemporaryDir root;
-        addProcess(root, QStringLiteral("100"), name, arguments);
         SteamGameWait wait(root.path());
         wait.startLaunch(steamGame());
+        addProcess(root, QStringLiteral("100"), name, arguments);
         QVERIFY(!wait.stillComing());
     }
 
@@ -126,12 +142,12 @@ private slots:
     // for ever.
     void theOuterLimitEndsTheWait() {
         const QTemporaryDir root;
-        addProcess(root, QStringLiteral("8447"), "reaper",
-                   {"reaper", "SteamLaunch", "AppId=294650"});
         SteamGameWait wait(root.path());
         wait.setLimitMilliseconds(200);
         wait.steamStartedAtLogin();
         wait.startLaunch(steamGame());
+        addProcess(root, QStringLiteral("8447"), "reaper",
+                   {"reaper", "SteamLaunch", "AppId=294650"});
         QVERIFY(wait.stillComing());
         QTRY_VERIFY(!wait.stillComing());
     }
@@ -139,12 +155,13 @@ private slots:
     // A new press starts the limit again and forgets the last game.
     void eachLaunchStartsAfresh() {
         const QTemporaryDir root;
-        addProcess(root, QStringLiteral("8447"), "reaper",
-                   {"reaper", "SteamLaunch", "AppId=294650"});
         SteamGameWait wait(root.path());
         wait.startLaunch(steamGame());
+        addProcess(root, QStringLiteral("8447"), "reaper",
+                   {"reaper", "SteamLaunch", "AppId=294650"});
         QVERIFY(wait.stillComing());
         wait.startLaunch({QStringLiteral("tuxpaint")});
+        QVERIFY(!wait.steamGame());
         QVERIFY(!wait.stillComing());
     }
 

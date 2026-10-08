@@ -22,10 +22,14 @@ public:
     // The kiosk started the Steam client at login (ADR-0027); its startup
     // time is counted from now.
     void steamStartedAtLogin();
-    // A tile was pressed. Only `steam -applaunch <appid>` is a Steam game.
+    // A tile was pressed. Only `steam -applaunch <appid>` is a Steam game. A
+    // reaper for it already running is from an earlier start and never counts.
     void startLaunch(const QStringList& exec);
+    // The tile pressed last is a Steam game.
+    bool steamGame() const;
     // True while the game is worth waiting for: a Steam game, inside the
-    // outer limit, and Steam still starting or its reaper for it running.
+    // outer limit, and Steam still starting or a new reaper for it running.
+    // Asked when a grace ends, so the wait can run one grace past the limit.
     bool stillComing() const;
 
     // Tests set these short.
@@ -36,13 +40,14 @@ public:
     static QString appIdOf(const QStringList& exec);
 
 private:
-    // Steam's reaper for the game, a process of this user called exactly
-    // `reaper` with the arguments `SteamLaunch` and `AppId=<appid>`; the same
-    // test cairn-give-up makes (#117).
-    bool reaperRunning() const;
+    // The process ids of Steam's reapers for the game: processes of this user
+    // called exactly `reaper` with the arguments `SteamLaunch` and
+    // `AppId=<appid>`, the same test cairn-give-up makes (#117).
+    QStringList reapers() const;
 
     QString m_processRoot;
     QString m_appId;
+    QStringList m_reapersBefore;
     QElapsedTimer m_sinceSteamStarted;
     QElapsedTimer m_sinceLaunch;
     // How long after login the Steam client counts as still starting. On the
