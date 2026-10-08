@@ -50,9 +50,19 @@ Rectangle {
         visible: tile.activeFocus
     }
 
+    // A game's title is the store's full name, so it wraps inside the tile
+    // and ends in an ellipsis rather than running into the next tile. Only
+    // the width is limited: Log out is a tile one line tall.
     Text {
+        objectName: "tileTitle"
         anchors.centerIn: parent
+        width: parent.width - 2 * Tokens.headingSize
         text: tile.title
+        horizontalAlignment: Text.AlignHCenter
+        wrapMode: Text.Wrap
+        maximumLineCount: 3
+        elide: Text.ElideRight
+        lineHeight: Tokens.headingLineHeight
         font.family: Tokens.fontFamily
         font.pixelSize: Tokens.headingSize
         font.weight: Tokens.weightBold

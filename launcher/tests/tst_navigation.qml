@@ -19,6 +19,12 @@ TestCase {
         Main {}
     }
 
+    Component {
+        id: tileComponent
+
+        Tile {}
+    }
+
     // Counts state changes so a launch test cannot pass by never launching.
     SignalSpy {
         id: stateSpy
@@ -592,5 +598,55 @@ TestCase {
         compare(grid.y, tileWindow.ring);
         mouseWheel(grid, grid.width / 2, grid.height / 4, 0, -120);
         compare(grid.currentIndex, 5);
+    }
+
+    // Steam's full names ran into the next tile on the first laptop
+    // (2026-10-07), and the first fix cut Log out, a tile one line tall.
+    function test_aTitleStaysInsideItsTile_data() {
+        return [
+            {
+                tag: "one-line-tile",
+                title: "Log out",
+                width: 192,
+                height: 56,
+                wraps: false,
+                truncated: false
+            },
+            {
+                tag: "wraps",
+                title: "Putt-Putt and Fatty Bear's Activity Pack",
+                width: 480,
+                height: 200,
+                wraps: true,
+                truncated: false
+            },
+            {
+                tag: "ends-in-an-ellipsis",
+                title: "Putt-Putt and Fatty Bear's Activity Pack and Pep's Balloon-o-Rama and Pep's Dog on a Stick",
+                width: 360,
+                height: 200,
+                wraps: true,
+                truncated: true
+            }
+        ];
+    }
+
+    function test_aTitleStaysInsideItsTile(data) {
+        const tile = createTemporaryObject(tileComponent, testCase, {
+            "title": data.title,
+            "kind": TileModel.Games,
+            "accessibleName": data.title,
+            "width": data.width,
+            "height": data.height
+        });
+        verify(tile !== null);
+        const label = findChild(tile, "tileTitle");
+        verify(label !== null);
+        verify(label.lineCount >= 1);
+        compare(label.lineCount > 1, data.wraps);
+        compare(label.truncated, data.truncated);
+        verify(label.contentWidth <= label.width);
+        verify(label.x > 0 && label.x + label.width < tile.width);
+        verify(label.y >= 0 && label.y + label.contentHeight <= tile.height);
     }
 }
