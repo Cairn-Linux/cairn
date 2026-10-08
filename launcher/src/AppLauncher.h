@@ -2,6 +2,7 @@
 #pragma once
 
 #include "LaunchWindows.h"
+#include "SteamGameWait.h"
 
 #include <QObject>
 #include <QProcess>
@@ -29,7 +30,9 @@
 // up yet is ComingSoon: the screen says so, with a Back, and needs no
 // grown-up. When the program the launcher started exits after the settle
 // window, the app is over, and any of its windows still up count as opened on
-// their own. The grown-up's give-up key always brings the tiles back.
+// their own. A Steam game Steam is still working on is waited for past the
+// grace, up to a limit (SteamGameWait, ADR-0029). The grown-up's give-up key always brings the
+// tiles back.
 class AppLauncher : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -58,6 +61,11 @@ class AppLauncher : public QObject {
     // Start each program in a systemd user scope of its own (AppScope), so the
     // grown-up's give-up key can end it. The kiosk session turns this on.
     Q_PROPERTY(bool scoped MEMBER m_scoped NOTIFY scopedChanged)
+    // The kiosk started the Steam client at login (ADR-0027), so a Steam game
+    // pressed in the next minute is waited for while it starts (ADR-0029).
+    // Set once, when the launcher starts.
+    Q_PROPERTY(bool steamStartedAtLogin READ steamStartedAtLogin WRITE setSteamStartedAtLogin NOTIFY
+                   steamStartedAtLoginChanged)
 
 public:
     enum class State : std::uint8_t { Idle, Starting, Running, Failed, Interrupted, ComingSoon };
@@ -76,6 +84,8 @@ public:
     void setSteadyMilliseconds(int milliseconds);
     QString ownAppId() const;
     void setOwnAppId(const QString& appId);
+    bool steamStartedAtLogin() const;
+    void setSteamStartedAtLogin(bool started);
 
     // Ignored while a launch is in flight (Starting), an app's window is up
     // (Running), or a window that opened on its own is up (Interrupted). An
@@ -106,6 +116,7 @@ signals:
     void steadyMillisecondsChanged();
     void ownAppIdChanged();
     void scopedChanged();
+    void steamStartedAtLoginChanged();
 
 private:
     void setState(State state);
@@ -128,6 +139,7 @@ private:
     QTimer m_exitGraceTimer;
     QTimer m_steadyTimer;
     LaunchWindows m_windows;
+    SteamGameWait m_steamGame;
     State m_state = State::Idle;
     QString m_title;
     QString m_launchTitle;
@@ -136,5 +148,6 @@ private:
     // The program quit after the app's window came up, before the app was open.
     bool m_quitWhileOpening = false;
     bool m_scoped = false;
+    bool m_steamStartedAtLogin = false;
     int m_launches = 0;
 };

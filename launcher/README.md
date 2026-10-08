@@ -154,6 +154,9 @@ starts the Steam client in the background at login when a tile runs
 `steam -applaunch`, as a service of the child's own systemd called
 `cairn-steam` (ADR-0027). The first game then starts without waiting for
 the client, and a child with no Steam tile never pays its memory.
+A Steam game pressed while that client is still starting, or one Steam is
+still bringing up (its `reaper` runs), is waited for past the usual 15 s,
+up to two minutes; `SteamGameWait` decides (ADR-0029, #132).
 With `--scope-apps`, which the kiosk wrapper passes, every program starts
 in a systemd user scope of its own, `cairn-app-<launcher pid>-<n>.scope`,
 so the grown-up's give-up key can end it and whatever it started

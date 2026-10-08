@@ -110,6 +110,21 @@ void AppLauncher::setOwnAppId(const QString& appId) {
     emit ownAppIdChanged();
 }
 
+bool AppLauncher::steamStartedAtLogin() const {
+    return m_steamStartedAtLogin;
+}
+
+void AppLauncher::setSteamStartedAtLogin(bool started) {
+    if (started == m_steamStartedAtLogin) {
+        return;
+    }
+    m_steamStartedAtLogin = started;
+    if (started) {
+        m_steamGame.steamStartedAtLogin();
+    }
+    emit steamStartedAtLoginChanged();
+}
+
 void AppLauncher::launch(const QString& title, const QStringList& exec) {
     if (m_state == State::Starting || m_state == State::Running || m_state == State::Interrupted) {
         return;
@@ -125,6 +140,7 @@ void AppLauncher::launch(const QString& title, const QStringList& exec) {
     m_settled = false;
     m_quitWhileOpening = false;
     m_windows.startLaunch();
+    m_steamGame.startLaunch(exec);
     setState(State::Starting);
     m_settleTimer.start();
     m_launchGraceTimer.start();
@@ -326,6 +342,12 @@ void AppLauncher::onLaunchGraceTimeout() {
     // the tiles, where they can try again. A window that is up now gets the
     // rest of its steady wait.
     if (m_windows.launching() && !m_windows.appOnScreen()) {
+        if (m_steamGame.stillComing()) {
+            // Steam is still starting, or has the game in hand: wait another
+            // grace before looking again (ADR-0029).
+            m_launchGraceTimer.start();
+            return;
+        }
         endLaunch();
         update();
     }
