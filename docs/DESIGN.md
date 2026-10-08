@@ -450,6 +450,9 @@ The launcher **is the product.** Everything else is packaging.
   appears, including approved Steam titles. L2 adds a small dock with a
   files view.
 - Log out above the tiles, always in view (ADR-0021).
+- A pressed tile answers at once: until the app's window is up, the Cairn
+  mark builds itself stone by stone over one sentence, "Putt-Putt Joins the
+  Circus is starting." (ADR-0028).
 - Colour groups by *kind* (make / practice / games / machine), not one colour
   per app. Games are quiet Paper cards with a hairline edge, so making stays
   the loudest thing in the grid (ADR-0024).
@@ -469,6 +472,9 @@ The brief is "creative workspace," not "toy." Concretely:
   disproportionately for early readers.
 - **No** sound effects on every interaction, sticker rewards, gamification
   streaks, or mascot characters.
+- **Motion only says something true** (ADR-0028): tiles sliding into view,
+  a tile starting. Never to decorate, distract, reward, or hold a child's
+  attention. Slow and small, nothing flashes, every duration a token.
 
 ### 6.3 The consistency limit (accepted)
 

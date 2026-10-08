@@ -179,7 +179,7 @@ Window {
         anchors.bottom: parent.bottom
         anchors.margins: Tokens.headingSize - ring
         clip: true
-        visible: !grownUp.visible && !window.terminalOpen && !window.logOutAsked
+        visible: !grownUp.visible && !starting.visible && !window.terminalOpen && !window.logOutAsked
 
         GridScroller {
             id: scroller
@@ -210,7 +210,8 @@ Window {
             currentIndex: 0
             model: tiles
 
-            // The one motion that earns its place: the rows moving.
+            // Motion that tells the child something (ADR-0028): the rows
+            // moving into view.
             Behavior on y {
                 NumberAnimation {
                     duration: Tokens.motionRow
@@ -261,7 +262,7 @@ Window {
 
         objectName: "terminalScreen"
         anchors.fill: parent
-        visible: window.terminalOpen && !grownUp.visible
+        visible: window.terminalOpen && !grownUp.visible && !starting.visible
         session: session
         onExited: window.closeTerminal()
         // Its look is the frame's: every value from the brand tokens.
@@ -290,6 +291,25 @@ Window {
         visible: window.logOutAsked && !grownUp.visible
         onStayed: window.stayLoggedIn()
         onConfirmed: window.logOutNow()
+    }
+
+    // From the press until the app's window is up (ADR-0028), in front of
+    // the tiles or the Terminal, so a child sees the press did something.
+    StartingScreen {
+        id: starting
+
+        objectName: "startingScreen"
+        anchors.fill: parent
+        visible: launcher.state === AppLauncher.Starting
+        appTitle: launcher.title
+        onVisibleChanged: {
+            if (visible || grownUp.visible)
+                return;
+            if (window.terminalOpen)
+                terminalScreen.takeFocus();
+            else
+                window.focusTiles();
+        }
     }
 
     GrownUpScreen {

@@ -63,8 +63,9 @@
   --cairn-radius-terminal: 14px;
   --cairn-radius-pill:     999px;
 
-  /* motion: the one animation, rows of tiles sliding into view */
+  /* motion: only to say something true (ADR-0028) */
   --cairn-motion-row: 160ms;
+  --cairn-motion-stone: 500ms;
 }
 
 /* Dark surfaces (terminal, login, boot): the only dark ground is Ink. */

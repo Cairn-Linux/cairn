@@ -44,6 +44,11 @@ Colours, type, focus rings and radii come from `Cairn.Brand.Tokens`.
   (`../session/bin/cairn-log-out`); without it there is no Log out. The
   button sits above the tiles, Up from the top row reaches it, and
   `LogOutScreen.qml` asks once with the focus on Back.
+- **Slice 11 (2026-10-07):** a pressed tile answers at once (ADR-0028,
+  #129). `StartingScreen.qml` stands in front of the tiles, or the
+  Terminal, while `AppLauncher` is Starting: the Cairn mark builds itself
+  a stone at a time from the brand tokens, over "Putt-Putt Joins the Circus
+  is starting.", and the screen goes when the app's window is up.
 - **Footprint (2026-09-08):** about 145 MB proportional idle in the VM,
   first frame 0.2 s after exec; the table is in
   `../docs/research/launcher-footprint.md`.
@@ -66,7 +71,8 @@ without sanitizers.
 CTest runs nine suites offscreen: the tile model, the manifest reader, the
 app launcher, the grid scroller, the close request, Log out, the window
 list, the compiled brand tokens, and the QML navigation, scrolling,
-grown-up-screen, terminal, close-request and Log out behaviour. Footpath's own six
+starting-screen, grown-up-screen, terminal, close-request and Log out
+behaviour. Footpath's own six
 suites run in its repository.
 Qt on Fedora sends `qWarning` and `qInfo` lines to the journal when stderr
 is not a terminal; set `QT_FORCE_STDERR_LOGGING=1` to see them in a pipe.
@@ -138,6 +144,10 @@ A program that quits cleanly, or that quits with an error after the window,
 returns to the tiles without comment.
 The launcher runs one program at a time; a second Enter while one is
 starting or running is ignored.
+From the press until the app's window is on the screen, the starting
+screen says so: the Cairn mark builds itself, bottom stone first, over one
+sentence naming the tile (ADR-0028). A Steam game can take several seconds
+to come up, and tiles that look the same after a press read as broken.
 With `--start-steam`, which the kiosk wrapper also passes, the launcher
 starts the Steam client in the background at login when a tile runs
 `steam -applaunch`, as a service of the child's own systemd called
@@ -216,8 +226,9 @@ protocol; the window rules of ADR-0026 were checked in the VM on
   grown-up", never whatever the app or Steam decided to display.
 - Keyboard and mouse both work fully. A child typing at one character per
   five seconds is expected.
-- Nothing animated for its own sake. Launch feedback is the one motion that
-  earns its place.
+- Motion only says something true (ADR-0028): the rows sliding into view,
+  the mark building while a tile starts. Never to decorate, distract,
+  reward or hold attention.
 
 ## Not the launcher's job
 
