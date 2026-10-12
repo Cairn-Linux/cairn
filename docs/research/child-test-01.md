@@ -1,10 +1,16 @@
-# Child test 1: two cousins on a laptop (P0-9)
+# Child test 1: children on a laptop (P0-9)
 
 The Phase 0 exit test (ROADMAP P0-9): real hardware, real children, about
 twenty minutes each, and an observer who takes notes and does not step in
 unless asked. First run planned for 2026-10-02 with two cousins aged 9 and
 10, one account at L1 and one at L2. The pilot in the VM (#8) found #77 to
 #83; this is the first run on a laptop.
+
+The cousins' run never happened: they left before it could start. Two
+children in the maintainer's house used the kids' laptop instead on
+2026-10-10, and the younger one again on 2026-10-11. Phase 0 ends on those
+evenings (ADR-0031).
+The plan below is kept as it was written.
 
 This page is the plan and the notes sheet. Results go under "What
 happened" after the test.
@@ -131,8 +137,7 @@ longer wait for a Steam game (ADR-0029). Times are from the journal.
 
 ## What happened
 
-Not the exit test yet: the planned run with the cousins, online, is still to
-come. What 2026-10-10 showed:
+What 2026-10-10 showed:
 
 - **Pictures matter more than anything else on the tiles.** A child who
   cannot read cannot tell one Putt-Putt from another by its title. DESIGN
@@ -165,3 +170,19 @@ On 2026-10-11, the younger child alone and online:
   most likely have opened Steam's friends, chat and community inside the
   game; #74. Until Cairn handles it, turn the overlay off in each child's
   Steam settings.
+
+## Against the exit criterion
+
+ROADMAP §2's rows, and what the two evenings showed. Phase 0 ends on these
+evenings (ADR-0031); what was not seen moves to P1-17 and P1-1.
+
+| Row | Seen? | Where |
+|---|---|---|
+| Logs in from an avatar tile | Yes | Both children on 2026-10-10; the younger child on 2026-10-11. |
+| Launches and returns from at least two apps, one through Steam | Yes, as far as the journal shows | 2026-10-11: two Steam games, each back to the tiles. 2026-10-10: Draw, Practice and one Steam game. Whether the child left each app on purpose is in neither evening's notes; the pilot child could not (#77). |
+| Uses the shell to open something | No | Not in either evening's notes. The pilot found it too advanced for a child who cannot read yet (#83). |
+| Hits an error and recovers without help | Partly | 2026-10-10: twelve of thirteen Steam presses started nothing, and the children went on to other tiles. The launcher said nothing then; the grown-up screen for it (ADR-0030) came after. |
+| Never leaves the kiosk | Yes, as far as the journal shows | No Plasma, no Steam window. Steam's overlay was running on 2026-10-11 and could likely have opened Steam's friends and chat (#74). |
+| One child aged 5–8 | Yes | Both children are in the band. |
+| One child, twenty minutes, unsupervised | Yes | 2026-10-11: the younger child alone for about 45 minutes. |
+| On a Minimum-tier laptop | No | The kids' laptop has 14 GB; the 4 GB floor is P1-1. |

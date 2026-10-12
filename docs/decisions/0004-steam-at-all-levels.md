@@ -3,6 +3,8 @@
 **Status:** accepted
 **Date:** 2026-09-03
 **Closes:** ROADMAP D12
+**Amended by:** ADR-0031 (P0-10's leftover rows move to P1-13, and the
+client's memory on the 4 GB floor to P1-1)
 
 ## Context
 

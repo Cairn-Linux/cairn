@@ -23,10 +23,11 @@ them. That is the design brief.
 Cairn is currently an independent open-source project founded and led by
 Mason Ball. It is not a company, foundation, or nonprofit organisation.
 
-> **Status: pre-alpha, Phase 0.** There is a working prototype, but no public
+> **Status: pre-alpha, Phase 1.** There is a working prototype, but no public
 > installer or release ready for everyday family use. The launcher, Footpath
 > terminal integration, game scanner and session plumbing have code and
-> recorded tests, and the first test with children on a real laptop is next.
+> recorded tests. Children have used it on a real laptop, and the installable
+> image is the work now.
 > See the [roadmap](docs/ROADMAP.md) for current progress and the
 > [design specification](docs/DESIGN.md) for the intended experience.
 >
@@ -97,7 +98,7 @@ The design follows these principles; not every planned feature is complete.
 ## Hardware targets
 
 These are design targets, not a tested compatibility list. Older-laptop
-validation remains part of Phase 0.
+validation is part of Phase 1 (P1-1).
 
 x86_64 only. ARM and Raspberry Pi are out of scope for v1.
 

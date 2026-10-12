@@ -3,6 +3,9 @@
 **Status:** accepted
 **Date:** 2026-09-03
 **Closes:** ROADMAP D11
+**Amended by:** ADR-0031 (Phase 0's child test ran on a laptop above the
+floor; P1-1 measures the floor, and a child uses it in P1-17 only if the
+project has such a laptop)
 
 ## Context
 

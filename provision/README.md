@@ -3,9 +3,11 @@
 To try Cairn on a spare computer, follow [`docs/TRY.md`](../docs/TRY.md);
 this page is the script's reference.
 
-Phase 0 only. A script that turns a stock Bazzite KDE install (ADR-0006)
-into a Cairn machine, so the experience can be tested on real hardware and
-with a real child **before** any image, ISO or CI exists (DESIGN §13 Phase 0).
+Written for Phase 0, and still the way to try Cairn until the image and
+ISO exist (P1-3, P1-4). A script that turns a stock Bazzite KDE install
+(ADR-0006) into a Cairn machine, so the experience can be tested on real
+hardware and with a real child **before** any image, ISO or CI exists
+(DESIGN §13 Phase 0).
 
 `cairn-provision.sh` is that script (P0-2, first run in the VM on
 2026-09-06). From a checkout with a release build, on the target machine:
