@@ -183,6 +183,6 @@ evenings (ADR-0031); what was not seen moves to P1-17 and P1-1.
 | Uses the shell to open something | No | Not in either evening's notes. The pilot found it too advanced for a child who cannot read yet (#83). |
 | Hits an error and recovers without help | Partly | 2026-10-10: twelve of thirteen Steam presses started nothing, and the children went on to other tiles. The launcher said nothing then; the grown-up screen for it (ADR-0030) came after. |
 | Never leaves the kiosk | Yes, as far as the journal shows | No Plasma, no Steam window. Steam's overlay was running on 2026-10-11 and could likely have opened Steam's friends and chat (#74). |
-| One child aged 5–8 | Not recorded | The notes give no ages. |
+| One child aged 5–8 | Yes | Both children are in the band. |
 | One child, twenty minutes, unsupervised | Yes | 2026-10-11: the younger child alone for about 45 minutes. |
 | On a Minimum-tier laptop | No | The kids' laptop has 14 GB; the 4 GB floor is P1-1. |

@@ -309,18 +309,18 @@ shell to open something; hits an error and recovers without help; never leaves
 the kiosk. Observations are
 written up in `docs/research/`. Then, and only then, Phase 1.
 
-**Exit, 2026-10-12 (ADR-0031).** Phase 0 ends on the children's evenings
-of 2026-10-10 and 2026-10-11 on the kids' laptop, short of this criterion
-as written. Seen: logging in from a tile, launching apps including Steam
-games, and twenty minutes alone. Seen as far as the journal shows: coming
-back to the tiles, and staying in the kiosk, though Steam's overlay was on
-(#74). Partly seen: an error. On 2026-10-10 twelve of thirteen Steam
-presses started nothing and the children went on to other tiles, but the
-launcher said nothing then. Its grown-up screen for this (ADR-0030) came
-after, and no child has seen it. Not seen: using the Terminal, and a
-Minimum-tier laptop. Not met: #8's prerequisites for Steam (#25, #74,
-#88). What was not seen moves to P1-17 (child test 2), P1-1 (the 4 GB
-floor) and P1-13 (Steam). Row by row: `docs/research/child-test-01.md`.
+**Exit, 2026-10-12 (ADR-0031).** Phase 0 ends on the children's evenings of
+2026-10-10 and 2026-10-11 on the kids' laptop, short of this criterion as
+written. Seen, by children in the 5–8 band: logging in from a tile,
+launching apps including Steam games, and twenty minutes alone. Seen as far
+as the journal shows: coming back to the tiles, and staying in the kiosk,
+though Steam's overlay was on (#74). Partly seen: an error. On 2026-10-10
+twelve of thirteen Steam presses started nothing and the children went on to
+other tiles, but the launcher said nothing then. Its grown-up screen for
+this (ADR-0030) came after, and no child has seen it. Not seen: using the
+Terminal, and a Minimum-tier laptop. Not met: #8's prerequisites for Steam
+(#25, #74, #88). What was not seen moves to P1-17 (child test 2), P1-1 (the
+4 GB floor) and P1-13 (Steam). Row by row: `docs/research/child-test-01.md`.
 
 **What Phase 0 deliberately skips.** Guardian GUI (the provisioning script and
 a CLI stand in), first-boot wizard, quick-actions overlay, ISO, CI, signing.

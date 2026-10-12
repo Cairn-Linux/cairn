@@ -20,12 +20,12 @@ they left before it could start. The cousins were 9 and 10, outside the
 5–8 band, so it would not have met the bar as written either.
 
 Instead, the maintainer's own children used the kids' laptop on two
-evenings, written up in `docs/research/child-test-01.md`. On 2026-10-10 two
-children at L1 used it offline, with a grown-up in the room. On 2026-10-11
-the younger child used it alone, online, for about 45 minutes. The second
-evening ran a newer build, with the longer wait for a Steam game
-(ADR-0029). The fix for what the first evening found came after both
-(ADR-0030).
+evenings, written up in `docs/research/child-test-01.md`. Both children are
+in the 5–8 band. On 2026-10-10 the two of them, at L1, used it offline, with
+a grown-up in the room. On 2026-10-11 the younger child used it alone,
+online, for about 45 minutes. The second evening ran a newer build, with the
+longer wait for a Steam game (ADR-0029). The fix for what the first evening
+found came after both (ADR-0030).
 
 Against the bar:
 
@@ -43,8 +43,6 @@ Against the bar:
   seen it yet.
 - **Not seen:** a child opening something from the Terminal. The pilot
   found it too advanced for a child who cannot read yet (#83).
-- **Not recorded:** the children's ages. The notes give none, so whether
-  the younger child is in the 5–8 band is not on record.
 - **Not met:** the hardware. The kids' laptop has 14 GB of memory, not the
   4 GB floor. It is the tier where ADR-0003 puts Steam games, but no child
   has used the floor itself.
