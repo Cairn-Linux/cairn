@@ -91,6 +91,14 @@
     </message>
 </context>
 <context>
+    <name>StartingScreen</name>
+    <message>
+        <location filename="../qml/StartingScreen.qml" line="90"/>
+        <source>%1 is starting.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>TileModel</name>
     <message>
         <location filename="../src/TileModel.cpp" line="17"/>

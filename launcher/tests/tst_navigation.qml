@@ -44,6 +44,7 @@ TestCase {
         verify(appLauncher !== null);
         appLauncher.settleMilliseconds = 2000;
         appLauncher.launchGraceMilliseconds = 200;
+        appLauncher.steadyMilliseconds = 0;
         grownUp = findChild(launcher, "grownUpScreen");
         verify(grownUp !== null);
         stateSpy.clear();
@@ -305,6 +306,58 @@ TestCase {
         appLauncher.windowClosed("g1");
         compare(appLauncher.state, AppLauncher.Idle);
         wait(300); // let the launching process be reaped.
+    }
+
+    // A pressed tile says at once that it is starting (ADR-0028, #129): the
+    // mark builds from the bottom stone up and the sentence names the tile,
+    // until the app's window is up. Nothing else can be pressed meanwhile.
+    function test_aStartingTileSaysSoUntilItsWindowIsUp() {
+        appLauncher.launchGraceMilliseconds = 5000;
+        const starting = findChild(launcher, "startingScreen");
+        verify(starting !== null);
+        compare(starting.visible, false);
+        focusTile(1);
+        keyClick(Qt.Key_Return);
+        tryCompare(appLauncher, "state", AppLauncher.Starting);
+        compare(starting.visible, true);
+        compare(grid.visible, false);
+        compare(starting.Accessible.name, "Quits cleanly is starting.");
+        tryCompare(starting, "activeFocus", true);
+        compare(starting.stonesUp, 1);
+        tryCompare(starting, "stonesUp", 2);
+        const changes = stateSpy.count;
+        keyClick(Qt.Key_Return);
+        compare(stateSpy.count, changes);
+        // A splash that comes and goes keeps the screen up; the app's window
+        // takes it away once it has stayed up for the steady wait.
+        appLauncher.steadyMilliseconds = 300;
+        appLauncher.windowOpened("s1", "steam_app_1", "");
+        appLauncher.windowClosed("s1");
+        compare(starting.visible, true);
+        compare(grid.visible, false);
+        appLauncher.windowOpened("g1", "scummvm", "Putt-Putt Joins the Parade");
+        compare(starting.visible, true);
+        tryCompare(appLauncher, "state", AppLauncher.Running);
+        compare(starting.visible, false);
+        compare(grid.visible, true);
+        appLauncher.windowClosed("g1");
+        compare(appLauncher.state, AppLauncher.Idle);
+        compare(grid.currentIndex, 1);
+        tryCompare(grid.currentItem, "activeFocus", true);
+        wait(300); // let the launching process be reaped.
+    }
+
+    // A start that never opens a window goes back to the tiles, not to a
+    // screen that keeps building.
+    function test_aStartWithNoWindowGoesBackToTheTiles() {
+        const starting = findChild(launcher, "startingScreen");
+        verify(starting !== null);
+        focusTile(1);
+        keyClick(Qt.Key_Return);
+        compare(starting.visible, true);
+        tryCompare(appLauncher, "state", AppLauncher.Idle);
+        compare(starting.visible, false);
+        tryCompare(grid.currentItem, "activeFocus", true);
     }
 
     function test_ownWindowDoesNotInterrupt() {

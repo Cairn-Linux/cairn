@@ -50,11 +50,43 @@ private slots:
         QVERIFY(windows.appOnScreen());
     }
 
-    // The same name as the app's window does not make a window the app's.
+    // Until the app is open, a game's splash and its own window both are the
+    // app's, and the launch outlasts the splash closing (ADR-0028).
+    void everyWindowWhileOpeningIsTheApp() {
+        LaunchWindows windows;
+        QVERIFY(!windows.opening());
+        windows.startLaunch();
+        QVERIFY(windows.opening());
+        windows.opened(QStringLiteral("s1"), QStringLiteral("Splash"), false, {});
+        windows.opened(QStringLiteral("g1"), QStringLiteral("Putt-Putt"), false, {});
+        QVERIFY(!windows.unexpectedOnScreen());
+        windows.closed(QStringLiteral("s1"));
+        windows.closed(QStringLiteral("g1"));
+        QVERIFY(windows.launching());
+        windows.opened(QStringLiteral("g2"), QStringLiteral("Putt-Putt"), false, {});
+        QVERIFY(windows.appOnScreen());
+        windows.appIsOpen();
+        QVERIFY(!windows.opening());
+        QVERIFY(windows.launching());
+    }
+
+    void theLaunchEndingOrAGiveUpEndsTheOpening() {
+        LaunchWindows windows;
+        windows.startLaunch();
+        windows.endLaunch();
+        QVERIFY(!windows.opening());
+        windows.startLaunch();
+        windows.forgetAll();
+        QVERIFY(!windows.opening());
+    }
+
+    // Once the app is open, the same name as the app's window does not make a
+    // window the app's.
     void anyOtherWindowDuringTheAppOpenedOnItsOwn() {
         LaunchWindows windows;
         windows.startLaunch();
         windows.opened(QStringLiteral("g1"), QStringLiteral("Putt-Putt"), false, {});
+        windows.appIsOpen();
         windows.opened(QStringLiteral("g2"), QStringLiteral("Putt-Putt"), false, {});
         QVERIFY(windows.unexpectedOnScreen());
         windows.opened(QStringLiteral("d1"), QStringLiteral("Help"), false, QStringLiteral("g2"));
@@ -70,6 +102,7 @@ private slots:
         windows.startLaunch();
         windows.opened(QStringLiteral("h1"), QStringLiteral("Steam"), true, {});
         windows.opened(QStringLiteral("g1"), QStringLiteral("Putt-Putt"), false, {});
+        windows.appIsOpen();
         windows.changed(QStringLiteral("h1"), false, {});
         QVERIFY(windows.unexpectedOnScreen());
         QCOMPARE(windows.unexpectedName(), QStringLiteral("Steam"));

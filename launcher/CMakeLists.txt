@@ -38,11 +38,13 @@ set(launcher_model_sources
 set(launcher_window_sources src/ForeignWindowList.h src/ForeignWindowList.cpp)
 # What the launcher tells Footpath: the tiles are its doors.
 set(launcher_terminal_sources src/DoorsFromTiles.h src/DoorsFromTiles.cpp)
-set(launcher_qml_files qml/Main.qml qml/Tile.qml qml/GrownUpScreen.qml qml/LogOutScreen.qml)
+set(launcher_qml_files qml/Main.qml qml/Tile.qml qml/GrownUpScreen.qml qml/LogOutScreen.qml
+    qml/StartingScreen.qml)
 set_source_files_properties(qml/Main.qml PROPERTIES QT_RESOURCE_ALIAS Main.qml)
 set_source_files_properties(qml/Tile.qml PROPERTIES QT_RESOURCE_ALIAS Tile.qml)
 set_source_files_properties(qml/GrownUpScreen.qml PROPERTIES QT_RESOURCE_ALIAS GrownUpScreen.qml)
 set_source_files_properties(qml/LogOutScreen.qml PROPERTIES QT_RESOURCE_ALIAS LogOutScreen.qml)
+set_source_files_properties(qml/StartingScreen.qml PROPERTIES QT_RESOURCE_ALIAS StartingScreen.qml)
 
 qt_add_executable(cairn-launcher src/main.cpp)
 qt_add_qml_module(cairn-launcher

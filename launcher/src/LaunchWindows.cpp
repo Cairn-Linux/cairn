@@ -5,11 +5,17 @@
 
 void LaunchWindows::startLaunch() {
     m_launching = true;
+    m_opening = true;
     m_appWasOnScreen = false;
+}
+
+void LaunchWindows::appIsOpen() {
+    m_opening = false;
 }
 
 void LaunchWindows::endLaunch() {
     m_launching = false;
+    m_opening = false;
     for (Window& window : m_windows) {
         if (window.owner == Owner::App) {
             window.owner = window.hidden ? Owner::Undecided : Owner::OnItsOwn;
@@ -19,6 +25,7 @@ void LaunchWindows::endLaunch() {
 
 void LaunchWindows::forgetAll() {
     m_launching = false;
+    m_opening = false;
     m_appWasOnScreen = false;
     for (Window& window : m_windows) {
         window.owner = Owner::Forgotten;
@@ -53,8 +60,17 @@ void LaunchWindows::closed(const QString& identifier) {
     m_order.removeOne(identifier);
 }
 
+bool LaunchWindows::hidden(const QString& identifier) const {
+    const auto found = m_windows.constFind(identifier);
+    return found != m_windows.constEnd() && found->hidden;
+}
+
 bool LaunchWindows::launching() const {
     return m_launching;
+}
+
+bool LaunchWindows::opening() const {
+    return m_opening;
 }
 
 bool LaunchWindows::appOnScreen() const {
@@ -82,7 +98,7 @@ QString LaunchWindows::unexpectedName() const {
 void LaunchWindows::decide(Window& window) {
     const auto parent = m_windows.constFind(window.belongsTo);
     const bool belongsToTheApp = parent != m_windows.constEnd() && parent->owner == Owner::App;
-    if (m_launching && (!appOnScreen() || belongsToTheApp)) {
+    if (m_launching && (m_opening || !appOnScreen() || belongsToTheApp)) {
         window.owner = Owner::App;
         m_appWasOnScreen = true;
         return;

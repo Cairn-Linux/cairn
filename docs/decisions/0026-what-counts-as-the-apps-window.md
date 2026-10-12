@@ -3,6 +3,7 @@
 **Status:** accepted
 **Date:** 2026-10-01
 **Closes:** (none) — addresses issue #99; amends ADR-0017 and ADR-0018
+**Amended by:** ADR-0028 (every window is the app's while it is opening)
 
 ## Context
 
