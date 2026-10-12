@@ -34,8 +34,10 @@ with them to ~14. This file tells Claude Code sessions how this repo works.
 6. **Level is a property of the account**, never a mode toggle. Guardian is a
    role beside the ladder, not L5, and is invisible from child sessions.
 7. **x86_64 only.** Don't add ARM paths.
-8. **Phase 0 has no ISO.** Don't build CI/image plumbing before the launcher
-   has been in front of a real child. See ROADMAP §2.
+8. **Image work follows Phase 1.** Phase 0 ended on 2026-10-12
+   (ADR-0031). Start with P1-1 to P1-3 in ROADMAP §3. No image is made
+   public, or goes to anyone outside the family, before P1-14, the
+   Guardian audit (#86) and child test 2 (P1-17).
 
 ## Voice for any user-facing string
 

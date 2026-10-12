@@ -9,7 +9,7 @@ against an actual Fedora 44 KDE laptop on 2026-09-04.
 | Machine | Job | What it needs |
 |---|---|---|
 | **Dev PC** | Write and build the C++/QML code, run VMs, run `kidscan` against a real Steam library | x86_64, KVM, a mutable Fedora with the toolchain below, Steam with a few Humongous titles, ScummVM |
-| **Test laptop** | The thing a child actually uses in P0-9 | A **Minimum**-tier machine (ADR-0003): about 2013 or newer, 4 GB RAM, Intel HD 4000-class graphics, UEFI, 64 GB. Test at the floor, not the comfortable case. **Stock Bazzite KDE** (ADR-0006), then `provision/` |
+| **Test laptop** | The thing a child uses in a child test (P1-17), and where P1-1 measures the 4 GB floor | A **Minimum**-tier machine (ADR-0003): about 2013 or newer, 4 GB RAM, Intel HD 4000-class graphics, UEFI, 64 GB. Test at the floor, not the comfortable case. Phase 0's test ran on a 14 GB laptop instead (ADR-0031). **Stock Bazzite KDE** (ADR-0006), then `provision/` |
 
 Nothing in this project runs on ARM (DESIGN §7), so an ARM laptop is for
 editing documents only.
@@ -114,7 +114,8 @@ sudo usermod -aG libvirt "$USER"      # then log out and back in
 
 Download the Bazzite KDE desktop ISO for Intel/AMD graphics (not the Nvidia
 build; ADR-0006) into `/var/lib/libvirt/images/`. Do not build a disk image
-with `bootc-image-builder` for this; Phase 0 has no image plumbing. Create
+with `bootc-image-builder` for this: the VM starts from stock Bazzite, so
+provisioning can be tested on it. Create
 the VM at the Minimum tier (ADR-0003), UEFI only:
 
 ```sh

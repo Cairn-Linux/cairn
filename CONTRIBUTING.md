@@ -1,8 +1,9 @@
 # Contributing
 
-Cairn Linux is in Phase 0. The launcher, session, greeter, Footpath terminal
-integration, provisioning tools, and test fixtures are under active
-development, but there is no release for everyday family use. Read
+Cairn Linux is in Phase 1: building the installable image. The launcher,
+session, greeter, Footpath terminal integration, provisioning tools, and
+test fixtures are under active development, but there is no release for
+everyday family use. Read
 [`docs/DESIGN.md`](docs/DESIGN.md) first and [`docs/ROADMAP.md`](docs/ROADMAP.md)
 second. The design document is authoritative; propose changes to it as an
 ADR in `docs/decisions/` plus the edit, in one pull request.
@@ -19,8 +20,9 @@ responsible for accepting work.
   enough detail for someone else to repeat it.
 - **Working an open issue** whose acceptance criteria are already written.
   Comment before starting so two people do not solve the same problem.
-- **Testing the current child-facing flow** without widening Phase 0 into an
-  installer or general-purpose distribution.
+- **Testing the current child-facing flow** on real hardware with the
+  provisioning script ([`docs/TRY.md`](docs/TRY.md)), especially an older
+  laptop at the Minimum tier (ADR-0003).
 
 ## Rules
 

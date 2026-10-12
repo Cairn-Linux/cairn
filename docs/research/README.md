@@ -6,9 +6,12 @@ strength of what is written here, not on what was built.
 Files:
 
 - `child-test-01.md` — the plan and notes sheet for P0-9, the first test
-  with children on a laptop (two cousins, 9 and 10, at L1 and L2), planned
-  for 2026-10-02: setup steps rehearsed in the VM the evening before, the
-  ways out, what to watch, and where the journal keeps what went wrong.
+  with children on a laptop: setup steps rehearsed in the VM, the ways
+  out, what to watch, and where the journal keeps what went wrong. It was
+  planned for two cousins on 2026-10-02, and that run never happened. The
+  notes cover the kids' laptop: two children at L1 on 2026-10-10, and the
+  younger one alone on 2026-10-11, with a table of those evenings against
+  the exit criterion. Phase 0 ended on those evenings (ADR-0031).
 - `base-image-policy.md` — 2026-09-03 review of Bazzite, Universal Blue and
   Fedora trademark and licence terms for building Cairn on Bazzite. No
   blocker; compliance checklist for Phase 1.
@@ -40,10 +43,5 @@ Files:
   about 235 MB, leaving 2.9 GB of the 4 GB floor; first frame 0.2 s after
   exec, tiles 1.75 s after Enter at the greeter, Tux Paint 6 to 7 s from
   tile to a usable screen under llvmpipe. The laptop run is still owed.
-
-Planned files:
-
-- `child-test-01.md` — P0-9: who, how old, what hardware, twenty minutes,
-  what happened. Observer does not intervene unless asked.
 
 Write what happened, not what should have happened.
