@@ -95,10 +95,45 @@ and what would you want it to do?
 
 ## Notes
 
+### 2026-10-10: two children at home, no internet
+
+Not the planned run with the cousins: two children in the house, both at
+L1, on the kids' laptop, while the maintainer watched the journal over ssh.
+A power cut had taken the house's internet down, so Steam could not reach
+its servers all evening. The launcher was the #136 build (the starting
+screen) on top of main at `de8d2cf`. Times are from the journal; what the
+children said comes from the grown-up who was with them.
+
 | Time | Who | What happened | Said |
 |---|---|---|---|
-| | | | |
+| 17:29 | Child A (L1) | Logged in; the launcher was up 10 s later. Opened Draw (Tux Paint) within a second and drew for about a minute and a half. | |
+| 17:31 | Child A | Pressed Music and Build: "coming soon". | |
+| 17:31 | Child A | Putt-Putt Goes to the Moon started and ran for 3 minutes, the only Steam game that started all evening. | |
+| 17:34–17:41 | Child A | Five more Steam games, Balloon-o-Rama three times in 46 s: none started (#139). Draw again at 17:36, Practice (GCompris) at 17:40 without its voices (#141). Music, Build and Story again. | Could not tell which game was which, since she cannot read the titles (#138). |
+| 17:41 | Child A | Logged out; two runs of the log-out script started (#140). | |
+| 17:42–18:02 | Child B (L1) | Logged in, opened Draw, then five Steam games from 18:00 to 18:02, Big Thinkers 1st Grade twice: none started. Logged out; four runs of the log-out script. | |
+| 18:03–18:45 | Child B | Back in, Draw, Story. The lid was closed and opened six times; each time the laptop slept and the session came back as it was. Music twice; logged out (seven runs of the script) and back in. | |
+| 18:46–18:47 | Child B | Pep's Birthday Surprise and Travels Through Time: neither started. | |
 
 ## What happened
 
-Not run yet.
+Not the exit test yet: the planned run with the cousins, online, is still to
+come. What 2026-10-10 showed:
+
+- **Pictures matter more than anything else on the tiles.** A child who
+  cannot read cannot tell one Putt-Putt from another by its title. DESIGN
+  §6 asks for icons and §14 Q3 is still open; #138.
+- **Offline, Steam stops almost every game, and the child cannot see why.**
+  Steam could not check each game's cloud saves and waited on its "Cloud
+  sync failed" dialog, which the kiosk hides. Twelve of thirteen Steam presses
+  started nothing; the launcher showed the starting screen for 15 s and then
+  the tiles, with nothing said, so the children pressed again. #139.
+- **Log out looks like it does nothing** while it waits up to 10 s for
+  Steam, so children press it again; #140.
+- **GCompris has no voices offline:** it downloads them the first time it
+  runs; #141.
+- **Closing the lid** sleeps the laptop and keeps the child's session; no
+  child was logged out by it.
+- The children enjoyed the games that did start. The younger child is to be
+  asked more later: whether the game's own picture would tell her which game
+  it is, and whether she wants tile names read aloud.
