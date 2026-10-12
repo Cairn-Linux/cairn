@@ -110,6 +110,21 @@ void AppLauncher::setOwnAppId(const QString& appId) {
     emit ownAppIdChanged();
 }
 
+bool AppLauncher::steamStartedAtLogin() const {
+    return m_steamStartedAtLogin;
+}
+
+void AppLauncher::setSteamStartedAtLogin(bool started) {
+    if (started == m_steamStartedAtLogin) {
+        return;
+    }
+    m_steamStartedAtLogin = started;
+    if (started) {
+        m_steamGame.steamStartedAtLogin();
+    }
+    emit steamStartedAtLoginChanged();
+}
+
 void AppLauncher::launch(const QString& title, const QStringList& exec) {
     if (m_state == State::Starting || m_state == State::Running || m_state == State::Interrupted) {
         return;
@@ -125,6 +140,7 @@ void AppLauncher::launch(const QString& title, const QStringList& exec) {
     m_settled = false;
     m_quitWhileOpening = false;
     m_windows.startLaunch();
+    m_steamGame.startLaunch(exec);
     setState(State::Starting);
     m_settleTimer.start();
     m_launchGraceTimer.start();
@@ -292,6 +308,11 @@ void AppLauncher::onFinished(QProcess* process, int exitCode, QProcess::ExitStat
         return;
     }
     if (m_settled) {
+        // `steam -applaunch` only hands the game over, so its exit never ends
+        // the game; right after login it can return late (ADR-0029).
+        if (m_steamGame.steamGame()) {
+            return;
+        }
         // It ran past the settle window and is gone, so the app is over. Its
         // windows get a moment to close before any left count as unexpected.
         m_exitGraceTimer.start();
@@ -321,11 +342,21 @@ void AppLauncher::onFinished(QProcess* process, int exitCode, QProcess::ExitStat
 }
 
 void AppLauncher::onLaunchGraceTimeout() {
+    if (!m_windows.launching()) {
+        return;
+    }
+    if (m_steamGame.stillComing()) {
+        // Steam is still starting, or has the game in hand: wait another grace
+        // before looking again (ADR-0029). Also with a window up, so a splash
+        // that closes after this moment is still part of the start.
+        m_launchGraceTimer.start();
+        return;
+    }
     // The app did not open in time and no window of it is up: nothing came,
     // or a window came and went. Nothing is wrong to show a child; go back to
     // the tiles, where they can try again. A window that is up now gets the
     // rest of its steady wait.
-    if (m_windows.launching() && !m_windows.appOnScreen()) {
+    if (!m_windows.appOnScreen()) {
         endLaunch();
         update();
     }

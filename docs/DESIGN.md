@@ -569,7 +569,10 @@ Mechanism:
 - Each game is a tile running `steam -applaunch <appid>`. That command
   returns at once while the game loads, so the launcher tracks the game by
   its **window**, not the process: it is "running" while the game's window
-  is up and returns to the tiles when the window closes (issue #42).
+  is up and returns to the tiles when the window closes (issue #42). While
+  Steam is still starting after login, or its `reaper` for the game is
+  running, the launcher keeps waiting for that window past its usual 15 s,
+  up to two minutes (ADR-0029).
 - Proton work happens in the background; the game comes up fullscreen.
 
 **Known failure modes.** Steam forces its window open for client updates, game
