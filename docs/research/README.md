@@ -33,6 +33,14 @@ Files:
   no window from a silent client, `-applaunch` from a tile up and back,
   the login through a reboot, 1.4 GB proportional signed in. D3 closed
   with ADR-0017.
+- `steam-visit.md` — 2026-10-12 P1-5 check in the VM: a logged-out
+  child's own Steam opened on the Guardian's Plasma desktop. Sharing the
+  Guardian's Xwayland with `xhost` works but exposes the Guardian's X11
+  windows, keys and clipboard, and is rejected. cage in a window, on a
+  socket systemd hands over, works and held in the tests run, but any
+  process of the child can copy cage's connection to KWin, which is
+  offered the Guardian's clipboard and more. Ends with what the helper of
+  ADR-0032 (proposed) must do.
 
 - `malcontent-plasma.md` — 2026-09-06 P0-7 check in the VM: malcontent 0.14
   blocks a blocklisted Flatpak and user installs under Plasma, and its
