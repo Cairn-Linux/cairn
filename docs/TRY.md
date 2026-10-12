@@ -100,6 +100,13 @@ Tux Paint and GCompris. Every step it takes prints a line starting
   journalctl -t cairn-launcher -t cairn-kiosk --since today
   ```
 
+- If a Steam game says "did not start", Steam is often waiting for an
+  answer in a window the child's session hides. Its own log says which:
+  look for "waiting for user response" in
+  `~/.local/share/Steam/logs/console_log.txt` in the child's home. Without
+  internet that is usually Steam Cloud, which checks a game's saves before
+  starting it; Steam's settings can turn Steam Cloud off, and saves then
+  stay on this computer only.
 - Please report what you find as a
   [GitHub issue](https://github.com/Cairn-Linux/cairn/issues). Leave out
   children's names, photos and anything else personal.

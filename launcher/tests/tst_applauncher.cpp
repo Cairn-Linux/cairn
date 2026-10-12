@@ -94,27 +94,81 @@ private slots:
         QCOMPARE(launcher.title(), QStringLiteral("Music"));
     }
 
-    void launchThatOpensNoWindowReturnsToTilesAfterTheGrace() {
+    // No window ever opens, so the grace timer, not the clean exit, ends the
+    // wait. Back at the tiles a child would press again; the grown-up screen
+    // says the tile did not start (ADR-0030, #139).
+    void launchThatOpensNoWindowNeedsAGrownUpAfterTheGrace() {
         AppLauncher launcher(this);
         launcher.setLaunchGraceMilliseconds(150);
         launcher.launch(QStringLiteral("Story"),
                         {shell(), QStringLiteral("-c"), QStringLiteral("exit 0")});
-        // No window ever opens, so the grace timer, not the exit, ends the
-        // wait, and quietly: nothing failed.
-        QTRY_COMPARE_WITH_TIMEOUT(launcher.state(), AppLauncher::State::Idle, 5000);
-        QVERIFY(!launcher.needsGrownUp());
+        QTRY_COMPARE_WITH_TIMEOUT(launcher.state(), AppLauncher::State::Failed, 5000);
+        QVERIFY(launcher.needsGrownUp());
+        QCOMPARE(launcher.title(), QStringLiteral("Story"));
     }
 
-    void lateBadExitIsNotAFailedLaunch() {
+    // A program that ran past the settle window and quit without ever putting
+    // a window up did not start either, whatever its exit code.
+    void lateExitWithNoWindowNeedsAGrownUp() {
         AppLauncher launcher(this);
         launcher.setSettleMilliseconds(100);
-        launcher.setLaunchGraceMilliseconds(400);
+        launcher.setLaunchGraceMilliseconds(60000);
         launcher.launch(QStringLiteral("Build"),
                         {shell(), QStringLiteral("-c"), QStringLiteral("sleep 0.2; exit 3")});
-        // Past the settle window, an error exit is not a failed launch; with
-        // no window it just returns to the tiles when the grace ends.
-        QTRY_COMPARE_WITH_TIMEOUT(launcher.state(), AppLauncher::State::Idle, 5000);
+        QTRY_COMPARE_WITH_TIMEOUT(launcher.state(), AppLauncher::State::Failed, 5000);
+        QVERIFY(launcher.needsGrownUp());
+    }
+
+    // A game that comes after the grown-up screen is the game: it takes over,
+    // and is not a window that opened on its own.
+    void aWindowAfterNothingCameIsTheApp() {
+        AppLauncher launcher(this);
+        launcher.setSteadyMilliseconds(0);
+        launcher.setLaunchGraceMilliseconds(100);
+        launcher.launch(QStringLiteral("Draw"),
+                        {shell(), QStringLiteral("-c"), QStringLiteral("exit 0")});
+        QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
+        launcher.windowOpened(QStringLiteral("g1"), QStringLiteral("tuxpaint"),
+                              QStringLiteral("Tux Paint"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Running);
         QVERIFY(!launcher.needsGrownUp());
+        launcher.windowClosed(QStringLiteral("g1"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Idle);
+    }
+
+    // Back ends the launch: a window after that opened on its own, and the
+    // next tile starts as usual.
+    void backAfterNothingCameEndsTheLaunch() {
+        AppLauncher launcher(this);
+        launcher.setSteadyMilliseconds(0);
+        launcher.setLaunchGraceMilliseconds(100);
+        launcher.launch(QStringLiteral("Draw"),
+                        {shell(), QStringLiteral("-c"), QStringLiteral("exit 0")});
+        QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
+        launcher.dismiss();
+        QCOMPARE(launcher.state(), AppLauncher::State::Idle);
+        launcher.windowOpened(QStringLiteral("g1"), QStringLiteral("tuxpaint"),
+                              QStringLiteral("Tux Paint"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Interrupted);
+        launcher.windowClosed(QStringLiteral("g1"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Idle);
+        launcher.launch(QStringLiteral("Practice"),
+                        {shell(), QStringLiteral("-c"), QStringLiteral("exit 0")});
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+        QCOMPARE(launcher.title(), QStringLiteral("Practice"));
+    }
+
+    // A program still running when nothing came runs on by itself; its exit
+    // later neither ends the grown-up screen nor says anything new.
+    void aLaterExitLeavesTheGrownUpScreen() {
+        AppLauncher launcher(this);
+        launcher.setSettleMilliseconds(50);
+        launcher.setLaunchGraceMilliseconds(100);
+        launcher.launch(QStringLiteral("Music"),
+                        {shell(), QStringLiteral("-c"), QStringLiteral("sleep 0.3; exit 3")});
+        QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
+        QTest::qWait(2800); // past the exit and the exit grace.
+        QCOMPARE(launcher.state(), AppLauncher::State::Failed);
     }
 
     void secondLaunchWhileRunningIsIgnored() {
@@ -650,13 +704,40 @@ private slots:
 
     // A tile that is not a Steam game is not waited for because Steam is
     // starting.
-    void anotherTileWhileSteamStartsGivesUpAtTheGrace() {
+    void anotherTileWhileSteamStartsEndsAtTheGrace() {
         AppLauncher launcher(this);
         launcher.setLaunchGraceMilliseconds(200);
         launcher.setSteamStartedAtLogin(true);
         launcher.launch(QStringLiteral("Draw"),
                         {shell(), QStringLiteral("-c"), QStringLiteral("exit 0")});
-        QTRY_COMPARE(launcher.state(), AppLauncher::State::Idle);
+        QTest::qWait(100);
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+        QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
+    }
+
+    // A Steam game Steam never starts, as when it waits on a dialog the kiosk
+    // hides (#139), ends on the grown-up screen naming the tile, not at the
+    // tiles where the child presses it again.
+    void aSteamGameThatNeverStartsNeedsAGrownUp() {
+        const QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        QFile fake(dir.filePath(QStringLiteral("steam")));
+        QVERIFY(fake.open(QIODevice::WriteOnly));
+        fake.write("#!/bin/sh\nexit 0\n");
+        fake.close();
+        QVERIFY(fake.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
+        const QByteArray path = qgetenv("PATH");
+        qputenv("PATH", dir.path().toUtf8() + ':' + path);
+
+        AppLauncher launcher(this);
+        launcher.setLaunchGraceMilliseconds(200);
+        launcher.launch(
+            QStringLiteral("Putt-Putt Enters the Race"),
+            {QStringLiteral("steam"), QStringLiteral("-applaunch"), QStringLiteral("294680")});
+        QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
+        QVERIFY(launcher.needsGrownUp());
+        QCOMPARE(launcher.title(), QStringLiteral("Putt-Putt Enters the Race"));
+        qputenv("PATH", path);
     }
 
     // The grown-up's key always brings the tiles back, whatever is still open.

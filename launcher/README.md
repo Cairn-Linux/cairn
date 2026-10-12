@@ -29,7 +29,8 @@ Colours, type, focus rings and radii come from `Cairn.Brand.Tokens`.
   return within a second while the app runs on, so `AppLauncher` waits for
   the app's window, stays Running while it is up, and returns to the tiles
   when it closes. A launch that opens no window before a grace timer ends
-  goes back to the tiles quietly; a window that opens when nothing was
+  goes back to the tiles quietly (ADR-0030 later made that the grown-up
+  screen); a window that opens when nothing was
   launched is still an interruption.
 - **Slice 9 (2026-09-29):** a close request is one step back (ADR-0019).
   The child's leave key, Super+Q, asks the window in front to close, and
@@ -141,8 +142,12 @@ seconds).
 A program that cannot be started, or that quits with an error inside that
 window, is a failed launch: the grown-up screen says "Something needs a
 grown-up" and names the tile, with one thing to do, Back.
-A program that quits cleanly, or that quits with an error after the window,
-returns to the tiles without comment.
+A launch that has put nothing on the screen when its wait ends (15 s), or
+whose program runs past the settle window and quits without a window, is a
+failed launch too (ADR-0030, #139): the grown-up screen says the tile did
+not start. Back at the tiles a child would press it again, and again.
+Until Back, a window that comes late is still the app's and takes over.
+A program whose window came and went returns to the tiles without comment.
 The launcher runs one program at a time; a second Enter while one is
 starting or running is ignored.
 From the press until the app's window is on the screen, the starting

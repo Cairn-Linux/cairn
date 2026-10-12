@@ -572,7 +572,10 @@ Mechanism:
   is up and returns to the tiles when the window closes (issue #42). While
   Steam is still starting after login, or its `reaper` for the game is
   running, the launcher keeps waiting for that window past its usual 15 s,
-  up to two minutes (ADR-0029).
+  up to two minutes (ADR-0029). A game that has put nothing on the screen
+  when the wait ends, such as one Steam holds behind a dialog the kiosk
+  hides, ends on the grown-up screen, and its window still takes over if it
+  comes late (ADR-0030).
 - Proton work happens in the background; the game comes up fullscreen.
 
 **Known failure modes.** Steam forces its window open for client updates, game

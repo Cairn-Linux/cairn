@@ -153,20 +153,22 @@ TestCase {
     }
 
     // A click focuses the tile and launches it; tile 4 quits cleanly and opens
-    // no window, so the launcher returns to the tiles when the grace ends and
-    // never shows the grown-up screen.
+    // no window, so when the grace ends the grown-up screen says it did not
+    // start (ADR-0030). Back returns to the clicked tile.
     function test_mouseFocusAndLaunch() {
         const tile = grid.itemAtIndex(4);
         verify(tile !== null);
         mouseClick(tile);
         tryCompare(grid, "currentIndex", 4);
-        tryCompare(tile, "activeFocus", true);
         compare(tile.Accessible.role, Accessible.Button);
         verify(tile.Accessible.name.length > 0);
         compare(tile.Accessible.focusable, true);
         verify(stateSpy.count > 0);
-        tryCompare(appLauncher, "state", AppLauncher.Idle);
-        compare(grownUp.visible, false);
+        tryCompare(appLauncher, "state", AppLauncher.Failed);
+        compare(grownUp.visible, true);
+        keyClick(Qt.Key_Escape);
+        tryCompare(grownUp, "visible", false);
+        tryCompare(tile, "activeFocus", true);
     }
 
     // Tile 0 quits with an error at once: the grown-up screen appears and takes focus.
@@ -233,14 +235,35 @@ TestCase {
         compare(grownUp.appTitle, "Nothing set up");
     }
 
-    // A clean launch that opens no window returns to the tiles when the grace
-    // ends; the title proves the tile really launched.
-    function test_cleanLaunchReturnsToTiles() {
+    // A clean launch that opens no window shows the grown-up screen when the
+    // grace ends, naming the tile, and Back returns to that tile.
+    function test_aLaunchWithNoWindowNeedsAGrownUp() {
         focusTile(1);
         keyClick(Qt.Key_Return);
         compare(appLauncher.title, "Quits cleanly");
-        tryCompare(appLauncher, "state", AppLauncher.Idle);
+        tryCompare(grownUp, "visible", true);
+        compare(appLauncher.state, AppLauncher.Failed);
+        compare(grownUp.appTitle, "Quits cleanly");
+        compare(grownUp.openedOnItsOwn, false);
+        const back = findChild(grownUp, "backTile");
+        tryCompare(back, "activeFocus", true);
+        keyClick(Qt.Key_Escape);
+        tryCompare(grownUp, "visible", false);
+        compare(appLauncher.state, AppLauncher.Idle);
+        compare(grid.currentIndex, 1);
+        tryCompare(grid.currentItem, "activeFocus", true);
+    }
+
+    // A game that comes after the grown-up screen takes over from it.
+    function test_aLateWindowTakesOverFromTheGrownUpScreen() {
+        focusTile(1);
+        keyClick(Qt.Key_Return);
+        tryCompare(grownUp, "visible", true);
+        appLauncher.windowOpened("g1", "scummvm", "Putt-Putt Joins the Parade");
+        compare(appLauncher.state, AppLauncher.Running);
         compare(grownUp.visible, false);
+        appLauncher.windowClosed("g1");
+        compare(appLauncher.state, AppLauncher.Idle);
         tryCompare(grid.currentItem, "activeFocus", true);
     }
 
@@ -347,17 +370,16 @@ TestCase {
         wait(300); // let the launching process be reaped.
     }
 
-    // A start that never opens a window goes back to the tiles, not to a
-    // screen that keeps building.
-    function test_aStartWithNoWindowGoesBackToTheTiles() {
+    // A start that never opens a window ends on the grown-up screen, not on
+    // a screen that keeps building.
+    function test_aStartWithNoWindowGivesWayToTheGrownUpScreen() {
         const starting = findChild(launcher, "startingScreen");
         verify(starting !== null);
         focusTile(1);
         keyClick(Qt.Key_Return);
         compare(starting.visible, true);
-        tryCompare(appLauncher, "state", AppLauncher.Idle);
+        tryCompare(grownUp, "visible", true);
         compare(starting.visible, false);
-        tryCompare(grid.currentItem, "activeFocus", true);
     }
 
     function test_ownWindowDoesNotInterrupt() {

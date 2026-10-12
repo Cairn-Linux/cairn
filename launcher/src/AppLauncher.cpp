@@ -10,7 +10,7 @@ constexpr int defaultSettleMilliseconds = 5000;
 // Long enough for a Flatpak app or a Steam game to draw its first window on a
 // slow machine, short enough that a launch which produces nothing does not
 // leave the child staring. A first-time Steam download can outlast it; that
-// falls back to the grown-up screen and is refined in P1-13.
+// falls back to the grown-up screen (ADR-0030) and is refined in P1-13.
 constexpr int defaultLaunchGraceMilliseconds = 15000;
 // How long an app's windows have to close after its program exits before any
 // still up count as opened on their own. Without it the moment between a
@@ -43,10 +43,15 @@ AppLauncher::AppLauncher(QObject* parent)
     m_exitGraceTimer.setSingleShot(true);
     m_exitGraceTimer.setInterval(exitGraceMilliseconds);
     connect(&m_exitGraceTimer, &QTimer::timeout, this, [this] {
-        if (m_windows.launching()) {
-            endLaunch();
-            update();
+        if (!m_windows.launching()) {
+            return;
         }
+        if (!m_windows.appWasOnScreen()) {
+            nothingCame();
+            return;
+        }
+        endLaunch();
+        update();
     });
 }
 
@@ -163,9 +168,14 @@ void AppLauncher::launch(const QString& title, const QStringList& exec) {
 }
 
 void AppLauncher::dismiss() {
-    if (m_state == State::Failed || m_state == State::ComingSoon) {
-        setState(State::Idle);
+    if (m_state != State::Failed && m_state != State::ComingSoon) {
+        return;
     }
+    // Back after nothing came: a window from now on opened on its own.
+    if (m_windows.launching()) {
+        endLaunch();
+    }
+    setState(State::Idle);
 }
 
 void AppLauncher::giveUp() {
@@ -258,7 +268,7 @@ void AppLauncher::update() {
     } else if (m_windows.appOnScreen()) {
         setTitle(m_launchTitle);
         setState(State::Running);
-    } else if (m_windows.launching()) {
+    } else if (m_windows.launching() && m_state != State::Failed) {
         setTitle(m_launchTitle);
         setState(State::Starting);
     } else if (m_state != State::Failed && m_state != State::ComingSoon) {
@@ -280,6 +290,18 @@ void AppLauncher::endLaunch() {
     m_exitGraceTimer.stop();
     // A program still running runs on by itself; its exit no longer matters.
     m_process = nullptr;
+}
+
+void AppLauncher::nothingCame() {
+    qWarning().noquote()
+        << QStringLiteral("Nothing of %1 came on the screen in time.").arg(m_launchTitle);
+    m_steadyTimer.stop();
+    m_launchGraceTimer.stop();
+    m_exitGraceTimer.stop();
+    // Its program, if still running, runs on by itself; its exit says nothing.
+    m_process = nullptr;
+    setTitle(m_launchTitle);
+    setState(State::Failed);
 }
 
 void AppLauncher::fail(const QString& reason) {
@@ -352,12 +374,18 @@ void AppLauncher::onLaunchGraceTimeout() {
         m_launchGraceTimer.start();
         return;
     }
-    // The app did not open in time and no window of it is up: nothing came,
-    // or a window came and went. Nothing is wrong to show a child; go back to
-    // the tiles, where they can try again. A window that is up now gets the
-    // rest of its steady wait.
-    if (!m_windows.appOnScreen()) {
+    // A window that is up now gets the rest of its steady wait.
+    if (m_windows.appOnScreen()) {
+        return;
+    }
+    // A window came and went: the app showed itself and is gone, so the
+    // tiles come back (#133).
+    if (m_windows.appWasOnScreen()) {
         endLaunch();
         update();
+        return;
     }
+    // Nothing came at all. Back at the tiles a child presses again, and again
+    // (#139); the grown-up screen says the tile did not start (ADR-0030).
+    nothingCame();
 }
