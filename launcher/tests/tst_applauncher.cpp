@@ -4,6 +4,7 @@
 #include <QCoreApplication>
 #include <QFile>
 #include <QFileInfo>
+#include <QRegularExpression>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTest>
@@ -167,8 +168,52 @@ private slots:
         launcher.launch(QStringLiteral("Music"),
                         {shell(), QStringLiteral("-c"), QStringLiteral("sleep 0.3; exit 3")});
         QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
+        // Saying it again would mean the exit was still being watched.
+        QTest::failOnWarning(QRegularExpression(QStringLiteral("Nothing of Music")));
         QTest::qWait(2800); // past the exit and the exit grace.
         QCOMPARE(launcher.state(), AppLauncher::State::Failed);
+    }
+
+    // Steam's hidden windows come and go while the grown-up screen is up;
+    // none of them is the game, so the screen stays.
+    void aHiddenWindowAfterNothingCameKeepsTheGrownUpScreen() {
+        AppLauncher launcher(this);
+        launcher.windowOpened(QStringLiteral("h0"), QStringLiteral("steam"),
+                              QStringLiteral("Steam"), true);
+        launcher.setLaunchGraceMilliseconds(100);
+        launcher.launch(QStringLiteral("Draw"),
+                        {shell(), QStringLiteral("-c"), QStringLiteral("exit 0")});
+        QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
+        launcher.windowOpened(QStringLiteral("h1"), QStringLiteral("steam"),
+                              QStringLiteral("Steam"), true);
+        QCOMPARE(launcher.state(), AppLauncher::State::Failed);
+        launcher.windowChanged(QStringLiteral("h1"), true);
+        QCOMPARE(launcher.state(), AppLauncher::State::Failed);
+        launcher.windowClosed(QStringLiteral("h1"));
+        launcher.windowClosed(QStringLiteral("h0"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Failed);
+        QVERIFY(launcher.needsGrownUp());
+    }
+
+    // A game that comes late with a splash before its own window is one start,
+    // as it would be in time (ADR-0028): the splash going does not end it.
+    void aLateGameWithASplashIsOneStart() {
+        AppLauncher launcher(this);
+        launcher.setSteadyMilliseconds(300);
+        launcher.setLaunchGraceMilliseconds(400);
+        launcher.launch(QStringLiteral("Pep's Birthday Surprise"),
+                        {shell(), QStringLiteral("-c"), QStringLiteral("exit 0")});
+        QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
+        launcher.windowOpened(QStringLiteral("s1"), QStringLiteral("steam_app_294700"), {});
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+        launcher.windowClosed(QStringLiteral("s1"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+        launcher.windowOpened(QStringLiteral("g1"), QStringLiteral("steam_app_294700"),
+                              QStringLiteral("Pep's Birthday Surprise"));
+        QTRY_COMPARE(launcher.state(), AppLauncher::State::Running);
+        QVERIFY(!launcher.needsGrownUp());
+        launcher.windowClosed(QStringLiteral("g1"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Idle);
     }
 
     void secondLaunchWhileRunningIsIgnored() {
@@ -717,7 +762,8 @@ private slots:
 
     // A Steam game Steam never starts, as when it waits on a dialog the kiosk
     // hides (#139), ends on the grown-up screen naming the tile, not at the
-    // tiles where the child presses it again.
+    // tiles where the child presses it again. Steam is up and no reaper runs,
+    // so it is not waited for past the grace.
     void aSteamGameThatNeverStartsNeedsAGrownUp() {
         const QTemporaryDir dir;
         QVERIFY(dir.isValid());

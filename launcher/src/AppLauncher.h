@@ -154,6 +154,9 @@ private:
     bool m_settled = false;
     // The program quit after the app's window came up, before the app was open.
     bool m_quitWhileOpening = false;
+    // Nothing came in time and the grown-up screen is up, but the launch
+    // stays: a window now is the app arriving late (ADR-0030).
+    bool m_waitingLate = false;
     bool m_scoped = false;
     bool m_steamStartedAtLogin = false;
     int m_launches = 0;

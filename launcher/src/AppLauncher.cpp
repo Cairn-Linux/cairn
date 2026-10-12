@@ -144,6 +144,7 @@ void AppLauncher::launch(const QString& title, const QStringList& exec) {
 
     m_settled = false;
     m_quitWhileOpening = false;
+    m_waitingLate = false;
     m_windows.startLaunch();
     m_steamGame.startLaunch(exec);
     setState(State::Starting);
@@ -233,6 +234,13 @@ void AppLauncher::setTitle(const QString& title) {
 }
 
 void AppLauncher::update() {
+    // A window after the grown-up screen came up for a launch that showed
+    // nothing is the app arriving late: it gets a start of its own, splash
+    // and all, from here (ADR-0030).
+    if (m_waitingLate && m_windows.appOnScreen()) {
+        m_waitingLate = false;
+        m_launchGraceTimer.start();
+    }
     // While the app is still opening and the grace timer runs, a window that
     // came and went was a splash; keep waiting for the next. Not when the
     // program itself has quit since its window came up: that is the app
@@ -264,11 +272,12 @@ void AppLauncher::update() {
             m_steadyTimer.start();
         }
         setTitle(m_launchTitle);
-        setState(State::Starting);
+        // After nothing came, the grown-up screen stays until a window does.
+        setState(m_waitingLate ? State::Failed : State::Starting);
     } else if (m_windows.appOnScreen()) {
         setTitle(m_launchTitle);
         setState(State::Running);
-    } else if (m_windows.launching() && m_state != State::Failed) {
+    } else if (m_windows.launching()) {
         setTitle(m_launchTitle);
         setState(State::Starting);
     } else if (m_state != State::Failed && m_state != State::ComingSoon) {
@@ -284,6 +293,7 @@ void AppLauncher::appIsOpen() {
 void AppLauncher::endLaunch() {
     m_windows.endLaunch();
     m_quitWhileOpening = false;
+    m_waitingLate = false;
     m_steadyTimer.stop();
     m_settleTimer.stop();
     m_launchGraceTimer.stop();
@@ -300,6 +310,7 @@ void AppLauncher::nothingCame() {
     m_exitGraceTimer.stop();
     // Its program, if still running, runs on by itself; its exit says nothing.
     m_process = nullptr;
+    m_waitingLate = true;
     setTitle(m_launchTitle);
     setState(State::Failed);
 }

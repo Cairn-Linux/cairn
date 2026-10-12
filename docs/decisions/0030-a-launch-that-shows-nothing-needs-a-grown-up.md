@@ -37,8 +37,12 @@ putting a window up. This holds for every tile, not only Steam ones.
 
 **The game still wins if it comes late.** Until the child presses Back,
 the launch stays open: a window that comes now is the app's, takes over
-from the grown-up screen, and is Running once it has stayed up for the
-steady wait (ADR-0028). It is not a window that opened on its own. After
+from the grown-up screen, and gets a start of its own, with a fresh grace,
+as if it had just been pressed. A splash before the game's own window is
+part of that start (ADR-0028), and the app is Running once a window has
+stayed up for the steady wait. It is not a window that opened on its own.
+Hidden windows, such as Steam's, leave the grown-up screen where it is.
+After
 Back, the launch is over and ADR-0026's rules apply as before. A program
 still running when the grown-up screen comes up runs on by itself, and its
 exit later changes nothing.
@@ -68,7 +72,8 @@ tiles when the wait ends; that is #133's question.
 - Tested in C++: a launch with no window ends Failed at the grace, a
   program that exits after the settle window with no window ends Failed, a
   Steam game Steam never starts ends Failed with its tile's name, a window
-  after that is the app's, Back ends the launch so a window after it opened
-  on its own, and a program's exit after the grown-up screen changes
-  nothing. In QML, the starting screen gives way to the grown-up screen,
+  after that is the app's, a late splash and then the game are one start,
+  hidden windows coming and going leave the grown-up screen up, Back ends
+  the launch so a window after it opened on its own, and a program's exit
+  after the grown-up screen changes nothing. In QML, the starting screen gives way to the grown-up screen,
   Back returns to the tile, and a late window takes over.
