@@ -93,7 +93,7 @@ private slots:
         QVERIFY(wait.steamGame());
         QVERIFY(!wait.stillComing());
         addProcess(root, QStringLiteral("8447"), "reaper",
-                   {"/home/zelda/.local/share/Steam/ubuntu12_32/reaper", "SteamLaunch",
+                   {"/home/ada/.local/share/Steam/ubuntu12_32/reaper", "SteamLaunch",
                     "AppId=294650", "--", "steam-launch-wrapper"});
         QVERIFY(wait.stillComing());
     }
