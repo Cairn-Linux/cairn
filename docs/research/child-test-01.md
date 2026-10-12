@@ -115,6 +115,20 @@ children said comes from the grown-up who was with them.
 | 18:03–18:45 | Child B | Back in, Draw, Story. The lid was closed and opened six times; each time the laptop slept and the session came back as it was. Music twice; logged out (seven runs of the script) and back in. | |
 | 18:46–18:47 | Child B | Pep's Birthday Surprise and Travels Through Time: neither started. | |
 
+### 2026-10-11: the younger child again, online
+
+Child A (L1) alone for about 45 minutes, with the internet back. The
+launcher was a build of main at `796ff34`: the starting screen, and the
+longer wait for a Steam game (ADR-0029). Times are from the journal.
+
+| Time | Who | What happened | Said |
+|---|---|---|---|
+| 18:55 | Child A | Logged in and pressed Big Thinkers Kindergarten within seconds. The game started 9 s after the press, with the Steam client still new from login. Played 12½ minutes. | |
+| 19:08 | Child A | Pressed the same game 21 s after it ended; up in 2 s. Played 16 minutes. | |
+| 19:17 | Child A | The lid was closed for 27 s; the laptop slept, and the game was where she left it. | |
+| 19:24 | Child A | Putt-Putt and Fatty Bear's Activity Pack, 3 s after Big Thinkers ended. Played 11½ minutes. | |
+| 19:36 | Child A | The same game again, 9 s after it ended; still running at 19:42. | |
+
 ## What happened
 
 Not the exit test yet: the planned run with the cousins, online, is still to
@@ -137,3 +151,17 @@ come. What 2026-10-10 showed:
 - The children enjoyed the games that did start. The younger child is to be
   asked more later: whether the game's own picture would tell her which game
   it is, and whether she wants tile names read aloud.
+
+On 2026-10-11, the younger child alone and online:
+
+- **Online, with Steam started at login, games start reliably:** the
+  first in 9 s, the rest in about 2 s. Four presses, four games, no
+  grown-up screen and no window that opened on its own.
+- **She stays with a game for 11 to 16 minutes**, and went straight back
+  into the same game twice within seconds of it ending. Whether she quit
+  on purpose or something ended the game unexpectedly (Super+Q, a ScummVM
+  menu, the game's own Quit) is not in the logs.
+- **Steam's in-game overlay was running** for her games, so Shift+Tab would
+  most likely have opened Steam's friends, chat and community inside the
+  game; #74. Until Cairn handles it, turn the overlay off in each child's
+  Steam settings.
