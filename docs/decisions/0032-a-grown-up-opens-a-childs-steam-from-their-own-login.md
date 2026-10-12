@@ -40,16 +40,21 @@ On 2026-10-12 the maintainer decided:
   family's Steam Family. Steam Family's per-child allow-list decides what a
   child can play. The parent's own account in every child's Steam, or one
   shared child account, still work, but are not recommended.
-- The parent installs a game by opening that child's own Steam from the
-  parent's login and installing it there. Each child keeps their own
-  installs. A shared library (#130) becomes optional.
-- A child's game tiles follow the games installed in that child's Steam,
-  with no separate tick.
+- The parent installs a game once, in their own Steam in their own
+  login, into one Steam library that every child's Steam uses (#130). No
+  child's Steam downloads a copy of its own. The kids' laptop has run this
+  way since 2026-10-07. On 2026-10-11 a Steam account that is a child
+  member of the family started a game from it that the parent's account
+  had installed.
+- A child's game tiles show the installed games that the child's Steam
+  account can play, as Steam Family's allow-list says, with no separate
+  tick. How Cairn learns that from the child's Steam is still to be found.
 - A parent-side setting takes a game off a child's tiles for a while. The
   word parents see is still to be chosen. The child never sees it as a
   punishment.
-- Showing a child's Steam needs the Guardian's password or fingerprint,
-  never the PIN.
+- Showing a child's Steam needs the Guardian's password, or a fingerprint
+  on a computer whose reader works on Linux, never the PIN. The fingerprint
+  may be asked before the security key (ADR-0020).
 - Until a Guardian can step in inside the child's session (#88), fixing
   what Steam is waiting for means logging the child out. That is
   acceptable if the docs and screens say plainly what to do, and that the
@@ -152,7 +157,10 @@ piece of the Guardian tool (P1-5). The steps for parents go in
 
 **What comes later, each with its own ADR:**
 
-- Tiles that follow each child's installed games. That amends ADR-0004
+- One Steam library for every child, which the Guardian fills from their
+  own Steam (#130). Provisioning makes the folder and its group and points
+  each child's Steam at it.
+- Tiles that follow the games each child can play. That amends ADR-0004
   (Steam Family's allow-list and the setting below take the place of the
   Guardian's own per-child game allow-list), ADR-0024 and ADR-0027, edits
   DESIGN §3.2's Permissions row, and answers #24.
@@ -185,17 +193,25 @@ piece of the Guardian tool (P1-5). The steps for parents go in
   one account per child. After switching a child's Steam to another
   account, the parent removes their own account from Steam's account list
   in the same visit. `docs/TRY.md` says so.
-- Every child's Steam keeps its own copy of Steam and of each game. That
-  costs disk space and download time. It also keeps Windows (Proton) games
-  working for every child, which a shared library does not (#130).
+- A visit is rarely where a game is installed. Games go into the shared
+  library from the Guardian's own Steam (#130). Steam itself and its
+  runtime still sit in each child's own folder: on the kids' laptop,
+  Steam's runtime started in about 2 s for the account that owned it and
+  in about 18 s for any other. Steam keeps a Windows game's Wine prefix in
+  the library the game is in, and Wine refuses a prefix that another
+  account owns. So a Windows game that runs through Proton may need a copy
+  in each child's own folder, installed in a visit. That is not tried yet
+  (#130).
 - A game held behind a hidden Steam dialog still means logging the child
   out until #88. The parent docs say so plainly, and say that a way to
   step in without logging out is planned.
 - A visit closes when the Guardian's screen locks, and Plasma locks after
-  a few idle minutes by default. A game download left running stops
-  there. The child's Steam is expected to carry it on at their next login,
-  behind the tiles and out of sight (not tried). The Guardian's window
-  says to stay until downloads finish.
+  a few idle minutes by default. Games download in the Guardian's own
+  Steam, outside any visit. What a lock stops is a download inside the
+  visit: Steam's own first-run set-up, or a copy of a Proton game. The
+  child's Steam is expected to carry it on at their next login, behind the
+  tiles and out of sight (not tried). The Guardian's window says to stay
+  until it finishes.
 - The visit window's own close button is expected to end cage at once, so
   Steam stops without its shutdown, as at a logout. The Guardian's window
   and `docs/TRY.md` say to use Done.
@@ -270,8 +286,7 @@ piece of the Guardian tool (P1-5). The steps for parents go in
   change. In §3.2 that is the Games row, and "Two access paths", which
   records the second check, password or fingerprint, inside the
   Guardian's own login. In §8.3 it is a grown-up's way to see a child's
-  Steam. §8.2's "install once from an adult account" changes to each
-  child's Steam keeping its own installs.
+  Steam.
 - systemd counted a memory peak of 1.7 GB for a visit's session scope in
   the VM, with Steam signed out, on llvmpipe. That figure includes page
   cache, so it is an upper bound, and it is not comparable with the
