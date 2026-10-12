@@ -42,10 +42,9 @@ as if it had just been pressed. A splash before the game's own window is
 part of that start (ADR-0028), and the app is Running once a window has
 stayed up for the steady wait. It is not a window that opened on its own.
 Hidden windows, such as Steam's, leave the grown-up screen where it is.
-After
-Back, the launch is over and ADR-0026's rules apply as before. A program
-still running when the grown-up screen comes up runs on by itself, and its
-exit later changes nothing.
+After Back, the launch is over and ADR-0026's rules apply as before. A
+program still running when the grown-up screen comes up runs on by itself,
+and its exit later changes nothing.
 
 **A window that came and went is not covered.** A launch whose window was on
 the screen and then went before the app was open still returns to the
@@ -75,5 +74,6 @@ tiles when the wait ends; that is #133's question.
   after that is the app's, a late splash and then the game are one start,
   hidden windows coming and going leave the grown-up screen up, Back ends
   the launch so a window after it opened on its own, and a program's exit
-  after the grown-up screen changes nothing. In QML, the starting screen gives way to the grown-up screen,
-  Back returns to the tile, and a late window takes over.
+  after the grown-up screen changes nothing. In QML, the starting screen
+  gives way to the grown-up screen, Back returns to the tile, and a late
+  window takes over.
