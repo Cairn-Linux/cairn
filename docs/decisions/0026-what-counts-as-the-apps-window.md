@@ -4,7 +4,8 @@
 **Date:** 2026-10-01
 **Closes:** (none) — addresses issue #99; amends ADR-0017 and ADR-0018
 **Amended by:** ADR-0028 (every window is the app's while it is opening),
-ADR-0029 (a Steam game is waited for past the grace while Steam works on it)
+ADR-0029 (a Steam game is waited for past the grace while Steam works on it),
+ADR-0030 (after a launch that showed nothing, a late window is still the app's)
 
 ## Context
 

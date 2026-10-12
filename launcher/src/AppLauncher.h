@@ -22,17 +22,19 @@
 // has stayed on the screen for the steady wait, so a splash that comes and
 // goes before the game's own window is part of the start (ADR-0028). Then it
 // is Running, and when the app's last window leaves the screen it returns to
-// Idle (issue #42). A launch whose app is not open before the grace timer
-// ends, and has no window up then, returns to Idle quietly; a program that fails to start, or exits
-// with an error before any window and before the settle window, is a Failed launch. A window on the
-// screen that opened on its own is an Interruption until it closes. Failed and
-// Interrupted both show "Something needs a grown-up". A tile with nothing set
-// up yet is ComingSoon: the screen says so, with a Back, and needs no
-// grown-up. When the program the launcher started exits after the settle
-// window, the app is over, and any of its windows still up count as opened on
-// their own. A Steam game Steam is still working on is waited for past the
-// grace, up to a limit (SteamGameWait, ADR-0029). The grown-up's give-up key always brings the
-// tiles back.
+// Idle (issue #42). A Steam game Steam is still working on is waited for past
+// the grace, up to a limit (SteamGameWait, ADR-0029). A launch that has put
+// nothing on the screen when the grace timer ends, or when its program exits
+// after the settle window, is Failed (ADR-0030), and its window counts as the
+// app's if it comes late; one whose window came and went returns to Idle. A
+// program that fails to start, or exits with an error before any window and
+// before the settle window, is Failed too. A window on the screen that opened
+// on its own is an Interruption until it closes. Failed and Interrupted both
+// show "Something needs a grown-up". A tile with nothing set up yet is
+// ComingSoon: the screen says so, with a Back, and needs no grown-up. When the
+// program the launcher started exits after the settle window, the app is
+// over, and any of its windows still up count as opened on their own. The
+// grown-up's give-up key always brings the tiles back.
 class AppLauncher : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -91,8 +93,10 @@ public:
     // (Running), or a window that opened on its own is up (Interrupted). An
     // empty exec is ComingSoon at once: nothing is set up for that tile yet.
     Q_INVOKABLE void launch(const QString& title, const QStringList& exec);
-    // Leaves Failed or ComingSoon and goes back to Idle. Interrupted ends only
-    // when the window closes or a grown-up gives up.
+    // Leaves Failed or ComingSoon and goes back to Idle. After a launch that put
+    // nothing on the screen, its window counts as the app's until then, so a
+    // game that comes late takes over from the grown-up screen. Interrupted
+    // ends only when the window closes or a grown-up gives up.
     Q_INVOKABLE void dismiss();
     // The grown-up's give-up key (ADR-0018, ADR-0026): forget the launch and
     // every window open now, and go back to the tiles.
@@ -125,6 +129,9 @@ private:
     void update();
     void appIsOpen();
     void endLaunch();
+    // Nothing of the app came on the screen in time: Failed, but the launch
+    // stays, so a window that comes late is still the app's.
+    void nothingCame();
     void fail(const QString& reason);
     void onErrorOccurred(QProcess* process, QProcess::ProcessError error);
     void onFinished(QProcess* process, int exitCode, QProcess::ExitStatus exitStatus);
@@ -147,6 +154,9 @@ private:
     bool m_settled = false;
     // The program quit after the app's window came up, before the app was open.
     bool m_quitWhileOpening = false;
+    // Nothing came in time and the grown-up screen is up, but the launch
+    // stays: a window now is the app arriving late (ADR-0030).
+    bool m_waitingLate = false;
     bool m_scoped = false;
     bool m_steamStartedAtLogin = false;
     int m_launches = 0;

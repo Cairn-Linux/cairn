@@ -3,6 +3,7 @@
 **Status:** accepted
 **Date:** 2026-10-08
 **Closes:** (none) — addresses issue #132; amends ADR-0026 and ADR-0028
+**Amended by:** ADR-0030 (a launch that shows nothing ends on the grown-up screen, not the tiles)
 
 ## Context
 
