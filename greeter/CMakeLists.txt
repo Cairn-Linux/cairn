@@ -7,6 +7,7 @@ set(greeter_sources
     src/AccountKind.h src/AccountKind.cpp
     src/Account.h src/Account.cpp
     src/FamilyModel.h src/FamilyModel.cpp
+    src/FailedLogin.h src/FailedLogin.cpp
 )
 set(greeter_theme_files
     theme/Main.qml theme/FamilyTile.qml theme/PasswordRow.qml theme/TextButton.qml
@@ -39,6 +40,11 @@ target_include_directories(tst_familymodel PRIVATE src)
 target_link_libraries(tst_familymodel PRIVATE Qt6::Gui Qt6::Qml Qt6::Test)
 add_test(NAME familymodel COMMAND tst_familymodel)
 
+qt_add_executable(tst_failedlogin tests/tst_failedlogin.cpp src/FailedLogin.h src/FailedLogin.cpp)
+target_include_directories(tst_failedlogin PRIVATE src)
+target_link_libraries(tst_failedlogin PRIVATE Qt6::Qml Qt6::Test)
+add_test(NAME failedlogin COMMAND tst_failedlogin)
+
 # The real theme, loaded from the source tree with a stand-in for SDDM and a
 # table of accounts. The module is compiled into the test host, as the
 # launcher's navigation test does.
@@ -55,6 +61,6 @@ target_compile_definitions(tst_loginscreen PRIVATE
 )
 add_test(NAME loginscreen COMMAND tst_loginscreen)
 
-set_tests_properties(accountkind familymodel loginscreen PROPERTIES
+set_tests_properties(accountkind familymodel failedlogin loginscreen PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QML_IMPORT_PATH=${CMAKE_CURRENT_BINARY_DIR}/tests:${QT_QML_OUTPUT_DIRECTORY}"
 )

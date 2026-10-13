@@ -286,16 +286,18 @@ steps for parents go in `docs/TRY.md`.
   paused and back; the label. The fingerprint needs a reader, so it is
   checked where one exists or stated as unchecked.
 - **Checked so far** (VM, 2026-10-12, `docs/research/steam-visit.md`):
-  the child refused at the login screen during a visit; Done, the screen
+  the child refused at the login screen during a visit, with the sentence
+  "A grown-up is setting something up for you. Try again soon.", and let
+  in again once it closed; Done, the screen
   lock (`loginctl lock-session`), the Guardian's window's own close button,
   killing the Guardian's window, Steam quitting by itself and a signal to
   the helper, each leaving nothing of the child, with `steam -shutdown`
   first whenever Steam was still running; the logout above; the
   Guardian's own Steam paused (2 s) and back; the label; the entries in
   the Guardian's menu and not in a child's. Still to check: everything
-  that needs a signed-in Steam, the sentence on the login screen, a child
-  with a password at a console, a restart, cage's own close button, Exit
-  in Steam's menu, the idle lock and a fingerprint.
+  that needs a signed-in Steam, a child with a password at a console, a
+  restart, cage's own close button, Exit in Steam's menu, the idle lock
+  and a fingerprint.
 - **Dependencies.** cage 0.3.1 is part of the Bazzite image
   (`cage-0.3.1-1.fc44`, not a layered package), so the helper adds no
   package, and Cairn's image has to keep it. It is a program the helper

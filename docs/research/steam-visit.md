@@ -526,6 +526,16 @@ showed for both. A second run of the step changed nothing.
 | Killing the window (`SIGKILL`) during a visit | The helper read the end of its input and closed: `steam -shutdown`, nothing of ada left, the list gone in 7 s. |
 | Plasma's logout during a visit | Plasma asked the window to close. It closed the visit, and the session ended 2 s after the window did. But cage's window was asked at the same moment: cage logged "failed to write to Xwayland fd: Broken pipe", and Steam's last line was from 9 s before. The helper's `steam -shutdown` found a Steam process on its way out, and so started a new client, which ended with "Unable to open X11 display". Nothing of ada or the Guardian was left. |
 
+### The login screen's sentence
+
+With ada's visit open, Switch User brought up the login screen (it had
+started after the new theme was installed), and Enter on ada's tile asked
+for her login. PAM refused it (`pam_listfile(sddm:account): Refused user
+ada for service sddm`), and the screen said "A grown-up is setting
+something up for you. Try again soon." The greeter runs as `xdm_t`, and
+the list's `etc_t` label let it read the list with no SELinux denial. Once
+the visit had closed, the same press logged ada in to her tiles.
+
 ### Found and fixed
 
 - The window's row of buttons could hide for good: the row's visibility
@@ -570,8 +580,8 @@ From all of the above, for ADR-0032's helper:
   lock is not enough on its own: `steam -shutdown` took up to 18 s, the
   child's tile is one press away, and other ways to Switch User were not
   looked for. Both are recommended, with PAM as the guarantee. Done for
-  the login screen; the console, with a child who has a password, is not
-  run, and the login screen's sentence is still to come.
+  the login screen, with its sentence; the console, with a child who has
+  a password, is not run.
 - [x] Start the visit as a PAM-backed system unit for the child, under a
   PAM service of its own so the login refusal does not refuse it
   (`systemd-run --uid=<child> -p PAMName=cairn-steam-visit`; the VM used

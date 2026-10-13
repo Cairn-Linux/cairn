@@ -42,6 +42,9 @@ TestCase {
             "height": host.height
         });
         verify(screen !== null);
+        // No one on a visit, whatever the machine running the tests has in
+        // /run/cairn.
+        screen.failedLogin.visitsFile = Qt.resolvedUrl("fixtures/no-visits");
         tiles = findChild(screen, "familyTiles");
         passwordRow = findChild(screen, "passwordRow");
         message = findChild(screen, "message");
@@ -142,6 +145,39 @@ TestCase {
         sddm.fail();
         compare(message.text, "Something needs a grown-up.");
         verify(!passwordRow.visible);
+    }
+
+    // A grown-up has the child's Steam open from their own login, so PAM
+    // says no, and the screen says why without blame (ADR-0032).
+    function test_aChildOnASteamVisitIsToldToTryAgainSoon() {
+        screen.failedLogin.visitsFile = Qt.resolvedUrl("fixtures/steam-visits-ada");
+        keyClick(Qt.Key_Return);
+        sddm.fail();
+        compare(message.text, "A grown-up is setting something up for you. Try again soon.");
+        verify(!passwordRow.visible);
+        verify(tiles.activeFocus);
+    }
+
+    // An older child's password was right; the visit is still why.
+    function test_anOlderChildOnAVisitIsNotToldThePasswordWasWrong() {
+        screen.failedLogin.visitsFile = Qt.resolvedUrl("fixtures/steam-visits-ben");
+        keyClick(Qt.Key_Right);
+        keyClick(Qt.Key_Return);
+        keyClick(Qt.Key_X);
+        keyClick(Qt.Key_Return);
+        compare(logins.count, 1);
+        sddm.fail();
+        compare(message.text, "A grown-up is setting something up for you. Try again soon.");
+        verify(!passwordRow.visible);
+        verify(tiles.activeFocus);
+    }
+
+    // Another child's visit changes nothing for this one.
+    function test_anotherChildsVisitIsNotThisChildsReason() {
+        screen.failedLogin.visitsFile = Qt.resolvedUrl("fixtures/steam-visits-ben");
+        keyClick(Qt.Key_Return);
+        sddm.fail();
+        compare(message.text, "Something needs a grown-up.");
     }
 
     // While SDDM is answering, a second press does nothing.

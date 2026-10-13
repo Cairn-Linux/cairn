@@ -13,11 +13,17 @@ theme and the small C++ module the theme imports.
   tile asks for a password. `FamilyModel` sits over SDDM's user model: it
   sorts children first, then Guardians, then anyone outside the family, and
   adds the name, first letter and colour a tile draws. `Account` looks an
-  account up through NSS, as PAM does.
-- `tests/`: `tst_accountkind` and `tst_familymodel` for the C++;
-  `tst_loginscreen` loads the real `theme/Main.qml` with a stand-in for
-  SDDM's `sddm`, `userModel` and `sessionModel` and drives it by keyboard
-  and mouse.
+  account up through NSS, as PAM does. `FailedLogin` says why PAM refused a
+  login, and the theme picks its words from that: a wrong password,
+  "Something needs a grown-up.", or, for a child whose Steam a grown-up has
+  open from their own login, "A grown-up is setting something up for you.
+  Try again soon." It reads the list of children on a visit that PAM reads
+  (`/run/cairn/steam-visits`, ADR-0032).
+- `tests/`: `tst_accountkind`, `tst_familymodel` and `tst_failedlogin`
+  for the C++; `tst_loginscreen` loads the real `theme/Main.qml` with a
+  stand-in for SDDM's `sddm`, `userModel` and `sessionModel` and drives it
+  by keyboard and mouse. `fixtures/` holds two lists of children on a
+  visit for it.
 - `i18n/greeter_en.ts`: the theme's strings (ADR-0007), from the
   `greeter_lupdate` target.
 

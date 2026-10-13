@@ -15,10 +15,13 @@ Rectangle {
     property FamilyModel family: FamilyModel {
         sourceModel: userModel
     }
+    // Why a login failed. Tests give it another list of children on a visit.
+    property FailedLogin failedLogin: FailedLogin {}
     // The tile whose password row is open, or -1.
     property int askingFor: -1
-    // Waiting for SDDM to answer a login.
+    // Waiting for SDDM to answer a login, and whose.
     property bool busy: false
+    property string loggingIn: ""
     property string message: ""
 
     width: Tokens.displaySize * 20
@@ -33,19 +36,28 @@ Rectangle {
 
         function onLoginFailed() {
             root.busy = false;
-            if (root.askingFor >= 0) {
+            switch (root.failedLogin.reasonFor(root.loggingIn, root.askingFor >= 0)) {
+            case FailedLogin.SteamVisit:
+                root.askingFor = -1;
+                root.message = qsTr("A grown-up is setting something up for you. Try again soon.");
+                tiles.forceActiveFocus();
+                break;
+            case FailedLogin.WrongPassword:
                 root.message = qsTr("That password did not work. After a few wrong tries, the account waits a few minutes before it lets anyone try again.");
                 passwordRow.clear();
                 passwordRow.takeFocus();
-            } else {
+                break;
+            case FailedLogin.NeedsGrownUp:
                 root.message = qsTr("Something needs a grown-up.");
                 tiles.forceActiveFocus();
+                break;
             }
         }
     }
 
     function logIn(loginName, password) {
         root.busy = true;
+        root.loggingIn = loginName;
         root.message = "";
         sddm.login(loginName, password, sessionModel.lastIndex >= 0 ? sessionModel.lastIndex : 0);
     }
