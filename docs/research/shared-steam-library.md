@@ -14,10 +14,9 @@ a rule of Steam's. Steam has no command or link that adds a library. Its
 Storage page is the only supported way, and it may refuse a folder that
 already holds games. Nobody has reported a second account updating a game
 in a shared folder. A folder every child can write also lets any child
-change a game that the Guardian later runs as themselves. All 12 games on
-the laptop most likely keep their saves inside the game's own folder, so
-in a shared library every child would share one set of saves and could
-delete a sibling's.
+change a game that the Guardian later runs as themselves. The games on
+the laptop keep their saves inside the game's own folder, so in a shared
+library every child shares one set of saves and can delete a sibling's.
 What needs a signed-in Steam on the laptop is listed at the end.
 
 ## Why
@@ -411,7 +410,8 @@ The probe, under a directory with a default ACL for a group:
 ## Where the games keep their saves
 
 Found on 2026-10-13, after the maintainer asked whether one child could
-delete another's saves. Nothing was run on the laptop, which was closed.
+delete another's saves, and read on the laptop the same day without
+changing anything.
 
 - Steam's app data gives all 12 games on the laptop the same cloud-save
   rule: root `gameinstall`, path `Saves`, pattern `*.*`. That is a `Saves`
@@ -425,10 +425,14 @@ delete another's saves. Nothing was run on the laptop, which was closed.
   empty `Saves` folder beside `ScummVM_Linux`. PCGamingWiki gives
   `<game>\Saves` for the Windows saves. The publishers' updates of 2018
   and 2019 promise cloud saves on "Windows, MacOS or GNU/Linux".
-- So the Linux games most likely save in `<game>/Saves` too. Nobody has
-  published the Linux script or its ini, and check 4 reads them. If they
-  set no save folder, ScummVM 1.7.0 saves in `~/.scummvm`, in the
-  player's home.
+- On the laptop the Linux script runs the bundled ScummVM with
+  `-c scummvm-<name>.ini <target>`, and the ini, in the game's folder,
+  says `savepath=../Saves/`. The bundled ScummVM is 1.7.0, or 2.0.0 for
+  Saves the Zoo. On 2026-10-13 the shared `Saves` folders of three games
+  held one child's saves, mode 0664 with group `cairn-steam`. The other
+  child could replace or delete them. That child's Steam Cloud log showed
+  the same files in sync with their Steam account. The children's homes
+  held no saves, only ScummVM's logs.
 - In the shared library that is one folder per game for every child.
   ScummVM names a saved game `<target>.s<NN>`, so every child sees the
   same slots, and saving into one replaces a sibling's save there. The
@@ -436,9 +440,10 @@ delete another's saves. Nothing was run on the laptop, which was closed.
   2014 update notes) has a Delete button. Any child's process can also
   delete or replace the files, since the folder gives the group write.
 - Pep's Birthday Surprise, the Windows game, saves in `<game>/SaveGames`
-  (PCGamingWiki). Its cloud rule names `Saves`, which is probably why
-  PCGamingWiki says its cloud saves do not sync. A child's own copy keeps
-  its saves in that child's home, with no other copy anywhere.
+  (PCGamingWiki, and the L2 test account's own copy on the laptop). Its
+  cloud rule names `Saves`, where Steam found no files on exit, so its
+  saves never reach the cloud. A child's own copy keeps its saves in that
+  child's home, with no other copy anywhere.
 - Steam Cloud follows the Steam account. Steam syncs a game's cloud files
   before it starts and after it ends. With one Steam account for several
   children (layouts 1 and 2 in #130), the children have one set of saves
@@ -526,6 +531,24 @@ Read first, changing nothing:
    ini (`savepath`), the bundled ScummVM's version, each home's
    `~/.scummvm`, each account's cloud copy
    (`userdata/<id>/<appid>/remote`) and its cloud switch.
+
+Read on 2026-10-13, with one child's session left logged in:
+
+- Check 1. Every account, the Guardian's, both children's and the L2 test
+  account's, lists the shared folder as entry `"1"` in both copies of
+  `libraryfolders.vdf`. The entry has the `contentid` of the marker
+  `libraryfolder.vdf` at the top of the shared folder, and an `"apps"`
+  block of the 11 native games. The Proton game is no longer in the shared
+  folder: each account has its own copy. Each child's Steam rewrites a
+  shared game's manifest when it starts the game, and 10 of the 11 are now
+  owned by a child.
+- Check 2. Every folder looked at is owned by the Guardian, group
+  `cairn-steam`, setgid, with `group:cairn-steam:rwx` in its access and
+  default ACLs. A file a child's game writes gets read and write for the
+  group. `downloading/` and `temp/` do not exist.
+- Check 3. The child's Steam runs with umask 0022. No game was running.
+- Check 4. Only `Saves/` and the manifests had files a child owns: see
+  "Where the games keep their saves".
 
 Pointing a Steam at the library:
 
