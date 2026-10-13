@@ -164,9 +164,12 @@ the child's own home, which no other child can open.**
   out of the child's sight.
 - **The Guardian tries a game in a visit** (ADR-0032), which starts the
   child's own copy. A game played from the shared folder in the
-  Guardian's own login keeps its saves there, and copies made after that
-  start with them. A Windows game played there also leaves its Wine
-  prefix there, where every account can read it. `docs/TRY.md` says so.
+  Guardian's own login keeps its saves there. The Guardian's Steam also
+  downloads the Guardian account's Steam Cloud saves into the shared
+  folder whenever it starts, played or not (laptop, 2026-10-13). So a
+  copy made later starts with those saves. A Windows game played there
+  also leaves its Wine prefix there, where every account can read it.
+  `docs/TRY.md` says so.
 - **Only games every child may play go in the shared folder.** Every
   child gets a copy of each one. A game for one child is installed into
   that child's own library in a visit.
@@ -229,14 +232,15 @@ while.
   the grown-up screen until the Guardian sets the folder aside, as
   `docs/TRY.md` shows (check 19). Taking a game away from one child
   belongs to the later ADR.
-- **Steam Cloud follows the Steam account.** With a Steam account per
-  child, each child's saves go to their own account's cloud. With one
-  Steam account for several children (layouts 1 and 2 in #130), Steam
-  Cloud carries the newest save into every child's copy before the game
-  starts, so those children still share their saves (inferred, check 10).
-  `docs/TRY.md` says so. It says that turning Steam Cloud off for those
-  games, or for the whole Steam account, should stop it, at the cost of
-  the only copy kept off the computer. The switch belongs to the Steam
+- **Steam Cloud follows the Steam account.** With a Steam account per child,
+  each child's saves go to their own account's cloud. With one Steam account
+  for several children (layouts 1 and 2 in #130), Steam Cloud carries the
+  newest save into every child's copy before the game starts, with no
+  dialog, so those children still share their saves (laptop, 2026-10-13,
+  check 10). A save deleted from one copy leaves the cloud but stays in the
+  others. `docs/TRY.md` says so. It says that turning Steam Cloud off for
+  those games, or for the whole Steam account, should stop it, at the cost
+  of the only copy kept off the computer. The switch belongs to the Steam
   account, so with the parent's own account (layout 1) it also goes off on
   the parent's other computers. Community reports say it can turn itself
   back on. The two children on the laptop share one Steam account.
@@ -250,7 +254,8 @@ while.
   started at login, may often fetch the update in the background first
   (not tried; check 15). What happens offline is check 18. Steam's tools
   also download once per account, as before.
-- **Disk.** A copy takes no disk until it changes. Then each child's
+- **Disk.** A copy takes no disk until it changes: on the laptop, three
+  accounts' copies of 11 games, 2 GiB each, took 0 B. Then each child's
   updates, Wine prefixes and shader caches take their own disk.
 - **Safety.** No child can write the shared folder. So no child can change
   a game for another child or for the Guardian, or uninstall a game for
@@ -264,8 +269,9 @@ while.
   comes, has to decide which copies are made, not only which tiles show.
 - **A new game reaches a child at the next provisioning run with that
   child logged out.** Until then the child's tile for it starts a game
-  their Steam has no copy of. That probably opens Steam's install dialog
-  behind the kiosk and ends on the grown-up screen (ADR-0030; check 17).
+  their Steam has no copy of. That opens Steam's Install dialog, which
+  waits and downloads nothing (check 17). Behind the kiosk it ends on the
+  grown-up screen (ADR-0030).
   Later the Guardian tool runs the copy (#113, P1-5). If a visit's close
   ran it, that would amend ADR-0032's "A visit never reads or writes
   Steam's files".
@@ -295,21 +301,23 @@ while.
 - No new dependency: `setfacl`, `setpriv` and `cp --reflink` are in the
   image, and the step is standard-library Python. Nothing phones home.
   The only network traffic is Steam's own.
-- **The kids' laptop moves over once, by hand,** with the maintainer's go
-  and the children logged out. The shared folder comes out of the library
-  list of every account but the Guardian's, the L2 test account's
-  included, as that account with its Steam stopped (check 5). Those
-  accounts leave the hand-made `cairn-steam` group. The two top folders go
-  to root and `cairn-guardian`, as the Decision says. Everything below
-  goes to the Guardian and `cairn-guardian`, with the group in each access
-  ACL, the default ACL and setgid on folders, and no `cairn-steam` entry
-  left. The children's leftovers in the shared `compatdata/` and
-  `shadercache/` go, and then the group goes (check 6).
-  Provisioning copies the games. Each child's copies start with the saves
-  the shared folder had, which were also backed up on 2026-10-13
-  (check 8). Once check 8 passes, the shared `Saves/` folders are emptied,
-  so a child added later starts with none. The Windows game has no tile
-  until it is in the shared folder (checks 14 and 20).
+- **The kids' laptop moved over on 2026-10-13, by hand,** with the
+  maintainer's go and the children logged out. The shared folder came out
+  of the library list of every account but the Guardian's, the L2 test
+  account's included, as that account with its Steam stopped (check 5).
+  Those accounts left the hand-made `cairn-steam` group. The two top
+  folders went to root and `cairn-guardian`, as the Decision says.
+  Everything below went to the Guardian and `cairn-guardian`, with the
+  group in each access ACL, the default ACL and setgid on folders, and no
+  `cairn-steam` entry left. The children's leftovers in the shared
+  `compatdata/` and `shadercache/` went, and then the group (check 6). A
+  hand-run copy step gave each account the 11 games, and each child's
+  copies started with the saves the shared folder had (check 8). The
+  shared `Saves/` folders were then emptied, and the Guardian's Steam
+  filled one again from its cloud at its next start. The Windows game has
+  no tile until it is in the shared folder (checks 14 and 20). A reflink
+  backup of the shared folder and of each account's Steam settings is
+  kept on the laptop, beside a script that undoes the move.
 - When this ADR is accepted, the same change edits DESIGN §4.6: the
   shared folder among the game installs in `/var`, and each child's
   copies, with their saves, in `/home`, gone with a reset. It edits §8.7:
@@ -321,8 +329,11 @@ while.
   `provision/README.md`, `launcher/README.md`, `tools/kidscan/README.md`
   and `docs/TRY.md` change with it.
 - **Checked before acceptance,** by number in the research note: 5 to 20,
-  on the laptop. Check 12 decides which of the second bullet's ways adds
-  the shared folder to the Guardian's Steam.
+  on the laptop. Passed on 2026-10-13: 5, 6, 7, 8, 10, 17 and 20. Still to
+  run: 9, 11 to 16, 18 and 19, which need the Windows game in the shared
+  folder, clicks in Steam's own windows, a visit, or an update waiting.
+  Check 12 decides which of the second bullet's ways adds the shared
+  folder to the Guardian's Steam.
 
 ## Alternatives considered
 
