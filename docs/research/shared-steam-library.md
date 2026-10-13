@@ -1,10 +1,11 @@
 # One Steam library for several accounts
 
-**Date:** 2026-10-12; saves added 2026-10-13
+**Date:** 2026-10-12; laptop checks, saves and new checks 2026-10-13
 **For:** issue #130, ADR-0032 (proposed) and ADR-0033 (proposed)
-**Result:** Desk research and a probe on the development PC, read against
-what the kids' laptop has run since 2026-10-07. Nothing new was run on the
-laptop, and no Steam was started for this note. Valve does not document a
+**Result:** Desk research, a probe on the development PC, and read-only
+checks on the kids' laptop on 2026-10-13. The only change made on the
+laptop was a root-only backup of the shared `Saves/` folders, and no Steam
+was started for this note. Valve does not document a
 way to share one library between Linux accounts. Native games shared from
 one folder work on the laptop and in community reports. Three things in a
 shared folder fail for every account but the one that owns their files:
@@ -17,24 +18,26 @@ in a shared folder. A folder every child can write also lets any child
 change a game that the Guardian later runs as themselves. The games on
 the laptop keep their saves inside the game's own folder, so in a shared
 library every child shares one set of saves and can delete a sibling's.
-What needs a signed-in Steam on the laptop is listed at the end.
+On 2026-10-13 the maintainer chose a copy of each game for every child
+instead (ADR-0033). What needs a signed-in Steam on the laptop is listed
+at the end.
 
 ## Why
 
 On 2026-10-07 the family's games reached the children's Steam on the kids'
 laptop by an afternoon of hand work over ssh (#130). No family can do that.
 On 2026-10-12 the maintainer decided that the parent installs a game once,
-from their own Steam in their own login, into one library every child's
-Steam uses, and that no child's Steam downloads a copy of its own
-(ADR-0032, Context). ADR-0032 leaves the library itself to a later ADR, in
-which provisioning makes the folder and its group and points each child's
-Steam at it. This note collects what is known before that ADR is written.
+from their own Steam in their own login, and that no child's Steam
+downloads a game of its own (ADR-0032, Context). The first plan was one
+library that every child's Steam lists. This note collects what is known
+for ADR-0033, which gives each child their own copy instead.
 
 ## What the laptop has
 
 From #130 and its comments:
 
-- A group, `cairn-steam`, holds the Guardian and both children. The folder
+- A group, `cairn-steam`, holds the Guardian, both children and the L2
+  test account (laptop, 2026-10-13). The folder
   `/var/lib/cairn/steam-library` is setgid, with a default ACL
   `g:cairn-steam:rwX`. The Guardian's games, `compatdata/` and
   `shadercache/` were moved into it.
@@ -425,20 +428,25 @@ changing anything.
   empty `Saves` folder beside `ScummVM_Linux`. PCGamingWiki gives
   `<game>\Saves` for the Windows saves. The publishers' updates of 2018
   and 2019 promise cloud saves on "Windows, MacOS or GNU/Linux".
-- On the laptop the Linux script runs the bundled ScummVM with
-  `-c scummvm-<name>.ini <target>`, and the ini, in the game's folder,
-  says `savepath=../Saves/`. The bundled ScummVM is 1.7.0, or 2.0.0 for
-  Saves the Zoo. On 2026-10-13 the shared `Saves` folders of three games
-  held one child's saves, mode 0664 with group `cairn-steam`. The other
-  child could replace or delete them. That child's Steam Cloud log showed
-  the same files in sync with their Steam account. The children's homes
-  held no saves, only ScummVM's logs.
-- In the shared library that is one folder per game for every child.
-  ScummVM names a saved game `<target>.s<NN>`, so every child sees the
-  same slots, and saving into one replaces a sibling's save there. The
-  list of saves in ScummVM's own menu (Ctrl+F5, open "at any time" by the
-  2014 update notes) has a Delete button. Any child's process can also
-  delete or replace the files, since the folder gives the group write.
+- On the laptop three games were read: Joins the Parade, Saves the Zoo
+  and Big Thinkers Kindergarten. Each one's Linux script runs the bundled
+  ScummVM with `-c scummvm-<name>.ini <target>`, and the ini, in the
+  game's folder, says `savepath=../Saves/`. Their bundled ScummVM is
+  1.7.0, or 2.0.0 for Saves the Zoo. The other eight share the cloud rule
+  and the 2014 build, so they are expected to match.
+- On 2026-10-13 the shared `Saves` folders of three games held one
+  child's saves, mode 0664 with group `cairn-steam`. The other child could
+  replace or delete them. The Steam Cloud log of the child who made them
+  showed the same files in sync with the Steam account both children use.
+  The children's homes held no saves, only ScummVM's logs.
+- In the shared library that is one folder per game for every child. The
+  games save through their own save screens, into files named
+  `<target>-<file>`, such as `puttputt-puttputt.sg7`. The names are the
+  same for every child, so a sibling's save replaces the file. ScummVM's
+  own menu cannot load, save or delete in these games (HE version 62 and
+  later). Any child's process can still delete or replace the files, since
+  the folder gives the group write. Whether the games' own screens can
+  delete a save is not known.
 - Pep's Birthday Surprise, the Windows game, saves in `<game>/SaveGames`
   (PCGamingWiki, and the L2 test account's own copy on the laptop). Its
   cloud rule names `Saves`, where Steam found no files on exit, so its
@@ -455,8 +463,9 @@ changing anything.
   marks the files with the account that wrote them
   (`steam_autocloud.vdf`). When another account starts the game, Steam
   moves the earlier account's files aside into the starting account's
-  `userdata/`, and since August 2025 it does so for files in the game's
-  folder too (Valve staff in a Steam Deck thread, 2023 to 2026). On Cairn
+  `userdata/` (Valve staff in a Steam Deck thread, 2023 to 2026). In
+  August 2025 they said Steam would do the same for files in the game's
+  folder; whether that reached the stable client is not known. On Cairn
   that is in the starting child's home, where the first child's Steam
   cannot reach them. Untested between Linux accounts.
 - Turning Steam Cloud off does not part saves that share a folder. It only
@@ -474,7 +483,10 @@ changing anything.
   Steam's handling of accounts.
 - Valve documents nothing about what an uninstall removes. On Linux it has
   deleted a whole game folder, with the user's own files in it
-  (steam-for-linux #8215). Saves inside a game's folder go with it.
+  (steam-for-linux #8215). Windows reports differ: several found saves in
+  the game's folder still there after an uninstall. The client has a
+  string for deleting everything when it cannot load a game's depots,
+  which may explain both. Saves inside a game's folder may go with it.
 
 ## Tiles and provisioning
 
@@ -508,7 +520,7 @@ changing anything.
 
 ## What must be tested on the laptop
 
-Each check needs a signed-in Steam. Use a small game nobody minds losing
+Most checks need a signed-in Steam. Use a small game nobody minds losing
 where a check changes or removes one. Stop the account's Steam where a
 check says so, and copy any file before changing it.
 
@@ -539,90 +551,109 @@ Read on 2026-10-13, with one child's session left logged in:
   `libraryfolders.vdf`. The entry has the `contentid` of the marker
   `libraryfolder.vdf` at the top of the shared folder, and an `"apps"`
   block of the 11 native games. The Proton game is no longer in the shared
-  folder: each account has its own copy. Each child's Steam rewrites a
-  shared game's manifest when it starts the game, and 10 of the 11 are now
-  owned by a child.
+  folder: each account has its own copy. A child's Steam rewrites a shared
+  game's manifest when it runs the game. A child owns 10 of the 11, and
+  the one rewrite with a time came as the game quit.
 - Check 2. Every folder looked at is owned by the Guardian, group
   `cairn-steam`, setgid, with `group:cairn-steam:rwx` in its access and
   default ACLs. A file a child's game writes gets read and write for the
   group. `downloading/` and `temp/` do not exist.
 - Check 3. The child's Steam runs with umask 0022. No game was running.
-- Check 4. Only `Saves/` and the manifests had files a child owns: see
-  "Where the games keep their saves".
+- Check 4. In the games' own folders, only `Saves/` had files a child
+  owns: see "Where the games keep their saves". The shared `compatdata/`
+  and `shadercache/` were not looked at.
 
-Pointing a Steam at the library:
+Then, with the maintainer's go, every shared game's `Saves/` folder was
+copied with its owners and modes to
+`/var/lib/cairn/saves-backup-2026-10-13`, which only root can open. A
+compare found the copies the same.
 
-5. In one child's account, with Steam stopped, replace the shared entry
-   with one whose `"apps"` block is empty. Does Steam load the same
-   games, and download nothing?
-6. Edit only the `steamapps/` copy, then only the `config/` copy. Which
-   survives a restart?
-7. Steam's own route, in the Guardian's Steam and in a visit: Settings ›
-   Storage › Add Drive, choosing the shared folder in the file picker.
-   Accepted, or which error? Does it rewrite the marker's `contentid`?
-   Does the picker open inside cage? Then `library_folder_add` in the
-   console.
-8. A game the Guardian installs later shows in each child's Steam at its
-   next start, with no edit and no download.
-9. The shared entry is still there after a Plasma logout during a visit,
-   a power cut, and a week of use.
+Before 2026-10-13 the plan was for every child's Steam to list the shared
+folder. The checks below replace the ones written for that plan.
+Each one changes the laptop, so each waits for the maintainer's go and for
+the children to be logged out.
 
-The Guardian installing:
+Moving the laptop over:
 
-10. Install a small native game into the shared folder from Steam's
-    install dialog. `getfacl` on what Steam made.
-11. Move a native game from the Guardian's folder to the shared one with
-    Steam's Move. A copy or a reflink (`btrfs filesystem du`), and with
-    which ACLs?
-12. In a visit, start a game whose runtime the account lacks. Does Steam
-    fetch it there, and into the shared folder or the account's own?
+5. With an account's Steam stopped, take the shared entry out of both
+   copies of its `libraryfolders.vdf`, for every account but the
+   Guardian's, the L2 test account's included. Does Steam start cleanly,
+   keep its own entry, and leave the shared folder out after a restart?
+6. Those accounts leave `cairn-steam`. The two top folders go to root
+   and `cairn-guardian`, and everything below to the Guardian and
+   `cairn-guardian`, as ADR-0033 says. The children's leftovers in the
+   shared `compatdata/` and `shadercache/` go. Afterwards
+   `find /var/lib/cairn/steam-library/steamapps -mindepth 1 ! -user
+   <Guardian>` prints nothing, and `getfacl -R` names no `cairn-steam`.
+7. As a child, with their Steam stopped, copy a native game into their
+   own library by reflink: the game's folder, then its manifest. Does the
+   child's Steam show the game as installed and start it from its tile,
+   with no download? `btrfs filesystem du` on the copy. A save made then
+   lands in the copy's `Saves/`.
+8. After the move, each child's copies hold the saves the shared folder
+   had, the same as the backup.
+9. After check 14, the Proton game in the L2 test account. Set that
+   account's own copy and its `compatdata/294700` aside first, keeping
+   `SaveGames/`, then run the copy step. Does the account's Steam make a
+   new prefix in its own library and reach the same point as the hand
+   copy?
 
-Updates and other writers:
+Steam Cloud and accounts:
 
-13. Update one game in turn from the Guardian's Steam, a child's, then
-    the Guardian's again. Look in `content_log.txt` for "Disk write" and
-    "Temp folder not writable", and at the ACLs of replaced files.
-14. With a child's kiosk Steam running, update a game from the Guardian's
-    Steam. At the child's next start, does its Steam see the new build,
-    write back stale state, or download again?
-15. Which manifest fields each account's Steam rewrites after a launch
-    (`LastOwner`, `StateFlags`, `UserConfig`, `MountedConfig`).
-16. A child-member account: does its Steam change a game's depots
-    (language, DLC) in the shared folder? Does a game outside its
-    allow-list show as installed, and what does `steam -applaunch` do with
-    it? What happens when two accounts start a game the family owns once?
-17. Uninstall a throwaway game from a child's Steam. Is it gone for every
-    account, with its shader cache?
+10. Two children on one Steam account, as on the laptop. Does a save made
+    in one child's copy reach the other's before the game starts, with a
+    dialog or without? With Steam Cloud off for that game, and then for
+    the account, does it stay put, and does the switch stay off after a
+    restart?
+11. The family has one licence for a game the Guardian's account
+    installed. Does a child-member account's copy start while another
+    member plays it? For a game outside that account's allow-list, does
+    it show as installed, and what does `steam -applaunch` do?
 
-Proton games:
+The Guardian:
 
-18. Give a child a reflink copy of a Proton game without its
-    `compatdata/`. Does the child's Steam make a new prefix, run the
-    install steps and reach the same point as the hand copy?
-19. A local sign that a game runs through Proton: a `compatdata/<appid>`
-    after the Guardian's install, Steam's `CompatToolMapping`, or
-    something else.
+12. Steam's Settings › Storage in the Guardian's Steam, on a folder made
+    exactly as provisioning makes it, holding an empty `steamapps/`.
+    Accepted? If not, on a folder with no `steamapps/`: what modes and
+    ACLs does the `steamapps/` Steam makes get? Does the file picker reach
+    `/var/lib/cairn/`?
+13. Install a small native game into the shared folder from Steam's
+    install dialog. `getfacl` on what Steam made: can every child read
+    it? Then the copy step gives every child a copy. Then set one child's
+    copy aside, have the Guardian's Steam download a change to the game
+    (a switch to a beta branch and back), and run the copy step during the
+    download. The copy should never start, or be thrown away.
+14. Move a native game, and then the Windows game, from the Guardian's own
+    library into the shared folder with Steam's Move. Does the Windows
+    game hit the rollback bug? `getfacl` on the result, and the copy step
+    after it.
+15. An update in a child's copy, with a small free game that has a public
+    beta branch. In a visit, switch the child's copy to that branch, and
+    close the visit before the download ends. At the child's next login,
+    leave the tiles alone for 5 minutes: did Steam finish the update?
+    Repeat, tapping the tile at once. What does the tile show, do the
+    files in the copy's `Saves/` survive, and which manifest fields
+    change?
+16. In a visit, start a game whose runtime the account lacks. Does Steam
+    fetch it into the account's own library?
 
-Shader caches:
+The child:
 
-20. Turn off Shader Pre-Caching in a child's Steam. Is
-    `MESA_SHADER_CACHE_DIR` still the shared folder? Are the 3 s of
-    `CheckShaderDepotManifest` gone? Where does Mesa's cache go?
-
-The Guardian's safety:
-
-21. With `common/` read-only for the children (a throwaway game), does a
-    child's Steam still start it, mark it for update, or drop the
-    library?
-22. Does the Guardian's Steam start any program from a native game's
-    folder while it installs or updates it?
+17. A tile for a game the child has no copy of yet. What does the child's
+    Steam do, and does it download anything?
+18. Offline, with an update waiting for the child's copy, made as in check
+    15. Does the game start?
+19. Uninstall a copy from a child's Steam, in a visit. Only that copy
+    goes, and the shared folder and the other children's copies stay. Do
+    the files in its `Saves/` survive? Then run provisioning, and record
+    what comes back.
 
 Tiles:
 
-23. kidscan as root with `python3 -I`, `--no-scummvm` and an empty `HOME`,
+20. kidscan as root with `python3 -I`, `--no-scummvm` and an empty `HOME`,
     over the shared folder only. One entry per shared game and nothing
-    from any home. Pep's Birthday Surprise is there only if check 1 found
-    its shared manifest.
+    from any home. Pep's Birthday Surprise has one only once it is in the
+    shared folder.
 
 ## Sources
 
