@@ -14,14 +14,24 @@ import unittest
 PAM = pathlib.Path(__file__).resolve().parent.parent / "sddm" / "pam.d" / "sddm"
 
 
-def auth_lines(text):
-    """The auth stack, one list of words per line, comments dropped."""
+def stack_lines(text, stack):
+    """One PAM stack, one list of words per line, comments dropped."""
     lines = []
     for line in text.splitlines():
         words = line.split()
-        if words and words[0].lstrip("-") == "auth":
+        if words and words[0].lstrip("-") == stack:
             lines.append(words)
     return lines
+
+
+def auth_lines(text):
+    return stack_lines(text, "auth")
+
+
+# The list of children whose Steam a grown-up has open (ADR-0032), as the
+# helper writes it.
+VISITS = "file=/run/cairn/steam-visits"
+REFUSAL = ["account", "requisite", "pam_listfile.so", "item=user", "sense=deny", "onerr=succeed", VISITS]
 
 
 class PamSddmTest(unittest.TestCase):
@@ -50,6 +60,16 @@ class PamSddmTest(unittest.TestCase):
             max(i for i, m in enumerate(modules) if m == "pam_succeed_if.so"),
             modules.index("password-auth"),
         )
+
+    def test_a_child_on_a_steam_visit_is_refused_first(self):
+        # First in the account stack, and requisite, so nothing after it
+        # can let the child in (ADR-0032).
+        account = stack_lines(self.text, "account")
+        self.assertEqual(account[0], REFUSAL)
+
+    def test_the_list_is_the_one_the_helper_writes(self):
+        helper = (PAM.parents[2] / "bin" / "cairn-steam-visit").read_text()
+        self.assertIn('RUN_DIR=/run/cairn\nVISITS="$RUN_DIR/steam-visits"\n', helper)
 
     def test_has_the_licence_line(self):
         self.assertEqual(self.text.splitlines()[1], "# SPDX-License-Identifier: Apache-2.0")

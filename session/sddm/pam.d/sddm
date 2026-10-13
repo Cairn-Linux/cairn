@@ -1,13 +1,18 @@
 #%PAM-1.0
 # SPDX-License-Identifier: Apache-2.0
-# Fedora's stock /etc/pam.d/sddm with two lines added (ADR-0016): an L1 or
-# L2 child logs in from the greeter with no password. The rule lives here
-# and nowhere else, so su, ssh and the lock screen still find the account's
-# password locked (issue #35). Provisioning replaces the stock file with this
+# Fedora's stock /etc/pam.d/sddm with three lines added. With the first two
+# (ADR-0016), an L1 or L2 child logs in from the greeter with no password.
+# The rule lives here and nowhere else, so su, ssh and the lock screen still
+# find the account's password locked (issue #35). Provisioning replaces the stock file with this
 # one; the rest of the file matches sddm-0.21 in Fedora 44.
 # A Guardian or an administrator is never let in this way, even from a level
 # group: the administrator comes first in every check (ADR-0023, #101).
 # pam_succeed_if succeeds only when every condition on its line holds.
+# The third added line refuses a child whose Steam a grown-up has open from
+# their own login (ADR-0032). The helper lists them in
+# /run/cairn/steam-visits; with no list, or one PAM cannot read, everyone is
+# let in as before, so the helper opens a visit only once SELinux lets the
+# login screen read it. The console's session/pam.d/login has the same line.
 auth     [success=done ignore=ignore default=bad] pam_selinux_permit.so
 auth        sufficient    pam_succeed_if.so quiet user ingroup cairn-l1 user notingroup cairn-guardian:wheel
 auth        sufficient    pam_succeed_if.so quiet user ingroup cairn-l2 user notingroup cairn-guardian:wheel
@@ -17,6 +22,7 @@ auth        substack      password-auth
 -auth        optional      pam_kwallet.so
 auth        include       postlogin
 
+account     requisite     pam_listfile.so item=user sense=deny onerr=succeed file=/run/cairn/steam-visits
 account     required      pam_nologin.so
 account     include       password-auth
 

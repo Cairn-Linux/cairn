@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!--
+  Opening a child's Steam from a grown-up's own login (ADR-0032). The
+  Guardian's window runs the helper through pkexec, which finds this action
+  by the helper's path and asks for an administrator's password, or a
+  fingerprint, every time. polkit's levels rule answers no to it, before any
+  prompt, for every account that is not an administrator. Installed in
+  /etc/polkit-1/actions, which polkit 127 reads, because /usr is read-only
+  on Bazzite.
+-->
+<!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<policyconfig>
+  <vendor>Cairn Linux</vendor>
+  <vendor_url>https://cairnlinux.com</vendor_url>
+  <action id="com.cairnlinux.steam-visit">
+    <description>Open a child's Steam</description>
+    <message>A grown-up's password is needed to open a child's Steam.</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/local/libexec/cairn/cairn-steam-visit</annotate>
+  </action>
+</policyconfig>

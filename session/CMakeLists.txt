@@ -19,3 +19,9 @@ add_test(NAME give_up
 add_test(NAME log_out
     COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_log_out.py"
 )
+add_test(NAME steam_visit
+    COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_steam_visit.py"
+)
+add_test(NAME pam_steam_visit
+    COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_pam_steam_visit.py"
+)

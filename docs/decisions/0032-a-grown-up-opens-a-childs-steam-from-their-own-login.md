@@ -89,7 +89,11 @@ never reads or writes Steam's files.
   the Guardian's Wayland socket already open (`OpenFile=` and
   `WAYLAND_SOCKET`). Steam draws on cage's own Xwayland. There is no
   `xhost` grant, no ACL on the Guardian's runtime directory, no
-  `systemd-run --user -M` and no linger.
+  `systemd-run --user -M` and no linger. The cage it starts is a copy of
+  the image's that the child's account may run but not read (mode 0711).
+  Linux does not let a process trace a program its account cannot read,
+  or copy that program's open files, so no other program of the child can
+  take cage's connection to KWin. That closes the gap below.
 - **It needs the Guardian's password or fingerprint.** A Cairn polkit
   action with `auth_admin`, never `auth_admin_keep`, asks through the
   polkit agent Plasma already runs. PAM's `system-auth` counts wrong tries
@@ -117,11 +121,14 @@ never reads or writes Steam's files.
   (`account requisite pam_listfile.so item=user sense=deny onerr=succeed
   file=/run/cairn/steam-visits`). The login screen reads the same file
   only to say plainly that a grown-up is setting something up and to try
-  again soon. PAM is the gate (ADR-0020). The visit's own session uses a
-  PAM service of its own, `cairn-steam-visit`, so the refusal never
-  refuses the visit. The VM used `login`; the service of its own is not
-  tried yet. `/run` is empty after a restart, so no child stays locked out
-  past one.
+  again soon. PAM is the gate (ADR-0020). PAM lets everyone in when it
+  cannot read the list, and SELinux keeps the login screen from reading a
+  plain file in `/run`: in the VM a listed child logged in. So
+  provisioning labels `/run/cairn` `etc_t`, which the login screen and the
+  consoles may read, and the helper opens no visit while the list has any
+  other label. The visit's own session uses a PAM service of its own,
+  `cairn-steam-visit`, so the refusal never refuses the visit. `/run` is
+  empty after a restart, so no child stays locked out past one.
 - **Every ending goes through one close.** These all run the same close:
   Done, the Guardian's screen lock, the Guardian's logout, the visit
   window's own close button, Steam or cage ending by themselves, and the
@@ -180,9 +187,9 @@ piece of the Guardian tool (P1-5). The steps for parents go in
   child's first login, it also keeps Steam's first-run download out of the
   child's sight. In the VM that first start took about 83 s to reach the
   sign-in, and left 2.5 GB in the child's Steam folder before any game.
-- Once the gap below is closed, the Guardian's computer password is typed
-  only in the Guardian's own session, never into a process the child
-  owns. Until then, a process of the child could imitate that prompt.
+- The Guardian's computer password is typed only in the Guardian's own
+  session, never into a process the child owns, and with the gap below
+  closed no process of the child can draw a copy of that prompt.
   Everything inside the visit's window runs as the child, from the child's
   home, so a Steam password typed there is only as private as the child's
   account.
@@ -215,46 +222,47 @@ piece of the Guardian tool (P1-5). The steps for parents go in
 - The visit window's own close button is expected to end cage at once, so
   Steam stops without its shutdown, as at a logout. The Guardian's window
   and `docs/TRY.md` say to use Done.
-- It is untested whether the close can run before KWin exits at a logout,
-  a restart, a shut down or the power button's five-second hold
-  (ADR-0018). In the VM, cage aborted when KWin went away, and Steam
-  stopped without its shutdown. For a signed-in child, that can lose the
-  last cloud save. If the helper's change cannot close first,
-  `docs/TRY.md` and the Guardian's window say to press Done before logging
-  out, and this ADR says so before it is accepted.
+- At a Plasma logout in the VM, cage ended with KWin within 3 s and Steam
+  stopped without its shutdown. The helper's close then ran and left
+  nothing of the child behind. For a signed-in child, a Steam stopped that
+  way can lose the last cloud save. Unless the Guardian's window can hold
+  the logout until the close has run, `docs/TRY.md` and the window say to
+  press Done before logging out, and this ADR says so before it is
+  accepted. A restart, a shut down and the power button's five-second hold
+  (ADR-0018) are untested.
 - In the image's authselect profile, a fingerprint is accepted before the
   password and before the security key that ADR-0020 offers. A Guardian
   with both can open a visit with the fingerprint alone, and the same is
   true for sudo, su and the lock screen. The first-boot wizard and the
   Guardian tool say so wherever they offer either one.
-- **The gap to close before this ADR is accepted.** Anything the child's
+- **The gap, closed by the run-only copy of cage.** Anything the child's
   account can change runs during a visit. `/usr/bin/steam` runs the copy
   of Steam in the child's home, and the visit's session starts the child's
   own systemd user units. At L3 and L4 the child has a shell to change
-  both. On this image `kernel.yama.ptrace_scope` is 0, so any such process
-  can copy cage's connection to KWin and become a full KWin client on the
-  Guardian's desktop. On a connection of the child's to the Guardian's
-  socket, KWin offered `ext_data_control`, which read the Guardian's
-  clipboard. It also offered layer shell and Plasma's shell protocol,
+  both. On this image `kernel.yama.ptrace_scope` is 0, so with the image's
+  own cage any such process could copy cage's connection to KWin and
+  become a full KWin client on the Guardian's desktop. On a connection of
+  the child's to the Guardian's socket, KWin offered `ext_data_control`,
+  which read the Guardian's clipboard. It also offered layer shell and Plasma's shell protocol,
   which can cover the whole desktop and take every key. A process of the
   child could then draw a copy of the password prompt and read what is
   typed into it. That was not tried. The connection also got output, DPMS
-  and brightness control, an input method and the keyboard's state. The
-  candidates, none of them tried: connect cage through a
-  `wp_security_context_v1` listener, raise `ptrace_scope` to 1, or run
-  cage under an account other than the child's. The first and third
-  change the "It runs in a nested cage window" bullet above (which socket
-  cage gets, or which account runs it), and that bullet is edited in the
-  same change. The helper's change picks one and re-runs the probes in the
-  VM. One probe is `pidfd_getfd` on cage's connection, from a process of
-  the child outside cage's tree and from Steam inside it. The other is the
-  list of globals KWin offers on that connection. Acceptance needs one of
-  two results: no process of the child but cage can get the connection,
-  or the connection is offered none of `ext_data_control_manager_v1`,
-  `zwlr_layer_shell_v1`, `org_kde_plasma_shell`,
-  `kde_output_management_v2`, `org_kde_kwin_dpms_manager`,
-  `kde_external_brightness_v1`, `zwp_input_method_v1` or
-  `org_kde_kwin_keystate`.
+  and brightness control, an input method and the keyboard's state.
+  Acceptance needed one of two results: no process of the child but cage
+  can get the connection, or the connection is offered none of
+  `ext_data_control_manager_v1`, `zwlr_layer_shell_v1`,
+  `org_kde_plasma_shell`, `kde_output_management_v2`,
+  `org_kde_kwin_dpms_manager`, `kde_external_brightness_v1`,
+  `zwp_input_method_v1` or `org_kde_kwin_keystate`. The first holds since
+  the helper runs the run-only copy (VM, 2026-10-12). `pidfd_getfd` on
+  cage, from a process of the child outside cage's tree and from cage's
+  own child, where Steam runs, failed with "Operation not permitted", and
+  cage's environment could not be read. With the image's own cage both
+  had copied every file cage held. Only cage held its connection to KWin,
+  marked close-on-exec, so Steam never inherits it. The three candidates
+  first listed here (a `wp_security_context_v1` listener, `ptrace_scope`
+  1, cage under another account) are not needed. The copy is made again
+  whenever the image's cage changes.
 - **Also checked in the VM before acceptance:** a sign-in with "Remember
   me" in a visit, then the child's kiosk login with Steam silent and signed
   in, and a tile starting a game; a game installed in a visit; the overlay
@@ -279,6 +287,10 @@ piece of the Guardian tool (P1-5). The steps for parents go in
   login refusal uses upstream `pam_listfile`. The fingerprint comes from
   upstream: the image's authselect profile has `with-fingerprint`, and
   polkit's PAM service includes `system-auth`, where `pam_fprintd` sits.
+  polkit 127 reads actions from `/etc/polkit-1/actions` too, so the action
+  needs no write to the read-only `/usr`. pkexec finds the action by the
+  helper's real path, and on Bazzite `/usr/local` is a link to
+  `/var/usrlocal`, so provisioning writes that path into the action.
 - ADR-0017 said cage is not used. Once this ADR is accepted, cage is used
   for a visit's window, never as the kiosk compositor, and ADR-0017's
   status becomes "amended by ADR-0026, ADR-0032".
