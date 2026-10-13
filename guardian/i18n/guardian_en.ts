@@ -141,12 +141,12 @@
     </message>
     <message>
         <location filename="../qml/Main.qml" line="95"/>
-        <source>When you have finished, press Done. Steam saves and closes, which can take half a minute.</source>
+        <source>When you have finished, press Done here, not the close button on Steam&apos;s window. Steam then saves and closes, which can take half a minute.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/Main.qml" line="95"/>
-        <source>Press Done before you log out. Locking the screen closes %1&apos;s Steam too, and stops any download in it.</source>
+        <source>Press Done before you log out, restart or shut down. Locking the screen closes %1&apos;s Steam too, and stops any download in it.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

@@ -95,9 +95,10 @@ Tux Paint and GCompris. Every step it takes prints a line starting
   The child's own Steam opens in a window of its own, and the child cannot
   log in until you press **Done**. If they try, the login screen tells
   them a grown-up is setting something up and to try again soon.
-- Press Done before you log out. Logging out closes the child's Steam
-  before it can save, which can lose a game's last cloud save. Locking the
-  screen closes it properly, but stops any download in it.
+- Press Done before you log out, restart or shut down. Those close the
+  child's Steam before it can save, which can lose a game's last cloud
+  save, and so does the close button on the child's Steam window. Locking
+  the screen closes it properly, but stops any download in it.
 - If you switch a child's Steam to the child's own account, remove your
   own account from Steam's list of accounts in the same window. Cairn
   suggests a Steam account for each child, as a child member of your
