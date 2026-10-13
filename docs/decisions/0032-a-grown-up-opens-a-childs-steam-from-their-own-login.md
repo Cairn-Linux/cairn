@@ -142,7 +142,11 @@ never reads or writes Steam's files.
   still there is killed. If that fails, the child stays refused at login
   and the Guardian's window says to restart the computer.
 - **The visit is labelled with the child's name** where the Guardian sees
-  it.
+  it. cage passes Steam's own title through, so the label is the
+  Guardian's window: titled "Steam for <child>", with the menu entry's
+  name and Steam's icon in the taskbar, beside the visit's window for the
+  whole visit. With the Guardian's own Steam paused, the visit's is the
+  only Steam window on the desktop.
 - **The Guardian's own Steam is paused during a visit** if it is running.
   The Guardian's window does this, as the Guardian. It runs
   `steam -shutdown` before the visit opens, and after the visit closes it
@@ -156,11 +160,13 @@ never reads or writes Steam's files.
 the change to the levels rule. The PAM refusal of a child whose visit is
 open or closing, the visit's own PAM service, and the login screen's plain
 sentence. A "Steam for <child>" entry for each child in the Guardian's
-application menu, installed only for Guardians, so an L3 or L4 child's
-Plasma menu never shows it. A small Qt window in the Guardian's session
-that names the child, has Done, and closes the visit. It is the first
-piece of the Guardian tool (P1-5). The steps for parents go in
-`docs/TRY.md`.
+application menu, shown only to Guardians, so an L3 or L4 child's Plasma
+menu never shows it. The entry's program may be run only by the
+`cairn-guardian` group, and Plasma's menu leaves out an entry whose
+`TryExec` program the account cannot run. A small Qt window in the
+Guardian's session that names the child, has Done, and closes the visit.
+It is the first piece of the Guardian tool (P1-5), in `guardian/`. The
+steps for parents go in `docs/TRY.md`.
 
 **What comes later, each with its own ADR:**
 
@@ -225,11 +231,13 @@ piece of the Guardian tool (P1-5). The steps for parents go in
 - At a Plasma logout in the VM, cage ended with KWin within 3 s and Steam
   stopped without its shutdown. The helper's close then ran and left
   nothing of the child behind. For a signed-in child, a Steam stopped that
-  way can lose the last cloud save. Unless the Guardian's window can hold
-  the logout until the close has run, `docs/TRY.md` and the window say to
-  press Done before logging out, and this ADR says so before it is
-  accepted. A restart, a shut down and the power button's five-second hold
-  (ADR-0018) are untested.
+  way can lose the last cloud save. With the Guardian's window open,
+  Plasma's logout asked it to close, and the logout waited until the
+  window had closed the visit. But Plasma asks every window at once, and
+  cage closed with the rest, so Steam had lost its display before its
+  shutdown reached it (VM, 2026-10-12). So the window and `docs/TRY.md`
+  say to press Done before logging out. A restart, a shut down and the
+  power button's five-second hold (ADR-0018) are untested.
 - In the image's authselect profile, a fingerprint is accepted before the
   password and before the security key that ADR-0020 offers. A Guardian
   with both can open a visit with the fingerprint alone, and the same is
@@ -277,6 +285,17 @@ piece of the Guardian tool (P1-5). The steps for parents go in
   each ending with nothing of the child left; the Guardian's own Steam
   paused and back; the label. The fingerprint needs a reader, so it is
   checked where one exists or stated as unchecked.
+- **Checked so far** (VM, 2026-10-12, `docs/research/steam-visit.md`):
+  the child refused at the login screen during a visit; Done, the screen
+  lock (`loginctl lock-session`), the Guardian's window's own close button,
+  killing the Guardian's window, Steam quitting by itself and a signal to
+  the helper, each leaving nothing of the child, with `steam -shutdown`
+  first whenever Steam was still running; the logout above; the
+  Guardian's own Steam paused (2 s) and back; the label; the entries in
+  the Guardian's menu and not in a child's. Still to check: everything
+  that needs a signed-in Steam, the sentence on the login screen, a child
+  with a password at a console, a restart, cage's own close button, Exit
+  in Steam's menu, the idle lock and a fingerprint.
 - **Dependencies.** cage 0.3.1 is part of the Bazzite image
   (`cage-0.3.1-1.fc44`, not a layered package), so the helper adds no
   package, and Cairn's image has to keep it. It is a program the helper
@@ -290,7 +309,8 @@ piece of the Guardian tool (P1-5). The steps for parents go in
   polkit 127 reads actions from `/etc/polkit-1/actions` too, so the action
   needs no write to the read-only `/usr`. pkexec finds the action by the
   helper's real path, and on Bazzite `/usr/local` is a link to
-  `/var/usrlocal`, so provisioning writes that path into the action.
+  `/var/usrlocal`, so provisioning writes that path into the action. The
+  window hears the screen lock through Qt D-Bus, which is part of Qt.
 - ADR-0017 said cage is not used. Once this ADR is accepted, cage is used
   for a visit's window, never as the kiosk compositor, and ADR-0017's
   status becomes "amended by ADR-0026, ADR-0032".

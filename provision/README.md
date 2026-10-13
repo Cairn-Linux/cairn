@@ -63,6 +63,7 @@ What it leaves on the machine:
 | `/usr/local/share/cairn/sddm/themes/cairn/`, `/usr/local/lib64/cairn/qml/` | The login screen from `../greeter/theme/`, and the `Cairn.Brand` and `Cairn.Greeter` QML modules it imports (ADR-0020) |
 | `/etc/security/faillock.conf`, `/var/lib/faillock` | A lockout after wrong passwords for every account that has one: `authselect`'s `with-faillock`, with its count kept where a reboot does not clear it, and an SELinux rule labelling that directory `faillog_t` (ADR-0020) |
 | `/usr/local/libexec/cairn/cairn-steam-visit`, `/usr/local/libexec/cairn/cage-visit`, `/etc/pam.d/cairn-steam-visit`, `/etc/pam.d/login`, `/etc/polkit-1/actions/com.cairnlinux.steam-visit.policy`, an SELinux rule for `/run/cairn` | A grown-up's way into a child's Steam from their own login (ADR-0032, `../session/`): the root helper; a copy of the image's cage the child may run but not read (mode 0711), made again when the image's cage changes; the visit's PAM session; Fedora's console `login` with the refusal line; the polkit action, naming the helper's real path under `/var/usrlocal`, with polkit restarted when it changes; and the `etc_t` label that lets the login screen read the list of children on a visit |
+| `/usr/local/bin/cairn-steam-for`, `/usr/local/libexec/cairn/cairn-steam-for`, `/usr/local/share/applications/cairn-steam-for-CHILD.desktop` | The Guardian's window for a child's Steam (ADR-0032, `../guardian/`), and a "Steam for <child>" menu entry for every child account in a level group. The program and its wrapper are `root:cairn-guardian`, mode 0750: Plasma's menu leaves out an entry whose `TryExec` the account cannot run, so only a Guardian sees the entries. An entry whose account is no longer a child is removed. The window writes to the journal under `cairn-steam-for` |
 | `/usr/local/bin/cairn-launcher` | Wrapper that runs the release launcher from `/usr/local/libexec/cairn` with the manifest in `/usr/local/share/cairn/manifest.json` and `--log-out /usr/local/bin/cairn-log-out`, which gives the tiles a Log out button, `--scope-apps`, which starts each program in a scope the give-up key can end (ADR-0025), and `--start-steam`, which starts the Steam client at login for a child with a Steam tile (ADR-0027). The launcher writes to the journal under `cairn-launcher` (#122). Its Draw tile runs Tux Paint with `--autosave --saveovernew`, so a child who leaves with Super+Q never loses a picture (ADR-0019) |
 
 When something needed a grown-up, the reason is in the journal, kept
@@ -71,6 +72,7 @@ across logins. From the Guardian's account, no sudo needed:
 ```sh
 journalctl -t cairn-launcher --since today   # what the launcher noticed
 journalctl -t cairn-kiosk --since today      # the kiosk, give-up and Log out
+journalctl -t cairn-steam-for --since today  # a child's Steam opened from your login
 ```
 
 The launcher's lines include what the child's apps printed. Before #122 all

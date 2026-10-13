@@ -120,7 +120,8 @@ someone learning the language from it. That shapes every rule below.
 ## Things that are not here
 
 - The C++ so far is the launcher in `launcher/` (its README lists the
-  slices that have landed) and the login screen's module in `greeter/`.
+  slices that have landed), the login screen's module in `greeter/` and
+  the Guardian's window for a child's Steam in `guardian/`.
   Footpath, the terminal, is its own repository and arrives as the
   submodule `external/footpath` pinned to a tag (ADR-0014); change it
   there, then move the pin here.

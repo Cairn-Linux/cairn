@@ -90,6 +90,7 @@ The design follows these principles; not every planned feature is complete.
 | `launcher/` | The fullscreen tile launcher — the product. |
 | `external/footpath/` | Footpath, the child-facing terminal, a submodule pinned to a tag (ADR-0014; its own repository is `Cairn-Linux/footpath`). |
 | `greeter/` | The login screen: an SDDM theme and the small C++ QML module it imports (ADR-0020). |
+| `guardian/` | The Guardian's side, so far one window: a child's own Steam, opened from the Guardian's own login (ADR-0032). |
 | `session/` | Login-to-session plumbing: one session entry that dispatches by account level. |
 | `provision/` | Phase 0 script that turns a stock install into a Cairn machine, for testing before any ISO exists. |
 | `tools/kidscan/` | Game library scanner: Steam + ScummVM detection → launcher manifest. |

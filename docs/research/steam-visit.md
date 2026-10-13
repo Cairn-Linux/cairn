@@ -492,6 +492,55 @@ and the helper opens no visit while the list has any other.
 | The Guardian logging out of Plasma | cage ended with KWin within 3 s and Steam stopped without its shutdown. The close then ran: nothing of ada left, the list gone. |
 | ada logging in during a visit (that run's `sddm` file lacked the refusal line) | The helper saw her login session and closed the visit: Steam shut down, then ada was logged out, kiosk and all. Nothing left. |
 
+## The Guardian's window in the VM
+
+2026-10-12, late evening. Provisioning's new step installed the window,
+`/usr/local/bin/cairn-steam-for`, and an entry for each child, "Steam for
+ada" and "Steam for ben", in `/usr/local/share/applications`. The VM still
+had an earlier draft of the helper, without its journal lines, so the
+merged one was installed first. The window was started as Plasma's menu
+starts an app, with `kioclient exec` on the entry. It then ran in an app
+unit of the Guardian's own service manager, not in their session's scope,
+and polkit still found the Guardian's session: Plasma's agent asked. For
+the pause, the Guardian's own Steam was a copy of ada's signed-out client,
+started by Bazzite's autostart entry. Nothing was signed in.
+
+### The menu
+
+`kbuildsycoca6 --noincremental --menutest` as the Guardian listed both
+entries under Games, and as ada, neither. The entries name the window's
+program as their `TryExec`, which is `root:cairn-guardian` with mode 0750.
+A test entry with the same `TryExec` behaved the same, and one without
+showed for both. A second run of the step changed nothing.
+
+### How the window went
+
+| What | Result |
+|---|---|
+| Open, the Guardian's Steam not running | Plasma's prompt, then "ada's Steam is open". Steam's sign-in filled the screen in cage's window, titled "Sign in to Steam" with wlroots' "W" icon. The window, "Steam for ada" with Steam's icon, was behind it in the taskbar. |
+| Done | Closed in 5 s, `steam -shutdown` first. The journal had "guardian opened ada's Steam visit" and "guardian closed ada's Steam visit", which the Guardian can read without `sudo`. |
+| The window's own close button during a visit | "Closing ada's Steam", the same close, then the window went. |
+| `loginctl lock-session` during a visit | KWin sent `ActiveChanged(true)` on `/org/freedesktop/ScreenSaver` and `/ScreenSaver`. The close ran, `steam -shutdown` first, in 3 s. After the unlock the window said "ada's Steam is closed". |
+| The Guardian's own Steam running | The first screen said it closes first, with any game or download in it. On Open the window said "Closing your own Steam", and it was gone in 2 s; then the prompt. After Done, `bazzite-steam -silent` started it again, the window said so, and it ran on after the window closed. |
+| Cancel in the password box | pkexec ended with "Not authorized", exit 127, as for a wrong password. The Guardian's own Steam came back. |
+| Killing the window (`SIGKILL`) during a visit | The helper read the end of its input and closed: `steam -shutdown`, nothing of ada left, the list gone in 7 s. |
+| Plasma's logout during a visit | Plasma asked the window to close. It closed the visit, and the session ended 2 s after the window did. But cage's window was asked at the same moment: cage logged "failed to write to Xwayland fd: Broken pipe", and Steam's last line was from 9 s before. The helper's `steam -shutdown` found a Steam process on its way out, and so started a new client, which ended with "Unable to open X11 display". Nothing of ada or the Guardian was left. |
+
+### Found and fixed
+
+- The window's row of buttons could hide for good: the row's visibility
+  followed the main button's, and a hidden row hides its button too. The
+  window's own test caught it.
+- After the password box closed, the window kept its shorter size and cut
+  off its buttons: KWin's resize when the window became active again won
+  over the window's own. The window now sets its least and its most
+  height to fit its words.
+- Plasma's agent gives pkexec's "not authorized" for Cancel, so the
+  window blamed the password. Both now get one sentence: it needs your
+  password, the box was closed, or the password was not accepted.
+- The restarted Steam's output went into the window's journal. Steam
+  keeps its own logs, so that output now goes nowhere.
+
 ## What the helper must do
 
 From all of the above, for ADR-0032's helper:
@@ -551,10 +600,11 @@ From all of the above, for ADR-0032's helper:
   `session-N.scope`, not the unit. The helper ends the child with
   `loginctl terminate-user` instead, which ends that scope and the child's
   service manager: the child has no other session during a visit.
-- [ ] Label the visit with the child's name where the Guardian sees it.
+- [x] Label the visit with the child's name where the Guardian sees it.
   cage passes Steam's title through, so the label has to be the helper's
-  own.
-- [ ] Pause the Guardian's own Steam if it is running, from the
+  own. It is the Guardian's window, "Steam for <child>", beside the
+  visit's window.
+- [x] Pause the Guardian's own Steam if it is running, from the
   Guardian's window, as the Guardian: `steam -shutdown` before the visit
   opens, and `bazzite-steam -silent` after it closes, as Bazzite's
   autostart does. The root helper never starts or stops anything in the
@@ -567,8 +617,11 @@ From all of the above, for ADR-0032's helper:
   ending unexpectedly. On logout the close has to run before KWin exits,
   or cage aborts and takes Steam with it. How to run it in time is
   untested. The helper's part is done: Done, the end of its input, cage
-  or Steam ending, a signal and a logout all close it. The screen lock
-  and the window's close button come with the Guardian's window.
+  or Steam ending, a signal and a logout all close it. The window adds
+  the screen lock and its own close button. At a logout Plasma asks every
+  window to close at once, so cage still goes before Steam's shutdown,
+  and the window says to press Done first. cage's own close button is
+  not tried yet.
 - [x] Close in this order. If a Steam process of the child is running,
   `steam -shutdown` as the child, with `HOME` and `XDG_RUNTIME_DIR` set,
   waiting long enough for it (18 s was seen); asked to shut down when it
@@ -588,7 +641,10 @@ From all of the above, for ADR-0032's helper:
 
 - A visit that signs in with "Remember me", then the child's kiosk login
   with Steam silent, hidden and signed in. Nothing was signed in here.
-- The Guardian's own Steam running during a visit.
+- The Guardian's own Steam paused with a game or a download running. In
+  the VM it was signed out.
+- The screen locking by itself after idle minutes. Only
+  `loginctl lock-session` was tried.
 - Sound and GPU acceleration in a visit, and any of this on real
   hardware.
 - A fingerprint through polkit. The image has `fprintd` and authselect's

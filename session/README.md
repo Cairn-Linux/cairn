@@ -60,10 +60,11 @@ What is here:
   all run the same close: Steam's own shutdown, then the child's session
   ended, then nothing of the child's left running. It says how the visit
   is going on stdout and writes a line to the journal as
-  `cairn-steam-visit` when a visit opens and closes. Until the Guardian's
-  window exists, a Guardian can run it from a terminal in their own
-  session: `pkexec /usr/local/libexec/cairn/cairn-steam-visit CHILD`,
-  then type `done`.
+  `cairn-steam-visit` when a visit opens and closes. The Guardian's
+  window, "Steam for <child>" in their menu, runs it (`../guardian/`); a
+  Guardian can also run it from a terminal in their own session:
+  `pkexec /usr/local/libexec/cairn/cairn-steam-visit CHILD`, then type
+  `done`.
 - `pam.d/`: `cairn-steam-visit`, the session a visit runs in, which no one
   logs in through; and `login`, Fedora's console login with the line that
   refuses a child on a visit, as the greeter's file has.

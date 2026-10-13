@@ -1,0 +1,64 @@
+#!/bin/bash
+# SPDX-License-Identifier: Apache-2.0
+#
+# A stand-in for pkexec with session/bin/cairn-steam-visit behind it, for
+# the Guardian window's tests. The tests pass a scenario where the helper's
+# path goes. Each says what the helper says, in the same order, and reads
+# "done" the same way.
+set -u
+scenario="$1"
+child="${2:-}"
+
+# Open until a line "done" or the end of the input.
+watch_visit() {
+    local line
+    while read -r line; do
+        [ "$line" != "done" ] || return 0
+    done
+}
+
+case "$scenario" in
+    open)
+        [ -n "$child" ] || exit 1
+        echo open
+        watch_visit
+        echo closing
+        echo closed
+        ;;
+    waiting)
+        echo waiting
+        sleep 0.2
+        echo open
+        watch_visit
+        echo closing
+        echo closed
+        ;;
+    names-child) echo "refused $child"; exit 1 ;;
+    busy) echo "refused busy"; exit 1 ;;
+    logged-in) echo "refused logged-in"; exit 1 ;;
+    # pkexec's own: the box was dismissed, or the password not accepted.
+    dismissed) exit 126 ;;
+    not-authorized) exit 127 ;;
+    # The Guardian has not answered the box yet.
+    asking) exec sleep 30 ;;
+    stuck)
+        echo open
+        watch_visit
+        echo closing
+        echo stuck
+        exit 1
+        ;;
+    # Ends without saying that the visit closed.
+    vanishes)
+        echo open
+        watch_visit
+        exit 1
+        ;;
+    steam-quits)
+        echo open
+        sleep 0.2
+        echo closing
+        echo closed
+        ;;
+    *) exit 1 ;;
+esac
