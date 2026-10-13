@@ -41,6 +41,13 @@ Files:
   process of the child can copy cage's connection to KWin, which is
   offered the Guardian's clipboard and more. Ends with what the helper of
   ADR-0032 (proposed) must do.
+- `shared-steam-library.md` — 2026-10-12 and 13, #130: desk research, a
+  probe on the development PC and read-only checks on the kids' laptop.
+  One Steam library shared between Linux accounts fails on Steam's
+  runtime, Wine's prefix and Mesa's cache, lets any child change a game,
+  and shares saves, which the games keep inside their own folder. Leads to
+  ADR-0033 (proposed), a copy of every game for every child, and ends with
+  the checks still to run on the laptop.
 
 - `malcontent-plasma.md` — 2026-09-06 P0-7 check in the VM: malcontent 0.14
   blocks a blocklisted Flatpak and user installs under Plasma, and its
