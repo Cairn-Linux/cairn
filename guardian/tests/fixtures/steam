@@ -1,0 +1,13 @@
+#!/bin/bash
+# SPDX-License-Identifier: Apache-2.0
+#
+# A stand-in for the Guardian's Steam client, for the Guardian window's
+# tests. CAIRN_TEST_PROC is a stand-in process list where 4242 is the
+# client. Asked to shut down, the client goes from the list, unless a file
+# "stubborn" says it will not. Started, it writes down how.
+set -u
+proc="$CAIRN_TEST_PROC"
+case "${1:-}" in
+    -shutdown) [ -e "$proc/stubborn" ] || rm -r -- "$proc/4242" ;;
+    -silent) echo "${0##*/} $*" >> "$proc/started" ;;
+esac

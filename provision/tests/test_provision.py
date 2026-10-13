@@ -34,13 +34,25 @@ def id_stub(accounts):
     return "\n".join(lines) + "\n"
 
 
-def run_steps(snippet, accounts=None, env_extra=None):
+def getent_stub(gecos=None, groups=None):
+    """A `getent` for passwd lines, with `gecos`: name -> comment field, and
+    group lines, with `groups`: name -> [members]."""
+    lines = ["#!/bin/bash", 'case "$1 $2" in']
+    for name, comment in (gecos or {}).items():
+        lines.append(f'    "passwd {name}") echo "{name}:x:1002:1002:{comment}:/home/{name}:/bin/bash" ;;')
+    for name, members in (groups or {}).items():
+        lines.append(f'    "group {name}") echo "{name}:x:900:{",".join(members)}" ;;')
+    lines += ["    *) exit 2 ;;", "esac"]
+    return "\n".join(lines) + "\n"
+
+
+def run_steps(snippet, accounts=None, env_extra=None, extra_stubs=None):
     """Sources the script, sets names, runs `snippet`. Returns (code, output, log)."""
     with tempfile.TemporaryDirectory() as work:
         bin_dir = pathlib.Path(work, "bin")
         bin_dir.mkdir()
         log = pathlib.Path(work, "calls")
-        stubs = {"id": id_stub(accounts or {})}
+        stubs = {"id": id_stub(accounts or {}), **(extra_stubs or {})}
         for name in ("useradd", "gpasswd", "passwd"):
             stubs[name] = f'#!/bin/sh\necho "{name} $*" >> {log}\n'
         stubs["chpasswd"] = f'#!/bin/sh\nprintf "chpasswd stdin: " >> {log}\ncat >> {log}\n'
@@ -256,6 +268,75 @@ class LauncherWrapperTest(unittest.TestCase):
         self.assertLess(
             next(i for i, line in enumerate(lines) if "systemd-cat --identifier=cairn-launcher true" in line),
             len(lines) - 1,
+        )
+
+
+class SteamForEntryTest(unittest.TestCase):
+    # "Steam for <child>" in a Guardian's menu (ADR-0032): one entry for every
+    # child account, never for an administrator in a level group.
+    def test_every_child_and_no_administrator(self):
+        accounts = {
+            "ada": (1002, ["ada", "cairn-l1"]),
+            "ben": (1003, ["ben", "cairn-l3"]),
+            "bazzite": (1000, ["bazzite", "wheel", "cairn-l1"]),
+            "gina": (1001, ["gina", "cairn-guardian", "cairn-l2"]),
+        }
+        groups = {"cairn-l1": ["ada", "bazzite"], "cairn-l2": ["gina"], "cairn-l3": ["ben"], "cairn-l4": []}
+        code, output, _ = run_steps(
+            "child_accounts", accounts, extra_stubs={"getent": getent_stub(groups=groups)}
+        )
+        self.assertEqual(code, 0, output)
+        # Without the trace, which starts each of its lines with a +.
+        self.assertEqual([line for line in output.splitlines() if not line.startswith("+")], ["ada", "ben"])
+
+    def test_the_entry_runs_the_window_for_that_child(self):
+        code, output, _ = run_steps(
+            "steam_entry ada", extra_stubs={"getent": getent_stub(gecos={"ada": ""})}
+        )
+        self.assertEqual(code, 0, output)
+        lines = output.splitlines()
+        self.assertIn("Name=Steam for ada", lines)
+        self.assertIn("Exec=/usr/local/bin/cairn-steam-for ada", lines)
+        # Plasma leaves the entry out for an account that cannot run this.
+        self.assertIn("TryExec=/usr/local/bin/cairn-steam-for", lines)
+
+    def test_a_full_name_is_the_name_shown(self):
+        code, output, _ = run_steps(
+            "steam_entry ada", extra_stubs={"getent": getent_stub(gecos={"ada": "Ada Lovelace,,,"})}
+        )
+        self.assertEqual(code, 0, output)
+        self.assertIn("Name=Steam for Ada Lovelace", output.splitlines())
+        self.assertIn("Exec=/usr/local/bin/cairn-steam-for ada", output.splitlines())
+
+
+def window_wrapper():
+    """The wrapper install_steam_for writes, as the file it installs."""
+    text = SCRIPT.read_text()
+    start = text.index("<<'WINDOW'\n") + len("<<'WINDOW'\n")
+    return text[start:text.index("\nWINDOW\n", start) + 1]
+
+
+class WindowWrapperTest(unittest.TestCase):
+    # The window's notes and the root helper's trace go to the journal under
+    # their own name, and systemd-cat runs the window in its own place.
+    def test_starts_the_window_under_its_own_journal_name(self):
+        with tempfile.TemporaryDirectory() as work:
+            wrapper = pathlib.Path(work, "cairn-steam-for")
+            wrapper.write_text(window_wrapper())
+            stub = pathlib.Path(work, "systemd-cat")
+            stub.write_text('#!/bin/sh\necho "systemd-cat $*"\n')
+            stub.chmod(0o755)
+            result = subprocess.run(
+                ["bash", str(wrapper), "ada"],
+                env={"PATH": f"{work}:/usr/bin:/bin"},
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            result.stdout.strip(),
+            "systemd-cat --identifier=cairn-steam-for /usr/local/libexec/cairn/cairn-steam-for ada",
         )
 
 

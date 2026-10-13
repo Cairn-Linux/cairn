@@ -460,10 +460,100 @@ install_steam_visit() {
     fi
 }
 
+# --- 11. "Steam for <child>" in a Guardian's menu (ADR-0032) -----------------
+# Every child account on the machine, from the level groups, whichever run
+# made it. An administrator is never one, whatever groups it is in.
+child_accounts() {
+    local level member
+    for level in cairn-l1 cairn-l2 cairn-l3 cairn-l4; do
+        for member in $(getent group "$level" | cut -d: -f4 | tr ',' ' '); do
+            in_group "$member" wheel || in_group "$member" cairn-guardian || echo "$member"
+        done
+    done | sort -u
+}
+
+# The name the family knows an account by, as the login screen shows it.
+known_as() {
+    local name
+    name="$(getent passwd "$1" | cut -d: -f5 | cut -d, -f1)"
+    echo "${name:-$1}"
+}
+
+steam_entry() {
+    local name
+    name="$(known_as "$1")"
+    cat <<ENTRY
+[Desktop Entry]
+Type=Application
+Name=Steam for $name
+Comment=Open $name's own Steam, to sign in or change its settings
+Exec=$PREFIX/bin/cairn-steam-for $1
+TryExec=$PREFIX/bin/cairn-steam-for
+Icon=steam
+Categories=Game;
+ENTRY
+}
+
+# Only a Guardian may run it. Plasma's menu leaves out an entry whose
+# TryExec program the account cannot run, so no one else sees the entries,
+# and a child who finds the program cannot start it.
+only_for_guardians() {
+    if [ "$(stat --format=%G:%a "$1")" != cairn-guardian:750 ]; then
+        chgrp cairn-guardian "$1"
+        chmod 750 "$1"
+        changed "$1 only for Guardians"
+    fi
+}
+
+install_steam_for() {
+    local build="$REPO/build/release"
+    install_file 750 "$build/guardian/cairn-steam-for" "$PREFIX/libexec/cairn/cairn-steam-for"
+    only_for_guardians "$PREFIX/libexec/cairn/cairn-steam-for"
+    local wrapper
+    wrapper="$(mktemp)"
+    cat > "$wrapper" <<'WINDOW'
+#!/bin/bash
+# SPDX-License-Identifier: Apache-2.0
+# Installed by provision/cairn-provision.sh; not the Phase 1 packaging.
+export LD_LIBRARY_PATH=/usr/local/lib64/cairn
+window=(/usr/local/libexec/cairn/cairn-steam-for "$@")
+# The window's notes and the root helper's trace go to the journal under
+# their own name: journalctl -t cairn-steam-for. systemd-cat runs the window
+# in its own place, so the window stays the parent pkexec needs.
+if systemd-cat --identifier=cairn-steam-for true > /dev/null 2>&1; then
+    exec systemd-cat --identifier=cairn-steam-for "${window[@]}"
+fi
+exec "${window[@]}"
+WINDOW
+    install_file 750 "$wrapper" "$PREFIX/bin/cairn-steam-for"
+    rm "$wrapper"
+    only_for_guardians "$PREFIX/bin/cairn-steam-for"
+
+    local apps="$PREFIX/share/applications" kids child entry
+    kids="$(child_accounts)"
+    for child in $kids; do
+        entry="$(mktemp)"
+        steam_entry "$child" > "$entry"
+        install_file 644 "$entry" "$apps/cairn-steam-for-$child.desktop"
+        rm "$entry"
+    done
+    # An account that is no longer a child loses its entry.
+    for entry in "$apps"/cairn-steam-for-*.desktop; do
+        [ -e "$entry" ] || continue
+        child="${entry##*/cairn-steam-for-}"
+        child="${child%.desktop}"
+        if ! grep -qx -- "$child" <<< "$kids"; then
+            rm -- "$entry"
+            changed "$entry removed"
+        fi
+    done
+}
+
 relabel() {
     if command -v restorecon > /dev/null; then
         restorecon -R "$PREFIX/bin/cairn-launcher" "$PREFIX/bin/cairn-session" \
-            "$PREFIX/bin/cairn-give-up" "$PREFIX/bin/cairn-log-out" \
+            "$PREFIX/bin/cairn-give-up" "$PREFIX/bin/cairn-log-out" "$PREFIX/bin/cairn-steam-for" \
+            "$PREFIX/share/applications" \
             "$PREFIX/libexec/cairn" "$PREFIX/lib64/cairn" "$SHARE" \
             /etc/sddm.conf.d /etc/pam.d/sddm /etc/polkit-1/rules.d /etc/systemd/logind.conf.d \
             /etc/security/faillock.conf /etc/pam.d/cairn-steam-visit /etc/pam.d/login \
@@ -488,6 +578,7 @@ main() {
     install_greeter
     protect_guardians
     install_steam_visit
+    install_steam_for
     relabel
 
     set +x

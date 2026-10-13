@@ -88,6 +88,19 @@ Tux Paint and GCompris. Every step it takes prints a line starting
   the Terminal. Music, Build and Story say they are coming soon.
 - **Super+Q** leaves an app. **Log out** is at the top right.
 - The grown-up's account logs in to an ordinary KDE Plasma desktop.
+- To sign a child in to Steam, or to change their Steam's settings, open
+  **Steam for** and the child's name from the grown-up's application
+  menu. Only a grown-up's menu has it, and the child must be logged out.
+  It asks for your password and closes your own Steam while it is open.
+  The child's own Steam opens in a window of its own, and the child cannot
+  log in until you press **Done**.
+- Press Done before you log out. Logging out closes the child's Steam
+  before it can save, which can lose a game's last cloud save. Locking the
+  screen closes it properly, but stops any download in it.
+- If you switch a child's Steam to the child's own account, remove your
+  own account from Steam's list of accounts in the same window. Cairn
+  suggests a Steam account for each child, as a child member of your
+  Steam Family.
 
 ## If something goes wrong
 
@@ -97,7 +110,7 @@ Tux Paint and GCompris. Every step it takes prints a line starting
 - From the grown-up's account, this shows what went wrong:
 
   ```sh
-  journalctl -t cairn-launcher -t cairn-kiosk --since today
+  journalctl -t cairn-launcher -t cairn-kiosk -t cairn-steam-for -t cairn-steam-visit --since today
   ```
 
 - If a Steam game says "did not start", Steam is often waiting for an
@@ -106,7 +119,9 @@ Tux Paint and GCompris. Every step it takes prints a line starting
   `~/.local/share/Steam/logs/console_log.txt` in the child's home. Without
   internet that is usually Steam Cloud, which checks a game's saves before
   starting it; Steam's settings can turn Steam Cloud off, and saves then
-  stay on this computer only.
+  stay on this computer only. To answer Steam, log the child out and open
+  Steam for the child from your own account. A way to answer it without
+  logging the child out is planned.
 - Please report what you find as a
   [GitHub issue](https://github.com/Cairn-Linux/cairn/issues). Leave out
   children's names, photos and anything else personal.
@@ -129,4 +144,5 @@ Reinstall Bazzite, or go back to a snapshot of your virtual machine.
 ---
 
 These steps were checked on 2026-10-01 in a Bazzite 44 virtual machine,
-from the toolbox build to a child's session.
+from the toolbox build to a child's session. Steam for a child was checked
+there on 2026-10-12, with no Steam account signed in.
