@@ -61,7 +61,7 @@ TestCase {
         tryCompare(main, "activeFocus", true);
         keyClick(Qt.Key_Return);
         tryCompare(findChild(window, "heading"), "text", "nobody-here's Steam is open");
-        verify(words(window).includes("Press Done before you log out."));
+        verify(words(window).includes("Press Done before you log out, restart or shut down."));
         compare(main.text, "Done");
         verify(main.visible);
         verify(!wayOut.visible);

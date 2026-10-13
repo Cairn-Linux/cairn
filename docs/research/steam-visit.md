@@ -536,6 +536,27 @@ something up for you. Try again soon." The greeter runs as `xdm_t`, and
 the list's `etc_t` label let it read the list with no SELinux denial. Once
 the visit had closed, the same press logged ada in to her tiles.
 
+### More endings
+
+Later the same night, with the login screen's sentence installed.
+
+| What | Result |
+|---|---|
+| The screen locking by itself, with the Guardian's lock timeout set to one minute for the test and then put back | Locked after 60 s without input. The close ran, `steam -shutdown` first, in 4 s. |
+| cage's own close button, in its title bar | cage ended at once, and Steam with it, without its shutdown: Steam's log stops in the middle of its start. The helper closed in 2 s, nothing of ada was left, and the window said "ada's Steam is closed". |
+| A child with a password at a text console | With a test password on ada and no visit open, ada logged in on tty3. During a visit the same login got `pam_listfile(login:account): Refused user ada for service login`, and the visit stayed open. ada's locked password was put back. |
+| Restart from Plasma during a visit | As at a logout. The window held the restart until the visit had closed, and the Guardian's session ended 1 s after "closed". But cage's Xwayland had gone at the same moment. `steam -shutdown` found Steam on its way out and so started a new client, which ended with "Unable to open X11 display". After the boot `/run/cairn` was empty. |
+| The power button held 5 s in the Guardian's session | Plasma's power manager holds logind's inhibitor for the power key, so logind's long press did nothing. Plasma showed Sleep, Restart, Shut Down, Log Out and Cancel. |
+| Shut Down from that screen | As the restart. |
+| A detached process of ada's during a visit: `setsid -f sleep` in the visit's session scope, and a transient service in ada's own service manager | The screen lock closed the visit in 6 s, `steam -shutdown` first. Both ended with it, without `pkill`, and no process of ada was left. |
+
+Keys sent while the Guardian's screen was locked went to the lock screen
+and counted as wrong passwords. After three, faillock (ADR-0020) kept the
+Guardian out of the polkit prompt too, even with the right password. The
+window said the box was closed or the password not accepted. After 10
+minutes, or `faillock --user guardian --reset`, the prompt took the
+password again.
+
 ### Found and fixed
 
 - The window's row of buttons could hide for good: the row's visibility
@@ -572,7 +593,7 @@ From all of the above, for ADR-0032's helper:
   logged out. Refuse while the child has a session in any state, or any
   process left from one: Steam runs once per account, so a leftover
   client would take the visit's Steam.
-- [ ] Keep the child out until the visit is over. While a visit is open
+- [x] Keep the child out until the visit is over. While a visit is open
   or closing, PAM refuses that child, for the login screen and for the
   consoles' `login`, from a root-owned list under `/run/cairn/`. The
   login screen reads the same list only to say plainly that a grown-up is
@@ -580,8 +601,8 @@ From all of the above, for ADR-0032's helper:
   lock is not enough on its own: `steam -shutdown` took up to 18 s, the
   child's tile is one press away, and other ways to Switch User were not
   looked for. Both are recommended, with PAM as the guarantee. Done for
-  the login screen, with its sentence; the console, with a child who has
-  a password, is not run.
+  the login screen, with its sentence, and for the console, with a child
+  who has a password.
 - [x] Start the visit as a PAM-backed system unit for the child, under a
   PAM service of its own so the login refusal does not refuse it
   (`systemd-run --uid=<child> -p PAMName=cairn-steam-visit`; the VM used
@@ -621,17 +642,18 @@ From all of the above, for ADR-0032's helper:
   Guardian's session, because `systemd-run --user -M` left stuck sessions.
   Before the visit opens, say that the Guardian's own Steam, with any game
   or download in it, closes until the visit ends.
-- [ ] Close the visit the same way however it ends: Done, the Guardian's
+- [x] Close the visit the same way however it ends: Done, the Guardian's
   screen lock or logout, the visit window's own close button, Steam or
   cage ending by themselves, and the Guardian's window or the helper
   ending unexpectedly. On logout the close has to run before KWin exits,
-  or cage aborts and takes Steam with it. How to run it in time is
-  untested. The helper's part is done: Done, the end of its input, cage
+  or cage aborts and takes Steam with it. In the VM it could not, as
+  below. The helper's part is done: Done, the end of its input, cage
   or Steam ending, a signal and a logout all close it. The window adds
-  the screen lock and its own close button. At a logout Plasma asks every
-  window to close at once, so cage still goes before Steam's shutdown,
-  and the window says to press Done first. cage's own close button is
-  not tried yet.
+  the screen lock and its own close button. At a logout, a restart or a
+  shut down Plasma asks every window to close at once, so cage still goes
+  before Steam's shutdown, and cage's own close button does the same at
+  once. Each leaves nothing of the child, and the window says to press
+  Done first.
 - [x] Close in this order. If a Steam process of the child is running,
   `steam -shutdown` as the child, with `HOME` and `XDG_RUNTIME_DIR` set,
   waiting long enough for it (18 s was seen); asked to shut down when it
@@ -653,8 +675,6 @@ From all of the above, for ADR-0032's helper:
   with Steam silent, hidden and signed in. Nothing was signed in here.
 - The Guardian's own Steam paused with a game or a download running. In
   the VM it was signed out.
-- The screen locking by itself after idle minutes. Only
-  `loginctl lock-session` was tried.
 - Sound and GPU acceleration in a visit, and any of this on real
   hardware.
 - A fingerprint through polkit. The image has `fprintd` and authselect's
@@ -662,10 +682,9 @@ From all of the above, for ADR-0032's helper:
   the VM has no reader.
 - A way to Switch User other than the lock screen.
 - Installing a game, and Steam's Settings window, inside cage.
-- Closing cage's window with its title-bar close button instead of Done.
 - A download stopped by the screen lock, and where Steam carries it on.
-- A child with a password refused at a text console during a visit.
-- A restart, a shut down or the power button's hold during a visit.
+- Exit in Steam's menu. Signed out, Steam shows only its sign-in window,
+  which has no menu.
 
 Screenshots and probe scripts from both runs are in the maintainer's work
 area, not the repository. Two of the first run's screenshots do not show

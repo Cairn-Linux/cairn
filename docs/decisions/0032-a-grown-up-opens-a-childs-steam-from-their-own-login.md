@@ -225,8 +225,9 @@ steps for parents go in `docs/TRY.md`.
   child's Steam is expected to carry it on at their next login, behind the
   tiles and out of sight (not tried). The Guardian's window says to stay
   until it finishes.
-- The visit window's own close button is expected to end cage at once, so
-  Steam stops without its shutdown, as at a logout. The Guardian's window
+- The visit window's own close button ends cage at once, so Steam stops
+  without its shutdown, as at a logout (VM, 2026-10-12). The helper's
+  close still runs and leaves nothing of the child. The Guardian's window
   and `docs/TRY.md` say to use Done.
 - At a Plasma logout in the VM, cage ended with KWin within 3 s and Steam
   stopped without its shutdown. The helper's close then ran and left
@@ -236,8 +237,12 @@ steps for parents go in `docs/TRY.md`.
   window had closed the visit. But Plasma asks every window at once, and
   cage closed with the rest, so Steam had lost its display before its
   shutdown reached it (VM, 2026-10-12). So the window and `docs/TRY.md`
-  say to press Done before logging out. A restart, a shut down and the
-  power button's five-second hold (ADR-0018) are untested.
+  say to press Done before logging out. A restart and a shut down from
+  Plasma went the same way, and after them no child was refused. In a
+  Guardian's Plasma session the power button's five-second hold
+  (ADR-0018) does not power off: Plasma's power manager takes the key and
+  offers Sleep, Restart, Shut Down and Log Out, and its Shut Down went the
+  same way.
 - In the image's authselect profile, a fingerprint is accepted before the
   password and before the security key that ADR-0020 offers. A Guardian
   with both can open a visit with the fingerprint alone, and the same is
@@ -278,26 +283,32 @@ steps for parents go in `docs/TRY.md`.
   removing a saved account in Steam's own account list during a visit; the
   child refused at the login screen during a visit, with the plain
   sentence; a child with a password refused at a text console during a
-  visit; Done, screen lock, logout and restart each ending with
-  `steam -shutdown` run before Steam stopped (from the journal), and with
-  no process of the child left, a detached one included; the window's
-  close button, Exit in Steam's menu and killing the Guardian's window
-  each ending with nothing of the child left; the Guardian's own Steam
-  paused and back; the label. The fingerprint needs a reader, so it is
-  checked where one exists or stated as unchecked.
+  visit; Done and the screen lock each ending with `steam -shutdown` run
+  before Steam stopped (from the journal); a logout and a restart each
+  closing the visit before the Guardian's session ends, though Steam
+  stops without its shutdown there (above), which is why the window says
+  to press Done first; each of them with no process of the child left, a
+  detached one included; the window's close button, Exit in Steam's menu and
+  killing the Guardian's window each ending with nothing of the child left;
+  the Guardian's own Steam paused and back; the label. The fingerprint needs
+  a reader, so it is checked where one exists or stated as unchecked.
 - **Checked so far** (VM, 2026-10-12, `docs/research/steam-visit.md`):
   the child refused at the login screen during a visit, with the sentence
   "A grown-up is setting something up for you. Try again soon.", and let
-  in again once it closed; Done, the screen
-  lock (`loginctl lock-session`), the Guardian's window's own close button,
-  killing the Guardian's window, Steam quitting by itself and a signal to
-  the helper, each leaving nothing of the child, with `steam -shutdown`
-  first whenever Steam was still running; the logout above; the
-  Guardian's own Steam paused (2 s) and back; the label; the entries in
-  the Guardian's menu and not in a child's. Still to check: everything
-  that needs a signed-in Steam, a child with a password at a console, a
-  restart, cage's own close button, Exit in Steam's menu, the idle lock
-  and a fingerprint.
+  in again once it closed; a child with a password refused at a text
+  console during a visit, and let in there with no visit open; Done, the
+  screen lock (by `loginctl lock-session` and after an idle minute), the
+  Guardian's window's own close button, killing the Guardian's window,
+  Steam quitting by itself and a signal to the helper, each leaving
+  nothing of the child, with `steam -shutdown` first whenever Steam was
+  still running; cage's own close button, a logout, a restart and a shut
+  down, each leaving nothing of the child but stopping Steam without its
+  shutdown; a detached process of the child, in the visit's session and
+  in the child's own service manager, ended by the close; the Guardian's
+  own Steam paused (2 s) and back; the label; the
+  entries in the Guardian's menu and not in a child's. Still to check:
+  everything that needs a signed-in Steam, Exit in Steam's menu among
+  them, and a fingerprint where a reader exists.
 - **Dependencies.** cage 0.3.1 is part of the Bazzite image
   (`cage-0.3.1-1.fc44`, not a layered package), so the helper adds no
   package, and Cairn's image has to keep it. It is a program the helper

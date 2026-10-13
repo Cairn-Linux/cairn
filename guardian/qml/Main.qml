@@ -92,7 +92,7 @@ Window {
         case SteamForChild.Waiting:
             return [qsTr("%1's last login is still ending. This takes a few seconds.").arg(child)];
         case SteamForChild.Open:
-            return [qsTr("It is in a window of its own. The first time, Steam can take a minute or two to appear."), qsTr("When you have finished, press Done. Steam saves and closes, which can take half a minute."), qsTr("Press Done before you log out. Locking the screen closes %1's Steam too, and stops any download in it.").arg(child)];
+            return [qsTr("It is in a window of its own. The first time, Steam can take a minute or two to appear."), qsTr("When you have finished, press Done here, not the close button on Steam's window. Steam then saves and closes, which can take half a minute."), qsTr("Press Done before you log out, restart or shut down. Locking the screen closes %1's Steam too, and stops any download in it.").arg(child)];
         case SteamForChild.Closing:
             return [qsTr("Steam saves first, which can take half a minute.")];
         case SteamForChild.Closed:

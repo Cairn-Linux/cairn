@@ -21,7 +21,8 @@ program the account cannot run. The window:
    starts the root helper through `pkexec`, and Plasma asks for the
    Guardian's password.
 3. While the child's Steam is open in its own window, says to press
-   **Done** when finished and before logging out.
+   **Done** when finished, rather than the close button on Steam's window,
+   and before logging out, restarting or shutting down.
 4. On Done, on the screen lock, or when its own close button is pressed,
    closes the child's Steam and waits until it has. Then it starts the
    Guardian's own Steam again (`bazzite-steam -silent`, as Bazzite's
@@ -67,10 +68,11 @@ What the stand-ins cannot show was run in the VM (`docs/research/steam-visit.md`
 
 ## Not yet
 
-- Logging out during a visit still stops the child's Steam without its
-  shutdown: Plasma asks every window to close at once, and cage closes
-  with the rest. The window holds the logout until the visit has closed,
-  but Steam has lost its window by then, so the window says to press Done
-  first.
+- Logging out, restarting or shutting down during a visit still stops the
+  child's Steam without its shutdown: Plasma asks every window to close
+  at once, and cage closes with the rest. The window holds them until the
+  visit has closed, but Steam has lost its window by then, so the window
+  says to press Done first. The close button on Steam's own window ends
+  cage at once in the same way.
 - The Guardian's own Steam, started again by the window, runs in the
   window's own systemd unit, which then stays until Steam ends.
