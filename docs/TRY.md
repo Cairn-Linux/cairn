@@ -93,7 +93,8 @@ Tux Paint and GCompris. Every step it takes prints a line starting
   menu. Only a grown-up's menu has it, and the child must be logged out.
   It asks for your password and closes your own Steam while it is open.
   The child's own Steam opens in a window of its own, and the child cannot
-  log in until you press **Done**.
+  log in until you press **Done**. If they try, the login screen tells
+  them a grown-up is setting something up and to try again soon.
 - Press Done before you log out. Logging out closes the child's Steam
   before it can save, which can lose a game's last cloud save. Locking the
   screen closes it properly, but stops any download in it.

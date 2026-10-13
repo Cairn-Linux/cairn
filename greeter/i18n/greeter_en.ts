@@ -4,17 +4,22 @@
 <context>
     <name>Main</name>
     <message>
-        <location filename="../theme/Main.qml" line="37"/>
+        <location filename="../theme/Main.qml" line="42"/>
+        <source>A grown-up is setting something up for you. Try again soon.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../theme/Main.qml" line="46"/>
         <source>That password did not work. After a few wrong tries, the account waits a few minutes before it lets anyone try again.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../theme/Main.qml" line="41"/>
+        <location filename="../theme/Main.qml" line="51"/>
         <source>Something needs a grown-up.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../theme/Main.qml" line="108"/>
+        <location filename="../theme/Main.qml" line="120"/>
         <source>Who&apos;s playing today?</source>
         <translation type="unfinished"></translation>
     </message>
