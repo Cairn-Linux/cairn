@@ -1,6 +1,6 @@
 # One Steam library for several accounts
 
-**Date:** 2026-10-12
+**Date:** 2026-10-12; saves added 2026-10-13
 **For:** issue #130, ADR-0032 (proposed) and ADR-0033 (proposed)
 **Result:** Desk research and a probe on the development PC, read against
 what the kids' laptop has run since 2026-10-07. Nothing new was run on the
@@ -14,8 +14,11 @@ a rule of Steam's. Steam has no command or link that adds a library. Its
 Storage page is the only supported way, and it may refuse a folder that
 already holds games. Nobody has reported a second account updating a game
 in a shared folder. A folder every child can write also lets any child
-change a game that the Guardian later runs as themselves. What needs a
-signed-in Steam on the laptop is listed at the end.
+change a game that the Guardian later runs as themselves. All 12 games on
+the laptop most likely keep their saves inside the game's own folder, so
+in a shared library every child would share one set of saves and could
+delete a sibling's.
+What needs a signed-in Steam on the laptop is listed at the end.
 
 ## Why
 
@@ -405,6 +408,69 @@ The probe, under a directory with a default ACL for a group:
   with no check that the appid is a number. A manifest a child plants in
   the shared folder therefore reaches every child's tiles.
 
+## Where the games keep their saves
+
+Found on 2026-10-13, after the maintainer asked whether one child could
+delete another's saves. Nothing was run on the laptop, which was closed.
+
+- Steam's app data gives all 12 games on the laptop the same cloud-save
+  rule: root `gameinstall`, path `Saves`, pattern `*.*`. That is a `Saves`
+  folder inside the game's own folder. No rule puts a Steam account in the
+  path, which is how Valve tells developers to keep each Steam user's
+  files apart on one computer.
+- The 11 native games are Humongous games that Steam runs through a
+  ScummVM bundled with each game. On Linux, Steam starts
+  `ScummVM_Linux/launch_<name>.sh` with no arguments. On Windows and Mac
+  it passes `-c scummvm-<name>.ini <target>`. Their Linux depots ship an
+  empty `Saves` folder beside `ScummVM_Linux`. PCGamingWiki gives
+  `<game>\Saves` for the Windows saves. The publishers' updates of 2018
+  and 2019 promise cloud saves on "Windows, MacOS or GNU/Linux".
+- So the Linux games most likely save in `<game>/Saves` too. Nobody has
+  published the Linux script or its ini, and check 4 reads them. If they
+  set no save folder, ScummVM 1.7.0 saves in `~/.scummvm`, in the
+  player's home.
+- In the shared library that is one folder per game for every child.
+  ScummVM names a saved game `<target>.s<NN>`, so every child sees the
+  same slots, and saving into one replaces a sibling's save there. The
+  list of saves in ScummVM's own menu (Ctrl+F5, open "at any time" by the
+  2014 update notes) has a Delete button. Any child's process can also
+  delete or replace the files, since the folder gives the group write.
+- Pep's Birthday Surprise, the Windows game, saves in `<game>/SaveGames`
+  (PCGamingWiki). Its cloud rule names `Saves`, which is probably why
+  PCGamingWiki says its cloud saves do not sync. A child's own copy keeps
+  its saves in that child's home, with no other copy anywhere.
+- Steam Cloud follows the Steam account. Steam syncs a game's cloud files
+  before it starts and after it ends. With one Steam account for several
+  children (layouts 1 and 2 in #130), the children have one set of saves
+  wherever the files are. A child's Steam downloads a sibling's newer
+  saves over its own before the game starts. Steam asks only when both
+  sides changed between syncs (Valve's Steam Cloud FAQ), and the kiosk
+  hides that dialog like the others (ADR-0030; inferred).
+- With a Steam account per child and one shared `Saves` folder, Steam
+  marks the files with the account that wrote them
+  (`steam_autocloud.vdf`). When another account starts the game, Steam
+  moves the earlier account's files aside into the starting account's
+  `userdata/`, and since August 2025 it does so for files in the game's
+  folder too (Valve staff in a Steam Deck thread, 2023 to 2026). On Cairn
+  that is in the starting child's home, where the first child's Steam
+  cannot reach them. Untested between Linux accounts.
+- Turning Steam Cloud off does not part saves that share a folder. It only
+  removes the copy kept off the machine. The switch belongs to the Steam
+  account, not the computer (`sharedconfig.vdf`, which Steam syncs). In a
+  2023 report Steam still moved one account's saves out of a shared folder
+  with the cloud off, and community reports say the switch can turn
+  itself back on after a restart.
+- ScummVM takes its save folder from `SCUMMVM_SAVEPATH`, which beats the
+  ini's `savepath` and loses to `--savepath`. A folder that is missing or
+  not writable is ignored with a warning, and the ini's folder is used
+  instead (ScummVM 1.7.0 source). Steam passes a `VAR=value %command%`
+  launch option through to the game, and the runtime's container shares
+  the home. Saves moved out of `Saves` leave Steam Cloud, and with it
+  Steam's handling of accounts.
+- Valve documents nothing about what an uninstall removes. On Linux it has
+  deleted a whole game folder, with the user's own files in it
+  (steam-for-linux #8215). Saves inside a game's folder go with it.
+
 ## Tiles and provisioning
 
 - Tiles vanish because `install_launcher` installs the repository's
@@ -455,7 +521,11 @@ Read first, changing nothing:
    `MESA_SHADER_CACHE_DIR`, `MESA_DISK_CACHE_SINGLE_FILE`,
    `STEAM_COMPAT_DATA_PATH`.
 4. Which of the 12 games write into their own folder: files in the
-   shared `common/` owned by a child, or newer than the install.
+   shared `common/` owned by a child, or newer than the install. Each
+   game's `Saves/` and `steam_autocloud.vdf`, one launch script and its
+   ini (`savepath`), the bundled ScummVM's version, each home's
+   `~/.scummvm`, each account's cloud copy
+   (`userdata/<id>/<appid>/remote`) and its cloud switch.
 
 Pointing a Steam at the library:
 
@@ -542,8 +612,8 @@ Valve:
 - SteamPipe: https://partner.steamgames.com/doc/sdk/uploading
 - Steam for Linux release notes:
   https://github.com/ValveSoftware/steam-for-linux/blob/master/RelNotes.md
-- Steam for Linux issues 1983, 3942, 6958, 7954, 8274, 8552, 10358,
-  12030, 12058, 12139, 13640:
+- Steam for Linux issues 1983, 3942, 6958, 7954, 8215, 8274, 8552,
+  10358, 12030, 12058, 12139, 13640:
   https://github.com/ValveSoftware/steam-for-linux/issues/
 - Proton issues 4820 and 9363, pull request 4861, and the `proton` and
   `steampipe_fixups.py` files of `proton_10.0`:
@@ -556,10 +626,25 @@ Valve:
 - Steam client beta discussion on steamcmd and `libraryfolders.vdf`
   (2024-09-30), steamcommunity.com, SteamClientBeta discussion
   4840896974232786377.
+- Steam Cloud for developers:
+  https://partner.steamgames.com/doc/features/cloud
+- Steam Cloud FAQ:
+  https://help.steampowered.com/en/faqs/view/68D2-35AB-09A9-7678
+- Steam Families FAQ:
+  https://help.steampowered.com/en/faqs/view/054C-3167-DD7F-49D4
+- Valve staff on Auto-Cloud and several accounts, Steam Deck thread
+  4038102936190852716 (2023 to 2026):
+  https://steamcommunity.com/app/1675200/discussions/1/4038102936190852716/
+- Each game's app info, from a public mirror of Steam's data, for example
+  https://api.steamcmd.net/v1/info/283920, and its update notes through
+  https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/
 
 Upstream code and manuals:
 
 - Wine, `dlls/ntdll/unix/server.c`: https://gitlab.winehq.org/wine/wine
+- ScummVM 1.7.0, `backends/saves/posix/posix-saves.cpp`,
+  `engines/scumm/saveload.cpp` and `gui/saveload-dialog.cpp`:
+  https://github.com/scummvm/scummvm/tree/v1.7.0
 - Mesa, `src/util/disk_cache_os.c` and `disk_cache.c`:
   https://gitlab.freedesktop.org/mesa/mesa
 - Linux man pages `acl(5)`, `umask(2)`, `rename(2)`, `unlink(2)` and
@@ -569,6 +654,10 @@ Distributions and wikis:
 
 - Arch Wiki, Steam and Steam/Troubleshooting:
   https://wiki.archlinux.org/title/Steam
+- PCGamingWiki's pages for the 12 games, for example
+  https://www.pcgamingwiki.com/wiki/Putt-Putt_Saves_the_Zoo
+- SteamDB's depot lists, as archived, for example
+  https://web.archive.org/web/20250821001922/https://steamdb.info/depot/283923/
 - Bazzite, "Multi-user WINE quirks":
   https://docs.bazzite.gg/Gaming/Common_gaming_issues/#multi-user-wine-quirks
 
@@ -582,6 +671,8 @@ Community (the AI-assisted ones are marked in the text):
   3815159289442658016, 3175526477769628326, 3395164262984453533,
   3395163747110198261 and 3877096256098495653; forum 0:
   4406291470270383660; forum 24: 3094515496014435286 (not re-fetched).
+  On saves: forum 1, 3814039462154488700 (saves moved with the cloud
+  off) and 1850323802572223463 (the cloud switch).
 - https://github.com/thojo0/steam-multiuser-compatdata-fix
 - https://github.com/kookiebiz/steamshare
 - Parsers: https://github.com/WilliamVenner/steamlocate-rs,
