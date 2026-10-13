@@ -1,0 +1,289 @@
+#!/bin/bash
+# SPDX-License-Identifier: Apache-2.0
+#
+# Opens a child's own Steam in a window on a Guardian's desktop, and closes
+# it again (ADR-0032). One opening is a visit. The Guardian's window runs
+# this once per visit through pkexec, which asks for the Guardian's password
+# or fingerprint; this one root process then lasts until the visit closes.
+#
+#   pkexec /usr/local/libexec/cairn/cairn-steam-visit CHILD
+#
+# It says how the visit is going on stdout, one line at a time: "waiting"
+# while the child's last login finishes ending, "open", then "closing" and
+# "closed". "stuck" means a program of the child would not end, and the
+# computer needs a restart. "refused REASON" means no visit was opened.
+# A line "done" on stdin, or the end of stdin, closes the visit, and so do
+# cage or Steam ending, a login of the child's, and a signal.
+#
+# The child cannot log in while their visit is open: their name is in
+# /run/cairn/steam-visits, which PAM reads for the login screen and the
+# consoles (session/sddm/pam.d/sddm, session/pam.d/login).
+set -ouex pipefail
+
+# The copy of cage that the child may run but not read. Linux will not let
+# another process of the same account trace a program it cannot read, nor
+# copy its open files, so the child's other programs cannot take cage's
+# connection to the Guardian's desktop (ADR-0032).
+CAGE=/usr/local/libexec/cairn/cage-visit
+RUN_DIR=/run/cairn
+VISITS="$RUN_DIR/steam-visits"
+RUNTIME_ROOT=/run/user
+X11_DIR=/tmp
+
+# How long Steam gets to save and quit (18 s was seen), and how long the
+# child's last programs get to end before they are killed.
+STEAM_SECONDS=25
+END_SECONDS=15
+
+caller=""
+child=""
+child_uid=""
+unit=""
+# Whether the child is on the list of children on a visit, and whether
+# their visit has started. From the moment they are listed, whatever ends
+# this script undoes what it can (close_visit).
+listed=no
+opened=no
+# A signal only sets this, and the visit ends at the next check. Leaving
+# from inside the trap would end `read -t` before its timer, and bash
+# crashed when that timer went off later, halfway through the close.
+stopping=no
+
+say() {
+    echo "$1" || true
+}
+
+# One line in the journal for a grown-up to read later (#85).
+note() {
+    logger --tag cairn-steam-visit -- "$1" || true
+}
+
+refuse() {
+    say "refused $1"
+    exit 1
+}
+
+groups_of() {
+    id -nG -- "$1"
+}
+
+in_any_group() {
+    local name="$1" group wanted
+    shift
+    for group in $(groups_of "$name"); do
+        for wanted in "$@"; do
+            [ "$group" != "$wanted" ] || return 0
+        done
+    done
+    return 1
+}
+
+is_administrator() {
+    in_any_group "$1" cairn-guardian wheel
+}
+
+is_child() {
+    ! is_administrator "$1" && in_any_group "$1" cairn-l1 cairn-l2 cairn-l3 cairn-l4
+}
+
+# The SELinux type of a file, or nothing when SELinux is off.
+label_of() {
+    if selinuxenabled; then
+        stat --format=%C -- "$1" | cut -d: -f3
+    fi
+}
+
+# Each of the child's sessions: its id, class and PAM service.
+child_sessions() {
+    local id
+    for id in $(loginctl show-user "$child" --property=Sessions --value 2> /dev/null || true); do
+        echo "$id $(loginctl show-session "$id" --property=Class --value) $(loginctl show-session "$id" --property=Service --value)"
+    done
+}
+
+# A login of the child's own, as opposed to their service manager or this
+# visit's session.
+child_logged_in() {
+    local id class service
+    while read -r id class service; do
+        [ -n "$id" ] || continue
+        case "$class" in manager*) continue ;; esac
+        [ "$service" != cairn-steam-visit ] || continue
+        return 0
+    done < <(child_sessions)
+    return 1
+}
+
+child_has_processes() {
+    pgrep --uid "$child_uid" > /dev/null
+}
+
+# True once nothing of the child is left, or false after SECONDS.
+wait_for_no_processes() {
+    local seconds="$1"
+    for _ in $(seq "$seconds"); do
+        child_has_processes || return 0
+        sleep 1
+    done
+    ! child_has_processes
+}
+
+# Steam writes its state, and a game's last cloud save, when told to shut
+# down. Only if it is running: asked to shut down when it is not, it starts.
+shut_down_steam() {
+    pgrep --uid "$child_uid" --exact steam > /dev/null || return 0
+    local home socket
+    home="$(getent passwd "$child" | cut -d: -f6)"
+    local environment=(HOME="$home" USER="$child" LOGNAME="$child" PATH=/usr/bin:/bin
+        XDG_RUNTIME_DIR="$RUNTIME_ROOT/$child_uid")
+    # cage's own X display, where the child's Steam runs: the child's first.
+    for socket in "$X11_DIR"/.X11-unix/X*; do
+        if [ -S "$socket" ] && [ "$(stat --format=%u -- "$socket")" = "$child_uid" ]; then
+            environment+=(DISPLAY=":${socket##*/X}")
+            break
+        fi
+    done
+    timeout "$STEAM_SECONDS" setpriv --reuid="$child_uid" --regid="$(id -g -- "$child")" --init-groups \
+        env -i "${environment[@]}" /usr/bin/steam -shutdown > /dev/null 2>&1 < /dev/null || true
+    for _ in $(seq "$STEAM_SECONDS"); do
+        pgrep --uid "$child_uid" --exact steam > /dev/null || return 0
+        sleep 1
+    done
+}
+
+# Every ending of a visit comes here, once (ADR-0032). Before the visit
+# started, taking the child off the list is all there is to undo.
+close_visit() {
+    local status=$?
+    if [ "$opened" != yes ]; then
+        [ "$listed" = no ] || rm -f -- "$VISITS"
+        return "$status"
+    fi
+    opened=no
+    set +e
+    say closing
+    shut_down_steam
+    systemctl stop "$unit" 2> /dev/null
+    # The visit's session and the child's service manager. The child has no
+    # other session: the visit opened only while they had none, and PAM
+    # refuses their login until the list below no longer names them.
+    loginctl terminate-user "$child"
+    if ! wait_for_no_processes "$END_SECONDS"; then
+        pkill --signal KILL --uid "$child_uid"
+        wait_for_no_processes 5
+    fi
+    # cage's Xwayland leaves its socket and lock behind when it is killed.
+    find "$X11_DIR/.X11-unix" -maxdepth 1 -name 'X*' -user "$child_uid" -delete 2> /dev/null
+    find "$X11_DIR" -maxdepth 1 -name '.X*-lock' -user "$child_uid" -delete 2> /dev/null
+    if child_has_processes; then
+        # The child stays refused at login until a restart empties /run.
+        note "$child's Steam visit could not close: a program of theirs would not end; restart the computer"
+        say stuck
+        exit 1
+    fi
+    rm -f -- "$VISITS"
+    note "$caller closed $child's Steam visit"
+    say closed
+    exit "$status"
+}
+
+# cage takes a moment to start in its new session.
+cage_running() {
+    for _ in $(seq 10); do
+        [ "$stopping" = no ] || return 1
+        pgrep --uid "$child_uid" --exact cage-visit > /dev/null && return 0
+        sleep 1
+    done
+    return 1
+}
+
+# Wait for "done" or the end of stdin, while the visit runs. A login of the
+# child's that got past PAM would share this Steam, so it ends the visit too.
+watch_visit() {
+    local line
+    while [ "$stopping" = no ]; do
+        if read -r -t 2 line; then
+            [ "$line" != "done" ] || return 0
+        elif [ $? -le 128 ]; then
+            return 0
+        fi
+        pgrep --uid "$child_uid" --exact cage-visit > /dev/null || return 0
+        ! child_logged_in || return 0
+    done
+}
+
+main() {
+    trap 'stopping=yes' TERM HUP INT
+    [ "$#" -eq 1 ] || refuse usage
+    [ "$(id -u)" = 0 ] || refuse not-root
+
+    # pkexec has already asked for the password. polkit's rule refused any
+    # account that is not an administrator before it asked (ADR-0023), and
+    # this checks again.
+    local caller_uid="${PKEXEC_UID:-}"
+    [[ "$caller_uid" =~ ^[0-9]+$ ]] || refuse not-pkexec
+    caller="$(id -nu -- "$caller_uid")" || refuse not-a-grown-up
+    is_administrator "$caller" || refuse not-a-grown-up
+
+    # Only on the Guardian's own desktop, in their active local session,
+    # never on a path anyone passes in.
+    [ "$(loginctl show-user "$caller_uid" --property=State --value 2> /dev/null)" = active ] || refuse no-desktop
+    local socket="$RUNTIME_ROOT/$caller_uid/wayland-0"
+    [ -S "$socket" ] && [ "$(stat --format=%u -- "$socket")" = "$caller_uid" ] || refuse no-desktop
+
+    child="$1"
+    [[ "$child" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] || refuse not-a-child
+    getent passwd "$child" > /dev/null || refuse not-a-child
+    is_child "$child" || refuse not-a-child
+    child_uid="$(id -u -- "$child")"
+    unit="cairn-steam-visit-$child_uid"
+
+    # One visit at a time on the machine. The list is written first, so the
+    # child cannot log in between the checks below and the visit.
+    [ -d "$RUN_DIR" ] || mkdir --mode=0755 "$RUN_DIR"
+    restorecon "$RUN_DIR"
+    (set -o noclobber && echo "$child" > "$VISITS") 2> /dev/null || refuse busy
+    listed=yes
+    trap close_visit EXIT
+    chmod 0644 "$VISITS"
+    restorecon "$VISITS"
+    # PAM lets everyone in when it cannot read the list, and SELinux keeps
+    # the login screen from reading a plain file in /run. Provisioning labels
+    # /run/cairn so that it can; without that label there is no visit.
+    local label
+    label="$(label_of "$VISITS")"
+    if [ -n "$label" ] && [ "$label" != etc_t ]; then
+        refuse not-set-up
+    fi
+    ! child_logged_in || refuse logged-in
+    # After a logout, the child's service manager takes a few seconds to end.
+    if child_has_processes; then
+        say waiting
+        wait_for_no_processes "$END_SECONDS" || refuse still-running
+    fi
+    [ "$stopping" = no ] || refuse stopped
+
+    opened=yes
+    note "$caller opened $child's Steam visit"
+    # cage runs as the child, in a session of the child's own made by PAM,
+    # on the Guardian's Wayland socket, which systemd opens and hands over.
+    # Steam runs inside it, through bash: SELinux does not let a login start
+    # Steam's script directly.
+    systemd-run --quiet --collect --unit="$unit" --uid="$child" \
+        --property=PAMName=cairn-steam-visit \
+        --property=OpenFile="$socket:wayland" \
+        --setenv=WAYLAND_SOCKET=3 --setenv=WLR_RENDERER=pixman \
+        -- "$CAGE" -- /bin/bash -c 'exec /usr/bin/steam'
+    cage_running || exit 1
+    say open
+    watch_visit
+    exit 0
+}
+
+# Run when executed; only load the functions when a test sources the file.
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+    # A window that has gone away must not end this before the close does.
+    trap '' PIPE
+    PATH=/usr/sbin:/usr/bin
+    main "$@"
+fi

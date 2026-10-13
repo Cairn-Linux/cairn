@@ -10,8 +10,12 @@ docs/research/kiosk-containment.md.
 import pathlib
 import re
 import unittest
+import xml.etree.ElementTree as ElementTree
 
-RULES = pathlib.Path(__file__).resolve().parent.parent / "polkit" / "rules.d" / "10-cairn-levels.rules"
+POLKIT = pathlib.Path(__file__).resolve().parent.parent / "polkit"
+RULES = POLKIT / "rules.d" / "10-cairn-levels.rules"
+VISIT_ACTION = POLKIT / "actions" / "com.cairnlinux.steam-visit.policy"
+PROVISION = POLKIT.parents[1] / "provision" / "cairn-provision.sh"
 
 # The action families the P0-4 run found open to a child (kiosk-containment.md).
 GUARDIAN_ONLY = [
@@ -62,6 +66,17 @@ class PolkitRulesTest(unittest.TestCase):
             r"return polkit\.Result\.NOT_HANDLED;",
         )
 
+    def test_cairns_own_actions_are_refused_to_everyone_else_next(self):
+        # Right after the administrator steps aside, before the level groups
+        # are read, so an account Cairn did not make is refused too (ADR-0032).
+        self.assertRegex(
+            self.text,
+            r"return polkit\.Result\.NOT_HANDLED;\s*\}\s*"
+            r"if \(startsWith\(action\.id, cairnActions\)\) \{\s*"
+            r"return polkit\.Result\.NO;",
+        )
+        self.assertIn('var cairnActions = "com.cairnlinux.";', self.text)
+
     def test_names_every_action_family_the_containment_run_found_open(self):
         for prefix in GUARDIAN_ONLY + NOT_IN_THE_KIOSK:
             self.assertIn(prefix, self.strings, f"a rule for {prefix}")
@@ -74,6 +89,32 @@ class PolkitRulesTest(unittest.TestCase):
 
     def test_has_the_licence_line(self):
         self.assertTrue(self.text.startswith("// SPDX-License-Identifier: Apache-2.0"))
+
+
+
+class SteamVisitActionTest(unittest.TestCase):
+    def setUp(self):
+        self.text = VISIT_ACTION.read_text()
+        self.action = ElementTree.fromstring(self.text.encode()).find("action")
+
+    def test_is_one_of_cairns_own_actions(self):
+        self.assertTrue(self.action.get("id").startswith("com.cairnlinux."))
+
+    def test_asks_an_administrator_every_time_and_only_at_the_machine(self):
+        # auth_admin, never auth_admin_keep: each visit asks again.
+        defaults = {child.tag: child.text for child in self.action.find("defaults")}
+        self.assertEqual(defaults, {"allow_any": "no", "allow_inactive": "no", "allow_active": "auth_admin"})
+
+    def test_pkexec_finds_it_by_where_provisioning_puts_the_helper(self):
+        [path] = [a.text for a in self.action.findall("annotate") if a.get("key") == "org.freedesktop.policykit.exec.path"]
+        self.assertEqual(path, "/usr/local/libexec/cairn/cairn-steam-visit")
+        provision = PROVISION.read_text()
+        self.assertIn('"$PREFIX/libexec/cairn/cairn-steam-visit"', provision)
+        self.assertIn("PREFIX=/usr/local\n", provision)
+        self.assertIn("/etc/polkit-1/actions/com.cairnlinux.steam-visit.policy", provision)
+
+    def test_has_the_licence_line(self):
+        self.assertEqual(self.text.splitlines()[1], "<!-- SPDX-License-Identifier: Apache-2.0 -->")
 
 
 if __name__ == "__main__":

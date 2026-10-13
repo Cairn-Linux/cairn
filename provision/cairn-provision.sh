@@ -422,13 +422,52 @@ protect_guardians() {
     fi
 }
 
+# --- 10. A grown-up's way into a child's Steam (ADR-0032) --------------------
+install_steam_visit() {
+    local cage="$PREFIX/libexec/cairn/cage-visit"
+    install_file 755 "$REPO/session/bin/cairn-steam-visit" "$PREFIX/libexec/cairn/cairn-steam-visit"
+    # A copy of the image's cage that the child may run but not read: Linux
+    # then keeps the child's other programs from tracing it or copying its
+    # connection to the Guardian's desktop. Copied again whenever the
+    # image's cage changes. The mode is checked on its own, because
+    # install_file compares only what is in the file.
+    install_file 711 /usr/bin/cage "$cage"
+    if [ "$(stat --format=%a "$cage")" != 711 ]; then
+        chmod 711 "$cage"
+        changed "$cage made run-only"
+    fi
+    install_file 644 "$REPO/session/pam.d/cairn-steam-visit" /etc/pam.d/cairn-steam-visit
+    install_file 644 "$REPO/session/pam.d/login" /etc/pam.d/login
+    # pkexec finds the action by the helper's real path, and on Bazzite
+    # /usr/local is a link to /var/usrlocal, so the action names the path
+    # the link leads to. polkitd does not see an actions directory made
+    # after it started, so it is restarted when the action is new or changed.
+    local action before=$changes
+    action="$(mktemp)"
+    sed "s|>/usr/local/libexec/cairn/cairn-steam-visit<|>$(realpath -e "$PREFIX/libexec/cairn/cairn-steam-visit")<|" \
+        "$REPO/session/polkit/actions/com.cairnlinux.steam-visit.policy" > "$action"
+    install_file 644 "$action" /etc/polkit-1/actions/com.cairnlinux.steam-visit.policy
+    rm "$action"
+    if [ "$changes" != "$before" ]; then
+        systemctl restart polkit.service
+    fi
+    # The login screen and the consoles read the list of children on a
+    # visit, and SELinux lets them only with this label. PAM lets everyone
+    # in when it cannot read the list, so the helper checks the label too.
+    if ! semanage fcontext -l -C | grep -F '/run/cairn(/.*)?' > /dev/null; then
+        semanage fcontext -a -t etc_t '/run/cairn(/.*)?'
+        changed "SELinux label for /run/cairn"
+    fi
+}
+
 relabel() {
     if command -v restorecon > /dev/null; then
         restorecon -R "$PREFIX/bin/cairn-launcher" "$PREFIX/bin/cairn-session" \
             "$PREFIX/bin/cairn-give-up" "$PREFIX/bin/cairn-log-out" \
             "$PREFIX/libexec/cairn" "$PREFIX/lib64/cairn" "$SHARE" \
             /etc/sddm.conf.d /etc/pam.d/sddm /etc/polkit-1/rules.d /etc/systemd/logind.conf.d \
-            /etc/security/faillock.conf
+            /etc/security/faillock.conf /etc/pam.d/cairn-steam-visit /etc/pam.d/login \
+            /etc/polkit-1/actions
     fi
 }
 
@@ -448,6 +487,7 @@ main() {
     install_display_manager
     install_greeter
     protect_guardians
+    install_steam_visit
     relabel
 
     set +x

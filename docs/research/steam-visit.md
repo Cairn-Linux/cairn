@@ -22,6 +22,12 @@ is the child's session scope, not the unit that starts it. Nothing was
 signed in, so a sign-in made in a visit reaching the kiosk is still to be
 seen.
 
+Later that day the helper itself (`session/bin/cairn-steam-visit`) ran in
+the VM; see "The helper in the VM". A copy of cage that the child may run
+but not read closed the gap: no other process of the child could take
+cage's connection. PAM refused a listed child at the login screen once
+SELinux let it read the list; before that, it let her in.
+
 A *visit*, below, is one opening of a child's Steam on the Guardian's
 desktop.
 
@@ -408,24 +414,102 @@ Also seen:
 | A sign-in made in a visit reaches the kiosk | **Not run** | Nothing was signed in. |
 | The Guardian's own Steam alongside a visit | **Not run** | Bazzite starts it at login; it was closed for Route A. |
 
+## The helper in the VM
+
+2026-10-12, evening. Provisioning's new step installed the helper, the
+run-only copy of cage, the visit's PAM service, the console's `login`, the
+polkit action and the SELinux rule. The Guardian logged in to Plasma at the
+Cairn login screen. A shell of the Guardian's, inside their session, ran
+`pkexec /usr/local/libexec/cairn/cairn-steam-visit ada`, as the Guardian's
+window will, and the VM-only password went into Plasma's own prompt.
+Nothing was signed in to Steam.
+
+### The run-only copy of cage
+
+cage was copied to `/usr/local/libexec/cairn/cage-visit` with mode 0711,
+root-owned. A program its account may run but not read is not dumpable
+(`fs.suid_dumpable` is 2). The kernel then refuses another process of the
+same account `ptrace`, `pidfd_getfd` and the program's `/proc/<pid>/`
+files, unless it has `CAP_SYS_PTRACE`. The probe tried `pidfd_getfd` on
+fds 0 to 63 of cage, and reading its `/proc/<pid>/environ`.
+
+| cage | From | Result |
+|---|---|---|
+| `/usr/bin/cage` (0755), headless | ada, outside cage's tree | Copied every fd: `/dev/null`, two sockets, the event loop's fds. `environ` read. |
+| `/usr/bin/cage` (0755), headless | cage's own child, as ada | The same. |
+| the copy (0711), headless | ada, outside cage's tree | "Operation not permitted" for every fd; `environ` refused. |
+| the copy (0711), headless | cage's own child, as ada | The same. |
+| the copy (0711), nested on a KWin of the Guardian's (`kwin_wayland --virtual`) | both | The same. Steam's sign-in mapped on cage's Xwayland. |
+| the copy (0711), a real visit | ada, outside cage's tree | The same. Of every process on the machine, only cage held its socket to KWin, and that fd was close-on-exec (`flags: 02000002`), so Steam never inherits it. |
+| any of them | ben | "Operation not permitted". |
+
+### The login refusal and SELinux
+
+The first try of `pam_listfile` in `/etc/pam.d/sddm` let a listed ada in.
+The journal had `pam_listfile(sddm:account): Couldn't open
+/run/cairn/steam-visits` and an AVC, `denied { getattr } for
+comm="sddm-helper" path="/run/cairn/steam-visits"`, from `xdm_t` on
+`var_run_t`. With `onerr=succeed`, a list PAM cannot read lets everyone
+in. `onerr=fail` would instead refuse everyone, Guardians too, whenever
+the list is missing. With `semanage fcontext -a -t etc_t
+'/run/cairn(/.*)?'` and `restorecon`, the same login gave
+`pam_listfile(sddm:account): Refused user ada for service sddm`, and the
+login screen showed "Something needs a grown-up." During a real visit,
+after Switch User (SDDM's `SwitchToGreeter` over D-Bus), ada was refused
+the same way and the visit stayed open. So provisioning adds that label,
+and the helper opens no visit while the list has any other.
+
+### pkexec and polkit
+
+- pkexec finds an action by the program's real path. On Bazzite
+  `/usr/local` is a link to `/var/usrlocal`, so an action naming
+  `/usr/local/libexec/cairn/cairn-steam-visit` never matched. pkexec fell
+  back to its own action and its own message ("Authentication is needed
+  to run ... as the super user"), and Cairn's polkit rule did not apply.
+  With the real path in the action, Plasma's prompt said "A grown-up's
+  password is needed to open a child's Steam."
+- polkitd did not see `/etc/polkit-1/actions` when the directory was made
+  after it started. `systemctl restart polkit` fixed that, and Plasma's
+  agent registered again by itself.
+- pkexec asks polkit about its parent process. When the parent had
+  already exited, pkexec found no session and no agent, and failed with
+  "Error creating textual authentication agent". The Guardian's window has
+  to stay running as pkexec's parent.
+- A logged-in ada asking for the action (`pkcheck` from inside her
+  session) got `polkit.result=no`, "Not authorized", with no prompt. The
+  generic pkexec action, as a control, gave `auth_admin`.
+- The visit's own PAM service, `cairn-steam-visit`, opened the visit: a
+  logind session of class `background` for ada.
+
+### How each ending closed
+
+| Ending | Result |
+|---|---|
+| "done" on stdin | Closed in 5 s: `steam -shutdown` as ada, then `loginctl terminate-user ada`. No process of ada left, no `pkill` needed, the list and cage's X11 socket gone. |
+| The end of stdin, as when the window goes | The same. |
+| Steam quitting by itself (`steam -shutdown` from outside, as Exit in Steam's menu would) | cage ended when Steam did, and the close ran. Nothing left. |
+| SIGTERM to the helper | First run: bash crashed ("stack smashing detected") partway through the close and left ada listed, so she would have stayed refused until a restart. The trap left the script from inside `read -t`, and the read's timer went off later. A signal now only sets a flag; the rerun closed cleanly. |
+| The Guardian logging out of Plasma | cage ended with KWin within 3 s and Steam stopped without its shutdown. The close then ran: nothing of ada left, the list gone. |
+| ada logging in during a visit (that run's `sddm` file lacked the refusal line) | The helper saw her login session and closed the visit: Steam shut down, then ada was logged out, kiosk and all. Nothing left. |
+
 ## What the helper must do
 
 From all of the above, for ADR-0032's helper:
 
-- [ ] Start only from the Guardian's own Plasma session, through a polkit
+- [x] Start only from the Guardian's own Plasma session, through a polkit
   action that asks for the Guardian's password or fingerprint every time:
   `auth_admin`, never `auth_admin_keep`, and no for inactive or remote
   sessions. Any account that is not an administrator (ADR-0023, rank 1)
   gets no, before any prompt: every child at every level, and accounts
   Cairn did not make.
-- [ ] Start the helper once per visit, through `pkexec`, and keep that one
+- [x] Start the helper once per visit, through `pkexec`, and keep that one
   root process for the whole visit, so closing never asks again.
-- [ ] Open the visit only on the Wayland socket of the account that
+- [x] Open the visit only on the Wayland socket of the account that
   asked, in its active local session, never on a path the caller
   supplies.
-- [ ] Act only on a child account, checking for an administrator first
+- [x] Act only on a child account, checking for an administrator first
   (ADR-0023).
-- [ ] One visit at a time on the machine, and only while that child is
+- [x] One visit at a time on the machine, and only while that child is
   logged out. Refuse while the child has a session in any state, or any
   process left from one: Steam runs once per account, so a leftover
   client would take the visit's Steam.
@@ -436,17 +520,19 @@ From all of the above, for ADR-0032's helper:
   setting something up and to try again soon. Closing the visit on screen
   lock is not enough on its own: `steam -shutdown` took up to 18 s, the
   child's tile is one press away, and other ways to Switch User were not
-  looked for. Both are recommended, with PAM as the guarantee.
-- [ ] Start the visit as a PAM-backed system unit for the child, under a
+  looked for. Both are recommended, with PAM as the guarantee. Done for
+  the login screen; the console, with a child who has a password, is not
+  run, and the login screen's sentence is still to come.
+- [x] Start the visit as a PAM-backed system unit for the child, under a
   PAM service of its own so the login refusal does not refuse it
   (`systemd-run --uid=<child> -p PAMName=cairn-steam-visit`; the VM used
   `login`). Never `systemd-run --user -M <child>@`, never linger.
-- [ ] Start Steam as `bash -c 'exec /usr/bin/steam'`, or through another
+- [x] Start Steam as `bash -c 'exec /usr/bin/steam'`, or through another
   wrapper SELinux allows.
-- [ ] Give cage the Guardian's Wayland socket already open (`OpenFile=`
+- [x] Give cage the Guardian's Wayland socket already open (`OpenFile=`
   and `WAYLAND_SOCKET`). No `xhost` grant, and no ACL on the Guardian's
   runtime directory.
-- [ ] Close the gap before ADR-0032 is accepted. Anything the child's
+- [x] Close the gap before ADR-0032 is accepted. Anything the child's
   account can change runs during a visit: the copy of Steam in the
   child's home, and the child's own systemd user units. With
   `ptrace_scope=0` any such process can copy cage's connection to KWin
@@ -459,9 +545,12 @@ From all of the above, for ADR-0032's helper:
   `zwlr_layer_shell_v1`, `org_kde_plasma_shell`,
   `kde_output_management_v2`, `org_kde_kwin_dpms_manager`,
   `kde_external_brightness_v1`, `zwp_input_method_v1` or
-  `org_kde_kwin_keystate`.
-- [ ] Record the session the unit opened. The visit's handle is
-  `session-N.scope`, not the unit.
+  `org_kde_kwin_keystate`. Done with the run-only copy of cage: no process
+  of the child but cage can get the connection.
+- [x] Record the session the unit opened. The visit's handle is
+  `session-N.scope`, not the unit. The helper ends the child with
+  `loginctl terminate-user` instead, which ends that scope and the child's
+  service manager: the child has no other session during a visit.
 - [ ] Label the visit with the child's name where the Guardian sees it.
   cage passes Steam's title through, so the label has to be the helper's
   own.
@@ -477,8 +566,10 @@ From all of the above, for ADR-0032's helper:
   cage ending by themselves, and the Guardian's window or the helper
   ending unexpectedly. On logout the close has to run before KWin exits,
   or cage aborts and takes Steam with it. How to run it in time is
-  untested.
-- [ ] Close in this order. If a Steam process of the child is running,
+  untested. The helper's part is done: Done, the end of its input, cage
+  or Steam ending, a signal and a logout all close it. The screen lock
+  and the window's close button come with the Guardian's window.
+- [x] Close in this order. If a Steam process of the child is running,
   `steam -shutdown` as the child, with `HOME` and `XDG_RUNTIME_DIR` set,
   waiting long enough for it (18 s was seen); asked to shut down when it
   is not running, Steam starts. Then `systemctl stop session-N.scope`.
@@ -486,11 +577,11 @@ From all of the above, for ADR-0032's helper:
   confirm no process of the child's account is left, killing any that
   is. If that fails, keep the child refused at login and say to restart
   the computer.
-- [ ] Write one journal line when a visit opens and one when it closes,
+- [x] Write one journal line when a visit opens and one when it closes,
   naming the Guardian and the child (#85).
-- [ ] Never read or write Steam's files, and never log or pass a
+- [x] Never read or write Steam's files, and never log or pass a
   password.
-- [ ] Fail closed. If anything fails before Steam starts, change nothing.
+- [x] Fail closed. If anything fails before Steam starts, change nothing.
   After it starts, every ending goes through the same close.
 
 ## Not yet seen
@@ -507,7 +598,8 @@ From all of the above, for ADR-0032's helper:
 - Installing a game, and Steam's Settings window, inside cage.
 - Closing cage's window with its title-bar close button instead of Done.
 - A download stopped by the screen lock, and where Steam carries it on.
-- The login refusal through PAM, and the visit's own PAM service.
+- A child with a password refused at a text console during a visit.
+- A restart, a shut down or the power button's hold during a visit.
 
 Screenshots and probe scripts from both runs are in the maintainer's work
 area, not the repository. Two of the first run's screenshots do not show

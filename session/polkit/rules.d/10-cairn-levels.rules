@@ -10,7 +10,9 @@
 // Guardian. Anything not named here falls through to the defaults.
 // An administrator (cairn-guardian or wheel) is checked first and always
 // falls through, even from a level group, in the order PAM and the session
-// dispatcher use (ADR-0023, #101).
+// dispatcher use (ADR-0023, #101). Cairn's own actions are for an
+// administrator only, so every other account gets NO for them, before
+// polkit asks for any password (ADR-0032).
 //
 // Installed as /etc/polkit-1/rules.d/10-cairn-levels.rules. polkit reads
 // rule files in name order and the first answer wins, so the low number
@@ -62,9 +64,17 @@ var notInTheKiosk = [
     "org.freedesktop.udisks2."
 ];
 
+// Cairn's own actions, such as opening a child's Steam from a grown-up's
+// login (ADR-0032). A child at any level, and an account Cairn did not
+// make, never sees the password prompt for one.
+var cairnActions = "com.cairnlinux.";
+
 polkit.addRule(function (action, subject) {
     if (subject.isInGroup("cairn-guardian") || subject.isInGroup("wheel")) {
         return polkit.Result.NOT_HANDLED;
+    }
+    if (startsWith(action.id, cairnActions)) {
+        return polkit.Result.NO;
     }
 
     var kiosk = subject.isInGroup("cairn-l1") || subject.isInGroup("cairn-l2");

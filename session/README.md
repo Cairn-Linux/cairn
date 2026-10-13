@@ -46,6 +46,27 @@ What is here:
   runs it when the child confirms. It asks a running Steam client to shut
   down, then ends the child's own account with `loginctl terminate-user`,
   so no app or Steam client is left for the next person.
+- `bin/cairn-steam-visit`: a grown-up's way into a child's own Steam from
+  their own Plasma login (ADR-0032, proposed). The Guardian runs it through
+  `pkexec`, which asks for their password or fingerprint each time; one
+  root process then lasts for the whole visit. It checks that an
+  administrator asked, from their active session, about a child who is
+  logged out, lists the child in `/run/cairn/steam-visits` so PAM refuses
+  their login, and starts cage as the child, in a session of the child's
+  own, on the Guardian's Wayland socket, with Steam inside. The cage is a
+  copy the child may run but not read, so no other program of the child
+  can take its connection to the Guardian's desktop. Done on stdin, the
+  end of stdin, cage or Steam ending, a login of the child's and a signal
+  all run the same close: Steam's own shutdown, then the child's session
+  ended, then nothing of the child's left running. It says how the visit
+  is going on stdout and writes a line to the journal as
+  `cairn-steam-visit` when a visit opens and closes. Until the Guardian's
+  window exists, a Guardian can run it from a terminal in their own
+  session: `pkexec /usr/local/libexec/cairn/cairn-steam-visit CHILD`,
+  then type `done`.
+- `pam.d/`: `cairn-steam-visit`, the session a visit runs in, which no one
+  logs in through; and `login`, Fedora's console login with the line that
+  refuses a child on a visit, as the greeter's file has.
 - `logind.conf.d/10-cairn-power.conf`: the power button (ADR-0018). A tap
   is ignored, a five-second hold powers off in order.
 - `sessions/cairn.desktop`: the one session entry the greeter offers.
@@ -53,7 +74,8 @@ What is here:
   names only Cairn's session directory; `pam.d/sddm` is Fedora's stock file
   plus the two lines that let `cairn-l1` and `cairn-l2` in without a
   password, never an account also in `cairn-guardian` or `wheel`
-  (ADR-0023). Nobody is hidden (ADR-0020); the theme is `../greeter/`, and
+  (ADR-0023), and one that refuses a child whose Steam a grown-up has open
+  (ADR-0032). Nobody is hidden (ADR-0020); the theme is `../greeter/`, and
   `GreeterEnvironment` puts Cairn's QML directory on its import path.
 - `security/faillock.conf`: the lockout after wrong passwords (ADR-0020).
   Fedora's defaults, but the count kept in `/var/lib/faillock`, which a
@@ -69,15 +91,22 @@ What is here:
   nothing in the kiosk offers. L3 and L4 keep Fedora's defaults for power
   and removable media, since Plasma's menu offers them. An administrator
   (`cairn-guardian` or `wheel`) is checked first and always falls through,
-  even from a level group (ADR-0023). The rule never says YES.
+  even from a level group (ADR-0023). Cairn's own actions
+  (`com.cairnlinux.`) are refused to every other account, before any
+  password prompt (ADR-0032). The rule never says YES.
+- `polkit/actions/com.cairnlinux.steam-visit.policy`: the action pkexec
+  finds by the helper's path, which asks an administrator for a password
+  every time, and only at the machine (ADR-0032).
 
 `tests/` checks that the labwc and logind files, the greeter's PAM file,
 the polkit rule and `cairn-give-up` say what this README promises, runs the dispatcher with
 stand-ins for `id`, `labwc` and `startplasma-wayland`, and runs
-`cairn-log-out` with stand-ins for `id`, `pgrep`, `steam` and `loginctl`.
+`cairn-log-out` with stand-ins for `id`, `pgrep`, `steam` and `loginctl`,
+and `cairn-steam-visit` with stand-ins for `id`, `getent`, `loginctl`,
+`pgrep`, `systemd-run` and the rest.
 Where a systemd user manager is running, it also runs `cairn-give-up` for
 real against a frozen stand-in in a scope of its own, with `pkill` stubbed
-out so no real app is touched; CTest runs all six.
+out so no real app is touched; CTest runs all eight.
 What the configuration was tested against, and what is left for the VM, is in
 `docs/research/kiosk-containment.md` (P0-4). Phase 0 task **P0-3** wires
 this into the VM.
@@ -104,10 +133,12 @@ this into the VM.
 - **labwc is the kiosk compositor (ADR-0017).** Window rules keep Steam's
   forced windows off the screen, and the compositor's window list tells the
   launcher when one appears and that it is hidden, so it never holds the
-  tiles (`wlr-foreign-toplevel-management`, ADR-0026). cage is a measurement baseline only. Both
+  tiles (`wlr-foreign-toplevel-management`, ADR-0026). cage was a measurement baseline, and
+  is the window of a grown-up's Steam visit (ADR-0032, proposed), never
+  the kiosk compositor. Both
   halves held in the VM with a signed-out and a signed-in client
   (`docs/research/steam-containment.md`).
 
 ## Files expected here
 
-`pam.d/` for any further rule.
+`pam.d/` for any further PAM service.
