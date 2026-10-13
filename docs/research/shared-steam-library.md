@@ -6,7 +6,8 @@
 **Result:** Desk research, a probe on the development PC, and read-only
 checks on the kids' laptop on 2026-10-13. The same day, with the
 maintainer's go, the laptop moved to a copy of each game for every child,
-and checks 5 to 8, 10, 17 and 20 passed (see "What the move showed").
+checks 5 to 8, 10, 17 and 20 passed, and so did the first half of check
+11 (see "What the move showed").
 Valve does not document a
 way to share one library between Linux accounts. Native games shared from
 one folder work on the laptop and in community reports. Three things in a
@@ -722,10 +723,35 @@ in. Only Putt-Putt 6 and the Activity Pack were started, because their
   its Steam runs the game.
 - Each Steam makes a `common/Steam.dll` link into its own home in every
   library it lists, the shared one included.
-- **Not run:** 9 and 14 (the Windows game into the shared folder), 11
-  (one licence, and a game outside the allow-list), 12, 13, 15 and 19
-  (clicks in Steam's own windows, or a visit, which the laptop's build
-  lacks), 16 (a visit) and 18 (an update waiting).
+- **Check 11, its first half.** The laptop has two Steam accounts: the
+  Guardian's, which the L2 test account also uses, and the one both
+  children use. While the Guardian's Steam played Putt-Putt 6 from the
+  shared folder, a child's Steam would not start its own copy of that
+  game. Steam said "An error occurred while launching this game: Shared
+  library locked", with a Close button, and logged `AppError_33`. The
+  other way round, with the child playing their copy of the Activity
+  Pack, the Guardian's Steam gave the same message for that game, and the
+  child's game ran on for the 6 minutes it was watched. A different game
+  started for the child while the Guardian played. So with one copy in
+  the family, as Valve says, one account plays a game at a time, whoever
+  started first, and a game already running is not stopped. In a child's
+  kiosk Steam's message is hidden behind the tiles (ADR-0030), so the tile
+  would end on the grown-up screen.
+- ScummVM rewrites its settings file in the game's `ScummVM_Linux/` when
+  the game quits, with the screen size it last ran at and its keys in a
+  new order. Played from the shared folder, that is the shared copy's
+  file, which later copies get. The two files the checks changed were put
+  back from copies kept beforehand.
+- Once, after its launch was refused, the Guardian's Steam ignored
+  `steam -shutdown` twice over about 5 minutes, and had logged nothing
+  since the refusal. It ended 5 s after a `SIGTERM`. A visit's helper
+  gives Steam 25 s to quit and then ends the child's session, so a visit
+  would still close.
+- **Not run:** 9 and 14 (the Windows game into the shared folder), 11's
+  second half (a game outside the children's allow-list: the Guardian's
+  account has none installed), 12, 13, 15 and 19 (clicks in Steam's own
+  windows, or a visit, which the laptop's build lacks), 16 (a visit) and
+  18 (an update waiting).
 
 ## Sources
 

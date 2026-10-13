@@ -282,6 +282,12 @@ while.
   every shared game, as every kiosk child sees every tile today. A game
   that child's Steam account cannot play probably ends on the grown-up
   screen (ADR-0030; check 11). Tiles per child are the later ADR.
+- **One copy in the family is one player at a time.** While one Steam
+  account plays a game the family has one copy of, another account's
+  Steam will not start it, the Guardian's included, and says "Shared
+  library locked". The game already running carries on, and a different
+  game starts. In the kiosk the tile ends on the grown-up screen (laptop,
+  2026-10-13, check 11).
 - Tiles change only when provisioning runs, and a child sees them at the
   next login.
 - Resetting a child's account (DESIGN §11) clears their Steam, its
@@ -329,9 +335,11 @@ while.
   `provision/README.md`, `launcher/README.md`, `tools/kidscan/README.md`
   and `docs/TRY.md` change with it.
 - **Checked before acceptance,** by number in the research note: 5 to 20,
-  on the laptop. Passed on 2026-10-13: 5, 6, 7, 8, 10, 17 and 20. Still to
-  run: 9, 11 to 16, 18 and 19, which need the Windows game in the shared
-  folder, clicks in Steam's own windows, a visit, or an update waiting.
+  on the laptop. Passed on 2026-10-13: 5, 6, 7, 8, 10, 17 and 20, and the
+  first half of 11. Still to run: 9, the second half of 11, 12 to 16, 18
+  and 19, which need the Windows game in the shared folder, a game outside
+  the children's allow-list, clicks in Steam's own windows, a visit, or an
+  update waiting.
   Check 12 decides which of the second bullet's ways adds the shared
   folder to the Guardian's Steam.
 
