@@ -1,0 +1,598 @@
+# One Steam library for several accounts
+
+**Date:** 2026-10-12
+**For:** issue #130, ADR-0032 (proposed) and ADR-0033 (proposed)
+**Result:** Desk research and a probe on the development PC, read against
+what the kids' laptop has run since 2026-10-07. Nothing new was run on the
+laptop, and no Steam was started for this note. Valve does not document a
+way to share one library between Linux accounts. Native games shared from
+one folder work on the laptop and in community reports. Three things in a
+shared folder fail for every account but the one that owns their files:
+Steam's runtime and Proton, a Proton game's Wine prefix, and Mesa's shader
+cache. Each fails on a file mode or an owner check in upstream code, not on
+a rule of Steam's. Steam has no command or link that adds a library. Its
+Storage page is the only supported way, and it may refuse a folder that
+already holds games. Nobody has reported a second account updating a game
+in a shared folder. A folder every child can write also lets any child
+change a game that the Guardian later runs as themselves. What needs a
+signed-in Steam on the laptop is listed at the end.
+
+## Why
+
+On 2026-10-07 the family's games reached the children's Steam on the kids'
+laptop by an afternoon of hand work over ssh (#130). No family can do that.
+On 2026-10-12 the maintainer decided that the parent installs a game once,
+from their own Steam in their own login, into one library every child's
+Steam uses, and that no child's Steam downloads a copy of its own
+(ADR-0032, Context). ADR-0032 leaves the library itself to a later ADR, in
+which provisioning makes the folder and its group and points each child's
+Steam at it. This note collects what is known before that ADR is written.
+
+## What the laptop has
+
+From #130 and its comments:
+
+- A group, `cairn-steam`, holds the Guardian and both children. The folder
+  `/var/lib/cairn/steam-library` is setgid, with a default ACL
+  `g:cairn-steam:rwX`. The Guardian's games, `compatdata/` and
+  `shadercache/` were moved into it.
+- A script rewrote each account's `steamapps/libraryfolders.vdf` with that
+  account's Steam stopped. The account's own folder is entry `"0"`, and the
+  shared folder is entry `"1"`, listing every `appmanifest_*.acf`. The
+  script also wrote a `libraryfolder.vdf` marker in the shared folder.
+  Steam then logged "Loaded 17 apps from install folder
+  /var/lib/cairn/steam-library" and downloaded nothing.
+- A native game started from a child's tile through Steam, and the tiles
+  came back when it quit. On 2026-10-11 a Steam account that is a child
+  member of the family started a game the parent's account had installed
+  (ADR-0032, Context).
+- Steam's runtime in the shared folder started in 18.3 s for an account
+  that did not own its files, against 2.2 to 3.2 s for its owner.
+  pressure-vessel tries to `chmod` and set the mtime of about 8,500 files,
+  and each try fails for a file another account owns. When the owner ran a
+  game, the same `chmod` set the shared files' ACL mask to `r--`.
+- So Steam's tools (Steam Linux Runtime 1.0, 2.0 and 4.0, Proton
+  Experimental, Steamworks Common Redistributables) now sit in each
+  account's own library. They were copied with `cp --reflink=always`, and
+  `btrfs filesystem du` shows 0 B exclusive. Only games stay shared.
+- The one Proton game, Pep's Birthday Surprise (294700), stopped for every
+  child but its owner with
+  `wine: '/var/lib/cairn/steam-library/steamapps/compatdata/294700/pfx' is
+  not owned by you`. It is now copied into each account's own library with
+  its `compatdata/294700`, by reflink. It gets past that check, then quits
+  about 2 s after its window appears, for a reason not yet found.
+- Mesa's shader cache fails for every child after the first:
+  `Failed to create …/shadercache/294690/mesa_shader_cache_sf/…`. That game
+  runs without a cache. This is still open.
+- A game starts about 7 s after the tap: 4.7 s in Steam, of which 3 s is
+  `CheckShaderDepotManifest` (shader pre-caching), 2.1 s for the container
+  and about 1 s for the game.
+- The tiles were merged into `/usr/local/share/cairn/manifest.json` by
+  hand, and a provisioning re-run puts the stock manifest back.
+- Not yet seen there: a game update in the shared folder.
+
+## How this was checked
+
+- Valve's own help page, Valve developers' comments on the Steam for Linux
+  and Proton trackers, and the source of Proton 10.0, Wine, Mesa and
+  steam-runtime-tools. Community threads (Universal Blue, CachyOS,
+  Manjaro, the Steam forums), the Arch Wiki and Bazzite's docs. Two
+  third-party parsers of Steam's files (steamlocate, GameFinder) and
+  Lutris's notes.
+- Several community guides say they were written with an AI's help. They
+  are marked where cited, and nothing below rests on them alone.
+- A probe on the development PC (Fedora 44, tmpfs) tried POSIX default
+  ACLs with the create modes below. Steam's files there were read, not
+  changed. The probe is in the maintainer's work area, not the repository.
+- Every finding was checked a second time against its source. Where the
+  second pass corrected the first, this note follows the second.
+
+## How Steam keeps its list of libraries
+
+- Each Linux account's Steam keeps its own list, and no account's Steam
+  reads another's. The list is in two files,
+  `~/.local/share/Steam/config/libraryfolders.vdf` and
+  `~/.local/share/Steam/steamapps/libraryfolders.vdf`. On the development
+  PC they are separate files with the same content. A Valve developer
+  asked for both when debugging a lost library (steam-for-linux#8552).
+  kidscan reads only the `steamapps/` copy.
+- The file is Valve's KeyValues text. A root `"libraryfolders"` block holds
+  numbered entries, and `"0"` is Steam's own folder. Each entry has
+  `"path"`, `"label"`, `"contentid"`, `"totalsize"`,
+  `"update_clean_bytes_tally"`, `"time_last_update_verified"` and an
+  `"apps"` block from appid to bytes. Valve does not document it. The
+  meanings come from community parsers and real files. `totalsize` can be
+  `"0"` on Linux. `contentid` looks like a random 64-bit number, and what
+  Steam does with it is unknown.
+- Steam probably finds a library's games from its `appmanifest_*.acf`
+  files, not from the `"apps"` block. The Arch Wiki says a game is known by
+  its manifest in `LIBRARY/steamapps/`, whose `installdir` names its folder
+  under `common/`. steamlocate reads the manifests itself because "the
+  values in libraryfolders.vdf may be stale". Bazzite's docs and a family
+  on Proton#4820 copy a game's `.acf` to make it show up. Whether an entry
+  with an empty `"apps"` block loads the same games is untested. The
+  laptop's script filled it.
+- Steam writes the list itself ("Triggered async write of Steam library
+  folders configuration"), so an edit has to be made with Steam stopped.
+  In 2021 edits to the `config/` copy were overwritten at start, fixed in
+  a client beta (steam-for-linux#7954). Later reports conflict on which
+  copy wins. On the laptop, editing only the `steamapps/` copy was enough.
+  Whether the laptop's script also touched `config/` is not recorded.
+- steamcmd shares the client's per-user configuration and overwrites
+  `libraryfolders.vdf` when run as the same user (Valve staff, Steam
+  client beta discussion, 2024-09-30).
+- Steam drops a library when it is told the library's drive was removed:
+  "Drive removed", then "Unmounted library folder … (68 apps)". For the
+  2023 reports, a Valve developer traced it to partitions unmounted at
+  shutdown while Steam ran, and said a beta of 2023-08-18 fixed it. Later
+  reports name other causes, one with a clean exit. A child's own Log out
+  runs `steam -shutdown` first (ADR-0021). On the laptop the children
+  still had the shared library four days after set-up.
+- The singular `libraryfolder.vdf` at a library's root holds a
+  `"libraryfolder"` block with `"contentid"` and `"label"`. Its purpose is
+  undocumented. One user said Steam would not re-add a drive until that
+  folder structure was back (low confidence, not re-checked).
+
+## Adding a library the supported way
+
+- Valve's help page: Settings › Storage, then the "+" button, after which
+  "all future installations can be installed there". Moving games needs a
+  second library already: pick the drive, tick the games, then Move. The
+  page is generic and uses Windows paths.
+- Steam's install dialog lets the player pick a library. Storage › (drive)
+  › "…" › Make Default changes the default. Properties › Installed Files ›
+  Move install folder moves one game. Where Steam stores the default is
+  unknown. Searching the development PC's `config/` found no key.
+- The client's own error strings for adding a folder: "Selected Steam
+  library folder doesn't exist", "New Steam library folder must be
+  empty", "… must be writeable", "… must be on a filesystem mounted with
+  execute permissions", "… can't be added while downloading" and "Selected
+  drive already has a Steam library folder. Steam will manage multiple
+  game installs in a single folder for you." The Arch Wiki adds that the
+  execute error also comes when the folder has no lowercase `steamapps`.
+- One community user says the interface allows one library per
+  filesystem. On Bazzite `/var` and `/var/home` are separate btrfs
+  subvolumes (#130). Whether Steam counts them as one drive is untested.
+- "Must be empty" may matter most. A shared folder that already holds
+  games is not empty, and in 2021 a user reported Steam refusing to re-add
+  a folder for that reason (steam-for-linux#7954).
+- Against that, three reports describe a second Linux account adding a
+  library another account had filled, through the interface: a Universal
+  Blue thread in 2025-05, the reproduction steps of steam-for-linux#12030,
+  and an AI-assisted guide in 2026-08 that may have added the folder while
+  it was empty. A 2026-03 reply says to choose the folder in the file
+  picker, not from Steam's own list. On Linux that picker needs an XDG
+  desktop portal (Arch Wiki). Whether it opens inside a visit's cage is
+  untested.
+- There is no documented `steam://` link or command-line flag that adds a
+  library. Community posts suggest the console command
+  `library_folder_add <path>`. No cited post shows it working. In one
+  thread it did not solve the asker's problem, and in another, in 2025, it
+  printed "failed mounting that path". The Settings page calls an internal
+  JavaScript function, `SteamClient.InstallFolder.AddInstallFolder`, that
+  homebrew projects found. It is not a public interface.
+
+## Whether Valve supports it
+
+- No Valve document supports sharing one library between Linux users, and
+  none forbids it in those words. So any Steam update can change what
+  Cairn would rely on (ROADMAP §4, "Steam changes client behaviour under
+  us").
+- The quote most often cited against it, "You're not intended to share
+  Steam Library folders between users", is from a CodeWeavers Proton
+  developer, not Valve, in 2021, and opens "I'm pretty sure this is a Steam
+  client limitation" (Proton#4820). In the same thread a Valve member
+  said only that Wine's ownership rule is upstream behaviour.
+- The release-notes line "Application files installed by Steam for Linux
+  should not be shared (e.g. between Windows and Linux)" dates from 2013.
+  A Valve member applied it in 2025 to a library shared between operating
+  systems (steam-for-linux#10358).
+- steam-for-linux#1983 ("not promising multi-user support", 2013) is about
+  two users running Steam at the same time.
+- Requests are open: duplicate downloads per user (#3942, 2015),
+  per-user `compatdata` (#6958, 2020) and #12030 (2025). A 2025 report
+  says Repair Library does nothing on Linux, because it calls
+  `bin\steamservice.exe` (#12058, open).
+
+## File modes in a shared folder
+
+The probe, under a directory with a default ACL for a group:
+
+| What made the file or folder | Group's effective access |
+|---|---|
+| `open()` with 0644 | `r--` (mask `r--`) |
+| `open()` with 0600 | none (mask `---`) |
+| `mkdir()` with 0700 | none (mask `---`) |
+| `open()` with 0666 under umask 0077 | `rw-` |
+| `chmod()` to 0755 afterwards | `r-x`, and setgid cleared |
+| A file renamed in from outside the tree | 0644, no ACL, creator's group |
+| Python `copy2` | `r--` |
+| A subfolder under one that lost setgid | creator's group, but the named-group entry kept |
+
+- Under a default ACL the umask does not matter, but the mode a program
+  asks for does. On Fedora 44 the session umask is 0022. Steam's launcher
+  sets 0077 only while it unpacks its bootstrap, then puts it back
+  (`bin_steam.sh`, `steam.sh`). Bazzite is not checked.
+- No source says which modes Steam's content system uses for game files
+  and folders. Bazzite's docs show a Steam-written `.acf` at 0755, and
+  Steam's `.vdf` files on the development PC are 0755. If Steam creates or
+  sets data files to 0755, their mask is `r-x`. Other accounts could then
+  not write such a file in place, but could replace it, since they can
+  write its folder.
+- Valve says SteamPipe "builds the new version alongside the old
+  version… then commits the update by deleting old files and moving the
+  new files in". That paragraph is about pack files. That every update
+  works this way is an inference. A file made inside the tree and renamed
+  within it keeps its inherited ACL (probe).
+- Never `chmod -R g+s`. steam-runtime-tools treats a process as setuid when
+  the kernel sets `AT_SECURE`, or when its effective and real group
+  differ. Running a file that has setgid and a group other than the
+  caller's sets `AT_SECURE`, and the runtime aborts in
+  `_srt_check_not_setuid`. One family hit it (Universal Blue thread, post
+  8, AI-assisted). The mechanism is in the source. setgid goes on
+  directories only.
+- The community's recipe for native games is a group, setgid on
+  directories and a default ACL. No cited source shows a second account
+  updating a game the first installed. The post that says "user A
+  installs, user B updates" was written with an AI's help. The CachyOS
+  poster who proposed the ACL said "I haven't tried with Steam". A Manjaro
+  user's updates broke on file permissions, and that thread closed with no
+  fix.
+
+## Who writes into a shared library
+
+- A child's Steam probably writes there. A Valve employee wrote "Steam
+  will always ensure a game is up to date before launching", and "Only
+  update this game when I launch it" only delays an update. That quote is
+  second-hand, from about 2014, reposted in 2019. So when the Guardian's
+  Steam is not running, the first child to start an updated game likely
+  downloads the update into the shared folder as that child. That is
+  inferred, not seen.
+- An appmanifest's `LastOwner` is a SteamID, "usually the last account
+  that installed and launched the app". So a launch probably rewrites the
+  shared manifest. No source shows Steam refusing a game whose
+  `LastOwner` is another account.
+- `StateFlags` is a bitfield: 1 Uninstalled, 2 UpdateRequired, 4
+  FullyInstalled, 32 FilesMissing, 64 AppRunning, 256 UpdateRunning, 1024
+  UpdateStarted, 1048576 Downloading, and others. 6 is installed with an
+  update pending. `AutoUpdateBehavior` is 0 keep up to date, 1 only on
+  launch, 2 high priority.
+- More than one account can have a session at once: `steam-visit.md` saw
+  a child log in during a visit. So two accounts' Steam can run against
+  the shared folder together. Nothing has been seen of that.
+- Uninstalling a game also deletes its `compatdata/<appid>` and
+  `shadercache/<appid>` (steam-for-linux#13640, log lines). So any account
+  whose Steam can write the shared folder can uninstall a shared game for
+  everyone. That last step is inferred: the report is from one account. At
+  L1 and L2 Steam's windows are hidden. At L3 and L4 the child sees Steam.
+  The same open report has Steam then deleting most of a `steamapps/` tree
+  and crashing.
+- One CachyOS family deletes the numbered folders in `steamapps/temp`
+  whenever a different user logs in, "Otherwise, Steam will get all
+  confused again". The "missing file permissions" error often quoted with
+  it comes from a Windows and Linux dual-boot (steam-for-linux#10358),
+  closed as unsupported sharing between operating systems.
+- `steamapps/workshop/appworkshop_<appid>.acf` is one file per game, and
+  each item in it records the SteamID that subscribed. One shared file
+  would mix several accounts' items. No source says what one account's
+  Steam does to another's.
+- Some games write settings, and sometimes saves, into their own folder.
+  In a shared folder every child then shares them. A file one child
+  creates with 0644 is read-only to the others.
+
+## Steam Families
+
+- Steam Families shares licences, not files. A child member plays the
+  eligible games of other members, with their own saves, achievements and
+  workshop files. With one copy in the family, one member plays it at a
+  time. Adults choose which games each child can access. Family-library
+  games play offline. Games that need a third-party key or account, or
+  whose developer opted out, are left out (Valve, 2024-09-11).
+- Valve says nothing about the files. A native game installed once played
+  from another member's account in community reports (only Proton broke,
+  on prefix ownership), and on the laptop on 2026-10-11.
+
+## Steam's tools in a shared folder
+
+- pressure-vessel's `chmod` and mtime failures on another account's files
+  are warnings ("assuming R_OK is close enough"). They make the start
+  slow, as on the laptop, but do not stop it.
+- Proton is worse. After each Proton install or update, its
+  `steampipe_fixups` step strips write bits from a list of its own files
+  with `chmod`. Only the owner may `chmod`, the error is not caught, and
+  Proton stops with "PermissionError: [Errno 1] Operation not permitted".
+  It records success only after a full run. So for every account but the
+  owner, every Proton game fails until the owner, or root, has started
+  one after that update (Proton 10.0 source; Universal Blue thread, posts
+  8 and 9, with the same pressure-vessel warnings).
+- Steam may install a missing tool into the library of the game that needs
+  it, not the default library. One user reported it in 2022 and 2023. If
+  so, a game in the shared folder could pull a runtime in after it, with
+  the 18 s start. Low confidence.
+- This supports the laptop's choice: tools per account.
+
+## Proton games
+
+- Steam sets `STEAM_COMPAT_DATA_PATH` to
+  `<library>/steamapps/compatdata/<appid>`, the library the game is in.
+  Proton puts the Wine prefix in its `pfx` folder, and keeps `version`,
+  `config_info`, `tracked_files` and `pfx.lock` beside it. Valve's
+  compat-tool document defines the variable and `pfx`. That it follows
+  the game's library comes from steam-for-linux#12030 and the laptop's
+  error.
+- Wine refuses a prefix another account owns. In
+  `dlls/ntdll/unix/server.c` it changes into the prefix, runs `stat(".")`
+  and stops with "'%s' is not owned by you" when the owner is not the
+  caller. With no prefix yet, it checks the parent folder instead. Because
+  it checks after changing into it, a symlink to a folder the caller owns
+  passes. The game simply does not start, which on the laptop was a tile
+  that did nothing.
+- No Steam setting moves `compatdata`. Requests for per-user `compatdata`
+  are open (#6958, #12030), and a Proton pull request for per-user
+  prefixes (#4861, 2021) is unmerged.
+- Steam's Move of a Proton game has an open bug: it ends with "content
+  file locked" and is rolled back. Reports run to 2026-10-06, one on
+  Bazzite in 2026-09.
+- A per-game launch option, `STEAM_COMPAT_DATA_PATH=<folder> %command%`,
+  should move the prefix, since `%command%` includes pressure-vessel,
+  which mounts that path. Valve says launch options are not used for
+  install scripts, so a Windows game's first-run steps would still use the
+  shared `compatdata/<appid>`. Launch options are per Steam account, kept
+  in each home's `localconfig.vdf`. The one family that tried it reported
+  failure with a malformed path. Steam runs launch options with `/bin/sh`
+  (Arch Wiki), so `$HOME` should expand. Untested.
+- systemd can mount one folder over another for one unit's processes
+  (`BindPaths=`). In a user's own service manager that needs
+  `PrivateUsers=true` (`systemd.exec(5)`, systemd 259). Nobody has
+  reported trying it with Steam.
+- A Steam whose library holds a game's files but no manifest for it can
+  adopt them. Pressing Install makes Steam verify the files in `common/`
+  and write its own manifest, with no download (two families, Proton#4820
+  and the Universal Blue thread).
+- On the laptop, a copy per account, owned by that account, got past
+  Wine's check.
+
+## Shader caches
+
+- Mesa cannot share a cache folder between accounts. `disk_cache_os.c`
+  makes cache folders with `mkdir(path, 0700)`, which masks any
+  default-ACL group entry. It makes cache files with 0644 and opens the
+  single-file cache with 0644. So even a folder made in advance with group
+  access leaves the other accounts unable to write. That matches the
+  laptop.
+- The folder name `mesa_shader_cache_sf` means Mesa was in single-file
+  mode with `MESA_SHADER_CACHE_DIR` at the library's
+  `shadercache/<appid>`. For a native game that can only come from the
+  environment Steam gives it, as part of its shader pre-caching, which
+  gained single-file support in a 2021 client beta (inferred). Mesa does
+  not read `STEAM_COMPAT_SHADER_PATH`, which is for compat tools. Reading
+  a game's `/proc/<pid>/environ` on the laptop would confirm it.
+- A Universal Blue guide says shader caches "share fine", and Bazzite's
+  docs link `shadercache/` to the first user's library. The guide was
+  written with an AI's help. Both conflict with Mesa's code and the
+  laptop.
+- Untested: whether turning off Shader Pre-Caching in a child's Steam stops
+  Steam setting those variables, and whether a launch option that sets
+  `MESA_SHADER_CACHE_DIR` wins inside the container.
+
+## What other families do
+
+| Approach | How | What was reported |
+|---|---|---|
+| Switch a link at login | A script points the shared `compatdata/` at the active user's own | Works for one active user at a time. A broken link makes Proton fail on `pfx.lock`. The systemd timer version is an AI-assisted forum post. |
+| `pam_namespace` | An init script bind-mounts each user's `compatdata/` over the shared one in that session | Targets Debian. No word on SELinux, shader caches, or two users at once. |
+| A library per user with links | Each user's own library has a real `compatdata/`; `common/` and `shadercache/` link to the first user's; manifests copied or linked (Bazzite docs) | A community member's troubleshooting note, not a tested Bazzite layout. Linking `shadercache/` keeps Mesa's problem. |
+| Share only `common/` | Each user's library links `common/` to a shared one; Install only verifies (Proton#4820) | One user saw a full download after files went missing and came back. Sharing the runtime and Proton "doesn't work". |
+| Full copies, deduplicated | Each user installs in a btrfs subvolume; bees deduplicates ("509 GiB apparent, 208 GiB on disk") | The author tried six linked layouts first. Linked manifests let users' state interfere, copied ones lost games, and linking all of `common/` pulled the runtime and Proton into shared storage. |
+| Give up | One Linux account for games, switching Steam accounts | Several authors call the linked layouts brittle. |
+
+## A folder every child can write
+
+- Write and search permission on a folder are enough to replace any file
+  in it by rename, whatever the file's own mode (`rename(2)`,
+  `unlink(2)`). In the shared tree every folder gives the group `rwx`.
+- So any process of a child can swap a game's program or library: a shell
+  at L3 or L4, or a game or mod the child runs. When the Guardian next
+  starts that game from their own login, the swapped code runs as the
+  Guardian, an administrator. ADR-0032 took care to close another way
+  from a child's account to the Guardian's.
+- The same lets one child change a game a sibling runs.
+- `d:o::---` does not help, because the children are in the group.
+- Whether the Guardian's Steam runs any program from a native game's
+  folder while it installs or updates it is not known.
+- The tile scan reads the same tree. kidscan copies a manifest's `name`
+  into a tile's title and its `appid` into `steam -applaunch <appid>`,
+  with no check that the appid is a number. A manifest a child plants in
+  the shared folder therefore reaches every child's tiles.
+
+## Tiles and provisioning
+
+- Tiles vanish because `install_launcher` installs the repository's
+  `provision/manifest.json` over `/usr/local/share/cairn/manifest.json` on
+  every run. `install_file` replaces any target whose bytes differ.
+  `provision/README.md` says so.
+- The launcher reads one manifest. The wrapper provisioning writes passes
+  `--manifest /usr/local/share/cairn/manifest.json`, so every kiosk child
+  gets the same tiles today. Per-child tiles do not exist yet.
+- The decision to start Steam at login (ADR-0027) reads the same one file,
+  separately from the tiles.
+- An empty or unreadable manifest is an error today, and the launcher
+  falls back to its six built-in tiles.
+- kidscan's output loads as a manifest unchanged. Every entry carries
+  `source.appid`. Footpath's doors come from the tiles, so tiles merged in
+  the launcher reach the Terminal too.
+- kidscan always adds the home Steam roots to any `--steam-root`, from
+  `HOME`. Run with the Guardian's `HOME`, it would add the Guardian's own
+  games to every child's tiles.
+- kidscan never reads `StateFlags`, so a game still downloading gets a
+  tile (#24).
+- The launcher reads its manifest once, at start. A file written while a
+  child logs in must be replaced whole, by writing a new file and renaming
+  it. `install_file` does that. kidscan's `-o` does not (#24).
+- On Bazzite `/usr/local` is a link to `/var/usrlocal`, so the manifest
+  already lives in `/var`. The overwrite comes from provisioning owning
+  the file, not from the image.
+- Tiles exist only at L1 and L2. L3 and L4 children get Plasma and see
+  Steam itself (`session/bin/cairn-session`).
+
+## What must be tested on the laptop
+
+Each check needs a signed-in Steam. Use a small game nobody minds losing
+where a check changes or removes one. Stop the account's Steam where a
+check says so, and copy any file before changing it.
+
+Read first, changing nothing:
+
+1. Each account's `config/` and `steamapps/libraryfolders.vdf`, and the
+   shared marker. Whether the shared folder still has
+   `appmanifest_294700.acf` beside the children's own copies, and which
+   copy each child's Steam starts. This also shows what Steam does with
+   one appid in two libraries.
+2. `getfacl -p` on a sample of the shared tree: folders and files in a
+   game, its manifest, `downloading/`, `temp/`. Owner, group and mask.
+3. `grep Umask /proc/<pid>/status` for each account's Steam, and
+   `/proc/<pid>/environ` of a running native game and of the Proton game:
+   `MESA_SHADER_CACHE_DIR`, `MESA_DISK_CACHE_SINGLE_FILE`,
+   `STEAM_COMPAT_DATA_PATH`.
+4. Which of the 12 games write into their own folder: files in the
+   shared `common/` owned by a child, or newer than the install.
+
+Pointing a Steam at the library:
+
+5. In one child's account, with Steam stopped, replace the shared entry
+   with one whose `"apps"` block is empty. Does Steam load the same
+   games, and download nothing?
+6. Edit only the `steamapps/` copy, then only the `config/` copy. Which
+   survives a restart?
+7. Steam's own route, in the Guardian's Steam and in a visit: Settings ›
+   Storage › Add Drive, choosing the shared folder in the file picker.
+   Accepted, or which error? Does it rewrite the marker's `contentid`?
+   Does the picker open inside cage? Then `library_folder_add` in the
+   console.
+8. A game the Guardian installs later shows in each child's Steam at its
+   next start, with no edit and no download.
+9. The shared entry is still there after a Plasma logout during a visit,
+   a power cut, and a week of use.
+
+The Guardian installing:
+
+10. Install a small native game into the shared folder from Steam's
+    install dialog. `getfacl` on what Steam made.
+11. Move a native game from the Guardian's folder to the shared one with
+    Steam's Move. A copy or a reflink (`btrfs filesystem du`), and with
+    which ACLs?
+12. In a visit, start a game whose runtime the account lacks. Does Steam
+    fetch it there, and into the shared folder or the account's own?
+
+Updates and other writers:
+
+13. Update one game in turn from the Guardian's Steam, a child's, then
+    the Guardian's again. Look in `content_log.txt` for "Disk write" and
+    "Temp folder not writable", and at the ACLs of replaced files.
+14. With a child's kiosk Steam running, update a game from the Guardian's
+    Steam. At the child's next start, does its Steam see the new build,
+    write back stale state, or download again?
+15. Which manifest fields each account's Steam rewrites after a launch
+    (`LastOwner`, `StateFlags`, `UserConfig`, `MountedConfig`).
+16. A child-member account: does its Steam change a game's depots
+    (language, DLC) in the shared folder? Does a game outside its
+    allow-list show as installed, and what does `steam -applaunch` do with
+    it? What happens when two accounts start a game the family owns once?
+17. Uninstall a throwaway game from a child's Steam. Is it gone for every
+    account, with its shader cache?
+
+Proton games:
+
+18. Give a child a reflink copy of a Proton game without its
+    `compatdata/`. Does the child's Steam make a new prefix, run the
+    install steps and reach the same point as the hand copy?
+19. A local sign that a game runs through Proton: a `compatdata/<appid>`
+    after the Guardian's install, Steam's `CompatToolMapping`, or
+    something else.
+
+Shader caches:
+
+20. Turn off Shader Pre-Caching in a child's Steam. Is
+    `MESA_SHADER_CACHE_DIR` still the shared folder? Are the 3 s of
+    `CheckShaderDepotManifest` gone? Where does Mesa's cache go?
+
+The Guardian's safety:
+
+21. With `common/` read-only for the children (a throwaway game), does a
+    child's Steam still start it, mark it for update, or drop the
+    library?
+22. Does the Guardian's Steam start any program from a native game's
+    folder while it installs or updates it?
+
+Tiles:
+
+23. kidscan as root with `python3 -I`, `--no-scummvm` and an empty `HOME`,
+    over the shared folder only. One entry per shared game and nothing
+    from any home. Pep's Birthday Surprise is there only if check 1 found
+    its shared manifest.
+
+## Sources
+
+Valve:
+
+- Moving a Steam installation and games:
+  https://help.steampowered.com/en/faqs/view/4BD4-4528-6B2E-8327
+- "Steam Families is here", 2024-09-11, via
+  https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/?appid=593110
+- SteamPipe: https://partner.steamgames.com/doc/sdk/uploading
+- Steam for Linux release notes:
+  https://github.com/ValveSoftware/steam-for-linux/blob/master/RelNotes.md
+- Steam for Linux issues 1983, 3942, 6958, 7954, 8274, 8552, 10358,
+  12030, 12058, 12139, 13640:
+  https://github.com/ValveSoftware/steam-for-linux/issues/
+- Proton issues 4820 and 9363, pull request 4861, and the `proton` and
+  `steampipe_fixups.py` files of `proton_10.0`:
+  https://github.com/ValveSoftware/Proton
+- The compat-tool interface, `pressure-vessel/wrap-setup.c` and
+  `steam-runtime-tools/utils.c`:
+  https://gitlab.steamos.cloud/steamrt/steam-runtime-tools
+- Steam client strings, as extracted by SteamTracking:
+  https://github.com/SteamTracking/SteamTracking/blob/master/ClientExtracted/public/steamui_english.txt
+- Steam client beta discussion on steamcmd and `libraryfolders.vdf`
+  (2024-09-30), steamcommunity.com, SteamClientBeta discussion
+  4840896974232786377.
+
+Upstream code and manuals:
+
+- Wine, `dlls/ntdll/unix/server.c`: https://gitlab.winehq.org/wine/wine
+- Mesa, `src/util/disk_cache_os.c` and `disk_cache.c`:
+  https://gitlab.freedesktop.org/mesa/mesa
+- Linux man pages `acl(5)`, `umask(2)`, `rename(2)`, `unlink(2)` and
+  `ld.so(8)`, and `systemd.exec(5)` from systemd 259.
+
+Distributions and wikis:
+
+- Arch Wiki, Steam and Steam/Troubleshooting:
+  https://wiki.archlinux.org/title/Steam
+- Bazzite, "Multi-user WINE quirks":
+  https://docs.bazzite.gg/Gaming/Common_gaming_issues/#multi-user-wine-quirks
+
+Community (the AI-assisted ones are marked in the text):
+
+- https://universal-blue.discourse.group/t/help-shared-local-steamlibrary-multi-user-setup/8388
+- https://discuss.cachyos.org/t/multiple-user-profiles-on-same-pc-with-steam/27411
+- https://discuss.cachyos.org/t/has-anyone-found-a-straightforward-way-to-share-a-steam-library-between-two-users/17739
+- https://forum.manjaro.org/t/share-steam-library-folder-between-user-accounts/155855
+- Steam forum threads on steamcommunity.com, forum 1: 3812910660674002199,
+  3815159289442658016, 3175526477769628326, 3395164262984453533,
+  3395163747110198261 and 3877096256098495653; forum 0:
+  4406291470270383660; forum 24: 3094515496014435286 (not re-fetched).
+- https://github.com/thojo0/steam-multiuser-compatdata-fix
+- https://github.com/kookiebiz/steamshare
+- Parsers: https://github.com/WilliamVenner/steamlocate-rs,
+  https://github.com/erri120/GameFinder,
+  https://github.com/aitiotekt/steamos-mount, and
+  https://github.com/lutris/lutris/blob/master/docs/steam.rst
+- https://github.com/SteamDeckHomebrew/decky-frontend-lib
+- Phoronix on Steam's single-file Mesa cache:
+  https://www.phoronix.com/news/Steam-Mesa-Single-File-Cache
+
+Cairn: issue #130 and its comments, #24, ADR-0021, ADR-0027, ADR-0032,
+`docs/research/steam-visit.md`, `provision/cairn-provision.sh`,
+`tools/kidscan/kidscan.py`, `launcher/src/main.cpp`,
+`session/bin/cairn-session`.
