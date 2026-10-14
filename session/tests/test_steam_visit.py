@@ -96,6 +96,16 @@ echo "timeout $*" >> "$STATE/calls"
     "selinuxenabled": r"""#!/bin/bash
 [ -e "$STATE/selinux" ]
 """,
+    # The copy program, run as the child: it says what the scenario says,
+    # and notes what was listed while it ran.
+    "setpriv": r"""#!/bin/bash
+echo "setpriv $*" >> "$STATE/calls"
+cat "$VISITS" > "$STATE/listed-during-copy" 2> /dev/null
+cat "$COPYING" > "$STATE/marked-during-copy" 2> /dev/null
+cat "$STATE/copy-says" 2> /dev/null
+echo "a word on the error output" >&2
+exit "$(cat "$STATE/copy-status" 2> /dev/null || echo 0)"
+""",
 }
 for name in ("systemctl", "pkill", "restorecon", "sleep", "logger"):
     STUBS[name] = f'#!/bin/bash\necho "{name} $*" >> "$STATE/calls"\n'
@@ -104,6 +114,7 @@ RUN = r"""
 source "$HELPER"
 RUN_DIR="$STATE/run/cairn"
 VISITS="$RUN_DIR/steam-visits"
+COPYING="$RUN_DIR/steam-copy"
 RUNTIME_ROOT="$STATE/run/user"
 X11_DIR="$STATE/tmp"
 STEAM_SECONDS=3
@@ -148,6 +159,7 @@ class Scenario:
             "HELPER": str(HELPER),
             "STATE": str(self.state),
             "VISITS": str(self.visits),
+            "COPYING": str(self.marker),
             "GUARDIAN_UID": str(ME),
             "CHILD_UID": str(ME),
             "PKEXEC_UID": str(ME),
@@ -156,6 +168,10 @@ class Scenario:
     @property
     def visits(self):
         return self.state / "run" / "cairn" / "steam-visits"
+
+    @property
+    def marker(self):
+        return self.state / "run" / "cairn" / "steam-copy"
 
     def set(self, name, text):
         (self.state / name).write_text(text + "\n" if text else "")
@@ -166,15 +182,17 @@ class Scenario:
     def unflag(self, name):
         (self.state / name).unlink(missing_ok=True)
 
-    def run(self, child="ada", stdin="done\n", keep_stdin_open=False, signal_after_open=None):
+    def run(self, child="ada", stdin="done\n", keep_stdin_open=False, signal_after_open=None, copy=False):
         """Run the helper once. With keep_stdin_open, nothing is written and
         stdin stays open until the helper ends by itself. With
-        signal_after_open, that signal is sent once it says "open"."""
+        signal_after_open, that signal is sent once it says "open". With
+        copy, it runs as provisioning's copy of the games."""
         for name in ("calls", "terminated"):
             self.unflag(name)
+        arguments = ["--copy-games", child] if copy else [child]
         with open(self.state / "trace", "w") as trace:
             process = subprocess.Popen(
-                ["bash", "-c", RUN, "cairn-steam-visit", child],
+                ["bash", "-c", RUN, "cairn-steam-visit", *arguments],
                 env=self.env,
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
@@ -434,6 +452,133 @@ class SteamVisitTest(unittest.TestCase):
         self.assertFalse(run.called("systemd-run"))
         self.assertFalse(self.scenario.visits.exists(), "the child is not left refused")
 
+    # --- Provisioning's copy of the games (ADR-0033) ---------------------------
+
+    def copy(self, **arguments):
+        self.scenario.env.pop("PKEXEC_UID", None)
+        return self.scenario.run(copy=True, **arguments)
+
+    def assertCopyRefused(self, run, reason):
+        self.assertEqual(run.said, [f"refused {reason}"])
+        self.assertEqual(run.code, 1)
+        self.assertFalse(run.called("setpriv"), "nothing is copied")
+        self.assertFalse(self.scenario.marker.exists(), "the marker goes")
+
+    def test_a_copy_is_never_started_through_pkexec(self):
+        # The visit's polkit action must not become a way to start copies.
+        run = self.scenario.run(copy=True)
+        self.assertCopyRefused(run, "not-for-pkexec")
+        self.assertFalse(self.scenario.visits.exists())
+
+    def test_a_copy_holds_the_list_and_the_marker_while_it_runs(self):
+        run = self.copy()
+        self.assertEqual(run.said, ["finished"])
+        self.assertEqual(run.code, 0)
+        self.assertEqual((self.scenario.state / "listed-during-copy").read_text(), "ada\n")
+        self.assertEqual((self.scenario.state / "marked-during-copy").read_text(), "ada\n")
+        self.assertIn(f"restorecon {self.scenario.visits}", run.calls)
+        self.assertFalse(self.scenario.visits.exists(), "the child can log in again")
+        self.assertFalse(self.scenario.marker.exists())
+
+    def test_a_copy_that_fails_still_lets_the_child_in(self):
+        self.scenario.set("copy-status", "1")
+        run = self.copy()
+        self.assertEqual(run.said, ["failed"])
+        self.assertEqual(run.code, 1)
+        self.assertFalse(self.scenario.visits.exists())
+        self.assertFalse(self.scenario.marker.exists())
+
+    def test_the_copy_runs_as_the_child_with_nothing_of_roots(self):
+        run = self.copy()
+        [call] = run.called("setpriv")
+        self.assertEqual(
+            call,
+            f"setpriv --reuid={ME} --regid={ME} --init-groups env -i HOME={self.scenario.state}/home/ada"
+            " USER=ada LOGNAME=ada PATH=/usr/bin:/bin /usr/bin/python3 -I /usr/local/libexec/cairn/cairn-copy-games",
+        )
+        self.assertFalse(run.called("systemd-run"), "no visit")
+        self.assertFalse(run.called("loginctl terminate-user"), "nobody is logged out")
+
+    def test_only_the_copy_programs_own_lines_are_passed_on(self):
+        self.scenario.set("copy-says", "\n".join([
+            "copied 294690",
+            "have 12",
+            "skipped 7 beta-branch",
+            "no-reflink",
+            "/home/ada/.local/share/Steam",
+            "copied 294690 and more",
+            "copied ../12",
+            "skipped 7 Beta Branch",
+            "\x1b]0;title\x07",
+            "refused busy",
+            "finished",
+        ]))
+        run = self.copy()
+        self.assertEqual(run.said, ["copied 294690", "have 12", "skipped 7 beta-branch", "no-reflink", "finished"])
+        trace = (self.scenario.state / "trace").read_text()
+        self.assertNotIn("/home/ada/.local", trace, "the trace never shows a line before it is checked")
+        self.assertNotIn("a word on the error output", trace)
+
+    def test_no_copy_while_a_visit_is_open(self):
+        self.scenario.visits.write_text("ben\n")
+        self.assertCopyRefused(self.copy(), "busy")
+        self.assertEqual(self.scenario.visits.read_text(), "ben\n", "the visit's list stays")
+
+    def test_one_copy_at_a_time(self):
+        self.scenario.marker.write_text("ben\n")
+        run = self.copy()
+        self.assertEqual(run.said, ["refused busy"])
+        self.assertEqual(self.scenario.marker.read_text(), "ben\n", "the other copy's marker stays")
+        self.assertFalse(self.scenario.visits.exists())
+
+    def test_no_copy_while_the_child_is_logged_in(self):
+        self.scenario.set("child-sessions", "c3")
+        self.scenario.set("session-class", "user")
+        self.scenario.set("session-service", "sddm")
+        self.assertCopyRefused(self.copy(), "logged-in")
+        self.assertFalse(self.scenario.visits.exists(), "the child is not left refused")
+
+    def test_a_copy_waits_for_the_last_login_to_finish_ending(self):
+        self.scenario.set("leftover", "2")
+        self.assertEqual(self.copy().said, ["waiting", "finished"])
+
+    def test_a_copy_refuses_when_the_last_login_never_ends(self):
+        self.scenario.set("leftover", "99")
+        run = self.copy()
+        self.assertEqual(run.said, ["waiting", "refused still-running"])
+        self.assertFalse(run.called("setpriv"))
+        self.assertFalse(run.called("pkill"), "a copy never kills anything")
+        self.assertFalse(self.scenario.visits.exists())
+        self.assertFalse(self.scenario.marker.exists())
+
+    def test_a_copy_needs_the_label_a_visit_needs(self):
+        self.scenario.flag("selinux")
+        self.assertCopyRefused(self.copy(), "not-set-up")
+        self.assertFalse(self.scenario.visits.exists())
+
+    def test_a_copy_is_only_for_a_child(self):
+        self.scenario.set("child-groups", "ada cairn-l1 wheel")
+        self.assertCopyRefused(self.copy(), "not-a-child")
+        self.assertCopyRefused(self.copy(child="../ada"), "not-a-child")
+
+    def test_a_signal_before_the_copy_leaves_nothing_behind(self):
+        self.scenario.flag("stop-early")
+        self.assertCopyRefused(self.copy(), "stopped")
+        self.assertFalse(self.scenario.visits.exists())
+
+    def test_a_visit_during_a_copy_says_games_are_being_copied(self):
+        self.scenario.visits.write_text("ben\n")
+        self.scenario.marker.write_text("ben\n")
+        run = self.scenario.run()
+        self.assertRefused(run, "copying")
+        self.assertEqual(self.scenario.visits.read_text(), "ben\n", "the copy's list stays")
+        self.assertTrue(self.scenario.marker.exists(), "and so does its marker")
+
+    def test_a_marker_without_a_list_does_not_stop_a_visit(self):
+        # Left by a copy that was killed outright; /run empties at a restart.
+        self.scenario.marker.write_text("ben\n")
+        self.assertEqual(self.scenario.run().said, ["open", "closing", "closed"])
+
     # --- Where things are -----------------------------------------------------
 
     def test_provisioning_installs_what_the_helper_runs(self):
@@ -442,6 +587,10 @@ class SteamVisitTest(unittest.TestCase):
             self.assertTrue(path in text, f"provisioning installs {path}")
         helper = HELPER.read_text()
         self.assertIn("CAGE=/usr/local/libexec/cairn/cage-visit\n", helper)
+
+    def test_provisioning_installs_the_copy_program_the_helper_runs(self):
+        self.assertIn('"$PREFIX/libexec/cairn/cairn-copy-games"', PROVISION.read_text())
+        self.assertIn("COPY_GAMES=/usr/local/libexec/cairn/cairn-copy-games\n", HELPER.read_text())
 
 
 if __name__ == "__main__":

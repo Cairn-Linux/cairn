@@ -64,7 +64,11 @@ What is here:
   window, "Steam for <child>" in their menu, runs it (`../guardian/`); a
   Guardian can also run it from a terminal in their own session:
   `pkexec /usr/local/libexec/cairn/cairn-steam-visit CHILD`, then type
-  `done`.
+  `done`. Provisioning, as root and never through `pkexec`, runs its
+  second mode, `--copy-games CHILD`, which takes the same list, runs
+  `../provision/cairn-copy-games.py` as the child, and passes on only that
+  program's fixed lines (ADR-0033). A visit tried meanwhile is refused with
+  `copying`, and the Guardian's window says games are being copied.
 - `pam.d/`: `cairn-steam-visit`, the session a visit runs in, which no one
   logs in through; and `login`, Fedora's console login with the line that
   refuses a child on a visit, as the greeter's file has.
