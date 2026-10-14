@@ -67,8 +67,10 @@ What is here:
   `done`. Provisioning, as root and never through `pkexec`, runs its
   second mode, `--copy-games CHILD`, which takes the same list, runs
   `../provision/cairn-copy-games.py` as the child, and passes on only that
-  program's fixed lines (ADR-0033). A visit tried meanwhile is refused with
-  `copying`, and the Guardian's window says games are being copied.
+  program's fixed lines (ADR-0033). It notes each line but `have`, and why
+  a copy was refused or failed, in the journal. A visit tried meanwhile is
+  refused with `copying`, and the Guardian's window says games are being
+  copied.
 - `pam.d/`: `cairn-steam-visit`, the session a visit runs in, which no one
   logs in through; and `login`, Fedora's console login with the line that
   refuses a child on a visit, as the greeter's file has.

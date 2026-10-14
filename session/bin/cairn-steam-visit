@@ -28,7 +28,9 @@
 # own lines ("copied APPID", "skipped APPID REASON", ...; see
 # provision/cairn-copy-games.py), and ends with "finished", or "failed" when
 # the copy program did not end well. "refused REASON" means nothing was
-# copied. A visit tried meanwhile is refused with "copying".
+# copied. A visit tried meanwhile is refused with "copying". Provisioning
+# prints only sentences of its own, so a copy also leaves a record of each of
+# these lines but "have" in the journal, and of why it was refused or failed.
 set -ouex pipefail
 
 # The copy of cage that the child may run but not read. Linux will not let
@@ -59,7 +61,9 @@ unit=""
 # this script undoes what it can (close_visit).
 listed=no
 opened=no
-# Whether this run wrote the marker that a copy holds the list.
+# Whether this run copies games rather than opens a visit, and whether it
+# wrote the marker that a copy holds the list.
+copying=no
 marked=no
 # A signal only sets this, and the visit ends at the next check. Leaving
 # from inside the trap would end `read -t` before its timer, and bash
@@ -77,6 +81,7 @@ note() {
 
 refuse() {
     say "refused $1"
+    [ "$copying" = no ] || note "no games were copied for ${child:-a child}: refused $1"
     exit 1
 }
 
@@ -232,10 +237,11 @@ watch_visit() {
 # A child's account and its uid, or a refusal: never an administrator, and
 # never an account Cairn did not make.
 take_child() {
-    child="$1"
-    [[ "$child" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] || refuse not-a-child
-    getent passwd "$child" > /dev/null || refuse not-a-child
-    is_child "$child" || refuse not-a-child
+    local name="$1"
+    [[ "$name" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] || refuse not-a-child
+    getent passwd "$name" > /dev/null || refuse not-a-child
+    is_child "$name" || refuse not-a-child
+    child="$name"
     child_uid="$(id -u -- "$child")"
 }
 
@@ -297,7 +303,7 @@ release_copy() {
 is_copy_line() {
     [[ "$1" =~ ^(copied|have)\ [0-9]{1,10}$ ]] ||
         [[ "$1" =~ ^skipped\ [0-9]{1,10}\ [a-z-]{1,32}$ ]] ||
-        [[ "$1" =~ ^(unnumbered|no-library|no-shared|lists-shared|no-reflink)$ ]]
+        [[ "$1" =~ ^(unnumbered|no-library|no-shared|lists-shared|unreadable-config|no-reflink)$ ]]
 }
 
 # The copy runs as the child, from a root-owned program, with nothing of
@@ -316,7 +322,9 @@ run_copy() {
         env -i HOME="$home" USER="$child" LOGNAME="$child" PATH=/usr/bin:/bin \
         "$PYTHON" -I "$COPY_GAMES" < /dev/null 2> /dev/null |
         while IFS= read -r line; do
-            ! is_copy_line "$line" || say "$line"
+            is_copy_line "$line" || continue
+            say "$line"
+            [[ "$line" =~ ^have\  ]] || note "copying $child's games: $line"
         done || status=$?
     set -x
     return "$status"
@@ -326,6 +334,7 @@ run_copy() {
 # (ADR-0033). It takes the list a visit takes, so the child cannot log in
 # and no visit opens until it ends.
 copy_games() {
+    copying=yes
     [ "$#" -eq 1 ] || refuse usage
     # A visit's polkit action must not become a way to start copies.
     [ -z "${PKEXEC_UID:-}" ] || refuse not-for-pkexec
@@ -339,9 +348,12 @@ copy_games() {
     list_child || refuse busy
     check_list
     wait_for_logout
+    note "copying $child's games"
     if run_copy; then
+        note "finished copying $child's games"
         say finished
     else
+        note "copying $child's games failed: the copy program ended with status $?"
         say failed
         exit 1
     fi

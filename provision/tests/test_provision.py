@@ -469,6 +469,7 @@ class SharedLibraryTest(unittest.TestCase):
 # the scenario, and so does how it ends.
 COPY_HELPER = r"""#!/bin/bash
 [ "$1" = --copy-games ] || exit 2
+touch "$STATE/$2-ran"
 cat "$STATE/$2-says" 2> /dev/null
 exit "$(cat "$STATE/$2-status" 2> /dev/null || echo 0)"
 """
@@ -560,11 +561,12 @@ class CopyGamesStepTest(unittest.TestCase):
             "folder-without-manifest": "may hold ada's saves; docs/TRY.md says how to set it aside",
             "changed": "Steam changed it during the copy",
             "copy-failed": "the copy did not work",
+            "unreadable-files": "can be read only by your own account, so they cannot be copied; docs/TRY.md",
             "something-new": "Cairn does not copy it",
         }
         for reason, words in reasons.items():
             with self.subTest(reason=reason):
-                self.says("ada", f"skipped 294690 {reason}")
+                self.says("ada", f"skipped 294690 {reason}", "finished")
                 [line] = self.said(self.run_step())[:-1]
                 self.assertTrue(line.startswith("note: Pajama Sam is not copied for ada; "), line)
                 self.assertIn(words, line)
@@ -575,17 +577,19 @@ class CopyGamesStepTest(unittest.TestCase):
             "no-shared": "there is no shared game folder",
             "lists-shared": "remove it in Steam's Settings > Storage during a visit",
             "no-reflink": "full copies would fill it",
+            "unreadable-config": "their Steam's list of game folders is not a plain file",
             "unnumbered": "has no game number",
             "refused logged-in": "ada is logged in; their games are copied at the next run with ada logged out",
             "refused busy": "a child's Steam is open from a grown-up's login",
             "refused still-running": "a program of ada's is still running",
             "refused not-set-up": "is not labelled yet",
             "refused stopped": "the helper refused: stopped",
-            "failed": "stopped early",
+            "failed": "stopped early; it is tried again at the next run, and journalctl -t cairn-steam-visit",
         }
         for line, words in conditions.items():
             with self.subTest(line=line):
-                self.says("ada", line)
+                ends = line == "failed" or line.startswith("refused ")
+                self.says("ada", line, *([] if ends else ["finished"]))
                 [said] = self.said(self.run_step())[:-1]
                 self.assertTrue(said.startswith("note: "), said)
                 self.assertIn(words, said)
@@ -593,7 +597,7 @@ class CopyGamesStepTest(unittest.TestCase):
     def test_a_line_outside_the_grammar_is_never_printed(self):
         odd = ["/home/ada/.local/share/Steam", "copied 12 /home/ada", "refused ../x",
                "skipped 7 Beta", "\x1b[2J", "copied 12345678901"]
-        self.says("ada", *odd)
+        self.says("ada", *odd, "finished")
         output = self.run_step()
         unknown = "note: copying ada's games printed a line this script does not know; it is left out here"
         self.assertEqual(self.said(output), [unknown] * len(odd) + ["changes: 0"])
@@ -610,6 +614,31 @@ class CopyGamesStepTest(unittest.TestCase):
             "changes: 1",
         ])
         self.assertIn("+ true after", output, "the trace comes back")
+
+    def test_a_helper_that_ends_without_a_word_gets_a_note(self):
+        # It died before it could say finished, failed or why it refused.
+        for lines in ([], ["copied 294690"], ["refused ../x"]):
+            with self.subTest(lines=lines):
+                self.says("ada", *lines, status=1)
+                said = self.said(self.run_step())
+                self.assertIn("note: copying ada's games stopped without saying why; it is tried again at the "
+                              "next run, and journalctl -t cairn-steam-visit may have a record", said)
+
+    def test_a_closing_line_needs_no_further_note(self):
+        for lines in (["finished"], ["failed"], ["refused busy"]):
+            with self.subTest(lines=lines):
+                self.says("ada", *lines)
+                self.assertNotIn("without saying why", self.run_step())
+
+    def test_with_no_shared_games_nothing_runs_and_nothing_is_said(self):
+        # No child is held from logging in, and no note says something waits.
+        (self.steamapps / "appmanifest_294690.acf").unlink()
+        (self.steamapps / "common").mkdir()
+        self.says("ada", "no-library", "finished")
+        output = self.run_step(children=("ada", "ben"))
+        self.assertEqual(self.said(output), ["changes: 0"])
+        self.assertFalse((self.state / "ada-ran").exists())
+        self.assertFalse((self.state / "ben-ran").exists())
 
     def test_runs_after_what_it_needs(self):
         main = SCRIPT.read_text().split("\nmain() {", 1)[1]

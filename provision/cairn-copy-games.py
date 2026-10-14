@@ -21,6 +21,8 @@ terminal. Provisioning turns them into sentences of its own.
     no-library             the child's Steam has not run yet
     no-shared              there is no shared library
     lists-shared           the child's Steam lists the shared library
+    unreadable-config      the child's Steam's library list is not a plain
+                           file of a sensible size, so nothing is copied
     no-reflink             the disk cannot reflink, so nothing is copied
     refused root           it was run as root, and did nothing
 
@@ -32,6 +34,8 @@ import os
 import pwd
 import re
 import shutil
+import signal
+import stat
 import subprocess
 import sys
 from pathlib import Path
@@ -52,8 +56,12 @@ LEFTOVER_IN_COMMON = re.compile(r"\.cairn-copy-([0-9]+|probe)")
 LEFTOVER_IN_LIBRARY = re.compile(r"\.cairn-manifest-[0-9]+")
 
 APPID = re.compile(r"[1-9][0-9]{0,9}")
-# A real manifest is a few kilobytes.
+# A real manifest, or library list, is a few kilobytes.
 MANIFEST_LIMIT = 1 << 20
+
+# The signals that end this program. They wait while a game goes into
+# place, so that a Ctrl-C cannot leave a folder without its manifest.
+ENDING_SIGNALS = {signal.SIGINT, signal.SIGTERM, signal.SIGHUP}
 
 
 def say(*words):
@@ -130,28 +138,54 @@ def decide(appid, data, shared, library):
     return ("copy", installdir)
 
 
+def read_library_list(path):
+    """One of the child's library lists: its text, "" when there is none, or
+    None when it is not a plain file of a sensible size. Anything in the
+    child's home may have been put there to stop this program: a FIFO would
+    block the open for ever, and a link to /dev/zero never ends."""
+    try:
+        descriptor = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW)
+    except FileNotFoundError:
+        return ""
+    except OSError:
+        return None
+    try:
+        if not stat.S_ISREG(os.fstat(descriptor).st_mode):
+            return None
+        data = os.read(descriptor, MANIFEST_LIMIT + 1)
+    except OSError:
+        return None
+    finally:
+        os.close(descriptor)
+    if len(data) > MANIFEST_LIMIT:
+        return None
+    return data.decode("utf-8", errors="replace")
+
+
 def lists_shared(steam, shared_root):
-    """Whether the child's own Steam lists the shared library. It would then
-    see each game twice, and play the shared one."""
+    """Says "lists-shared" when the child's own Steam lists the shared library,
+    since it would then see each game twice and play the shared one,
+    "unreadable-config" when a list is not a plain file, or None."""
     wanted = os.path.normpath(shared_root)
     for name in ("config/libraryfolders.vdf", "steamapps/libraryfolders.vdf"):
-        try:
-            text = (steam / name).read_text(encoding="utf-8", errors="replace")
-        except FileNotFoundError:
+        text = read_library_list(steam / name)
+        if text is None:
+            return "unreadable-config"
+        if not text:
             continue
         try:
             folders = kidscan.ci_get(kidscan.parse_vdf(text), "libraryfolders", {})
         except ValueError:
             if wanted in text:
-                return True
+                return "lists-shared"
             continue
         if not isinstance(folders, dict):
             continue
         for entry in folders.values():
             path = kidscan.ci_get(entry, "path") if isinstance(entry, dict) else entry
             if isinstance(path, str) and path and os.path.normpath(path) == wanted:
-                return True
-    return False
+                return "lists-shared"
+    return None
 
 
 def remove(path):
@@ -189,27 +223,68 @@ def can_reflink(manifest, common):
     return works
 
 
-def put_manifest(data, library, appid):
-    """Writes the manifest exactly as read, whole, under its own name."""
-    temporary = library / f"{MANIFEST_PREFIX}{appid}"
-    descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+def can_read(path, wanted):
+    # cp copies a link as a link, and never reads where it points.
+    return os.path.islink(path) or os.access(path, wanted)
+
+
+# When cp fails, the likeliest lasting reason is a file of the shared game
+# that this account cannot read, and that reason gets its own word.
+def all_readable(folder):
+    problems = []
+    for top, folders, files in os.walk(folder, onerror=problems.append):
+        for name in folders:
+            if not can_read(os.path.join(top, name), os.R_OK | os.X_OK):
+                return False
+        for name in files:
+            if not can_read(os.path.join(top, name), os.R_OK):
+                return False
+    return not problems
+
+
+def write_manifest(data, path):
+    """The manifest exactly as read, whole, under a name Steam ignores."""
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
     with os.fdopen(descriptor, "wb") as file:
         file.write(data)
         file.flush()
         os.fsync(file.fileno())
-    os.rename(temporary, library / f"appmanifest_{appid}.acf")
+
+
+def put_in_place(folder, target, manifest, manifest_target):
+    """The folder, then its manifest, one right after the other, with the
+    ending signals held until both are done or the folder is back out."""
+    held = signal.pthread_sigmask(signal.SIG_BLOCK, ENDING_SIGNALS)
+    try:
+        os.rename(folder, target)
+        try:
+            os.rename(manifest, manifest_target)
+        except OSError:
+            os.rename(target, folder)
+            raise
+    finally:
+        signal.pthread_sigmask(signal.SIG_SETMASK, held)
+
+
+def sync_folder(path):
+    descriptor = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
 
 
 def copy_game(appid, data, manifest, installdir, shared, library):
-    """The folder under a temporary name, then into place, then the
-    manifest: Steam never sees a manifest for half a game. None when it is
-    copied, or the reason it is not."""
+    """The folder and the manifest under temporary names, then the folder
+    into place, then the manifest: Steam never sees a manifest for half a
+    game. None when it is copied, or the reason it is not."""
     temporary = library / "common" / f"{COPY_PREFIX}{appid}"
     target = library / "common" / installdir
+    temporary_manifest = library / f"{MANIFEST_PREFIX}{appid}"
     try:
         if not reflink_copy(shared / "common" / installdir, temporary):
             remove(temporary)
-            return "copy-failed"
+            return "copy-failed" if all_readable(shared / "common" / installdir) else "unreadable-files"
         try:
             unchanged = read_manifest(manifest) == data
         except OSError:
@@ -220,15 +295,19 @@ def copy_game(appid, data, manifest, installdir, shared, library):
         if os.path.lexists(target) or os.path.lexists(library / f"appmanifest_{appid}.acf"):
             remove(temporary)
             return "folder-without-manifest"
-        os.rename(temporary, target)
-        try:
-            put_manifest(data, library, appid)
-        except OSError:
-            os.rename(target, temporary)
-            raise
+        write_manifest(data, temporary_manifest)
+        put_in_place(temporary, target, temporary_manifest, library / f"appmanifest_{appid}.acf")
     except OSError:
         remove(temporary)
+        remove(temporary_manifest)
         return "copy-failed"
+    # So that a power cut cannot keep one rename and lose the other. The
+    # game is in place whatever this says.
+    try:
+        sync_folder(library / "common")
+        sync_folder(library)
+    except OSError:
+        pass
     return None
 
 
@@ -286,8 +365,9 @@ def main(argv=None):
     if not args.shared.is_dir():
         say("no-shared")
         return 0
-    if lists_shared(library.parent, args.shared.parent):
-        say("lists-shared")
+    listed = lists_shared(library.parent, args.shared.parent)
+    if listed is not None:
+        say(listed)
         return 0
     copy_games(args.shared, library)
     return 0

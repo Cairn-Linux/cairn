@@ -519,6 +519,49 @@ class SteamVisitTest(unittest.TestCase):
         self.assertNotIn("/home/ada/.local", trace, "the trace never shows a line before it is checked")
         self.assertNotIn("a word on the error output", trace)
 
+    def notes(self, run):
+        return [c.split(" -- ", 1)[1] for c in run.called("logger --tag cairn-steam-visit")]
+
+    def test_a_copy_keeps_a_record_in_the_journal(self):
+        # Provisioning prints only sentences of its own, so the journal is
+        # where a grown-up finds what happened (docs/TRY.md).
+        self.scenario.set("copy-says", "\n".join([
+            "copied 294690", "have 12", "skipped 7 copy-failed", "unreadable-config", "/home/ada/x",
+        ]))
+        run = self.copy()
+        self.assertEqual(run.said, ["copied 294690", "have 12", "skipped 7 copy-failed", "unreadable-config",
+                                    "finished"])
+        self.assertEqual(self.notes(run), [
+            "copying ada's games",
+            "copying ada's games: copied 294690",
+            "copying ada's games: skipped 7 copy-failed",
+            "copying ada's games: unreadable-config",
+            "finished copying ada's games",
+        ])
+
+    def test_a_failed_copy_says_how_it_ended_in_the_journal(self):
+        self.scenario.set("copy-status", "3")
+        run = self.copy()
+        self.assertEqual(run.said, ["failed"])
+        self.assertEqual(self.notes(run), [
+            "copying ada's games",
+            "copying ada's games failed: the copy program ended with status 3",
+        ])
+
+    def test_a_refused_copy_says_why_in_the_journal(self):
+        self.scenario.set("child-sessions", "c3")
+        self.scenario.set("session-class", "user")
+        self.scenario.set("session-service", "sddm")
+        self.assertEqual(self.notes(self.copy()), ["no games were copied for ada: refused logged-in"])
+        # A name that is not a child's is never written down.
+        self.assertEqual(self.notes(self.copy(child="../ada")), ["no games were copied for a child: refused not-a-child"])
+
+    def test_a_refused_visit_writes_nothing_to_the_journal(self):
+        self.scenario.visits.write_text("ben\n")
+        run = self.scenario.run()
+        self.assertRefused(run, "busy")
+        self.assertEqual(self.notes(run), [])
+
     def test_no_copy_while_a_visit_is_open(self):
         self.scenario.visits.write_text("ben\n")
         self.assertCopyRefused(self.copy(), "busy")

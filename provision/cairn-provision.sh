@@ -630,6 +630,7 @@ not_copied_because() {
         folder-without-manifest) echo "$child's Steam has a folder for it already, which may hold $child's saves; docs/TRY.md says how to set it aside" ;;
         changed) echo "Steam changed it during the copy; it is copied at the next run" ;;
         copy-failed) echo "the copy did not work; it is tried again at the next run" ;;
+        unreadable-files) echo "some of its files can be read only by your own account, so they cannot be copied; docs/TRY.md says what to do" ;;
         *) echo "Cairn does not copy it" ;;
     esac
 }
@@ -669,8 +670,9 @@ copy_sentence() {
             no-library) echo "note: $child's Steam has not run yet; their games are copied at the next run after a visit signs it in" ;;
             no-shared) echo "note: there is no shared game folder, so no games are copied for $child" ;;
             lists-shared) echo "note: $child's Steam lists the shared game folder as its own, so no games are copied for $child; remove it in Steam's Settings > Storage during a visit" ;;
+            unreadable-config) echo "note: no games are copied for $child; their Steam's list of game folders is not a plain file, so Cairn does not read it" ;;
             no-reflink) echo "note: no games are copied for $child; this computer's disk cannot make a copy that shares the original's space, and full copies would fill it" ;;
-            failed) echo "note: copying $child's games stopped early; it is tried again at the next run" ;;
+            failed) echo "note: copying $child's games stopped early; it is tried again at the next run, and journalctl -t cairn-steam-visit has a record" ;;
             *) echo "note: copying $child's games printed a line this script does not know; it is left out here" ;;
         esac
     fi
@@ -680,14 +682,25 @@ copy_sentence() {
 # One child at a time, through the visit helper, which keeps the child from
 # logging in while it runs and runs the copy as the child. A child who cannot
 # be copied for now gets a note, and the others still get their copies. The
-# trace is off, because it would print each line before it is checked.
+# trace is off, because it would print each line before it is checked. The
+# helper's own trace goes nowhere; it keeps its record in the journal.
 copy_games() {
-    local child line
+    local child line ended
+    # With no game in the shared folder no child is held from logging in, and
+    # there is nothing to say.
+    compgen -G "$SHARED_LIBRARY/steamapps/appmanifest_*.acf" > /dev/null || return 0
     { set +x; } 2> /dev/null
     for child in $(child_accounts); do
+        ended=no
         while IFS= read -r line; do
             copy_sentence "$child" "$line"
+            if [[ "$line" =~ ^(finished|failed|refused\ [a-z-]{1,32})$ ]]; then
+                ended=yes
+            fi
         done < <("$PREFIX/libexec/cairn/cairn-steam-visit" --copy-games "$child" < /dev/null 2> /dev/null || true)
+        if [ "$ended" = no ]; then
+            echo "note: copying $child's games stopped without saying why; it is tried again at the next run, and journalctl -t cairn-steam-visit may have a record"
+        fi
     done
     set -x
 }

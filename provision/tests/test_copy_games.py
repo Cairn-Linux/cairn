@@ -23,6 +23,7 @@ import os
 import pathlib
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -37,7 +38,7 @@ BUILD = HERE.parents[1] / "build"
 # Every line the program may print (its docstring).
 GRAMMAR = re.compile(
     r"(copied|have) [0-9]{1,10}|skipped [0-9]{1,10} [a-z-]{1,32}"
-    r"|unnumbered|no-library|no-shared|lists-shared|no-reflink"
+    r"|unnumbered|no-library|no-shared|lists-shared|unreadable-config|no-reflink"
 )
 
 
@@ -70,6 +71,11 @@ NO_REFLINK = "no folder that can reflink (btrfs or XFS) in the temporary folder 
 
 def needs_reflink(test):
     return unittest.skipIf(REFLINK_PLACE is None, NO_REFLINK)(test)
+
+
+# Root can read every file, so a file kept from this account is not one.
+def needs_not_root(test):
+    return unittest.skipIf(os.geteuid() == 0, "root can read every file")(test)
 
 
 def manifest(appid, installdir="A Game", flags="4", extra="", name="A Game"):
@@ -117,6 +123,7 @@ class Machine:
         return folder
 
     def run(self):
+        # A run that blocks fails the test rather than hanging it.
         done = subprocess.run(
             [sys.executable, "-I", str(self.libexec / "cairn-copy-games"),
              "--shared", str(self.shared), "--library", str(self.library)],
@@ -124,6 +131,7 @@ class Machine:
             capture_output=True,
             text=True,
             check=False,
+            timeout=60,
         )
         self.code = done.returncode
         self.stderr = done.stderr
@@ -287,6 +295,43 @@ class ConditionsTest(CopyTestCase):
                     self.assertEqual(list((self.machine.library / "common").iterdir()), [])
                     vdf.unlink()
 
+    def test_a_library_list_that_is_not_a_plain_file_stops_everything(self):
+        # Each would block the read for ever, or never end, or is too big
+        # to be Steam's.
+        self.machine.add_game(100)
+        big = self.machine.root / "big.vdf"
+        big.write_bytes(b"x" * ((1 << 20) + 1))
+        real = self.machine.root / "real.vdf"
+        real.write_text('"libraryfolders"\n{\n}\n')
+        for name in ("config/libraryfolders.vdf", "steamapps/libraryfolders.vdf"):
+            vdf = self.machine.steam / name
+            vdf.parent.mkdir(parents=True, exist_ok=True)
+            makers = {
+                "fifo": lambda: os.mkfifo(vdf),
+                "zero": lambda: vdf.symlink_to("/dev/zero"),
+                "link": lambda: vdf.symlink_to(real),
+                "folder": lambda: vdf.mkdir(),
+                "big": lambda: shutil.copy(big, vdf),
+            }
+            for kind, make in makers.items():
+                with self.subTest(name=name, kind=kind):
+                    make()
+                    lines = self.machine.run()
+                    if vdf.is_dir() and not vdf.is_symlink():
+                        vdf.rmdir()
+                    else:
+                        vdf.unlink()
+                    self.assertEqual(lines, ["unreadable-config"], self.machine.stderr)
+                    self.assertEqual(self.machine.code, 0)
+                    self.assertEqual(list((self.machine.library / "common").iterdir()), [])
+
+    def test_an_empty_library_list_is_no_reason_to_stop(self):
+        vdf = self.machine.steam / "config" / "libraryfolders.vdf"
+        vdf.parent.mkdir(parents=True)
+        vdf.write_bytes(b"")
+        self.machine.add_game(100, data=manifest(100, flags="6"))
+        self.assertEqual(self.machine.run(), ["skipped 100 not-installed"])
+
     def test_another_library_in_the_list_is_no_reason_to_stop(self):
         vdf = self.machine.steam / "config" / "libraryfolders.vdf"
         vdf.parent.mkdir(parents=True)
@@ -420,21 +465,104 @@ class CopyTest(CopyTestCase):
         self.assertEqual(list((self.machine.library / "common").iterdir()), [])
         self.assertEqual(sorted(p.name for p in self.machine.library.iterdir()), ["common"])
 
-    def test_a_manifest_that_cannot_be_written_takes_the_folder_back_out(self):
-        self.machine.add_game(100)
-        module = self.machine.load()
+    @staticmethod
+    def copy_tree(source, target):
+        """A stand-in for cp that needs no reflink."""
+        if source.is_dir():
+            shutil.copytree(source, target)
+        return True
 
-        def copy_tree(source, target):
-            if source.is_dir():
-                shutil.copytree(source, target)
-            return True
-
-        with (mock.patch.object(module, "reflink_copy", copy_tree),
-              mock.patch.object(module, "put_manifest", side_effect=OSError("disk full"))):
-            code, lines = self.machine.run_in_process(module)
-        self.assertEqual((code, lines), (0, ["skipped 100 copy-failed"]))
+    def assertNothingLeft(self):
         self.assertEqual(list((self.machine.library / "common").iterdir()), [],
                          "no game folder without its manifest")
+        self.assertEqual(sorted(p.name for p in self.machine.library.iterdir()), ["common"])
+
+    def test_a_manifest_that_cannot_be_written_leaves_nothing(self):
+        self.machine.add_game(100)
+        module = self.machine.load()
+        with (mock.patch.object(module, "reflink_copy", self.copy_tree),
+              mock.patch.object(module, "write_manifest", side_effect=OSError("disk full"))):
+            code, lines = self.machine.run_in_process(module)
+        self.assertEqual((code, lines), (0, ["skipped 100 copy-failed"]))
+        self.assertNothingLeft()
+
+    def test_a_manifest_that_cannot_go_into_place_takes_the_folder_back_out(self):
+        self.machine.add_game(100)
+        module = self.machine.load()
+        real_rename = os.rename
+
+        def rename(source, target):
+            if pathlib.Path(target).name == "appmanifest_100.acf":
+                raise OSError("disk full")
+            real_rename(source, target)
+
+        with (mock.patch.object(module, "reflink_copy", self.copy_tree),
+              mock.patch.object(module.os, "rename", rename)):
+            code, lines = self.machine.run_in_process(module)
+        self.assertEqual((code, lines), (0, ["skipped 100 copy-failed"]))
+        self.assertNothingLeft()
+
+    def test_the_manifest_is_whole_before_the_folder_goes_into_place(self):
+        self.machine.add_game(100)
+        module = self.machine.load()
+        real_rename = os.rename
+        seen = []
+
+        def rename(source, target):
+            if pathlib.Path(target).name == "A Game":
+                waiting = self.machine.library / ".cairn-manifest-100"
+                seen.append(waiting.read_bytes())
+            real_rename(source, target)
+
+        with (mock.patch.object(module, "reflink_copy", self.copy_tree),
+              mock.patch.object(module.os, "rename", rename)):
+            code, lines = self.machine.run_in_process(module)
+        self.assertEqual((code, lines), (0, ["copied 100"]))
+        self.assertEqual(seen, [manifest(100)])
+
+    def test_a_ctrl_c_between_the_folder_and_its_manifest_waits_for_both(self):
+        # The signal comes after the folder is in place, and is felt only
+        # once the manifest is too.
+        self.machine.add_game(100)
+        module = self.machine.load()
+        real_rename = os.rename
+
+        def rename(source, target):
+            real_rename(source, target)
+            if pathlib.Path(target).name == "A Game":
+                os.kill(os.getpid(), signal.SIGINT)
+
+        with (mock.patch.object(module, "reflink_copy", self.copy_tree),
+              mock.patch.object(module.os, "rename", rename),
+              self.assertRaises(KeyboardInterrupt)):
+            self.machine.run_in_process(module)
+        self.assertTrue((self.machine.library / "common" / "A Game" / "start.sh").exists())
+        self.assertEqual((self.machine.library / "appmanifest_100.acf").read_bytes(), manifest(100))
+        self.assertEqual(signal.pthread_sigmask(signal.SIG_BLOCK, []), set(), "nothing stays held")
+
+    @needs_not_root
+    def test_a_shared_file_this_account_cannot_read_has_its_own_reason(self):
+        for kind in ("file", "folder"):
+            with self.subTest(kind=kind):
+                source = self.machine.add_game(100)
+                private = source / "data" / "level1.dat" if kind == "file" else source / "data"
+                private.chmod(0o000 if kind == "file" else 0o600)
+                module = self.machine.load()
+                with mock.patch.object(module, "reflink_copy", lambda source, target: source.name != "A Game"):
+                    code, lines = self.machine.run_in_process(module)
+                private.chmod(0o755)
+                self.assertEqual((code, lines), (0, ["skipped 100 unreadable-files"]))
+                self.assertNothingLeft()
+
+    @needs_reflink
+    @needs_not_root
+    def test_cp_failing_on_a_private_file_says_so(self):
+        source = self.machine.add_game(100)
+        (source / "data" / "level1.dat").chmod(0o000)
+        lines = self.machine.run()
+        (source / "data" / "level1.dat").chmod(0o644)
+        self.assertEqual(lines, ["skipped 100 unreadable-files"])
+        self.assertNothingLeft()
 
     @needs_reflink
     def test_nothing_it_prints_is_a_path_or_a_name(self):

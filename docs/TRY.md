@@ -111,15 +111,22 @@ grown-ups can change. The set-up command then gives each child their own
 copy, in their own account, so each child's saves are their own. A copy
 takes no extra disk space until it changes.
 
+Log in as the grown-up's account you named with `--guardian`. The account
+made while installing Bazzite cannot change the shared folder.
+
 1. In your own Steam, open **Settings › Storage**, add a drive, and choose
    the folder `/var/lib/cairn/steam-library`. Do this before any game is in
-   it.
+   it. If Steam refuses the folder, write down its message, stop here, and
+   report it as a GitHub issue.
 2. To install a game for the children, choose that folder in Steam's
    install dialog.
 3. To give them a game you have already installed, select it in
    **Settings › Storage** and use **Move**. A Windows game is the
    exception: Steam's Move can undo itself for one. Uninstall it, then
    install it again into the shared folder, which downloads it once more.
+   Uninstalling can delete the game's saves, and Steam Cloud keeps a copy
+   only for games that use it. Copy the game's folder somewhere safe
+   first.
 4. Only put games there that every child may play. Every child gets a copy
    of each one.
 5. A child's Steam must have run once before it can hold copies. Open
@@ -133,11 +140,28 @@ takes no extra disk space until it changes.
    tools it needs out of the child's sight.
 
 A new game reaches a child the next time you run the set-up command with
-that child logged out. Try games in **Steam for** the child, not in your
-own Steam: a game played from the shared folder keeps its saves there, and
-every copy made after that starts with them. Children who share one Steam
-account probably share saves too, because Steam Cloud brings the newest
-save into each child's copy. One Steam account for each child avoids that.
+that child logged out. Each child's Steam keeps its own copy up to date, so
+an update downloads once for you and once for each child.
+
+Try games in **Steam for** the child, not in your own Steam. A game played
+from the shared folder keeps its saves there, and every copy made after
+that starts with them. A Windows game played there also leaves its Wine
+prefix there, with anything its launcher keeps in it, and every account on
+this computer can read that. Your own Steam can also bring a game's saves
+from Steam Cloud into the shared folder when it starts, even if you never
+played the game here, and copies made after that start with them too.
+
+Children who share one Steam account probably share saves, because
+Steam Cloud brings the newest save into each child's copy. Turning Steam
+Cloud off for those games, in each game's **Properties**, or for the whole
+account, in Steam's **Settings › Cloud**, should stop that. The saves are
+then kept only on this computer. The switch belongs to the Steam account,
+so on your own account it also goes off on your other computers, and some
+people say it turned itself back on. One Steam account for each child
+avoids shared saves. Steam lets one account at a time play a game your
+family owns once, so while you or another child plays it, it will not
+start for a child on their own account. A second copy, or one account for
+several children, avoids that, but children on one account share saves.
 
 If a child's Steam uninstalls a game but leaves its folder behind, the
 folder may hold their saves, so the set-up command leaves that game out for
@@ -146,9 +170,12 @@ with the child logged out, and run the set-up command again. For a child
 `sam` and a game folder `Some Game`:
 
 ```sh
-sudo mv "/home/sam/.local/share/Steam/steamapps/common/Some Game" \
+sudo -u sam mv -T -- "/home/sam/.local/share/Steam/steamapps/common/Some Game" \
     "/home/sam/Some Game (old saves)"
 ```
+
+This runs as the child, so it can only move what the child could move
+themselves.
 
 ## If something goes wrong
 
@@ -170,6 +197,15 @@ sudo mv "/home/sam/.local/share/Steam/steamapps/common/Some Game" \
   stay on this computer only. To answer Steam, log the child out and open
   Steam for the child from your own account. A way to answer it without
   logging the child out is planned.
+- If the set-up command says some of a game's files can be read only by
+  your own account, your own Steam made them private. This, in your own
+  login, lets every account read them, and the children get their copies
+  at the next run. Please report it too.
+
+  ```sh
+  chmod -R o+rX "/var/lib/cairn/steam-library/steamapps/common/Some Game"
+  ```
+
 - Please report what you find as a
   [GitHub issue](https://github.com/Cairn-Linux/cairn/issues). Leave out
   children's names, photos and anything else personal.
@@ -195,5 +231,6 @@ Reinstall Bazzite, or go back to a snapshot of your virtual machine.
 These steps were checked on 2026-10-01 in a Bazzite 44 virtual machine,
 from the toolbox build to a child's session. Steam for a child was checked
 there on 2026-10-12, with no Steam account signed in. The games section
-follows how the kids' laptop was moved over by hand on 2026-10-13; the
-set-up command's own copy step has not been run on a real computer yet.
+has not been tried as written: adding the folder in Steam, installing into
+it, Move, and the set-up command's copy step have not been run on a real
+computer yet. The kids' laptop got its copies by hand on 2026-10-13.
