@@ -104,6 +104,52 @@ Tux Paint and GCompris. Every step it takes prints a line starting
   suggests a Steam account for each child, as a child member of your
   Steam Family.
 
+## 5. Add games for the children
+
+You install each game once, from your own Steam, into a folder only
+grown-ups can change. The set-up command then gives each child their own
+copy, in their own account, so each child's saves are their own. A copy
+takes no extra disk space until it changes.
+
+1. In your own Steam, open **Settings › Storage**, add a drive, and choose
+   the folder `/var/lib/cairn/steam-library`. Do this before any game is in
+   it.
+2. To install a game for the children, choose that folder in Steam's
+   install dialog.
+3. To give them a game you have already installed, select it in
+   **Settings › Storage** and use **Move**. A Windows game is the
+   exception: Steam's Move can undo itself for one. Uninstall it, then
+   install it again into the shared folder, which downloads it once more.
+4. Only put games there that every child may play. Every child gets a copy
+   of each one.
+5. A child's Steam must have run once before it can hold copies. Open
+   **Steam for** the child once and sign their Steam in.
+6. With the children logged out, run the set-up command from section 3
+   again. It prints a `changed:` line for each game it copies. A `note:`
+   line says when a child was logged in, when their Steam has not run yet,
+   or why a game was left out. Those children get their copies at a later
+   run.
+7. Open **Steam for** the child and start one game, so Steam fetches the
+   tools it needs out of the child's sight.
+
+A new game reaches a child the next time you run the set-up command with
+that child logged out. Try games in **Steam for** the child, not in your
+own Steam: a game played from the shared folder keeps its saves there, and
+every copy made after that starts with them. Children who share one Steam
+account probably share saves too, because Steam Cloud brings the newest
+save into each child's copy. One Steam account for each child avoids that.
+
+If a child's Steam uninstalls a game but leaves its folder behind, the
+folder may hold their saves, so the set-up command leaves that game out for
+that child and says so. To give them a fresh copy, move the folder aside,
+with the child logged out, and run the set-up command again. For a child
+`sam` and a game folder `Some Game`:
+
+```sh
+sudo mv "/home/sam/.local/share/Steam/steamapps/common/Some Game" \
+    "/home/sam/Some Game (old saves)"
+```
+
 ## If something goes wrong
 
 - **Ctrl-Alt-Home** ends a stuck app and brings the tiles back.
@@ -134,7 +180,8 @@ Tux Paint and GCompris. Every step it takes prints a line starting
 - In a child's session the brightness keys do nothing, nothing warns of a
   low battery, and a second screen extends the desktop instead of
   mirroring it. Keep a laptop plugged in.
-- Adding games, such as Steam's ScummVM classics, is not covered here yet.
+- Games copied into a child's Steam have no tile on the child's screen
+  yet.
 - Running the script again puts the default tiles back.
 - After a system update that brings a newer Qt, rebuild in the toolbox and
   run the script again.
@@ -147,4 +194,6 @@ Reinstall Bazzite, or go back to a snapshot of your virtual machine.
 
 These steps were checked on 2026-10-01 in a Bazzite 44 virtual machine,
 from the toolbox build to a child's session. Steam for a child was checked
-there on 2026-10-12, with no Steam account signed in.
+there on 2026-10-12, with no Steam account signed in. The games section
+follows how the kids' laptop was moved over by hand on 2026-10-13; the
+set-up command's own copy step has not been run on a real computer yet.

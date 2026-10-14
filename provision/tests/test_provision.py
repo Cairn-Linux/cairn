@@ -391,6 +391,241 @@ class InstallFileTest(unittest.TestCase):
         self.assertFalse(installed)
 
 
+class SharedLibraryTest(unittest.TestCase):
+    """The folder a Guardian's Steam installs the children's games into
+    (ADR-0033): stat and getfacl answer from the scenario, and chown, chmod
+    and setfacl write what they were asked to a log."""
+
+    WANTED_ACL = "\n".join([
+        "user::rwx", "group::rwx", "group:cairn-guardian:rwx", "mask::rwx", "other::r-x",
+        "default:user::rwx", "default:group::rwx", "default:group:cairn-guardian:rwx",
+        "default:mask::rwx", "default:other::r-x",
+    ])
+
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.state = pathlib.Path(self.directory.name)
+        self.library = self.state / "steam-library"
+        self.stubs = {
+            "stat": '#!/bin/bash\ncat "$STATE/stat-answer" 2> /dev/null || echo root:root:755\n',
+            "getfacl": '#!/bin/bash\ncat "$STATE/acl-answer" 2> /dev/null\n',
+        }
+        for name in ("chown", "chmod", "setfacl"):
+            self.stubs[name] = f'#!/bin/bash\necho "{name} $*" >> "$STATE/calls"\n'
+
+    def tearDown(self):
+        self.directory.cleanup()
+
+    def run_step(self):
+        snippet = f"SHARED_LIBRARY={shlex.quote(str(self.library))}\nmake_shared_library\necho after"
+        code, output, _ = run_steps(snippet, env_extra={"STATE": str(self.state)}, extra_stubs=self.stubs)
+        calls = self.state / "calls"
+        return code, output, calls.read_text().splitlines() if calls.exists() else []
+
+    def test_makes_both_folders_for_guardians_only(self):
+        code, output, calls = self.run_step()
+        self.assertEqual(code, 0, output)
+        steamapps = self.library / "steamapps"
+        self.assertTrue(steamapps.is_dir())
+        self.assertEqual(oct(self.library.stat().st_mode & 0o7777), oct(0o2775))
+        acl = ("u::rwx,g::rwx,g:cairn-guardian:rwx,m::rwx,o::r-x,"
+               "d:u::rwx,d:g::rwx,d:g:cairn-guardian:rwx,d:m::rwx,d:o::r-x")
+        for folder in (self.library, steamapps):
+            self.assertIn(f"chown root:cairn-guardian {folder}", calls)
+            self.assertIn(f"chmod 2775 {folder}", calls)
+            self.assertIn(f"setfacl --set {acl} -- {folder}", calls)
+            self.assertIn(f"changed: {folder}", output.splitlines())
+        self.assertIn("after", output.splitlines())
+
+    def test_a_second_run_changes_nothing(self):
+        (self.library / "steamapps").mkdir(parents=True)
+        (self.state / "stat-answer").write_text("root:cairn-guardian:2775\n")
+        (self.state / "acl-answer").write_text(self.WANTED_ACL + "\n\n")
+        code, output, calls = self.run_step()
+        self.assertEqual(code, 0, output)
+        self.assertEqual(calls, [])
+        self.assertNotIn("changed:", output)
+
+    def test_never_walks_the_games_inside(self):
+        (self.library / "steamapps" / "common" / "A Game").mkdir(parents=True)
+        code, output, calls = self.run_step()
+        self.assertEqual(code, 0, output)
+        folders = {str(self.library), str(self.library / "steamapps")}
+        for call in calls:
+            self.assertNotIn(" -R", call)
+            self.assertIn(call.split()[-1], folders)
+
+    def test_a_link_is_refused(self):
+        elsewhere = self.state / "elsewhere"
+        elsewhere.mkdir()
+        self.library.symlink_to(elsewhere)
+        code, output, calls = self.run_step()
+        self.assertEqual(code, 1, output)
+        self.assertIn("refused:", output)
+        self.assertEqual(calls, [])
+
+
+# A stand-in for the visit helper's copy mode: each child's lines come from
+# the scenario, and so does how it ends.
+COPY_HELPER = r"""#!/bin/bash
+[ "$1" = --copy-games ] || exit 2
+cat "$STATE/$2-says" 2> /dev/null
+exit "$(cat "$STATE/$2-status" 2> /dev/null || echo 0)"
+"""
+
+MANIFEST = """"AppState"
+{
+	"appid"		"%s"
+	"name"		"%s"
+	"installdir"		"A Game"
+	"StateFlags"		"4"
+}
+"""
+
+
+class CopyGamesStepTest(unittest.TestCase):
+    """How provisioning turns the helper's copy lines into its own sentences
+    (ADR-0033)."""
+
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.state = pathlib.Path(self.directory.name)
+        libexec = self.state / "prefix" / "libexec" / "cairn"
+        libexec.mkdir(parents=True)
+        helper = libexec / "cairn-steam-visit"
+        helper.write_text(COPY_HELPER)
+        helper.chmod(0o755)
+        kidscan = SCRIPT.parents[1] / "tools" / "kidscan" / "kidscan.py"
+        (libexec / "kidscan.py").write_text(kidscan.read_text())
+        self.steamapps = self.state / "steam-library" / "steamapps"
+        self.steamapps.mkdir(parents=True)
+        self.game(294690, "Pajama Sam")
+
+    def tearDown(self):
+        self.directory.cleanup()
+
+    def game(self, appid, name):
+        (self.steamapps / f"appmanifest_{appid}.acf").write_text(MANIFEST % (appid, name))
+
+    def says(self, child, *lines, status=0):
+        (self.state / f"{child}-says").write_text("".join(line + "\n" for line in lines))
+        (self.state / f"{child}-status").write_text(f"{status}\n")
+
+    def run_step(self, children=("ada",)):
+        snippet = (
+            f"PREFIX={shlex.quote(str(self.state / 'prefix'))}\n"
+            f"SHARED_LIBRARY={shlex.quote(str(self.state / 'steam-library'))}\n"
+            f"child_accounts() {{ printf '%s\\n' {' '.join(children)}; }}\n"
+            "copy_games\ntrue after\necho \"changes: $changes\""
+        )
+        code, output, _ = run_steps(snippet, env_extra={"STATE": str(self.state)})
+        self.assertEqual(code, 0, output)
+        return output
+
+    def said(self, output):
+        """What the step printed, without the trace."""
+        return [line for line in output.splitlines() if not line.startswith("+")]
+
+    def test_a_copied_game_is_a_change_named_from_the_shared_folder(self):
+        self.says("ada", "copied 294690", "finished")
+        output = self.run_step()
+        self.assertEqual(self.said(output), ["changed: ada's own copy of Pajama Sam", "changes: 1"])
+
+    def test_what_the_child_has_already_is_not_mentioned(self):
+        self.says("ada", "have 294690", "finished")
+        self.assertEqual(self.said(self.run_step()), ["changes: 0"])
+
+    def test_a_name_loses_what_a_terminal_would_act_on(self):
+        self.game(12, "Bad\x1b]0;title\x07 game\u202e")
+        self.says("ada", "copied 12")
+        output = self.run_step()
+        self.assertIn("changed: ada's own copy of Bad]0;title game", self.said(output))
+        self.assertNotIn("\x1b", output)
+        self.assertNotIn("\x07", output)
+        self.assertNotIn("\u202e", output)
+
+    def test_a_game_without_a_manifest_is_named_by_its_number(self):
+        self.says("ada", "copied 7")
+        self.assertIn("changed: ada's own copy of game 7", self.said(self.run_step()))
+
+    def test_every_reason_has_its_sentence(self):
+        reasons = {
+            "unreadable": "cannot be read",
+            "appid": "names another game",
+            "installdir": "names its folder in a way Cairn does not copy",
+            "beta-branch": "on a beta branch, which ada's Steam account may not have",
+            "not-installed": "not fully installed, or an update is waiting",
+            "downloading": "still downloading it",
+            "no-folder": "its folder is missing from the shared folder",
+            "folder-without-manifest": "may hold ada's saves; docs/TRY.md says how to set it aside",
+            "changed": "Steam changed it during the copy",
+            "copy-failed": "the copy did not work",
+            "something-new": "Cairn does not copy it",
+        }
+        for reason, words in reasons.items():
+            with self.subTest(reason=reason):
+                self.says("ada", f"skipped 294690 {reason}")
+                [line] = self.said(self.run_step())[:-1]
+                self.assertTrue(line.startswith("note: Pajama Sam is not copied for ada; "), line)
+                self.assertIn(words, line)
+
+    def test_every_condition_has_its_note(self):
+        conditions = {
+            "no-library": "ada's Steam has not run yet; their games are copied at the next run after a visit",
+            "no-shared": "there is no shared game folder",
+            "lists-shared": "remove it in Steam's Settings > Storage during a visit",
+            "no-reflink": "full copies would fill it",
+            "unnumbered": "has no game number",
+            "refused logged-in": "ada is logged in; their games are copied at the next run with ada logged out",
+            "refused busy": "a child's Steam is open from a grown-up's login",
+            "refused still-running": "a program of ada's is still running",
+            "refused not-set-up": "is not labelled yet",
+            "refused stopped": "the helper refused: stopped",
+            "failed": "stopped early",
+        }
+        for line, words in conditions.items():
+            with self.subTest(line=line):
+                self.says("ada", line)
+                [said] = self.said(self.run_step())[:-1]
+                self.assertTrue(said.startswith("note: "), said)
+                self.assertIn(words, said)
+
+    def test_a_line_outside_the_grammar_is_never_printed(self):
+        odd = ["/home/ada/.local/share/Steam", "copied 12 /home/ada", "refused ../x",
+               "skipped 7 Beta", "\x1b[2J", "copied 12345678901"]
+        self.says("ada", *odd)
+        output = self.run_step()
+        unknown = "note: copying ada's games printed a line this script does not know; it is left out here"
+        self.assertEqual(self.said(output), [unknown] * len(odd) + ["changes: 0"])
+        for line in odd:
+            self.assertNotIn(line, output, "not in the trace either")
+
+    def test_one_child_failing_stops_neither_the_others_nor_the_rest(self):
+        self.says("ada", "refused logged-in", status=1)
+        self.says("ben", "copied 294690", "finished")
+        output = self.run_step(children=("ada", "ben"))
+        self.assertEqual(self.said(output), [
+            "note: ada is logged in; their games are copied at the next run with ada logged out",
+            "changed: ben's own copy of Pajama Sam",
+            "changes: 1",
+        ])
+        self.assertIn("+ true after", output, "the trace comes back")
+
+    def test_runs_after_what_it_needs(self):
+        main = SCRIPT.read_text().split("\nmain() {", 1)[1]
+        steps = [line.strip() for line in main.split("\n}", 1)[0].splitlines()]
+        for needed in ("ensure_children", "install_steam_visit", "make_shared_library",
+                       "install_copy_games", "relabel"):
+            self.assertLess(steps.index(needed), steps.index("copy_games"), needed)
+
+    def test_installs_the_copy_program_beside_its_parser(self):
+        text = SCRIPT.read_text()
+        self.assertIn('install_file 644 "$REPO/provision/cairn-copy-games.py" '
+                      '"$PREFIX/libexec/cairn/cairn-copy-games"', text)
+        self.assertIn('install_file 644 "$REPO/tools/kidscan/kidscan.py" '
+                      '"$PREFIX/libexec/cairn/kidscan.py"', text)
+
+
 class ScriptTextTest(unittest.TestCase):
     def setUp(self):
         self.text = SCRIPT.read_text()
