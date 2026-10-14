@@ -88,6 +88,16 @@ TestCase {
         compare(findChild(window, "wayOutButton").text, "Close");
     }
 
+    // Provisioning is copying games, which is not a visit (ADR-0033).
+    function test_aCopyOfTheGamesSaysToTryAgainSoon() {
+        const window = makeWindow("copying", false);
+        mouseClick(findChild(window, "mainButton"));
+        tryCompare(findChild(window, "heading"), "text", "nobody-here's Steam did not open");
+        verify(words(window).includes("Games are being copied into a child's Steam on this computer. Try again in a minute."));
+        verify(!words(window).includes("already open"));
+        compare(findChild(window, "mainButton").text, "Try again");
+    }
+
     // Plasma's password box gives the same answer for Cancel as for a wrong
     // password, so the window names both.
     function test_aClosedPasswordBoxSaysWhatItNeeds() {

@@ -44,6 +44,7 @@ public:
     enum class Reason : std::uint8_t {
         None,
         Busy,
+        Copying,
         LoggedIn,
         StillEnding,
         NotSetUp,

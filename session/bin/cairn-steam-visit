@@ -18,6 +18,19 @@
 # The child cannot log in while their visit is open: their name is in
 # /run/cairn/steam-visits, which PAM reads for the login screen and the
 # consoles (session/sddm/pam.d/sddm, session/pam.d/login).
+#
+# Provisioning, as root and never through pkexec, uses the same list to copy
+# the shared games into a child's own Steam library (ADR-0033):
+#
+#   /usr/local/libexec/cairn/cairn-steam-visit --copy-games CHILD
+#
+# It says "waiting" as a visit does, then passes on only the copy program's
+# own lines ("copied APPID", "skipped APPID REASON", ...; see
+# provision/cairn-copy-games.py), and ends with "finished", or "failed" when
+# the copy program did not end well. "refused REASON" means nothing was
+# copied. A visit tried meanwhile is refused with "copying". Provisioning
+# prints only sentences of its own, so a copy also leaves a record of each of
+# these lines but "have" in the journal, and of why it was refused or failed.
 set -ouex pipefail
 
 # The copy of cage that the child may run but not read. Linux will not let
@@ -25,8 +38,12 @@ set -ouex pipefail
 # copy its open files, so the child's other programs cannot take cage's
 # connection to the Guardian's desktop (ADR-0032).
 CAGE=/usr/local/libexec/cairn/cage-visit
+COPY_GAMES=/usr/local/libexec/cairn/cairn-copy-games
+PYTHON=/usr/bin/python3
 RUN_DIR=/run/cairn
 VISITS="$RUN_DIR/steam-visits"
+# Says that a copy, not a visit, holds the list. Only this helper reads it.
+COPYING="$RUN_DIR/steam-copy"
 RUNTIME_ROOT=/run/user
 X11_DIR=/tmp
 
@@ -44,6 +61,10 @@ unit=""
 # this script undoes what it can (close_visit).
 listed=no
 opened=no
+# Whether this run copies games rather than opens a visit, and whether it
+# wrote the marker that a copy holds the list.
+copying=no
+marked=no
 # A signal only sets this, and the visit ends at the next check. Leaving
 # from inside the trap would end `read -t` before its timer, and bash
 # crashed when that timer went off later, halfway through the close.
@@ -60,6 +81,7 @@ note() {
 
 refuse() {
     say "refused $1"
+    [ "$copying" = no ] || note "no games were copied for ${child:-a child}: refused $1"
     exit 1
 }
 
@@ -212,8 +234,138 @@ watch_visit() {
     done
 }
 
+# A child's account and its uid, or a refusal: never an administrator, and
+# never an account Cairn did not make.
+take_child() {
+    local name="$1"
+    [[ "$name" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] || refuse not-a-child
+    getent passwd "$name" > /dev/null || refuse not-a-child
+    is_child "$name" || refuse not-a-child
+    child="$name"
+    child_uid="$(id -u -- "$child")"
+}
+
+make_run_dir() {
+    [ -d "$RUN_DIR" ] || mkdir --mode=0755 "$RUN_DIR"
+    restorecon "$RUN_DIR"
+}
+
+# Names the child in the list, unless the list names anyone already: one
+# child at a time on the machine.
+list_child() {
+    (set -o noclobber && echo "$child" > "$VISITS") 2> /dev/null || return 1
+    listed=yes
+}
+
+# Why the list was taken: a copy says so in its marker.
+busy_reason() {
+    if [ -e "$COPYING" ]; then
+        echo copying
+    else
+        echo busy
+    fi
+}
+
+# PAM lets everyone in when it cannot read the list, and SELinux keeps the
+# login screen from reading a plain file in /run. Provisioning labels
+# /run/cairn so that it can; without that label nothing goes ahead.
+check_list() {
+    chmod 0644 "$VISITS"
+    restorecon "$VISITS"
+    local label
+    label="$(label_of "$VISITS")"
+    if [ -n "$label" ] && [ "$label" != etc_t ]; then
+        refuse not-set-up
+    fi
+}
+
+# Only once the child is listed, so they cannot log in after this.
+wait_for_logout() {
+    ! child_logged_in || refuse logged-in
+    # After a logout, the child's service manager takes a few seconds to end.
+    if child_has_processes; then
+        say waiting
+        wait_for_no_processes "$END_SECONDS" || refuse still-running
+    fi
+    [ "$stopping" = no ] || refuse stopped
+}
+
+# A copy ends here, however it ends, and lets the child log in again.
+release_copy() {
+    local status=$?
+    [ "$listed" = no ] || rm -f -- "$VISITS"
+    [ "$marked" = no ] || rm -f -- "$COPYING"
+    return "$status"
+}
+
+# The copy program's own lines (provision/cairn-copy-games.py), and only
+# those: fixed words and appids, never anything from the child's home.
+is_copy_line() {
+    [[ "$1" =~ ^(copied|have)\ [0-9]{1,10}$ ]] ||
+        [[ "$1" =~ ^skipped\ [0-9]{1,10}\ [a-z-]{1,32}$ ]] ||
+        [[ "$1" =~ ^(unnumbered|no-library|no-shared|lists-shared|unreadable-config|no-reflink)$ ]]
+}
+
+# The copy runs as the child, from a root-owned program, with nothing of
+# root's environment, and Python's -I keeps the child's files off its path.
+# What it says on its error output could name a file in the child's home,
+# so it goes nowhere. The trace is off while its lines are read, because it
+# would print each line before it is checked.
+run_copy() {
+    local home line status=0
+    home="$(getent passwd "$child" | cut -d: -f6)"
+    # Provisioning runs from a checkout in the Guardian's own home, which
+    # the child cannot open.
+    cd /
+    { set +x; } 2> /dev/null
+    setpriv --reuid="$child_uid" --regid="$(id -g -- "$child")" --init-groups \
+        env -i HOME="$home" USER="$child" LOGNAME="$child" PATH=/usr/bin:/bin \
+        "$PYTHON" -I "$COPY_GAMES" < /dev/null 2> /dev/null |
+        while IFS= read -r line; do
+            is_copy_line "$line" || continue
+            say "$line"
+            [[ "$line" =~ ^have\  ]] || note "copying $child's games: $line"
+        done || status=$?
+    set -x
+    return "$status"
+}
+
+# Provisioning's copy of the shared games into one child's library
+# (ADR-0033). It takes the list a visit takes, so the child cannot log in
+# and no visit opens until it ends.
+copy_games() {
+    copying=yes
+    [ "$#" -eq 1 ] || refuse usage
+    # A visit's polkit action must not become a way to start copies.
+    [ -z "${PKEXEC_UID:-}" ] || refuse not-for-pkexec
+    [ "$(id -u)" = 0 ] || refuse not-root
+    take_child "$1"
+    make_run_dir
+    # The marker first, so that a visit refused by the list says why.
+    (set -o noclobber && echo "$child" > "$COPYING") 2> /dev/null || refuse busy
+    marked=yes
+    trap release_copy EXIT
+    list_child || refuse busy
+    check_list
+    wait_for_logout
+    note "copying $child's games"
+    if run_copy; then
+        note "finished copying $child's games"
+        say finished
+    else
+        note "copying $child's games failed: the copy program ended with status $?"
+        say failed
+        exit 1
+    fi
+    exit 0
+}
+
 main() {
     trap 'stopping=yes' TERM HUP INT
+    if [ "${1:-}" = --copy-games ]; then
+        shift
+        copy_games "$@"
+    fi
     [ "$#" -eq 1 ] || refuse usage
     [ "$(id -u)" = 0 ] || refuse not-root
 
@@ -231,37 +383,16 @@ main() {
     local socket="$RUNTIME_ROOT/$caller_uid/wayland-0"
     [ -S "$socket" ] && [ "$(stat --format=%u -- "$socket")" = "$caller_uid" ] || refuse no-desktop
 
-    child="$1"
-    [[ "$child" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] || refuse not-a-child
-    getent passwd "$child" > /dev/null || refuse not-a-child
-    is_child "$child" || refuse not-a-child
-    child_uid="$(id -u -- "$child")"
+    take_child "$1"
     unit="cairn-steam-visit-$child_uid"
 
     # One visit at a time on the machine. The list is written first, so the
     # child cannot log in between the checks below and the visit.
-    [ -d "$RUN_DIR" ] || mkdir --mode=0755 "$RUN_DIR"
-    restorecon "$RUN_DIR"
-    (set -o noclobber && echo "$child" > "$VISITS") 2> /dev/null || refuse busy
-    listed=yes
+    make_run_dir
+    list_child || refuse "$(busy_reason)"
     trap close_visit EXIT
-    chmod 0644 "$VISITS"
-    restorecon "$VISITS"
-    # PAM lets everyone in when it cannot read the list, and SELinux keeps
-    # the login screen from reading a plain file in /run. Provisioning labels
-    # /run/cairn so that it can; without that label there is no visit.
-    local label
-    label="$(label_of "$VISITS")"
-    if [ -n "$label" ] && [ "$label" != etc_t ]; then
-        refuse not-set-up
-    fi
-    ! child_logged_in || refuse logged-in
-    # After a logout, the child's service manager takes a few seconds to end.
-    if child_has_processes; then
-        say waiting
-        wait_for_no_processes "$END_SECONDS" || refuse still-running
-    fi
-    [ "$stopping" = no ] || refuse stopped
+    check_list
+    wait_for_logout
 
     opened=yes
     note "$caller opened $child's Steam visit"
