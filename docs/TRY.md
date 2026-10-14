@@ -151,17 +151,20 @@ this computer can read that. Your own Steam can also bring a game's saves
 from Steam Cloud into the shared folder when it starts, even if you never
 played the game here, and copies made after that start with them too.
 
-Children who share one Steam account probably share saves, because
-Steam Cloud brings the newest save into each child's copy. Turning Steam
-Cloud off for those games, in each game's **Properties**, or for the whole
-account, in Steam's **Settings › Cloud**, should stop that. The saves are
-then kept only on this computer. The switch belongs to the Steam account,
-so on your own account it also goes off on your other computers, and some
-people say it turned itself back on. One Steam account for each child
-avoids shared saves. Steam lets one account at a time play a game your
-family owns once, so while you or another child plays it, it will not
-start for a child on their own account. A second copy, or one account for
-several children, avoids that, but children on one account share saves.
+Children who share one Steam account share saves. Before a game starts,
+Steam Cloud brings any new or changed save into that child's copy, without
+asking. A save one child deletes stays in the other children's copies.
+Turning Steam Cloud off for those games, in each game's **Properties**, or
+for the whole account, in Steam's **Settings › Cloud**, should stop that.
+The saves are then kept only on this computer. The switch belongs to the
+Steam account, so on your own account it also goes off on your other
+computers, and some people say it turned itself back on. One Steam account
+for each child avoids shared saves.
+
+Steam lets one account at a time play a game your family owns once. While
+you, or a child on another Steam account, play it, it will not start for
+anyone else, and Steam says the shared library is locked. A game already
+running is not stopped. A second copy of the game avoids that.
 
 If a child's Steam uninstalls a game but leaves its folder behind, the
 folder may hold their saves, so the set-up command leaves that game out for
