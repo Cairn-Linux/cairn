@@ -2,6 +2,7 @@
 #include "GiveUpWatch.h"
 #include "Manifest.h"
 #include "SteamAtLogin.h"
+#include "UPowerDevice.h"
 
 #include <QCommandLineOption>
 #include <QCommandLineParser>
@@ -54,6 +55,7 @@ int main(int argc, char* argv[]) {
         {QStringLiteral("scopeApps"), parser.isSet(scopeAppsOption)},
         {QStringLiteral("giveUpFile"), GiveUpWatch::sessionPath()},
         {QStringLiteral("steamStartedAtLogin"), startSteam},
+        {QStringLiteral("batteryService"), UPowerDevice::systemService()},
     });
     engine.loadFromModule("Cairn.Launcher", "Main");
     if (engine.rootObjects().isEmpty()) {

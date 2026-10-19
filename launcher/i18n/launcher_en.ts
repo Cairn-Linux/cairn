@@ -10,6 +10,39 @@
     </message>
 </context>
 <context>
+    <name>Battery</name>
+    <message>
+        <location filename="../qml/Battery.qml" line="27"/>
+        <source>Battery charging, %1 percent</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/Battery.qml" line="29"/>
+        <source>Battery on the charger, %1 percent</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/Battery.qml" line="31"/>
+        <source>Battery full</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/Battery.qml" line="33"/>
+        <source>Battery, %1 percent</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/Battery.qml" line="136"/>
+        <source>The battery is almost empty. Ask a grown-up for the charger.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/Battery.qml" line="136"/>
+        <source>The battery is low. Ask a grown-up for the charger.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>GrownUpScreen</name>
     <message>
         <location filename="../qml/GrownUpScreen.qml" line="41"/>
@@ -99,13 +132,13 @@
 <context>
     <name>Main</name>
     <message>
-        <location filename="../qml/Main.qml" line="26"/>
+        <location filename="../qml/Main.qml" line="29"/>
         <source>Cairn</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="164"/>
-        <location filename="../qml/Main.qml" line="166"/>
+        <location filename="../qml/Main.qml" line="204"/>
+        <location filename="../qml/Main.qml" line="206"/>
         <source>Log out</source>
         <translation type="unfinished"></translation>
     </message>

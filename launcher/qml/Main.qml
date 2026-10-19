@@ -22,6 +22,9 @@ Window {
     property bool steamStartedAtLogin: false
     // The child chose Log out and is being asked whether they meant it.
     property bool logOutAsked: false
+    // UPower's name on the system bus, set by main.cpp. Empty reads no
+    // battery, as in the tests.
+    property string batteryService: ""
 
     title: qsTr("Cairn")
     visibility: Window.Windowed
@@ -88,6 +91,25 @@ Window {
         program: window.logOutProgram
     }
 
+    // The battery, as UPower reads it and decides when it is low (ADR-0034).
+    UPowerDevice {
+        id: upower
+
+        objectName: "upower"
+        service: window.batteryService
+    }
+
+    BatteryLook {
+        id: batteryLook
+
+        objectName: "batteryLook"
+        isPresent: upower.isPresent
+        percentage: upower.percentage
+        state: upower.state
+        warningLevel: upower.warningLevel
+        type: upower.type
+    }
+
     // The child's leave key (Super+Q, ADR-0019) asks the window in front to
     // close. When that is the launcher it means one step back, never the end
     // of the child's session; CloseRequest decides which.
@@ -139,10 +161,14 @@ Window {
     }
 
     // Above the tiles, where it is always in view and never scrolls away: the
-    // child's own way to end their turn (ADR-0021). Up from the top row of
-    // tiles reaches it; Down goes back.
+    // child's own way to end their turn (ADR-0021) at the right, and the
+    // battery at the left (ADR-0034). Up from the top row of tiles reaches
+    // Log out; Down goes back. The battery has nothing to press.
     Item {
         id: header
+
+        objectName: "header"
+        readonly property bool used: logOut.available || batteryLook.shown
 
         anchors.top: parent.top
         anchors.left: parent.left
@@ -151,13 +177,27 @@ Window {
         // Level with the right edge of the tiles, which stop short of the
         // window's by the gap between tiles.
         anchors.rightMargin: Tokens.headingSize * 2
-        height: logOut.available ? Tokens.headingSize * 2 : 0
-        visible: logOut.available && tileWindow.visible
+        height: used ? Tokens.headingSize * 2 : 0
+        visible: used && tileWindow.visible
+
+        Battery {
+            objectName: "battery"
+            anchors.left: parent.left
+            anchors.right: logOut.available ? logOutTile.left : parent.right
+            anchors.rightMargin: logOut.available ? Tokens.headingSize : 0
+            height: parent.height
+            visible: batteryLook.shown
+            level: batteryLook.level
+            supply: batteryLook.supply
+            onCharger: batteryLook.onCharger
+            warning: batteryLook.warning
+        }
 
         Tile {
             id: logOutTile
 
             objectName: "logOutTile"
+            visible: logOut.available
             anchors.right: parent.right
             width: Tokens.displaySize * 4
             height: parent.height
@@ -179,7 +219,7 @@ Window {
         // Room for the focus ring around the outermost tiles, inside the clip.
         readonly property real ring: Tokens.focusOffset + Tokens.focusWidth
 
-        anchors.top: logOut.available ? header.bottom : parent.top
+        anchors.top: header.used ? header.bottom : parent.top
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
