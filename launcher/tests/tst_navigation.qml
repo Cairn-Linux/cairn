@@ -25,6 +25,12 @@ TestCase {
         Tile {}
     }
 
+    Component {
+        id: signalSpyComponent
+
+        SignalSpy {}
+    }
+
     // Counts state changes so a launch test cannot pass by never launching.
     SignalSpy {
         id: stateSpy
@@ -548,17 +554,116 @@ TestCase {
     }
 
     // Confirming starts the program; the session ends from there, so the
-    // question stays up until it does.
+    // screen stays up until it does and says it is logging out.
     function test_confirmStartsTheProgram() {
         giveLogOut(fixturePath("log-out"));
         const screen = findChild(launcher, "logOutScreen");
+        const logOut = findChild(launcher, "logOut");
         mouseClick(findChild(launcher, "logOutTile"));
         tryCompare(screen, "visible", true);
         keyClick(Qt.Key_Right);
         tryCompare(findChild(screen, "confirmLogOutTile"), "activeFocus", true);
         keyClick(Qt.Key_Return);
+        compare(logOut.state, LogOut.Leaving);
         compare(launcher.logOutAsked, true);
         compare(screen.visible, true);
+        compare(findChild(screen, "logOutHeading").text, "Logging out.");
+        compare(findChild(screen, "logOutSentence").text, "This takes a few seconds.");
+        // Nothing left to press, and the focus on the screen that says so.
+        compare(findChild(screen, "stayTile").visible, false);
+        compare(findChild(screen, "confirmLogOutTile").visible, false);
+        tryCompare(screen, "activeFocus", true);
+    }
+
+    // A child pressed Log out again and again on the laptop (2026-10-18).
+    // Once it is under way, more presses ask nothing more.
+    function test_aSecondPressDoesNothingMore() {
+        giveLogOut(fixturePath("log-out"));
+        const screen = findChild(launcher, "logOutScreen");
+        const logOut = findChild(launcher, "logOut");
+        const confirmTile = findChild(screen, "confirmLogOutTile");
+        const confirmed = createTemporaryObject(signalSpyComponent, testCase, {
+            "target": screen,
+            "signalName": "confirmed"
+        });
+        const changed = createTemporaryObject(signalSpyComponent, testCase, {
+            "target": logOut,
+            "signalName": "stateChanged"
+        });
+        mouseClick(findChild(launcher, "logOutTile"));
+        tryCompare(screen, "visible", true);
+        mouseClick(confirmTile);
+        compare(confirmed.count, 1);
+        compare(changed.count, 1);
+        compare(logOut.state, LogOut.Leaving);
+        keyClick(Qt.Key_Return);
+        keyClick(Qt.Key_Space);
+        mouseClick(screen);
+        compare(confirmed.count, 1);
+        compare(changed.count, 1);
+        compare(logOut.state, LogOut.Leaving);
+        compare(screen.visible, true);
+    }
+
+    // While the session ends there is nothing to go back to: no key, and no
+    // close request, brings the tiles back.
+    function test_nothingLeavesWhileLoggingOut() {
+        enterKiosk();
+        giveLogOut(fixturePath("log-out"));
+        const screen = findChild(launcher, "logOutScreen");
+        mouseClick(findChild(launcher, "logOutTile"));
+        tryCompare(screen, "visible", true);
+        mouseClick(findChild(screen, "confirmLogOutTile"));
+        tryCompare(screen, "activeFocus", true);
+        for (const key of [Qt.Key_Escape, Qt.Key_Back, Qt.Key_Return, Qt.Key_Left, Qt.Key_Up, Qt.Key_Down, Qt.Key_Tab]) {
+            keyClick(key);
+            compare(launcher.logOutAsked, true);
+            compare(screen.visible, true);
+        }
+        compare(launcher.close(), false);
+        compare(launcher.visible, true);
+        compare(launcher.logOutAsked, true);
+        compare(screen.visible, true);
+        compare(grid.visible, false);
+        compare(findChild(launcher, "logOutTile").visible, false);
+    }
+
+    // When the session is still here after the wait, the child is not left
+    // on "Logging out." for ever: the question is back, with what to do next,
+    // and the focus on Back. Log out again is a new try.
+    function test_whenTheWaitRunsOutTheChildCanChooseAgain() {
+        giveLogOut(fixturePath("log-out"));
+        const screen = findChild(launcher, "logOutScreen");
+        const logOut = findChild(launcher, "logOut");
+        const heading = findChild(screen, "logOutHeading");
+        const stayTile = findChild(screen, "stayTile");
+        logOut.waitMilliseconds = 200;
+        mouseClick(findChild(launcher, "logOutTile"));
+        tryCompare(screen, "visible", true);
+        mouseClick(findChild(screen, "confirmLogOutTile"));
+        compare(logOut.state, LogOut.Leaving);
+        tryCompare(logOut, "state", LogOut.DidNotFinish);
+        compare(screen.visible, true);
+        compare(heading.text, "Log out did not finish.");
+        compare(findChild(screen, "logOutSentence").text, "Try again, or ask a grown-up.");
+        compare(stayTile.visible, true);
+        tryCompare(stayTile, "activeFocus", true);
+        // Log out again: a new try, and the wait again.
+        keyClick(Qt.Key_Right);
+        tryCompare(findChild(screen, "confirmLogOutTile"), "activeFocus", true);
+        keyClick(Qt.Key_Return);
+        compare(logOut.state, LogOut.Leaving);
+        compare(heading.text, "Logging out.");
+        tryCompare(logOut, "state", LogOut.DidNotFinish);
+        tryCompare(stayTile, "activeFocus", true);
+        // Back goes back to the tiles, and the next question is asked afresh.
+        keyClick(Qt.Key_Return);
+        tryCompare(screen, "visible", false);
+        compare(logOut.state, LogOut.Idle);
+        tryCompare(findChild(launcher, "logOutTile"), "activeFocus", true);
+        keyClick(Qt.Key_Return);
+        tryCompare(screen, "visible", true);
+        compare(heading.text, "Log out now?");
     }
 
     // A program that cannot start does not leave the child on a question

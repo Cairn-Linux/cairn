@@ -2,6 +2,7 @@
 #pragma once
 
 #include "AppLauncher.h"
+#include "LogOut.h"
 
 #include <QObject>
 #include <QQmlEngine>
@@ -18,9 +19,11 @@
 // launch goes back to where the child was, the Terminal goes back to the
 // tiles, and at the tiles, or while a window that opened on its own is up,
 // nothing happens. The question before logging out (ADR-0021) goes back to
-// the tiles, as its Back does. The kiosk makes the launcher fullscreen and
-// nothing else does, so a windowed launcher is a grown-up running it under
-// Plasma, and there a close closes it like any other window.
+// the tiles, as its Back does; once the child has said yes and the session
+// is ending, nothing happens, as there is nothing to go back to. The kiosk
+// makes the launcher fullscreen and nothing else does, so a windowed
+// launcher is a grown-up running it under Plasma, and there a close closes
+// it like any other window.
 class CloseRequest : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -32,5 +35,5 @@ public:
     explicit CloseRequest(QObject* parent = nullptr);
 
     Q_INVOKABLE static Answer answer(bool fullscreen, bool terminalOpen, bool logOutAsked,
-                                     AppLauncher::State launcherState);
+                                     LogOut::State logOutState, AppLauncher::State launcherState);
 };
