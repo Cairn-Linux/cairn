@@ -245,7 +245,7 @@ UPower decides what low is, from `/etc/UPower/UPower.conf`; the launcher
 never changes it.
 A computer with no battery, or on a UPS, shows nothing.
 When UPower cannot be read, the journal says so in one sentence and the
-child sees no battery.
+child sees no battery until UPower's next change, which is read in full.
 The bar goes with the tiles, so nothing shows over a game.
 To compare what the launcher shows with UPower's own reading, run
 `upower -i /org/freedesktop/UPower/devices/DisplayDevice`.

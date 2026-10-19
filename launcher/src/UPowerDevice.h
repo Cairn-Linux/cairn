@@ -18,7 +18,8 @@
 // It reads IsPresent, Percentage, State, WarningLevel and Type from
 // org.freedesktop.UPower.Device, follows PropertiesChanged, and reads them
 // all again when UPower restarts. It never changes anything in UPower.
-// With no bus, no UPower, or an error, it reads as no battery.
+// With no bus or no UPower it reads as no battery. After a failed read it
+// reads as no battery until UPower's next change, then reads it all again.
 class UPowerDevice : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -72,4 +73,7 @@ private:
     int m_state = 0;
     int m_warningLevel = 0;
     int m_type = 0;
+    // True once a GetAll answer has been taken. Until then a change alone
+    // is not enough: Type never changes, so UPower never sends it again.
+    bool m_readInFull = false;
 };

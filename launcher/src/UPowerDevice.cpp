@@ -97,8 +97,10 @@ void UPowerDevice::onPropertiesChanged(const QString& interface, const QVariantM
     if (interface != deviceInterface) {
         return;
     }
-    // An invalidated property comes without its value, so ask for them all.
-    if (!invalidated.isEmpty()) {
+    // An invalidated property comes without its value, and a change after a
+    // failed read leaves the others unknown, so ask for them all. The answer
+    // carries this change too.
+    if (!invalidated.isEmpty() || !m_readInFull) {
         readAll();
         return;
     }
@@ -146,6 +148,7 @@ void UPowerDevice::readAll() {
                     forget();
                     return;
                 }
+                m_readInFull = true;
                 take(reply.value());
             });
 }
@@ -173,6 +176,7 @@ void UPowerDevice::take(const QVariantMap& properties) {
 }
 
 void UPowerDevice::forget() {
+    m_readInFull = false;
     take({{QStringLiteral("IsPresent"), false},
           {QStringLiteral("Percentage"), 0.0},
           {QStringLiteral("State"), 0},

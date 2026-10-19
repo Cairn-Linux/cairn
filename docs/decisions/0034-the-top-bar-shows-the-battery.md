@@ -87,6 +87,8 @@ A desktop, a virtual machine, or a desktop on a UPS has the bar it had
 before.
 When UPower cannot be read, the launcher says so in one sentence in the
 journal, and the child sees no battery.
+UPower's next change makes the launcher read everything again, so one
+failed read does not hide the battery for the rest of the session.
 
 **Only at the tiles, not over a running game.**
 The bar goes with the tiles, as Log out does.

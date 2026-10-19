@@ -40,9 +40,13 @@ public:
 // dbus-run-session), standing in for UPower.
 class StandInUPower {
 public:
-    explicit StandInUPower(const QString& name)
+    // Without the device, it is a UPower that has its name but cannot yet
+    // answer for the path.
+    explicit StandInUPower(const QString& name, bool withDevice = true)
         : m_bus(QDBusConnection::connectToBus(QDBusConnection::SessionBus, name)) {
-        m_bus.registerObject(path, &device, QDBusConnection::ExportAllProperties);
+        if (withDevice) {
+            showDevice();
+        }
     }
     // Gives the name back before the connection goes, so the next test's
     // stand-in can take it at once.
@@ -57,6 +61,10 @@ public:
 
     bool dropName() {
         return m_bus.unregisterService(upower);
+    }
+
+    bool showDevice() {
+        return m_bus.registerObject(path, &device, QDBusConnection::ExportAllProperties);
     }
 
     // UPower sends PropertiesChanged by hand; so does the stand-in.
@@ -204,6 +212,32 @@ private slots:
         QVERIFY(after.announce({{QStringLiteral("State"), 1U}}));
         QTRY_COMPARE(reader.state(), 1);
         QCOMPARE(reader.percentage(), 55.0);
+    }
+
+    // One failed read must not hide the battery for the rest of the session.
+    // A change names only what changed, and Type is never sent again, so the
+    // next change after a failed read is read in full.
+    void aFailedReadIsAskedAgain() {
+        StandInUPower stand(QStringLiteral("failed-read"), false);
+        QVERIFY(stand.takeName());
+        QTest::ignoreMessage(QtWarningMsg,
+                             "Could not read the battery from UPower "
+                             "(org.freedesktop.DBus.Error.UnknownObject), so the launcher shows "
+                             "no battery.");
+        UPowerDevice reader(QDBusConnection::sessionBus(), path);
+        reader.setService(upower);
+        QTRY_VERIFY(answered(reader));
+        QCOMPARE(reader.isPresent(), false);
+        stand.device.percentage = 15;
+        stand.device.warningLevel = 3;
+        QVERIFY(stand.showDevice());
+        QVERIFY(stand.announce(
+            {{QStringLiteral("Percentage"), 15.0}, {QStringLiteral("WarningLevel"), 3U}}));
+        QTRY_COMPARE(reader.isPresent(), true);
+        QCOMPARE(reader.type(), 2);
+        QCOMPARE(reader.percentage(), 15.0);
+        QCOMPARE(reader.warningLevel(), 3);
+        QTRY_VERIFY(answered(reader));
     }
 
     void withoutABusItSaysSo() {
