@@ -64,6 +64,9 @@ What it leaves on the machine:
 | `/etc/security/faillock.conf`, `/var/lib/faillock` | A lockout after wrong passwords for every account that has one: `authselect`'s `with-faillock`, with its count kept where a reboot does not clear it, and an SELinux rule labelling that directory `faillog_t` (ADR-0020) |
 | `/usr/local/libexec/cairn/cairn-steam-visit`, `/usr/local/libexec/cairn/cage-visit`, `/etc/pam.d/cairn-steam-visit`, `/etc/pam.d/login`, `/etc/polkit-1/actions/com.cairnlinux.steam-visit.policy`, an SELinux rule for `/run/cairn` | A grown-up's way into a child's Steam from their own login (ADR-0032, `../session/`): the root helper; a copy of the image's cage the child may run but not read (mode 0711), made again when the image's cage changes; the visit's PAM session; Fedora's console `login` with the refusal line; the polkit action, naming the helper's real path under `/var/usrlocal`, with polkit restarted when it changes; and the `etc_t` label that lets the login screen read the list of children on a visit |
 | `/usr/local/bin/cairn-steam-for`, `/usr/local/libexec/cairn/cairn-steam-for`, `/usr/local/share/applications/cairn-steam-for-CHILD.desktop` | The Guardian's window for a child's Steam (ADR-0032, `../guardian/`), and a "Steam for <child>" menu entry for every child account in a level group. The program and its wrapper are `root:cairn-guardian`, mode 0750: Plasma's menu leaves out an entry whose `TryExec` the account cannot run, so only a Guardian sees the entries. An entry whose account is no longer a child is removed. The window writes to the journal under `cairn-steam-for` |
+| `/var/lib/cairn/steam-library/`, `/var/lib/cairn/steam-library/steamapps/` | The folder a Guardian's Steam installs the children's games into (ADR-0033). Both are `root:cairn-guardian`, mode 2775, with the group in the access ACL and the default ACL `d:u::rwx,d:g::rwx,d:g:cairn-guardian:rwx,d:m::rwx,d:o::r-x`, so only Guardians can change what is in it and every account can read it. Only these two folders are set; the games inside are never walked. A link in place of either is refused |
+| `/usr/local/libexec/cairn/cairn-copy-games`, `/usr/local/libexec/cairn/kidscan.py` | The copy step (`cairn-copy-games.py`, ADR-0033) and the kidscan parser it shares, mode 0644, run with `python3 -I` |
+| each child's `~/.local/share/Steam/steamapps/` | A copy of each game in the shared folder, by reflink, with its manifest copied byte for byte after it. Made on every run that finds a game in the shared folder, one child at a time, by `cairn-steam-visit --copy-games CHILD`, which lists the child in `/run/cairn/steam-visits` as a visit does, waits until nothing of theirs is running, and runs the copy as the child. A game the child already has is never touched. A child who is logged in, on a visit, or whose Steam has not run yet gets a `note:` line and their copies at a later run, and so does a game left out, with the reason. Without reflink nothing is copied. The helper keeps a record of each copy in the journal, under `cairn-steam-visit` |
 | `/usr/local/bin/cairn-launcher` | Wrapper that runs the release launcher from `/usr/local/libexec/cairn` with the manifest in `/usr/local/share/cairn/manifest.json` and `--log-out /usr/local/bin/cairn-log-out`, which gives the tiles a Log out button, `--scope-apps`, which starts each program in a scope the give-up key can end (ADR-0025), and `--start-steam`, which starts the Steam client at login for a child with a Steam tile (ADR-0027). The launcher writes to the journal under `cairn-launcher` (#122). Its Draw tile runs Tux Paint with `--autosave --saveovernew`, so a child who leaves with Super+Q never loses a picture (ADR-0019) |
 
 When something needed a grown-up, the reason is in the journal, kept
@@ -79,9 +82,10 @@ The launcher's lines include what the child's apps printed. Before #122 all
 of it went to the child's own `~/.cache/wayland-errors`, which SDDM replaces
 at every login.
 
-Not yet: a picture for the child's tile (ADR-0020 leaves it for later) and
-a `logind.conf` key for the lid. Re-running the script puts back the
-repository's `manifest.json`, so a tile added by hand in the VM goes.
+Not yet: a picture for the child's tile (ADR-0020 leaves it for later), a
+`logind.conf` key for the lid, and tiles for the copied games (ADR-0033).
+Re-running the script puts back the repository's `manifest.json`, so a tile
+added by hand in the VM goes.
 
 ## What it must do
 

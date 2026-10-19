@@ -105,6 +105,8 @@ void SteamForChild::screenLocked() {
 SteamForChild::Reason SteamForChild::reasonFor(const QString& refusal) {
     static const QHash<QString, Reason> reasons = {
         {QStringLiteral("busy"), Reason::Busy},
+        // Provisioning is copying games into the child's library (ADR-0033).
+        {QStringLiteral("copying"), Reason::Copying},
         {QStringLiteral("logged-in"), Reason::LoggedIn},
         {QStringLiteral("still-running"), Reason::StillEnding},
         {QStringLiteral("not-set-up"), Reason::NotSetUp},

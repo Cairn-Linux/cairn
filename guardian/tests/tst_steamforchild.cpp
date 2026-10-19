@@ -202,6 +202,16 @@ private slots:
         QTRY_COMPARE(visit.step(), Step::NotOpened);
     }
 
+    // Provisioning holds the list while it copies games (ADR-0033): not a
+    // visit, so the window must not say one is open.
+    void aCopyOfTheGamesIsItsOwnReason() {
+        const StandIns standIns(false);
+        SteamForChild visit(standIns.setup(QStringLiteral("copying")));
+        visit.open();
+        QTRY_COMPARE(visit.step(), Step::NotOpened);
+        QCOMPARE(visit.reason(), Reason::Copying);
+    }
+
     void anOwnSteamThatWillNotCloseKeepsTheChildsShut() {
         const StandIns standIns(true);
         QFile stubborn(QString::fromLocal8Bit(qgetenv("CAIRN_TEST_PROC")) +
@@ -215,6 +225,7 @@ private slots:
 
     void eachWordOfTheHelperHasItsReason() {
         QCOMPARE(SteamForChild::reasonFor(QStringLiteral("busy")), Reason::Busy);
+        QCOMPARE(SteamForChild::reasonFor(QStringLiteral("copying")), Reason::Copying);
         QCOMPARE(SteamForChild::reasonFor(QStringLiteral("logged-in")), Reason::LoggedIn);
         QCOMPARE(SteamForChild::reasonFor(QStringLiteral("still-running")), Reason::StillEnding);
         QCOMPARE(SteamForChild::reasonFor(QStringLiteral("not-set-up")), Reason::NotSetUp);

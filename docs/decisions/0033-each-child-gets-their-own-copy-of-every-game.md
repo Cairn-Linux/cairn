@@ -127,10 +127,11 @@ the child's own home, which no other child can open.**
     cannot reflink, it copies nothing and says so in one sentence, rather
     than fill the disk with full copies. If the shared manifest changed
     meanwhile, the copy is thrown away with one sentence (check 13).
-    Otherwise the folder is renamed into place. Then the manifest it read
-    is written under a temporary name and renamed into place, so the
-    child's Steam never sees a manifest for a half-copied game, or half a
-    manifest.
+    Otherwise the manifest it read is written under a temporary name.
+    Then the folder is renamed into place, and the manifest right after
+    it, with Ctrl-C held off between the two. So the child's Steam never
+    sees a manifest for a half-copied game, or half a manifest, and an
+    interruption does not leave Cairn's own copy looking like the child's.
   - **As the child.** The step runs as the child, never as root, so a
     link planted in the home cannot send a write anywhere the child could
     not write already. Provisioning installs it, with the part of kidscan

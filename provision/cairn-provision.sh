@@ -25,6 +25,9 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 PREFIX=/usr/local
 SHARE="$PREFIX/share/cairn"
 FACTS=/var/lib/cairn/facts.txt
+# Where a Guardian's Steam installs the games every child gets a copy of
+# (ADR-0033).
+SHARED_LIBRARY=/var/lib/cairn/steam-library
 LEVEL_GROUPS=(cairn-l1 cairn-l2 cairn-l3 cairn-l4 cairn-guardian)
 # The brand's typefaces (DESIGN §6.2, brand/tokens.json) are in Fedora but
 # not in the Bazzite image; without them every Cairn screen falls back to
@@ -549,6 +552,159 @@ WINDOW
     done
 }
 
+# --- 12. The games every child gets a copy of (ADR-0033) ----------------------
+# Only Guardians may change the shared folder; every account may read it.
+# The default ACL gives the group what Steam's own modes ask for, whatever a
+# Guardian's umask, and setgid keeps the group on what Steam makes inside.
+# Only these two folders: the games inside are Steam's, and never walked.
+SHARED_ACL="user::rwx
+group::rwx
+group:cairn-guardian:rwx
+mask::rwx
+other::r-x
+default:user::rwx
+default:group::rwx
+default:group:cairn-guardian:rwx
+default:mask::rwx
+default:other::r-x"
+
+make_shared_library() {
+    local folder
+    for folder in "$SHARED_LIBRARY" "$SHARED_LIBRARY/steamapps"; do
+        # chown, chmod and setfacl follow links, and a Guardian can write the
+        # top folder.
+        [ ! -L "$folder" ] || refuse "$folder is a link; move it aside and run this again"
+        if [ ! -d "$folder" ]; then
+            mkdir --mode=2775 "$folder"
+            changed "$folder"
+        fi
+        if [ "$(stat --format=%U:%G:%a -- "$folder")" != root:cairn-guardian:2775 ]; then
+            chown root:cairn-guardian "$folder"
+            chmod 2775 "$folder"
+            changed "$folder owned by root and cairn-guardian, mode 2775"
+        fi
+        if [ "$(getfacl --omit-header --absolute-names -- "$folder")" != "$SHARED_ACL" ]; then
+            setfacl --set "u::rwx,g::rwx,g:cairn-guardian:rwx,m::rwx,o::r-x,d:u::rwx,d:g::rwx,d:g:cairn-guardian:rwx,d:m::rwx,d:o::r-x" -- "$folder"
+            changed "$folder ACL for cairn-guardian"
+        fi
+    done
+}
+
+# The copy step and the part of kidscan it shares, where every account can
+# read them and only root can change them. The copy runs as each child, and
+# the checkout sits in the Guardian's own home, which children cannot open.
+install_copy_games() {
+    install_file 644 "$REPO/provision/cairn-copy-games.py" "$PREFIX/libexec/cairn/cairn-copy-games"
+    install_file 644 "$REPO/tools/kidscan/kidscan.py" "$PREFIX/libexec/cairn/kidscan.py"
+}
+
+# A game's name as the Guardian's Steam wrote it in the shared folder, with
+# anything that is not printable taken out, or its number.
+game_name() {
+    local name
+    name="$(python3 -I -B -c '
+import sys
+sys.path.insert(0, sys.argv[1])
+import kidscan
+try:
+    with open(sys.argv[2], encoding="utf-8", errors="replace") as manifest:
+        name = kidscan.ci_get(kidscan.ci_get(kidscan.parse_vdf(manifest.read()), "AppState", {}), "name", "")
+except (OSError, ValueError, AttributeError):
+    name = ""
+print("".join(c for c in name if c.isprintable()) if isinstance(name, str) else "")
+' "$PREFIX/libexec/cairn" "$SHARED_LIBRARY/steamapps/appmanifest_$1.acf" 2> /dev/null)" || name=""
+    echo "${name:-game $1}"
+}
+
+# Why the copy step left a game out, from its reason word.
+not_copied_because() {
+    local child="$2"
+    case "$1" in
+        unreadable) echo "Steam's file for it cannot be read" ;;
+        appid) echo "Steam's file for it names another game" ;;
+        installdir) echo "Steam's file for it names its folder in a way Cairn does not copy" ;;
+        beta-branch) echo "it is on a beta branch, which $child's Steam account may not have" ;;
+        not-installed) echo "it is not fully installed, or an update is waiting; let your own Steam finish it" ;;
+        downloading) echo "Steam is still downloading it" ;;
+        no-folder) echo "its folder is missing from the shared folder" ;;
+        folder-without-manifest) echo "$child's Steam has a folder for it already, which may hold $child's saves; docs/TRY.md says how to set it aside" ;;
+        changed) echo "Steam changed it during the copy; it is copied at the next run" ;;
+        copy-failed) echo "the copy did not work; it is tried again at the next run" ;;
+        unreadable-files) echo "some of its files can be read only by your own account, so they cannot be copied; docs/TRY.md says what to do" ;;
+        *) echo "Cairn does not copy it" ;;
+    esac
+}
+
+# Why the helper refused to copy a child's games, from its reason word.
+not_copying_because() {
+    local child="$2"
+    case "$1" in
+        logged-in) echo "$child is logged in; their games are copied at the next run with $child logged out" ;;
+        busy) echo "a child's Steam is open from a grown-up's login; $child's games are copied at the next run" ;;
+        still-running) echo "a program of $child's is still running; their games are copied at the next run" ;;
+        not-set-up) echo "no games are copied for $child; the list that keeps a child from logging in meanwhile is not labelled yet" ;;
+        *) echo "no games are copied for $child; the helper refused: $1" ;;
+    esac
+}
+
+# One line from the helper's copy mode, as a sentence of this script's own.
+# The words are checked before any is used, and a line that is not one of
+# them is never printed.
+copy_sentence() {
+    local child="$1" line="$2" appid reason
+    if [[ "$line" =~ ^copied\ ([0-9]{1,10})$ ]]; then
+        changed "$child's own copy of $(game_name "${BASH_REMATCH[1]}")"
+    elif [[ "$line" =~ ^have\ [0-9]{1,10}$ ]]; then
+        # The child's copy holds their saves, so it stays as it is.
+        :
+    elif [[ "$line" =~ ^skipped\ ([0-9]{1,10})\ ([a-z-]{1,32})$ ]]; then
+        appid="${BASH_REMATCH[1]}"
+        reason="${BASH_REMATCH[2]}"
+        echo "note: $(game_name "$appid") is not copied for $child; $(not_copied_because "$reason" "$child")"
+    elif [[ "$line" =~ ^refused\ ([a-z-]{1,32})$ ]]; then
+        echo "note: $(not_copying_because "${BASH_REMATCH[1]}" "$child")"
+    else
+        case "$line" in
+            waiting | finished) ;;
+            unnumbered) echo "note: a file in the shared folder looks like a game but has no game number; it is not copied for $child" ;;
+            no-library) echo "note: $child's Steam has not run yet; their games are copied at the next run after a visit signs it in" ;;
+            no-shared) echo "note: there is no shared game folder, so no games are copied for $child" ;;
+            lists-shared) echo "note: $child's Steam lists the shared game folder as its own, so no games are copied for $child; remove it in Steam's Settings > Storage during a visit" ;;
+            unreadable-config) echo "note: no games are copied for $child; their Steam's list of game folders is not a plain file, so Cairn does not read it" ;;
+            no-reflink) echo "note: no games are copied for $child; this computer's disk cannot make a copy that shares the original's space, and full copies would fill it" ;;
+            failed) echo "note: copying $child's games stopped early; it is tried again at the next run, and journalctl -t cairn-steam-visit has a record" ;;
+            *) echo "note: copying $child's games printed a line this script does not know; it is left out here" ;;
+        esac
+    fi
+}
+
+# --- 13. Each child's own copy of the games (ADR-0033) -------------------------
+# One child at a time, through the visit helper, which keeps the child from
+# logging in while it runs and runs the copy as the child. A child who cannot
+# be copied for now gets a note, and the others still get their copies. The
+# trace is off, because it would print each line before it is checked. The
+# helper's own trace goes nowhere; it keeps its record in the journal.
+copy_games() {
+    local child line ended
+    # With no game in the shared folder no child is held from logging in, and
+    # there is nothing to say.
+    compgen -G "$SHARED_LIBRARY/steamapps/appmanifest_*.acf" > /dev/null || return 0
+    { set +x; } 2> /dev/null
+    for child in $(child_accounts); do
+        ended=no
+        while IFS= read -r line; do
+            copy_sentence "$child" "$line"
+            if [[ "$line" =~ ^(finished|failed|refused\ [a-z-]{1,32})$ ]]; then
+                ended=yes
+            fi
+        done < <("$PREFIX/libexec/cairn/cairn-steam-visit" --copy-games "$child" < /dev/null 2> /dev/null || true)
+        if [ "$ended" = no ]; then
+            echo "note: copying $child's games stopped without saying why; it is tried again at the next run, and journalctl -t cairn-steam-visit may have a record"
+        fi
+    done
+    set -x
+}
+
 relabel() {
     if command -v restorecon > /dev/null; then
         restorecon -R "$PREFIX/bin/cairn-launcher" "$PREFIX/bin/cairn-session" \
@@ -579,7 +735,10 @@ main() {
     protect_guardians
     install_steam_visit
     install_steam_for
+    make_shared_library
+    install_copy_games
     relabel
+    copy_games
 
     set +x
     echo "done: $changes change(s)"

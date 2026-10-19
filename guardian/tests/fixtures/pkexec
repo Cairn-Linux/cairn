@@ -35,6 +35,7 @@ case "$scenario" in
         ;;
     names-child) echo "refused $child"; exit 1 ;;
     busy) echo "refused busy"; exit 1 ;;
+    copying) echo "refused copying"; exit 1 ;;
     logged-in) echo "refused logged-in"; exit 1 ;;
     # pkexec's own: the box was dismissed, or the password not accepted.
     dismissed) exit 126 ;;
