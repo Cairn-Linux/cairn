@@ -4,6 +4,7 @@
 CloseRequest::CloseRequest(QObject* parent) : QObject(parent) {}
 
 CloseRequest::Answer CloseRequest::answer(bool fullscreen, bool terminalOpen, bool logOutAsked,
+                                          LogOut::State logOutState,
                                           AppLauncher::State launcherState) {
     if (!fullscreen) {
         return Answer::Close;
@@ -16,6 +17,11 @@ CloseRequest::Answer CloseRequest::answer(bool fullscreen, bool terminalOpen, bo
     }
     // The launcher never dismisses this screen; only the window closing does.
     if (launcherState == AppLauncher::State::Interrupted) {
+        return Answer::Stay;
+    }
+    // The session is ending under the screen that says so; going back to
+    // the tiles now would show them for a moment and then log out anyway.
+    if (logOutState == LogOut::State::Leaving) {
         return Answer::Stay;
     }
     if (logOutAsked) {

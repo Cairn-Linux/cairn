@@ -4,8 +4,41 @@
 <context>
     <name>AppLauncher</name>
     <message>
-        <location filename="../src/AppLauncher.cpp" line="142"/>
+        <location filename="../src/AppLauncher.cpp" line="196"/>
         <source>Another program</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>Battery</name>
+    <message>
+        <location filename="../qml/Battery.qml" line="27"/>
+        <source>Battery charging, %1 percent</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/Battery.qml" line="29"/>
+        <source>Battery on the charger, %1 percent</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/Battery.qml" line="31"/>
+        <source>Battery full</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/Battery.qml" line="33"/>
+        <source>Battery, %1 percent</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/Battery.qml" line="136"/>
+        <source>The battery is almost empty. Ask a grown-up for the charger.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/Battery.qml" line="136"/>
+        <source>The battery is low. Ask a grown-up for the charger.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -50,28 +83,48 @@
 <context>
     <name>LogOutScreen</name>
     <message>
-        <location filename="../qml/LogOutScreen.qml" line="40"/>
+        <location filename="../qml/LogOutScreen.qml" line="67"/>
         <source>Log out now?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/LogOutScreen.qml" line="51"/>
-        <source>The next person can choose their name.</source>
+        <location filename="../qml/LogOutScreen.qml" line="67"/>
+        <source>Logging out.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/LogOutScreen.qml" line="67"/>
+        <source>Log out did not finish.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/LogOutScreen.qml" line="81"/>
+        <source>The next person can choose their name.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/LogOutScreen.qml" line="81"/>
+        <source>This takes a few seconds.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/LogOutScreen.qml" line="81"/>
+        <source>Try again, or ask a grown-up.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/LogOutScreen.qml" line="98"/>
         <source>Back</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/LogOutScreen.qml" line="69"/>
+        <location filename="../qml/LogOutScreen.qml" line="100"/>
         <source>Back to the tiles</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/LogOutScreen.qml" line="80"/>
-        <location filename="../qml/LogOutScreen.qml" line="82"/>
+        <location filename="../qml/LogOutScreen.qml" line="111"/>
+        <location filename="../qml/LogOutScreen.qml" line="113"/>
         <source>Log out</source>
         <translation type="unfinished"></translation>
     </message>
@@ -79,13 +132,13 @@
 <context>
     <name>Main</name>
     <message>
-        <location filename="../qml/Main.qml" line="24"/>
+        <location filename="../qml/Main.qml" line="29"/>
         <source>Cairn</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="158"/>
-        <location filename="../qml/Main.qml" line="160"/>
+        <location filename="../qml/Main.qml" line="204"/>
+        <location filename="../qml/Main.qml" line="206"/>
         <source>Log out</source>
         <translation type="unfinished"></translation>
     </message>

@@ -1,11 +1,14 @@
 # One Steam library for several accounts
 
-**Date:** 2026-10-12; laptop checks, saves and new checks 2026-10-13
+**Date:** 2026-10-12; laptop checks, saves, the move and new checks
+2026-10-13
 **For:** issue #130, ADR-0032 (proposed) and ADR-0033 (proposed)
 **Result:** Desk research, a probe on the development PC, and read-only
-checks on the kids' laptop on 2026-10-13. The only change made on the
-laptop was a root-only backup of the shared `Saves/` folders, and no Steam
-was started for this note. Valve does not document a
+checks on the kids' laptop on 2026-10-13. The same day, with the
+maintainer's go, the laptop moved to a copy of each game for every child,
+checks 5 to 8, 10, 17 and 20 passed, and so did the first half of check
+11 (see "What the move showed").
+Valve does not document a
 way to share one library between Linux accounts. Native games shared from
 one folder work on the laptop and in community reports. Three things in a
 shared folder fail for every account but the one that owns their files:
@@ -91,6 +94,12 @@ From #130 and its comments:
   changed. The probe is in the maintainer's work area, not the repository.
 - Every finding was checked a second time against its source. Where the
   second pass corrected the first, this note follows the second.
+- On the laptop, each account's Steam ran on a headless labwc in a PAM
+  session of its own (`systemd-run --uid=<account> -p PAMName=login`),
+  the route `steam-visit.md` found to keep a logged-out account's Steam
+  alive. Games started with `steam -applaunch`, and the results come from
+  Steam's logs, `/proc` and the files. A review pass read the scripts for
+  ways to lose a save before they ran.
 
 ## How Steam keeps its list of libraries
 
@@ -654,6 +663,95 @@ Tiles:
     over the shared folder only. One entry per shared game and nothing
     from any home. Pep's Birthday Surprise has one only once it is in the
     shared folder.
+
+## What the move showed
+
+Run on 2026-10-13, with the maintainer's go and nobody at the laptop.
+First came a reflink copy of the shared folder and of each account's
+Steam settings, compared with the original file for file and ACL for ACL.
+It took 1 MiB of disk. The login screen stayed up, since stopping it over
+ssh was not allowed, so every step first checked that no child was logged
+in. Only Putt-Putt 6 and the Activity Pack were started, because their
+`Saves/` held none of a child's saves.
+
+- **Check 5 passed.** The shared entry came out of both lists of both
+  children and of the L2 test account. At its next start each of those
+  Steams loaded 17 apps from its own folder and wrote back one library.
+  After a restart the shared folder was still out.
+- **Check 6 passed.** The two top folders are root's and
+  `cairn-guardian`'s, mode 2775. Everything below is the Guardian's, with
+  `group:cairn-guardian` in each access ACL and the default ACL on
+  folders. No ACL or file names the old group, which is gone. No child can
+  write the shared folder, and every child can read each game file and
+  manifest. The children's empty `compatdata/<appid>` folders and their
+  shader caches in the shared folder were removed.
+- **The copy step, run by hand,** gave each of the three accounts the 11
+  games: folder first under a temporary name, manifest last. Each
+  account's 11 copies come to 2,081 MiB, all of it shared with the
+  original: 0 B exclusive.
+- **Check 7 passed.** Putt-Putt 6 started from each account's own copy
+  (the game's working folder was in that account's home), and Steam
+  downloaded nothing for it. Before the start Steam updated its own
+  runtime in that account's folder, as it does for each account. Steam's
+  first look reported the copied saves "in sync" with the cloud.
+- **Check 8 passed.** Every `Saves/` folder in both children's copies
+  matched the backup, dates included.
+- **Check 10 confirmed what was inferred.** A file put into one child's
+  copy of Putt-Putt 6 was uploaded when the game closed. Before the game
+  started for the other child, Steam downloaded it into that child's
+  copy, with no dialog. Deleting it there deleted it from the cloud, but
+  not from the first child's copy: at its next start that Steam took the
+  newer state and kept the file as "in sync". So new and changed saves
+  travel between copies on one Steam account, and deleted ones do not.
+- **Check 17.** With the Activity Pack's copy set aside,
+  `steam -applaunch` opened Steam's main window with its Install dialog,
+  offering the account's own folder, and waited. Nothing was downloaded.
+  The kiosk hides that window (ADR-0030), so the tile would end on the
+  grown-up screen.
+- **Check 20 passed.** kidscan over the shared folder, run as the check
+  says, wrote 11 entries, each `steam -applaunch` and a number, and
+  nothing from any home. Its ids are still made from the title, not
+  `steam-<appid>` (#24).
+- **The Guardian's Steam** still loaded the 11 games from the shared
+  folder after the change of owner, and wrote there without an error. At
+  that start, with no game run, Steam Cloud downloaded the Guardian
+  account's own saves for Big Thinkers Kindergarten into the shared
+  `Saves/`. They date from when the children played under that account.
+  So the shared `Saves/` folders do not stay empty, and a copy made later
+  starts with the Guardian account's cloud saves. They were left there:
+  deleting them could delete them from that account's cloud the next time
+  its Steam runs the game.
+- Each Steam makes a `common/Steam.dll` link into its own home in every
+  library it lists, the shared one included.
+- **Check 11, its first half.** The laptop has two Steam accounts: the
+  Guardian's, which the L2 test account also uses, and the one both
+  children use. While the Guardian's Steam played Putt-Putt 6 from the
+  shared folder, a child's Steam would not start its own copy of that
+  game. Steam said "An error occurred while launching this game: Shared
+  library locked", with a Close button, and logged `AppError_33`. The
+  other way round, with the child playing their copy of the Activity
+  Pack, the Guardian's Steam gave the same message for that game, and the
+  child's game ran on for the 6 minutes it was watched. A different game
+  started for the child while the Guardian played. So with one copy in
+  the family, as Valve says, one account plays a game at a time, whoever
+  started first, and a game already running is not stopped. In a child's
+  kiosk Steam's message is hidden behind the tiles (ADR-0030), so the tile
+  would end on the grown-up screen.
+- ScummVM rewrites its settings file in the game's `ScummVM_Linux/` when
+  the game quits, with the screen size it last ran at and its keys in a
+  new order. Played from the shared folder, that is the shared copy's
+  file, which later copies get. The two files the checks changed were put
+  back from copies kept beforehand.
+- Once, after its launch was refused, the Guardian's Steam ignored
+  `steam -shutdown` twice over about 5 minutes, and had logged nothing
+  since the refusal. It ended 5 s after a `SIGTERM`. A visit's helper
+  gives Steam 25 s to quit and then ends the child's session, so a visit
+  would still close.
+- **Not run:** 9 and 14 (the Windows game into the shared folder), 11's
+  second half (a game outside the children's allow-list: the Guardian's
+  account has none installed), 12, 13, 15 and 19 (clicks in Steam's own
+  windows, or a visit, which the laptop's build lacks), 16 (a visit) and
+  18 (an update waiting).
 
 ## Sources
 
