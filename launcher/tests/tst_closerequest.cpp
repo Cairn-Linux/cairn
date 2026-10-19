@@ -7,6 +7,7 @@ namespace {
 
 using Answer = CloseRequest::Answer;
 using State = AppLauncher::State;
+using LogOutState = LogOut::State;
 
 class CloseRequestTest : public QObject {
     Q_OBJECT
@@ -38,7 +39,8 @@ private slots:
         QFETCH(const bool, terminalOpen);
         QFETCH(const State, launcherState);
         QFETCH(const Answer, expected);
-        QCOMPARE(CloseRequest::answer(true, terminalOpen, false, launcherState), expected);
+        QCOMPARE(CloseRequest::answer(true, terminalOpen, false, LogOutState::Idle, launcherState),
+                 expected);
     }
 
     // The kiosk never answers Close, whatever is showing: that would end the
@@ -48,8 +50,11 @@ private slots:
             for (const State state : {State::Idle, State::Starting, State::Running, State::Failed,
                                       State::Interrupted, State::ComingSoon}) {
                 for (const bool logOutAsked : {false, true}) {
-                    QVERIFY(CloseRequest::answer(true, terminalOpen, logOutAsked, state) !=
-                            Answer::Close);
+                    for (const LogOutState logOutState :
+                         {LogOutState::Idle, LogOutState::Leaving, LogOutState::DidNotFinish}) {
+                        QVERIFY(CloseRequest::answer(true, terminalOpen, logOutAsked, logOutState,
+                                                     state) != Answer::Close);
+                    }
                 }
             }
         }
@@ -59,18 +64,43 @@ private slots:
     // close answers it as its Back does. A failed launch in front of it
     // still answers first.
     void inTheKioskACloseAnswersTheLogOutQuestionWithStay() {
-        QCOMPARE(CloseRequest::answer(true, false, true, State::Idle), Answer::StayLoggedIn);
-        QCOMPARE(CloseRequest::answer(true, false, true, State::Running), Answer::StayLoggedIn);
-        QCOMPARE(CloseRequest::answer(true, false, true, State::Failed), Answer::Dismiss);
-        QCOMPARE(CloseRequest::answer(true, false, true, State::Interrupted), Answer::Stay);
+        QCOMPARE(CloseRequest::answer(true, false, true, LogOutState::Idle, State::Idle),
+                 Answer::StayLoggedIn);
+        QCOMPARE(CloseRequest::answer(true, false, true, LogOutState::Idle, State::Running),
+                 Answer::StayLoggedIn);
+        QCOMPARE(CloseRequest::answer(true, false, true, LogOutState::Idle, State::Failed),
+                 Answer::Dismiss);
+        QCOMPARE(CloseRequest::answer(true, false, true, LogOutState::Idle, State::Interrupted),
+                 Answer::Stay);
+    }
+
+    // Once the child has said yes, the session is ending under the screen
+    // that says so, and a close changes nothing. When the session is still
+    // here after the wait, the question is back and a close answers it as
+    // Back does. A failed launch in front of it still answers first.
+    void inTheKioskACloseWhileLoggingOutStays() {
+        QCOMPARE(CloseRequest::answer(true, false, true, LogOutState::Leaving, State::Idle),
+                 Answer::Stay);
+        QCOMPARE(CloseRequest::answer(true, false, true, LogOutState::Leaving, State::Running),
+                 Answer::Stay);
+        QCOMPARE(CloseRequest::answer(true, false, true, LogOutState::DidNotFinish, State::Idle),
+                 Answer::StayLoggedIn);
+        QCOMPARE(CloseRequest::answer(true, false, true, LogOutState::Leaving, State::Failed),
+                 Answer::Dismiss);
     }
 
     // A windowed launcher is a grown-up's run under Plasma: an ordinary window.
     void aWindowedLauncherCloses() {
-        QCOMPARE(CloseRequest::answer(false, false, false, State::Idle), Answer::Close);
-        QCOMPARE(CloseRequest::answer(false, true, false, State::Idle), Answer::Close);
-        QCOMPARE(CloseRequest::answer(false, false, false, State::Failed), Answer::Close);
-        QCOMPARE(CloseRequest::answer(false, false, false, State::Interrupted), Answer::Close);
+        QCOMPARE(CloseRequest::answer(false, false, false, LogOutState::Idle, State::Idle),
+                 Answer::Close);
+        QCOMPARE(CloseRequest::answer(false, true, false, LogOutState::Idle, State::Idle),
+                 Answer::Close);
+        QCOMPARE(CloseRequest::answer(false, false, false, LogOutState::Idle, State::Failed),
+                 Answer::Close);
+        QCOMPARE(CloseRequest::answer(false, false, false, LogOutState::Idle, State::Interrupted),
+                 Answer::Close);
+        QCOMPARE(CloseRequest::answer(false, false, true, LogOutState::Leaving, State::Idle),
+                 Answer::Close);
     }
 };
 

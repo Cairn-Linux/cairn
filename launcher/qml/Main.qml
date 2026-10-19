@@ -92,7 +92,7 @@ Window {
     // close. When that is the launcher it means one step back, never the end
     // of the child's session; CloseRequest decides which.
     onClosing: close => {
-        const answer = closeRequest.answer(window.visibility === Window.FullScreen, window.terminalOpen, window.logOutAsked, launcher.state);
+        const answer = closeRequest.answer(window.visibility === Window.FullScreen, window.terminalOpen, window.logOutAsked, logOut.state, launcher.state);
         close.accepted = answer === CloseRequest.Close;
         if (answer === CloseRequest.LeaveTerminal)
             window.closeTerminal();
@@ -118,12 +118,15 @@ Window {
     }
 
     function stayLoggedIn() {
+        logOut.dismiss();
         logOutAsked = false;
         logOutTile.forceActiveFocus();
     }
 
-    // If the program cannot start, the child is not left on a question that
-    // does nothing: they go back to where they chose Log out.
+    // While the program runs, the question says it is logging out, and
+    // pressing again starts nothing more (LogOut). If the program cannot
+    // start, the child is not left on a question that does nothing: they go
+    // back to where they chose Log out.
     function logOutNow() {
         if (!logOut.start())
             stayLoggedIn();
@@ -292,6 +295,8 @@ Window {
         objectName: "logOutScreen"
         anchors.fill: parent
         visible: window.logOutAsked && !grownUp.visible
+        leaving: logOut.state === LogOut.Leaving
+        didNotFinish: logOut.state === LogOut.DidNotFinish
         onStayed: window.stayLoggedIn()
         onConfirmed: window.logOutNow()
     }
