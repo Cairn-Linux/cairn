@@ -51,6 +51,11 @@ Colours, type, focus rings and radii come from `Cairn.Brand.Tokens`.
   a stone at a time from the brand tokens, over "Putt-Putt Joins the Circus
   is starting.", and the screen goes when the app's window has stayed up
   for three seconds, so a game's splash does not take it away.
+- **Slice 12 (2026-10-18):** the battery on the top bar (ADR-0034, #43).
+  `UPowerDevice` reads UPower's `DisplayDevice` on the system bus;
+  `BatteryLook` decides; `Battery.qml` draws the fill, a plug on the
+  charger, and one sentence when UPower says it is low. No battery,
+  nothing.
 - **Footprint (2026-09-08):** about 145 MB proportional idle in the VM,
   first frame 0.2 s after exec; the table is in
   `../docs/research/launcher-footprint.md`.
@@ -70,11 +75,15 @@ The presets do not pin a compiler.
 Debug enables AddressSanitizer and UndefinedBehaviorSanitizer.
 Use `cmake --preset release && cmake --build --preset release` for a build
 without sanitizers.
-CTest runs nine suites offscreen: the tile model, the manifest reader, the
-app launcher, the grid scroller, the close request, Log out, the window
-list, the compiled brand tokens, and the QML navigation, scrolling,
-starting-screen, grown-up-screen, terminal, close-request and Log out
-behaviour. Footpath's own six
+The launcher has nineteen CTest tests, run offscreen: the tile model, the
+manifest reader, kidscan's manifest written and read back (two tests), the
+app launcher, the windows of a launch, the wait for a Steam game, the
+give-up watch, Steam at login, the app scope, the grid scroller, the close
+request, Log out, the battery's look, the UPower reader (against a
+stand-in UPower on a bus of its own, under `dbus-run-session`), the window
+list, the compiled brand tokens, the Terminal's doors, and the QML
+navigation, scrolling, starting-screen, grown-up-screen, terminal,
+close-request, Log out and battery behaviour. Footpath's own six
 suites run in its repository.
 Qt on Fedora sends `qWarning` and `qInfo` lines to the journal when stderr
 is not a terminal; set `QT_FORCE_STDERR_LOGGING=1` to see them in a pipe.
@@ -222,6 +231,25 @@ This passed on the dev PC with labwc 0.9.6 on 2026-09-04, with the earlier
 protocol; the window rules of ADR-0026 were checked in the VM on
 2026-10-01 (`docs/research/steam-containment.md`).
 
+## The battery
+
+When the computer has a battery, the bar above the tiles shows it at the
+left, with Log out at the right (ADR-0034).
+`UPowerDevice` reads `IsPresent`, `Type`, `Percentage`, `State` and
+`WarningLevel` from UPower's `DisplayDevice` on the system bus and follows
+their changes; `BatteryLook` decides what to show; `Battery.qml` draws it.
+The fill shows how full the battery is, a plug shows while the charger is
+in, and one sentence shows when UPower's warning level is low, critical or
+action.
+UPower decides what low is, from `/etc/UPower/UPower.conf`; the launcher
+never changes it.
+A computer with no battery, or on a UPS, shows nothing.
+When UPower cannot be read, the journal says so in one sentence and the
+child sees no battery.
+The bar goes with the tiles, so nothing shows over a game.
+To compare what the launcher shows with UPower's own reading, run
+`upower -i /org/freedesktop/UPower/devices/DisplayDevice`.
+
 ## Requirements carried from the design
 
 - Fullscreen grid of large tiles. No window management, taskbar, or
@@ -229,6 +257,9 @@ protocol; the window rules of ADR-0026 were checked in the VM on
   grid scrolls by wheel and arrow keys, whole rows at a time, with the next
   row showing at the edge (ADR-0015). L2 adds a files view to the dock.
 - No reading required beyond app names, paired with distinct icons.
+- The battery above the tiles when there is one (ADR-0034): a fill a child
+  who cannot read can follow, and words only for children who read and
+  for grown-ups. UPower decides when it is low.
 - **Colour codes kind, never app**: ochre = make, moss = practice,
   paper with a hairline edge = games, fjord = machine. Use `Tokens.make` /
   `Tokens.makeLabel`, `Tokens.practice` / `Tokens.practiceLabel`,

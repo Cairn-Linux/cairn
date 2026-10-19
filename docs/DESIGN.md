@@ -450,6 +450,10 @@ The launcher **is the product.** Everything else is packaging.
   appears, including approved Steam titles. L2 adds a small dock with a
   files view.
 - Log out above the tiles, always in view (ADR-0021).
+- The battery on the same bar, when the computer has one: a drawn battery
+  whose fill shows how full it is, a plug while it is on the charger, and
+  one sentence when UPower says it is low. Nothing shows over a running
+  game yet (ADR-0034).
 - A pressed tile answers at once: until the app's window has stayed up for
   a few seconds, the Cairn mark builds itself stone by stone over one
   sentence, "Putt-Putt Joins the Circus is starting." (ADR-0028).

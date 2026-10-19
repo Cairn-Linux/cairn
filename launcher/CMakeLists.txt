@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-find_package(Qt6 REQUIRED COMPONENTS LinguistTools WaylandClient)
+find_package(Qt6 REQUIRED COMPONENTS DBus LinguistTools WaylandClient)
 find_package(PkgConfig REQUIRED)
 pkg_get_variable(WLR_PROTOCOLS_DIR wlr-protocols pkgdatadir)
 if(NOT WLR_PROTOCOLS_DIR)
@@ -34,27 +34,34 @@ set(launcher_model_sources
     src/GridScroller.h src/GridScroller.cpp
     src/CloseRequest.h src/CloseRequest.cpp
     src/LogOut.h src/LogOut.cpp
+    src/BatteryLook.h src/BatteryLook.cpp
 )
 # Needs a Wayland session to do anything, so it stays out of the model tests.
 set(launcher_window_sources src/ForeignWindowList.h src/ForeignWindowList.cpp)
 # What the launcher tells Footpath: the tiles are its doors.
 set(launcher_terminal_sources src/DoorsFromTiles.h src/DoorsFromTiles.cpp)
+# Reads UPower on the system bus (ADR-0034). Only the window and its tests
+# need Qt DBus.
+set(launcher_battery_sources src/UPowerDevice.h src/UPowerDevice.cpp)
 set(launcher_qml_files qml/Main.qml qml/Tile.qml qml/GrownUpScreen.qml qml/LogOutScreen.qml
-    qml/StartingScreen.qml)
+    qml/StartingScreen.qml qml/Battery.qml)
 set_source_files_properties(qml/Main.qml PROPERTIES QT_RESOURCE_ALIAS Main.qml)
 set_source_files_properties(qml/Tile.qml PROPERTIES QT_RESOURCE_ALIAS Tile.qml)
 set_source_files_properties(qml/GrownUpScreen.qml PROPERTIES QT_RESOURCE_ALIAS GrownUpScreen.qml)
 set_source_files_properties(qml/LogOutScreen.qml PROPERTIES QT_RESOURCE_ALIAS LogOutScreen.qml)
 set_source_files_properties(qml/StartingScreen.qml PROPERTIES QT_RESOURCE_ALIAS StartingScreen.qml)
+set_source_files_properties(qml/Battery.qml PROPERTIES QT_RESOURCE_ALIAS Battery.qml)
 
 qt_add_executable(cairn-launcher src/main.cpp)
 qt_add_qml_module(cairn-launcher
     URI Cairn.Launcher
     QML_FILES ${launcher_qml_files}
     SOURCES ${launcher_model_sources} ${launcher_window_sources} ${launcher_terminal_sources}
+        ${launcher_battery_sources}
 )
 target_include_directories(cairn-launcher PRIVATE src)
-target_link_libraries(cairn-launcher PRIVATE Qt6::Quick CairnBrand cairn-foreign-toplevel footpath footpathplugin)
+target_link_libraries(cairn-launcher PRIVATE Qt6::Quick Qt6::DBus CairnBrand cairn-foreign-toplevel
+    footpath footpathplugin)
 
 qt_add_lupdate(
     SOURCE_TARGETS cairn-launcher
@@ -120,6 +127,19 @@ target_compile_definitions(tst_logout PRIVATE
 )
 add_test(NAME logout COMMAND tst_logout)
 
+qt_add_executable(tst_batterylook tests/tst_batterylook.cpp ${launcher_model_sources})
+target_include_directories(tst_batterylook PRIVATE src)
+target_link_libraries(tst_batterylook PRIVATE Qt6::Qml Qt6::Test)
+add_test(NAME batterylook COMMAND tst_batterylook)
+
+# Against a stand-in UPower on a session bus of its own, so the test never
+# reads this computer's battery or reaches its real buses.
+find_program(DBUS_RUN_SESSION dbus-run-session REQUIRED)
+qt_add_executable(tst_upowerdevice tests/tst_upowerdevice.cpp ${launcher_battery_sources})
+target_include_directories(tst_upowerdevice PRIVATE src)
+target_link_libraries(tst_upowerdevice PRIVATE Qt6::DBus Qt6::Qml Qt6::Test)
+add_test(NAME upowerdevice COMMAND "${DBUS_RUN_SESSION}" -- $<TARGET_FILE:tst_upowerdevice>)
+
 qt_add_executable(tst_foreignwindowlist tests/tst_foreignwindowlist.cpp ${launcher_window_sources})
 target_include_directories(tst_foreignwindowlist PRIVATE src)
 target_link_libraries(tst_foreignwindowlist PRIVATE Qt6::Gui Qt6::Qml Qt6::Test cairn-foreign-toplevel)
@@ -164,14 +184,16 @@ qt_add_qml_module(tst_navigation
     OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/tests/Cairn/Launcher"
     QML_FILES ${launcher_qml_files}
     SOURCES ${launcher_model_sources} ${launcher_window_sources} ${launcher_terminal_sources}
+        ${launcher_battery_sources}
 )
 target_include_directories(tst_navigation PRIVATE src)
-target_link_libraries(tst_navigation PRIVATE Qt6::Gui Qt6::QuickTest CairnBrand cairn-foreign-toplevel footpath footpathplugin)
+target_link_libraries(tst_navigation PRIVATE Qt6::Gui Qt6::DBus Qt6::QuickTest CairnBrand
+    cairn-foreign-toplevel footpath footpathplugin)
 target_compile_definitions(tst_navigation PRIVATE
     QUICK_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests"
 )
 add_test(NAME navigation COMMAND tst_navigation)
 
-set_tests_properties(tilemodel manifest applauncher appscope launchwindows giveupwatch steamatlogin gridscroller closerequest logout foreignwindowlist tokens_loaded doorsfromtiles navigation PROPERTIES
+set_tests_properties(tilemodel manifest applauncher appscope launchwindows giveupwatch steamatlogin gridscroller closerequest logout batterylook upowerdevice foreignwindowlist tokens_loaded doorsfromtiles navigation PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QML_IMPORT_PATH=${QT_QML_OUTPUT_DIRECTORY}"
 )

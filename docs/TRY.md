@@ -131,9 +131,10 @@ Tux Paint and GCompris. Every step it takes prints a line starting
 ## Known gaps
 
 - Level 2 looks the same as level 1 for now.
-- In a child's session the brightness keys do nothing, nothing warns of a
-  low battery, and a second screen extends the desktop instead of
-  mirroring it. Keep a laptop plugged in.
+- In a child's session the brightness keys do nothing, and a second
+  screen extends the desktop instead of mirroring it.
+- The battery shows above the tiles and says when it is low, but not
+  while a game is open, so keep a laptop plugged in.
 - Adding games, such as Steam's ScummVM classics, is not covered here yet.
 - Running the script again puts the default tiles back.
 - After a system update that brings a newer Qt, rebuild in the toolbox and

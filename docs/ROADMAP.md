@@ -1,7 +1,7 @@
 # Cairn Linux — Roadmap and working plan
 
 **Status:** living document
-**Last updated:** 2026-10-12
+**Last updated:** 2026-10-18
 (D1–D8, D11–D14 closed; D15 deferred)
 
 `DESIGN.md` is the specification. This document is the plan for building it:
@@ -234,6 +234,16 @@ done, and what could sink it. Decisions that change the design get an ADR in
   online. No child has yet opened something from the Terminal or seen the
   grown-up screen, and the laptop is above the 4 GB floor: those rows move
   to P1-17 and P1-1. Image work starts with P1-1 to P1-3 on the dev PC.
+- **ADR-0034 (2026-10-18, #43): the top bar shows the battery.** On the
+  kids' laptop a child played from 99% to an empty battery with nothing
+  on the screen saying so, and the laptop died asleep. The bar above the
+  tiles now shows a drawn battery whose fill is the percentage, a plug
+  while the charger is in, and one sentence when UPower's warning level
+  says it is low: "The battery is low. Ask a grown-up for the charger."
+  UPower decides what low is; the launcher changes nothing in it. Nothing
+  shows over a running game, which needs a surface the compositor draws
+  and is the maintainer's decision. Tested against a stand-in UPower, and
+  read from the dev PC and the VM; not yet run down on the laptop.
 - **Give-up spares Steam's interface again (2026-10-01, #117).** A Steam
   update moved Steam's own interface into a sandbox called `srt-bwrap`,
   which the give-up key's `bwrap` match caught. Flatpak's sandbox is now
@@ -367,7 +377,7 @@ first-boot wizard, quick-actions overlay, signed image, CI, ISO.
 | P1-13 | Steam integration (moved from Phase 3 by ADR-0004): client `-silent` at login (done for a child with a Steam tile, ADR-0027), `steam -applaunch` tiles from the `kidscan` manifest, launch watchdog with the "needs a grown-up" screen, the child role in a Steam Family, Steam Families documented as the family's relationship with Valve, Flatpak-vs-RPM client decision. Builds on P0-10. From P0-10 (ADR-0031): what a child-role account's client locks, once the family has a child member; Steam's toast over a running game; and what a client update, a Steam Guard prompt or a sign-in expiry puts on the child's screen (`docs/research/steam-containment.md`). |
 | P1-14 | Base image compliance: rewrite `os-release`, swap `fedora-logos` for `cairn-logos`, replace `fedora-release-notes`, Fedora "not provided or supported" notice on the About screen and website, own installer artwork, Bazzite and Universal Blue attribution in `NOTICE`. Checklist in `docs/research/base-image-policy.md`. Blocks publishing any image. |
 | P1-15 | High-contrast and large-text modes as per-child Guardian settings, driven by token-set variants from `brand/build.py` (ADR-0008). |
-| P1-17 | **Child test 2** (ADR-0031): what Phase 0 did not see. A child opens something from the Terminal, once #83 decides how a child who cannot read meets it; a child leaves an app on their own (#77); a child meets the grown-up screen and presses Back (ADR-0030); Steam games with the overlay off (#74) and a Guardian's way to step in (#88), or no Steam in that run, as #8 asked. Also #8's script rows, none of which an evening ran: a native ScummVM game scanned, launched, quit and launched again; ScummVM frozen and ended with Ctrl-Alt-Home; every help button and outside link in the allowed apps; a stale or unrelated window that cannot trap the child; a sibling at the login screen and the Guardian tile; a level change interrupted part-way, which fails closed; no path from a child's session to Plasma. On a Minimum-tier laptop if the project has one by then. Blocks publishing any image, like P1-14 and #86. |
+| P1-17 | **Child test 2** (ADR-0031): what Phase 0 did not see. A child opens something from the Terminal, once #83 decides how a child who cannot read meets it; a child leaves an app on their own (#77); a child meets the grown-up screen and presses Back (ADR-0030); Steam games with the overlay off (#74) and a Guardian's way to step in (#88), or no Steam in that run, as #8 asked. Also #8's script rows, none of which an evening ran: a native ScummVM game scanned, launched, quit and launched again; ScummVM frozen and ended with Ctrl-Alt-Home; every help button and outside link in the allowed apps; a stale or unrelated window that cannot trap the child; a sibling at the login screen and the Guardian tile; a level change interrupted part-way, which fails closed; no path from a child's session to Plasma. A child at the tiles with the battery low, and whether a child who cannot read notices the battery's fill (ADR-0034). On a Minimum-tier laptop if the project has one by then. Blocks publishing any image, like P1-14 and #86. |
 
 ---
 
