@@ -47,6 +47,13 @@ Valve does not document this folder.
 Steam fills it itself: on the kids' laptop each account's cache had about
 800 folders, many more than the account's games.
 
+Other games have the same 460x215 header only as `library_header.jpg`,
+in either place.
+On 2026-10-20 the Guardian's cache on the kids' laptop had 649 games with
+only `header.jpg`, 98 with only `library_header.jpg` and none with both.
+The picture step installed there that day read only `header.jpg`, so 9 of
+the 25 shared games showed their names instead of their pictures.
+
 On a 1366x768 screen a tile is about 409x286 px, or 409x223 once the
 grid scrolls, as it does with the family's games.
 
@@ -67,8 +74,9 @@ A child who cannot read can find Putt-Putt by Putt-Putt.
 the title off (see Alternatives considered).
 
 **The picture is copied from the Guardian's own Steam, never downloaded.**
-Provisioning copies each shared game's `header.jpg` from the Steam of the
-account named with `--guardian`.
+Provisioning copies each shared game's header, `header.jpg` or
+`library_header.jpg`, from the Steam of the account named with
+`--guardian`.
 Nothing is fetched from the network.
 No game art is shipped in the image or committed to this repository.
 Tests make their own stand-in pictures at run time, or use the brand's
@@ -84,9 +92,11 @@ The picture step, `cairn-game-pictures`, runs as root with `python3 -I
 -B`.
 It takes the Guardian's home from the password database, never from
 `$HOME`.
-From that home down, it opens every folder and `header.jpg` without
+From that home down, it opens every folder and the header without
 following a link: `.local/share/Steam/appcache/librarycache`, the game's
 folder, and the hash-named folder when the header is there instead.
+In each folder it looks for `header.jpg` before `library_header.jpg`, and
+it looks in the game's folder before a hash-named one.
 It copies only a plain file of at most 1 MiB that starts as a JPEG does.
 It writes under a temporary name and renames, so a launcher starting
 meanwhile never reads half a picture.
@@ -228,7 +238,8 @@ build ADR-0033's tile bullet.
   With more than one Guardian, the pictures come from whichever is named
   with `--guardian`.
 - **Steam's `librarycache` layout is undocumented and may change.**
-  It already has two layouts, and the picture step reads both.
+  It already has two layouts and two names for the header, and the
+  picture step reads all of them.
   If it changes again, new games get no picture and a note, and their
   tiles show their names.
   Pictures already copied stay.
@@ -240,7 +251,10 @@ build ADR-0033's tile bullet.
   provisioning step against a made-up machine.
   Rendered at 1366x768 with real headers on the dev PC, outside the
   repository.
-  Not yet run on the kids' laptop.
+  Installed by hand on the kids' laptop on 2026-10-20, where 16 of the 25
+  shared games got their picture (see Context).
+  Run on the dev PC against a copy of that laptop's manifests and
+  headers, the step that reads `library_header.jpg` too copies all 25.
 - Checks before acceptance, on the kids' laptop:
   1. after a provisioning run, every shared game's tile shows its
      picture, or provisioning printed a note for it;

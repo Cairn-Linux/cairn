@@ -6,8 +6,11 @@ the folder the launcher's game tiles read (ADR-0033, ADR-0035).
 Steam keeps each game's library art in its own folder, as
 appcache/librarycache/<appid>/header.jpg, or for some games one folder
 further down, as <appid>/<hash>/header.jpg, where <hash> is 40 lowercase
-hex digits. This copies that file, and only that file, for each game in
-the shared library that gets a tile by kidscan's rules, into
+hex digits. Some games have the same picture named library_header.jpg
+instead, in either place. In each folder header.jpg is looked for first,
+and <appid> is looked in before any <hash> folder below it. This copies
+the one picture it finds, and nothing else, for each game in the shared
+library that gets a tile by kidscan's rules, into
 /var/lib/cairn/game-pictures/<appid>.jpg. It downloads nothing.
 
 Provisioning runs it as root, so that each child can read the pictures
@@ -18,13 +21,14 @@ the Guardian's home off Python's path and writes no cache beside it.
 
 The Guardian's home is opened as given, following a link, because on
 Bazzite /home is a link to /var/home. Nothing inside the home is followed:
-.local, share, Steam, appcache, librarycache, <appid>, <hash> and
-header.jpg are each opened from the folder before without following a
-link. A link at one of the five folders down to librarycache means no
-picture for any game; a link at <appid> or at header.jpg is refused; a
-link at a <hash> folder is passed over. A header.jpg is read only when it
-is a plain file of a sensible size that starts as a JPEG does. A
-steamapps in the shared folder that is a link stops the run.
+.local, share, Steam, appcache, librarycache, <appid>, <hash> and the
+picture are each opened from the folder before without following a link.
+A link at one of the five folders down to librarycache means no picture
+for any game; a link at <appid> or at the picture is refused; a link at a
+<hash> folder is passed over. A picture is read only when it is a plain
+file of a sensible size that starts as a JPEG does, and one that is there
+and left out is never passed over for another. A steamapps in the shared
+folder that is a link stops the run.
 
 It prints only these lines, made of fixed words and appids, so nothing
 read from a home reaches the Guardian's terminal. Provisioning turns them
@@ -60,7 +64,10 @@ SHARED = Path("/var/lib/cairn/steam-library")
 PICTURES = Path("/var/lib/cairn/game-pictures")
 # Where the Guardian's Steam keeps its library art, below their home.
 CACHE = (".local", "share", "Steam", "appcache", "librarycache")
-HEADER = "header.jpg"
+# The names Steam gives a game's picture, in the order they are looked for.
+# Most games have header.jpg; some have the same 460x215 picture only as
+# library_header.jpg.
+HEADERS = ("header.jpg", "library_header.jpg")
 # The folder some games' art is kept in, one below <appid>.
 HASHED_FOLDER = re.compile(r"[0-9a-f]{40}")
 FOLDER_NOT_LINK = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
@@ -147,8 +154,8 @@ def read_header(cache_fd, appid):
 
 
 def read_hashed_picture(folder):
-    """The picture in <appid>/<hash>/header.jpg, read as read_picture reads
-    one, or (None, None) when no <hash> folder has one."""
+    """The picture in a <hash> folder below <appid>, read as read_picture
+    reads one, or (None, None) when no <hash> folder has one."""
     name = newest_hashed_folder(folder)
     if name is None:
         return None, None
@@ -164,10 +171,10 @@ def read_hashed_picture(folder):
 
 
 def newest_hashed_folder(folder):
-    """The <hash> folder holding a header.jpg, or None. A link or a file
-    with a <hash> name is passed over, never followed. Of two or more, the
-    one whose header.jpg is newest wins, then the first by name, so every
-    run picks the same one."""
+    """The <hash> folder holding a picture, or None. A link or a file with
+    a <hash> name is passed over, never followed. Of two or more, the one
+    whose picture is newest wins, then the first by name, so every run
+    picks the same one."""
     try:
         names = os.listdir(folder)
     except OSError:
@@ -181,20 +188,46 @@ def newest_hashed_folder(folder):
         except OSError:
             continue
         try:
-            found.append((os.stat(HEADER, dir_fd=inner, follow_symlinks=False).st_mtime_ns, name))
-        except OSError:
-            pass
+            changed = picture_changed(inner)
         finally:
             os.close(inner)
+        if changed is not None:
+            found.append((changed, name))
     if not found:
         return None
     newest = max(changed for changed, _ in found)
     return min(name for changed, name in found if changed == newest)
 
 
+def picture_changed(folder):
+    """When the picture read_picture would read in a folder last changed,
+    or None when there is none."""
+    for name in HEADERS:
+        try:
+            return os.stat(name, dir_fd=folder, follow_symlinks=False).st_mtime_ns
+        except FileNotFoundError:
+            continue
+        except OSError:
+            return None
+    return None
+
+
 def read_picture(folder):
+    """The picture in one folder, by the first of HEADERS that is there:
+    (bytes, None), or (None, None) when none is, or (None, reason) when
+    the one there is left out. One that is left out is not passed over for
+    the next name."""
+    for name in HEADERS:
+        data, refused = read_named_picture(folder, name)
+        if data is not None or refused is not None:
+            return data, refused
+    return None, None
+
+
+def read_named_picture(folder, name):
+    """The picture called `name` in a folder, as read_picture answers."""
     try:
-        descriptor = os.open(HEADER, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=folder)
+        descriptor = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=folder)
     except FileNotFoundError:
         return None, None
     except OSError as error:

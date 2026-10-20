@@ -34,6 +34,8 @@ LIMIT = 1 << 20
 # Steam names the folder some games' art is kept in by a hash like these.
 HASH = "162664aa5da85f418105350c5d67ca565f6c3713"
 OTHER_HASH = "0a1b2c3d4e5f60718293a4b5c6d7e8f901234567"
+# The name some games' picture has instead of header.jpg.
+LIBRARY_HEADER = "library_header.jpg"
 
 
 def stand_in(text="a picture"):
@@ -43,6 +45,21 @@ def stand_in(text="a picture"):
 
 def needs_not_root(test):
     return unittest.skipIf(os.geteuid() == 0, "root can read every file")(test)
+
+
+def refusals(root):
+    """Each way a picture found in Steam's cache is left out: the reason the
+    program gives, and how to make one at a path. The link points at a
+    picture made in `root`."""
+    elsewhere = root / "elsewhere.jpg"
+    elsewhere.write_bytes(stand_in("someone else's"))
+    return {
+        "link": ("not-a-file", lambda path: path.symlink_to(elsewhere)),
+        "fifo": ("not-a-file", os.mkfifo),
+        "folder": ("not-a-file", lambda path: path.mkdir()),
+        "too big": ("too-big", lambda path: path.write_bytes(stand_in().ljust(LIMIT + 1, b"x"))),
+        "not a jpeg": ("not-a-jpeg", lambda path: path.write_bytes(b"\x89PNG\r\n\x1a\n")),
+    }
 
 
 def manifest_text(appid, state_flags="4"):
@@ -79,14 +96,14 @@ class Machine:
     def remove_game(self, appid):
         (self.shared / "steamapps" / f"appmanifest_{appid}.acf").unlink()
 
-    def header(self, appid, hashed=None):
+    def header(self, appid, hashed=None, name="header.jpg"):
         """Where Steam keeps the picture: <appid>/header.jpg, or with
-        `hashed`, <appid>/<hashed>/header.jpg."""
+        `hashed`, <appid>/<hashed>/header.jpg, or by another `name`."""
         folder = self.cache / str(appid)
-        return (folder / hashed if hashed else folder) / "header.jpg"
+        return (folder / hashed if hashed else folder) / name
 
-    def add_header(self, appid, data=None, hashed=None):
-        path = self.header(appid, hashed)
+    def add_header(self, appid, data=None, hashed=None, name="header.jpg"):
+        path = self.header(appid, hashed, name)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(stand_in() if data is None else data)
         return path
@@ -134,6 +151,9 @@ class PicturesTestCase(unittest.TestCase):
 
     def pictures(self):
         return sorted(path.name for path in self.machine.pictures.iterdir())
+
+    def set_time(self, path, seconds):
+        os.utime(path, ns=(seconds * 10**9, seconds * 10**9))
 
 
 class CopyTest(PicturesTestCase):
@@ -272,9 +292,6 @@ class HashedFolderTest(PicturesTestCase):
         self.assertEqual(self.run_finished(), ["refused 730 not-a-jpeg"])
         self.assertEqual(self.pictures(), [])
 
-    def set_time(self, path, seconds):
-        os.utime(path, ns=(seconds * 10**9, seconds * 10**9))
-
     def test_of_two_the_newest_picture_wins(self):
         self.machine.add_game(730)
         for hashed, seconds in ((HASH, 2000), (OTHER_HASH, 1000)):
@@ -324,16 +341,7 @@ class HashedFolderTest(PicturesTestCase):
         self.assertEqual(self.run_finished(), ["missing 730"])
 
     def test_a_hashed_picture_is_refused_as_any_other(self):
-        elsewhere = self.machine.root / "elsewhere.jpg"
-        elsewhere.write_bytes(stand_in("someone else's"))
-        cases = {
-            "link": ("not-a-file", lambda path: path.symlink_to(elsewhere)),
-            "fifo": ("not-a-file", os.mkfifo),
-            "folder": ("not-a-file", lambda path: path.mkdir()),
-            "too big": ("too-big", lambda path: path.write_bytes(stand_in().ljust(LIMIT + 1, b"x"))),
-            "not a jpeg": ("not-a-jpeg", lambda path: path.write_bytes(b"\x89PNG\r\n\x1a\n")),
-        }
-        for case, (reason, make) in cases.items():
+        for case, (reason, make) in refusals(self.machine.root).items():
             with self.subTest(case=case):
                 shutil.rmtree(self.machine.cache / "730", ignore_errors=True)
                 self.machine.add_game(730)
@@ -348,6 +356,89 @@ class HashedFolderTest(PicturesTestCase):
         self.machine.add_header(730, hashed=HASH)
         self.assertEqual(self.run_finished(), ["copied 730"])
         self.assertEqual(self.run_finished(), [])
+
+
+class LibraryHeaderTest(PicturesTestCase):
+    """Steam keeps some games' picture as library_header.jpg instead of
+    header.jpg, beside the hashed folders or in one. On the kids' laptop 9
+    of the 25 shared games had only that name."""
+
+    def test_a_library_header_is_copied(self):
+        self.machine.add_game(100)
+        self.machine.add_header(100, stand_in("library"), name=LIBRARY_HEADER)
+        self.assertEqual(self.run_finished(), ["copied 100"])
+        self.assertEqual(self.machine.picture(100).read_bytes(), stand_in("library"))
+
+    def test_a_library_header_in_a_hashed_folder_is_copied(self):
+        self.machine.add_game(730)
+        self.machine.add_header(730, stand_in("hashed library"), hashed=HASH, name=LIBRARY_HEADER)
+        self.assertEqual(self.run_finished(), ["copied 730"])
+        self.assertEqual(self.machine.picture(730).read_bytes(), stand_in("hashed library"))
+
+    def test_a_header_comes_before_a_library_header_beside_it(self):
+        self.machine.add_game(730)
+        self.machine.add_header(730, stand_in("library"), name=LIBRARY_HEADER)
+        self.machine.add_header(730, stand_in("header"))
+        self.assertEqual(self.run_finished(), ["copied 730"])
+        self.assertEqual(self.machine.picture(730).read_bytes(), stand_in("header"))
+
+    def test_a_header_comes_before_a_library_header_in_the_same_hashed_folder(self):
+        self.machine.add_game(730)
+        self.machine.add_header(730, stand_in("library"), hashed=HASH, name=LIBRARY_HEADER)
+        self.machine.add_header(730, stand_in("header"), hashed=HASH)
+        self.assertEqual(self.run_finished(), ["copied 730"])
+        self.assertEqual(self.machine.picture(730).read_bytes(), stand_in("header"))
+
+    def test_a_library_header_beside_the_hashed_folder_comes_first(self):
+        self.machine.add_game(730)
+        self.machine.add_header(730, stand_in("hashed"), hashed=HASH)
+        self.machine.add_header(730, stand_in("library"), name=LIBRARY_HEADER)
+        self.assertEqual(self.run_finished(), ["copied 730"])
+        self.assertEqual(self.machine.picture(730).read_bytes(), stand_in("library"))
+
+    def test_a_refused_header_is_not_passed_over_for_a_library_header(self):
+        self.machine.add_game(730)
+        for hashed in (None, HASH):
+            with self.subTest(hashed=hashed):
+                shutil.rmtree(self.machine.cache / "730", ignore_errors=True)
+                self.machine.add_header(730, stand_in("library"), hashed=hashed,
+                                        name=LIBRARY_HEADER)
+                self.machine.add_header(730, b"not a jpeg", hashed=hashed)
+                self.assertEqual(self.run_finished(), ["refused 730 not-a-jpeg"])
+                self.assertEqual(self.pictures(), [])
+
+    def test_of_two_hashed_folders_the_newest_picture_wins_whatever_its_name(self):
+        self.machine.add_game(730)
+        for newer, expected in ((HASH, "header"), (OTHER_HASH, "library")):
+            with self.subTest(newer=newer):
+                shutil.rmtree(self.machine.cache / "730", ignore_errors=True)
+                header = self.machine.add_header(730, stand_in("header"), hashed=HASH)
+                library = self.machine.add_header(730, stand_in("library"), hashed=OTHER_HASH,
+                                                  name=LIBRARY_HEADER)
+                self.set_time(header, 2000 if newer == HASH else 1000)
+                self.set_time(library, 1000 if newer == HASH else 2000)
+                self.run_finished()
+                self.assertEqual(self.machine.picture(730).read_bytes(), stand_in(expected))
+
+    def test_a_library_header_is_refused_as_any_other(self):
+        for hashed in (None, HASH):
+            for case, (reason, make) in refusals(self.machine.root).items():
+                with self.subTest(hashed=hashed, case=case):
+                    shutil.rmtree(self.machine.cache / "730", ignore_errors=True)
+                    self.machine.add_game(730)
+                    path = self.machine.header(730, hashed, LIBRARY_HEADER)
+                    path.parent.mkdir(parents=True)
+                    make(path)
+                    self.assertEqual(self.run_finished(), [f"refused 730 {reason}"])
+                    self.assertEqual(self.pictures(), [])
+
+    def test_only_those_two_names_are_the_picture(self):
+        self.machine.add_game(730)
+        for name in ("library_600x900.jpg", "library_hero.jpg", "logo.png", "Header.jpg",
+                     "library_header.jpeg"):
+            self.machine.add_header(730, name=name)
+            self.machine.add_header(730, hashed=HASH, name=name)
+        self.assertEqual(self.run_finished(), ["missing 730"])
 
 
 class RefusedTest(PicturesTestCase):
