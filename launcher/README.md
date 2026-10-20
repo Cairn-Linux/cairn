@@ -56,6 +56,13 @@ Colours, type, focus rings and radii come from `Cairn.Brand.Tokens`.
   `BatteryLook` decides; `Battery.qml` draws the fill, a plug on the
   charger, and one sentence when UPower says it is low. No battery,
   nothing.
+- **Slice 13 (2026-10-19):** game tiles from the shared folder, each with
+  the game's picture (ADR-0033, ADR-0035, #138). `--games` names the games
+  file provisioning makes. `TileFiles` reads it and the manifest, for
+  `TileModel` and for the Steam-at-login check; `GamesFile` holds the
+  games file's rules; `TilePicture` checks a `picture`. `Tile.qml` draws
+  the picture inside the card in place of the title, and the title comes
+  back when there is no picture or Qt cannot draw it.
 - **Footprint (2026-09-08):** about 145 MB proportional idle in the VM,
   first frame 0.2 s after exec; the table is in
   `../docs/research/launcher-footprint.md`.
@@ -75,16 +82,18 @@ The presets do not pin a compiler.
 Debug enables AddressSanitizer and UndefinedBehaviorSanitizer.
 Use `cmake --preset release && cmake --build --preset release` for a build
 without sanitizers.
-The launcher has nineteen CTest tests, run offscreen: the tile model, the
-manifest reader, kidscan's manifest written and read back (two tests), the
-app launcher, the windows of a launch, the wait for a Steam game, the
-give-up watch, Steam at login, the app scope, the grid scroller, the close
-request, Log out, the battery's look, the UPower reader (against a
-stand-in UPower on a bus of its own, under `dbus-run-session`), the window
-list, the compiled brand tokens, the Terminal's doors, and the QML
-navigation, scrolling, starting-screen, grown-up-screen, terminal,
-close-request, Log out and battery behaviour. Footpath's own six
-suites run in its repository.
+The launcher has twenty CTest tests, run offscreen: the tile model, the
+manifest reader, the manifest and the games file read together (the tile
+files), kidscan's manifest and games file written and read back (two
+tests), the app launcher, the windows of a launch, the wait for a Steam
+game, the give-up watch, Steam at login, the app scope, the grid
+scroller, the close request, Log out, the battery's look, the UPower
+reader (against a stand-in UPower on a bus of its own, under
+`dbus-run-session`), the window list, the compiled brand tokens, the
+Terminal's doors, and the QML navigation, scrolling, starting-screen,
+grown-up-screen, terminal, close-request, Log out, battery,
+tile-picture and plain-text behaviour. Footpath's own six suites run in
+its repository.
 Qt on Fedora sends `qWarning` and `qInfo` lines to the journal when stderr
 is not a terminal; set `QT_FORCE_STDERR_LOGGING=1` to see them in a pipe.
 
@@ -108,6 +117,8 @@ With more than six tiles the grid shows two rows and the top of a third, and
 slides by whole rows to keep the focused tile in view; a wheel notch moves
 the focus one row. Try it with
 `--manifest launcher/tests/fixtures/manifest-many.json` (fourteen tiles).
+Add `--games launcher/tests/fixtures/games.json` for three made-up games,
+with no pictures, after the manifest's tiles.
 Enter, Space or a click launches the tile's program.
 Escape or the Back tile leaves the grown-up screen.
 The Terminal tile is the launcher's own, always last, and opens Footpath
@@ -121,7 +132,8 @@ Refresh the English translation catalogue with
 ## The manifest
 
 `--manifest <file>` reads the version-1 JSON that `tools/kidscan` writes: an
-`entries` array of `{title, category, exec}`.
+`entries` array of `{title, category, exec}`, each with an optional
+`picture`.
 `category` is `make`, `practice`, `games` or `machine` (ADR-0024); kidscan
 writes `games`.
 An entry with any other category, no title or no `exec` list is left out,
@@ -136,9 +148,44 @@ A manifest that cannot be read, or has no entry the launcher can use, is
 reported for the parent, and the child sees the built-in tiles.
 Under a terminal that report is on its screen; in the kiosk, everything the
 launcher reports is in the journal, `journalctl -t cairn-launcher` (#122).
-To put a parent's games on the tiles, run `tools/kidscan` as the child and
-copy its entries into the manifest; the round trip is tested
-(`tst_kidscanmanifest`, #97).
+kidscan's entries can still be copied into the manifest by hand; the round
+trip is tested (`tst_kidscanmanifest`, #97).
+On a provisioned machine the games come from the games file instead.
+
+A `picture` is the full path of a picture file on this computer, such as
+`/var/lib/cairn/game-pictures/294660.jpg` (ADR-0035).
+The tile then shows the picture inside the card in place of its title;
+the screen reader still reads the title.
+A `picture` that is not text, is empty, is relative, is a URL, names
+something in the launcher's own resources, or is not a file that exists,
+keeps the tile without a picture, with one sentence for the parent.
+A picture Qt cannot draw shows the title.
+
+`--games <file>` reads the games file that provisioning makes from the
+shared Steam folder, `/var/lib/cairn/games.json` (ADR-0033).
+It is the same version-1 format, and its tiles come after the manifest's
+and before the Terminal.
+Without a manifest, or with one that cannot be used, they follow the
+built-in tiles.
+No file, or no entries, means no game tiles and is not an error.
+A file that cannot be opened, is not valid JSON or is not version 1 costs
+only the game tiles, with one sentence; the manifest's tiles still show.
+An entry is taken only when its category is `games`, its title is not
+empty, and its `exec` is exactly `steam`, `-applaunch` and an app id with
+no leading zero.
+Any other entry is left out with one sentence, so nothing in this file can
+choose a program.
+A game the manifest already starts with `steam -applaunch` (or
+`/usr/bin/steam -applaunch`) keeps the manifest's tile, and the games
+file's is left out without a word.
+So is a second entry for a game the file has already given a tile.
+Such an entry is left out before it is checked, so the parent never reads
+a sentence about a tile that is not there.
+Every title is shown as plain text: a game's name comes from Steam, and
+markup in it is shown as written, never read, so it cannot load a picture
+from the network.
+`TileFiles` reads both files for the tiles and for the Steam-at-login
+check, so the two always agree.
 `manifests/dev-pc.json` names Tux Paint for Draw and GCompris for Practice
 only; Build, Music and Story are empty until the catalogue survey (issue
 #26) picks a program for each. GCompris is a practice-folder app, never
@@ -164,10 +211,11 @@ screen says so: the Cairn mark builds itself, bottom stone first, over one
 sentence naming the tile (ADR-0028). A Steam game can take several seconds
 to come up, and tiles that look the same after a press read as broken.
 With `--start-steam`, which the kiosk wrapper also passes, the launcher
-starts the Steam client in the background at login when a tile runs
-`steam -applaunch`, as a service of the child's own systemd called
-`cairn-steam` (ADR-0027). The first game then starts without waiting for
-the client, and a child with no Steam tile never pays its memory.
+starts the Steam client in the background at login when a tile, from the
+manifest or the games file, runs `steam -applaunch`, as a service of the
+child's own systemd called `cairn-steam` (ADR-0027). The first game then
+starts without waiting for the client, and a child with no Steam tile
+never pays its memory.
 A Steam game pressed while that client is still starting, or one Steam is
 still bringing up (its `reaper` runs), is waited for past the usual 15 s,
 up to two minutes; `SteamGameWait` decides (ADR-0029, #132).
@@ -256,7 +304,9 @@ To compare what the launcher shows with UPower's own reading, run
   filesystem view at L1. Flat: no folders. More tiles than fit means the
   grid scrolls by wheel and arrow keys, whole rows at a time, with the next
   row showing at the edge (ADR-0015). L2 adds a files view to the dock.
-- No reading required beyond app names, paired with distinct icons.
+- No reading required beyond app names, paired with distinct icons. A
+  game's tile shows the game's own picture (ADR-0035); other tiles have
+  none yet (DESIGN §14 Q3).
 - The battery above the tiles when there is one (ADR-0034): a fill a child
   who cannot read can follow, and words only for children who read and
   for grown-ups. UPower decides when it is low.

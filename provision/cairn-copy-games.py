@@ -55,7 +55,6 @@ PROBE = ".cairn-copy-probe"
 LEFTOVER_IN_COMMON = re.compile(r"\.cairn-copy-([0-9]+|probe)")
 LEFTOVER_IN_LIBRARY = re.compile(r"\.cairn-manifest-[0-9]+")
 
-APPID = re.compile(r"[1-9][0-9]{0,9}")
 # A real manifest, or library list, is a few kilobytes.
 MANIFEST_LIMIT = 1 << 20
 
@@ -84,27 +83,6 @@ def app_state(data):
     return state if isinstance(state, dict) else None
 
 
-def plain_folder_name(name):
-    return (
-        isinstance(name, str)
-        and name not in ("", ".", "..")
-        and "/" not in name
-        and "\0" not in name
-        and not name.startswith(".cairn-")
-    )
-
-
-# The child's Steam account may not have the branch, and its Steam would
-# then download the game again.
-def on_beta_branch(state):
-    for block in ("UserConfig", "MountedConfig"):
-        config = kidscan.ci_get(state, block, {})
-        branch = kidscan.ci_get(config, "BetaKey", "") if isinstance(config, dict) else None
-        if branch not in ("", "public"):
-            return True
-    return False
-
-
 def is_real_folder(path):
     return path.is_dir() and not path.is_symlink()
 
@@ -121,9 +99,10 @@ def decide(appid, data, shared, library):
     if os.path.lexists(library / f"appmanifest_{appid}.acf"):
         return ("have",)
     installdir = kidscan.ci_get(state, "installdir", "")
-    if not plain_folder_name(installdir):
+    # kidscan holds the rules the game tiles share, so the two agree.
+    if not kidscan.plain_folder_name(installdir):
         return ("skipped", "installdir")
-    if on_beta_branch(state):
+    if kidscan.on_beta_branch(state):
         return ("skipped", "beta-branch")
     # 4 is fully installed with nothing pending.
     if kidscan.ci_get(state, "StateFlags") != "4":
@@ -317,7 +296,7 @@ def copy_games(shared, library):
     reflink = None
     for manifest in sorted(shared.glob("appmanifest_*.acf")):
         appid = manifest.name.removeprefix("appmanifest_").removesuffix(".acf")
-        if not APPID.fullmatch(appid):
+        if not kidscan.APPID.fullmatch(appid):
             say("unnumbered")
             continue
         try:

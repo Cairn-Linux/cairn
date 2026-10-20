@@ -10,9 +10,11 @@ executed, so sourcing it here defines them without touching the machine.
 real in the VM (provision/README.md).
 """
 
+import json
 import os
 import pathlib
 import shlex
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -257,7 +259,7 @@ class LauncherWrapperTest(unittest.TestCase):
         self.assertEqual(
             result.stdout.strip(),
             "systemd-cat --identifier=cairn-launcher /usr/local/libexec/cairn/cairn-launcher"
-            " --manifest /usr/local/share/cairn/manifest.json"
+            " --manifest /usr/local/share/cairn/manifest.json --games /var/lib/cairn/games.json"
             " --log-out /usr/local/bin/cairn-log-out --scope-apps --start-steam --extra",
         )
 
@@ -549,6 +551,43 @@ class CopyGamesStepTest(unittest.TestCase):
         self.says("ada", "copied 7")
         self.assertIn("changed: ada's own copy of game 7", self.said(self.run_step()))
 
+    def name_of(self, appid):
+        """What game_name says, from a run that cannot hang the tests: one
+        that waits is stopped after a while, and says so."""
+        snippet = (
+            f"PREFIX={shlex.quote(str(self.state / 'prefix'))}\n"
+            f"SHARED_LIBRARY={shlex.quote(str(self.state / 'steam-library'))}\n"
+            "export PREFIX SHARED_LIBRARY\nexport -f game_name\n"
+            f"timeout 20 bash -c 'game_name {appid}' || echo 'timed out'"
+        )
+        code, output, _ = run_steps(snippet)
+        self.assertEqual(code, 0, output)
+        return self.said(output)
+
+    def test_a_name_comes_from_the_manifest(self):
+        self.assertEqual(self.name_of(294690), ["Pajama Sam"])
+
+    def test_a_name_is_never_read_through_a_link(self):
+        # Root runs this, and every Guardian can write the shared folder.
+        elsewhere = self.state / "elsewhere.acf"
+        elsewhere.write_text(MANIFEST % (12, "Someone Else's Game"))
+        (self.steamapps / "appmanifest_12.acf").symlink_to(elsewhere)
+        self.assertEqual(self.name_of(12), ["game 12"])
+        (self.steamapps / "appmanifest_13.acf").symlink_to("/dev/zero")
+        self.assertEqual(self.name_of(13), ["game 13"])
+
+    def test_a_name_is_never_waited_for(self):
+        os.mkfifo(self.steamapps / "appmanifest_12.acf")
+        self.assertEqual(self.name_of(12), ["game 12"])
+
+    def test_a_manifest_that_is_not_steams_gives_the_number_and_no_traceback(self):
+        texts = ['"AppState" "a string"\n', '"AppState" { "name" { "a" "b" } }\n', '"' + '\\"' * 1000,
+                 "x" * (2 << 20), "\udcff"]
+        for text in texts:
+            with self.subTest(text=text[:20]):
+                (self.steamapps / "appmanifest_12.acf").write_text(text, errors="surrogateescape")
+                self.assertEqual(self.name_of(12), ["game 12"])
+
     def test_every_reason_has_its_sentence(self):
         reasons = {
             "unreadable": "cannot be read",
@@ -641,10 +680,9 @@ class CopyGamesStepTest(unittest.TestCase):
         self.assertFalse((self.state / "ben-ran").exists())
 
     def test_runs_after_what_it_needs(self):
-        main = SCRIPT.read_text().split("\nmain() {", 1)[1]
-        steps = [line.strip() for line in main.split("\n}", 1)[0].splitlines()]
+        steps = main_steps()
         for needed in ("ensure_children", "install_steam_visit", "make_shared_library",
-                       "install_copy_games", "relabel"):
+                       "install_copy_games", "relabel", "make_game_tiles"):
             self.assertLess(steps.index(needed), steps.index("copy_games"), needed)
 
     def test_installs_the_copy_program_beside_its_parser(self):
@@ -653,6 +691,292 @@ class CopyGamesStepTest(unittest.TestCase):
                       '"$PREFIX/libexec/cairn/cairn-copy-games"', text)
         self.assertIn('install_file 644 "$REPO/tools/kidscan/kidscan.py" '
                       '"$PREFIX/libexec/cairn/kidscan.py"', text)
+
+
+def main_steps():
+    """The steps main runs, in order."""
+    main = SCRIPT.read_text().split("\nmain() {", 1)[1]
+    return [line.strip() for line in main.split("\n}", 1)[0].splitlines()]
+
+
+# Starts as a JPEG does, and is nothing else: no game's art is ever part of
+# the tests.
+STAND_IN_PICTURE = b"\xff\xd8\xff\xe0 a stand-in, not a picture\n"
+
+
+class GameTilesTest(unittest.TestCase):
+    """The children's game tiles from the shared folder, with a picture of
+    each game from the Guardian's Steam (ADR-0033, ADR-0035), made by the
+    real kidscan and picture step installed into a temporary prefix."""
+
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.state = pathlib.Path(self.directory.name)
+        self.libexec = self.state / "prefix" / "libexec" / "cairn"
+        self.libexec.mkdir(parents=True)
+        repo = SCRIPT.parents[1]
+        shutil.copy(repo / "tools" / "kidscan" / "kidscan.py", self.libexec / "kidscan.py")
+        shutil.copy(repo / "provision" / "cairn-game-pictures.py", self.libexec / "cairn-game-pictures")
+        self.library = self.state / "steam-library"
+        self.steamapps = self.library / "steamapps"
+        (self.steamapps / "common" / "A Game").mkdir(parents=True)
+        self.home = self.state / "home" / "gina"
+        self.cache = self.home / ".local" / "share" / "Steam" / "appcache" / "librarycache"
+        self.cache.mkdir(parents=True)
+        self.pictures = self.state / "game-pictures"
+        self.games = self.state / "games.json"
+        self.game(294690, "Pajama Sam")
+
+    def tearDown(self):
+        self.directory.cleanup()
+
+    def game(self, appid, name, picture=STAND_IN_PICTURE):
+        (self.steamapps / f"appmanifest_{appid}.acf").write_text(MANIFEST % (appid, name))
+        if picture is not None:
+            (self.cache / str(appid)).mkdir()
+            (self.cache / str(appid) / "header.jpg").write_bytes(picture)
+
+    def variables(self):
+        return (
+            f"PREFIX={shlex.quote(str(self.state / 'prefix'))}\n"
+            f"SHARED_LIBRARY={shlex.quote(str(self.library))}\n"
+            f"GAMES_FILE={shlex.quote(str(self.games))}\n"
+            f"GAME_PICTURES={shlex.quote(str(self.pictures))}\n"
+            f"guardian_home() {{ echo {shlex.quote(str(self.home))}; }}\n"
+        )
+
+    def run_step(self, code=0):
+        snippet = self.variables() + 'make_game_tiles\ntrue after\necho "changes: $changes"'
+        # The tests do not run as root: stat answers from the scenario, and
+        # chown and chmod write what they were asked to a log.
+        stubs = {"stat": '#!/bin/bash\ncat "$STATE/stat-answer" 2> /dev/null || echo root:root:755\n'}
+        for name in ("chown", "chmod"):
+            stubs[name] = f'#!/bin/bash\necho "{name} $*" >> "$STATE/calls"\n'
+        returned, output, _ = run_steps(snippet, env_extra={"STATE": str(self.state)}, extra_stubs=stubs)
+        self.assertEqual(returned, code, output)
+        return output
+
+    def calls(self):
+        calls = self.state / "calls"
+        return calls.read_text().splitlines() if calls.exists() else []
+
+    def said(self, output):
+        """What the step printed, without the trace."""
+        return [line for line in output.splitlines() if not line.startswith("+")]
+
+    def entries(self):
+        return json.loads(self.games.read_text())["entries"]
+
+    def test_puts_the_pictures_folder_right(self):
+        self.pictures.mkdir()
+        (self.state / "stat-answer").write_text("gina:gina:777\n")
+        output = self.run_step()
+        self.assertIn(f"changed: {self.pictures} owned by root, mode 755", self.said(output))
+        self.assertEqual(self.calls(), [f"chown root:root {self.pictures}", f"chmod 755 {self.pictures}"])
+
+    def test_a_right_pictures_folder_is_left_alone(self):
+        self.pictures.mkdir()
+        output = self.run_step()
+        self.assertNotIn(f"changed: {self.pictures} owned by root, mode 755", self.said(output))
+        self.assertEqual(self.calls(), [])
+
+    def test_makes_the_pictures_and_the_games_file(self):
+        output = self.run_step()
+        self.assertEqual(self.said(output), [
+            f"changed: {self.pictures}",
+            "changed: the picture for Pajama Sam",
+            f"changed: {self.games}",
+            "changes: 3",
+        ])
+        picture = self.pictures / "294690.jpg"
+        self.assertEqual(picture.read_bytes(), STAND_IN_PICTURE)
+        self.assertEqual(oct(self.pictures.stat().st_mode & 0o777), oct(0o755))
+        self.assertEqual(oct(self.games.stat().st_mode & 0o777), oct(0o644))
+        [entry] = self.entries()
+        self.assertEqual(entry["id"], "steam-294690")
+        self.assertEqual(entry["exec"], ["steam", "-applaunch", "294690"])
+        self.assertEqual(entry["picture"], str(picture))
+        self.assertIn("+ true after", output, "the trace comes back")
+
+    def test_a_second_run_changes_nothing(self):
+        self.run_step()
+        self.assertEqual(self.said(self.run_step()), ["changes: 0"])
+
+    def test_no_shared_folder_leaves_the_games_file_alone(self):
+        shutil.rmtree(self.library)
+        self.games.write_text("the last run's\n")
+        self.assertEqual(self.said(self.run_step()), ["changes: 0"])
+        self.assertEqual(self.games.read_text(), "the last run's\n")
+        self.assertFalse(self.pictures.exists())
+
+    def test_a_missing_picture_gives_the_note_and_the_tile_its_name(self):
+        self.game(400, "Freddi Fish", picture=None)
+        said = self.said(self.run_step())
+        self.assertIn("note: Freddi Fish has no picture yet, so its tile shows its name. Your own Steam keeps a "
+                      "game's picture once its library has shown the game: open Steam in your own login, then run "
+                      "this again.", said)
+        tiles = {entry["title"]: entry for entry in self.entries()}
+        self.assertNotIn("picture", tiles["Freddi Fish"])
+        self.assertIn("picture", tiles["Pajama Sam"])
+
+    def test_a_refused_picture_gives_the_note(self):
+        header = self.cache / "294690" / "header.jpg"
+        header.unlink()
+        header.symlink_to(self.state / "elsewhere.jpg")
+        said = self.said(self.run_step())
+        self.assertIn("note: the picture your Steam keeps for Pajama Sam was left out, because it is not a plain "
+                      "file, so its tile shows its name.", said)
+        self.assertNotIn("picture", self.entries()[0])
+
+    def test_a_refused_picture_with_one_kept_says_the_tile_keeps_it(self):
+        self.run_step()
+        (self.cache / "294690" / "header.jpg").write_bytes(b"not a JPEG")
+        said = self.said(self.run_step())
+        self.assertIn("note: the picture your Steam keeps for Pajama Sam was left out, because it is not a JPEG "
+                      "picture, so its tile keeps the picture from an earlier run.", said)
+        self.assertEqual(self.entries()[0]["picture"], str(self.pictures / "294690.jpg"))
+        self.assertEqual((self.pictures / "294690.jpg").read_bytes(), STAND_IN_PICTURE)
+
+    def test_every_refusal_has_its_sentence(self):
+        reasons = {
+            "not-a-file": "is not a plain file",
+            "too-big": "is larger than 1 MB",
+            "not-a-jpeg": "is not a JPEG picture",
+            "unreadable": "could not be read",
+        }
+        self.pictures.mkdir()
+        for kept, ending in ((False, "shows its name"), (True, "keeps the picture from an earlier run")):
+            if kept:
+                (self.pictures / "294690.jpg").write_bytes(STAND_IN_PICTURE)
+            for reason, words in reasons.items():
+                with self.subTest(reason=reason, kept=kept):
+                    _, output, _ = run_steps(self.variables() + f"picture_sentence 'refused 294690 {reason}'")
+                    self.assertEqual(self.said(output), [
+                        f"note: the picture your Steam keeps for Pajama Sam was left out, because it {words}, "
+                        f"so its tile {ending}."
+                    ])
+
+    def test_only_a_plain_file_counts_as_a_kept_picture(self):
+        # kidscan names no other kind of file as a tile's picture.
+        self.pictures.mkdir()
+        elsewhere = self.state / "elsewhere.jpg"
+        elsewhere.write_bytes(STAND_IN_PICTURE)
+        (self.pictures / "294690.jpg").symlink_to(elsewhere)
+        (self.pictures / "400.jpg").mkdir()
+        self.game(400, "Freddi Fish", picture=None)
+        lines = ("refused 294690 too-big", "refused 400 too-big")
+        _, output, _ = run_steps(self.variables() + "\n".join(f"picture_sentence '{line}'" for line in lines))
+        self.assertEqual(self.said(output), [
+            "note: the picture your Steam keeps for Pajama Sam was left out, because it is larger than 1 MB, "
+            "so its tile shows its name.",
+            "note: the picture your Steam keeps for Freddi Fish was left out, because it is larger than 1 MB, "
+            "so its tile shows its name.",
+        ])
+
+    def test_a_line_outside_the_grammar_is_never_printed(self):
+        odd = ["/home/gina/.local/share/Steam", "copied 12 /home/gina", "refused 12 Beta",
+               "refused 12 not-a-file extra", "\x1b[2J", "copied 12345678901", "missing", "refused folder"]
+        snippet = self.variables() + "\n".join(f"picture_sentence {shlex.quote(line)}" for line in odd)
+        snippet += '\necho "changes: $changes"'
+        _, output, _ = run_steps(snippet)
+        self.assertEqual(self.said(output), ["changes: 0"])
+
+    def test_a_removed_games_picture_is_removed(self):
+        self.run_step()
+        (self.steamapps / "appmanifest_294690.acf").unlink()
+        said = self.said(self.run_step())
+        self.assertIn("changed: the picture for game 294690, which has no tile now, removed", said)
+        self.assertIn(f"changed: {self.games}", said)
+        self.assertEqual(list(self.pictures.iterdir()), [])
+        self.assertEqual(self.entries(), [])
+
+    def test_a_picture_removed_while_its_game_stays_names_the_game(self):
+        # An update that is still downloading: the game is in the shared
+        # folder, and kidscan gives it no tile until Steam finishes.
+        self.run_step()
+        manifest = self.steamapps / "appmanifest_294690.acf"
+        manifest.write_text(manifest.read_text().replace('"StateFlags"\t\t"4"', '"StateFlags"\t\t"1026"'))
+        said = self.said(self.run_step())
+        self.assertIn("changed: the picture for Pajama Sam, which has no tile now, removed", said)
+        self.assertEqual(list(self.pictures.iterdir()), [])
+        self.assertEqual(self.entries(), [])
+
+    def test_a_steamapps_that_is_a_link_leaves_everything_alone(self):
+        moved = self.state / "someone-elses-steamapps"
+        self.steamapps.rename(moved)
+        self.steamapps.symlink_to(moved)
+        self.games.write_text("the last run's\n")
+        said = self.said(self.run_step())
+        self.assertEqual(said, [
+            f"note: {self.steamapps} is a link, which Cairn does not follow, so the game tiles were not made "
+            "again; the children keep the ones from the last run.",
+            "changes: 0",
+        ])
+        self.assertEqual(self.games.read_text(), "the last run's\n")
+        self.assertFalse(self.pictures.exists())
+
+    def test_kidscan_failing_keeps_the_old_file(self):
+        # It fails as a program, and still loads for the picture step.
+        installed = self.libexec / "kidscan.py"
+        text = installed.read_text()
+        self.assertIn("sys.exit(main())", text)
+        installed.write_text(text.replace("sys.exit(main())", "sys.exit(1)"))
+        self.games.write_text("the last run's\n")
+        said = self.said(self.run_step())
+        self.assertIn("note: the game tiles could not be made again; the children keep the ones from the last run.",
+                      said)
+        self.assertEqual(self.games.read_text(), "the last run's\n")
+
+    def test_a_picture_step_that_does_not_finish_gets_a_note(self):
+        program = self.libexec / "cairn-game-pictures"
+        for body in ('print("copied 294690")', 'print("refused folder")', 'print("failed")', "raise SystemExit(1)"):
+            with self.subTest(body=body):
+                program.write_text(body + "\n")
+                said = self.said(self.run_step())
+                self.assertIn("note: the game pictures were not all made; a tile without one shows the game's name.",
+                              said)
+                # The tiles are still made, each with its name.
+                self.assertEqual([entry["title"] for entry in self.entries()], ["Pajama Sam"])
+
+    def test_game_names_stay_out_of_the_trace(self):
+        output = self.run_step()
+        self.assertIn("changed: the picture for Pajama Sam", output)
+        for line in output.splitlines():
+            if line.startswith("+"):
+                self.assertNotIn("Pajama Sam", line)
+
+    def test_a_link_for_the_pictures_folder_is_refused(self):
+        elsewhere = self.state / "elsewhere"
+        elsewhere.mkdir()
+        self.pictures.symlink_to(elsewhere)
+        output = self.run_step(code=1)
+        self.assertIn(f"refused: {self.pictures} is a link; move it aside and run this again", output)
+        self.assertEqual(list(elsewhere.iterdir()), [])
+        self.assertFalse(self.games.exists())
+
+    def test_a_file_for_the_pictures_folder_is_refused(self):
+        self.pictures.write_text("")
+        output = self.run_step(code=1)
+        self.assertIn(f"refused: {self.pictures} is not a folder; move it aside and run this again", output)
+        self.assertFalse(self.games.exists())
+
+    def test_the_home_is_the_guardians_from_the_account_database(self):
+        stubs = {"getent": getent_stub(gecos={"gina": "Gina"})}
+        _, output, _ = run_steps("guardian=gina\nguardian_home", extra_stubs=stubs)
+        self.assertEqual(self.said(output), ["/home/gina"])
+        code, output, _ = run_steps('guardian=nobody\necho "[$(guardian_home)]"', extra_stubs=stubs)
+        self.assertEqual(code, 0, output)
+        self.assertEqual(self.said(output), ["[]"])
+
+    def test_runs_before_the_copies_and_after_what_it_needs(self):
+        steps = main_steps()
+        for needed in ("make_shared_library", "install_copy_games", "relabel"):
+            self.assertLess(steps.index(needed), steps.index("make_game_tiles"), needed)
+        self.assertLess(steps.index("make_game_tiles"), steps.index("copy_games"))
+
+    def test_installs_the_picture_program_beside_kidscan(self):
+        self.assertIn('install_file 644 "$REPO/provision/cairn-game-pictures.py" '
+                      '"$PREFIX/libexec/cairn/cairn-game-pictures"', SCRIPT.read_text())
 
 
 class ScriptTextTest(unittest.TestCase):

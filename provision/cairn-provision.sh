@@ -28,6 +28,10 @@ FACTS=/var/lib/cairn/facts.txt
 # Where a Guardian's Steam installs the games every child gets a copy of
 # (ADR-0033).
 SHARED_LIBRARY=/var/lib/cairn/steam-library
+# The children's game tiles, made from the shared folder, and the picture
+# each one shows, copied from the Guardian's Steam (ADR-0033, ADR-0035).
+GAMES_FILE=/var/lib/cairn/games.json
+GAME_PICTURES=/var/lib/cairn/game-pictures
 LEVEL_GROUPS=(cairn-l1 cairn-l2 cairn-l3 cairn-l4 cairn-guardian)
 # The brand's typefaces (DESIGN §6.2, brand/tokens.json) are in Fedora but
 # not in the Bazzite image; without them every Cairn screen falls back to
@@ -376,7 +380,7 @@ install_launcher() {
 # Installed by provision/cairn-provision.sh; not the Phase 1 packaging.
 export LD_LIBRARY_PATH=/usr/local/lib64/cairn
 launcher=(/usr/local/libexec/cairn/cairn-launcher --manifest /usr/local/share/cairn/manifest.json
-    --log-out /usr/local/bin/cairn-log-out --scope-apps --start-steam "$@")
+    --games /var/lib/cairn/games.json --log-out /usr/local/bin/cairn-log-out --scope-apps --start-steam "$@")
 # The launcher's notes for a grown-up go to the journal under their own name
 # (#122): journalctl -t cairn-launcher. No journal must never mean no tiles.
 if systemd-cat --identifier=cairn-launcher true > /dev/null 2>&1; then
@@ -590,26 +594,32 @@ make_shared_library() {
     done
 }
 
-# The copy step and the part of kidscan it shares, where every account can
-# read them and only root can change them. The copy runs as each child, and
-# the checkout sits in the Guardian's own home, which children cannot open.
+# The copy step, the picture step and kidscan, whose rules both share,
+# where every account can read them and only root can change them. The copy
+# runs as each child, and the checkout sits in the Guardian's own home,
+# which children cannot open.
 install_copy_games() {
     install_file 644 "$REPO/provision/cairn-copy-games.py" "$PREFIX/libexec/cairn/cairn-copy-games"
+    install_file 644 "$REPO/provision/cairn-game-pictures.py" "$PREFIX/libexec/cairn/cairn-game-pictures"
     install_file 644 "$REPO/tools/kidscan/kidscan.py" "$PREFIX/libexec/cairn/kidscan.py"
 }
 
 # A game's name as the Guardian's Steam wrote it in the shared folder, with
-# anything that is not printable taken out, or its number.
+# anything that is not printable taken out, or its number. This runs as root
+# and every Guardian can write there, so the manifest is read by kidscan's
+# own rules: not through a link, never waiting on a FIFO, and at most 1 MiB.
 game_name() {
     local name
     name="$(python3 -I -B -c '
 import sys
 sys.path.insert(0, sys.argv[1])
-import kidscan
+name = ""
 try:
-    with open(sys.argv[2], encoding="utf-8", errors="replace") as manifest:
-        name = kidscan.ci_get(kidscan.ci_get(kidscan.parse_vdf(manifest.read()), "AppState", {}), "name", "")
-except (OSError, ValueError, AttributeError):
+    import kidscan
+    text = kidscan.read_manifest(sys.argv[2])
+    state = None if text is None else kidscan.ci_get(kidscan.parse_vdf(text), "AppState")
+    name = kidscan.ci_get(state, "name", "") if isinstance(state, dict) else ""
+except Exception:
     name = ""
 print("".join(c for c in name if c.isprintable()) if isinstance(name, str) else "")
 ' "$PREFIX/libexec/cairn" "$SHARED_LIBRARY/steamapps/appmanifest_$1.acf" 2> /dev/null)" || name=""
@@ -678,7 +688,108 @@ copy_sentence() {
     fi
 }
 
-# --- 13. Each child's own copy of the games (ADR-0033) -------------------------
+# --- 13. The children's game tiles, with pictures (ADR-0033, ADR-0035) -------
+# The Guardian's home, where their own Steam keeps each game's library art.
+# It comes from the account database, never from $HOME, which is root's
+# here. Nothing when there is no such account; the picture step then finds
+# no pictures.
+guardian_home() {
+    local home
+    home="$(getent passwd "$guardian" | cut -d: -f6)" || home=""
+    echo "$home"
+}
+
+# Why the picture step left a picture out, from its reason word.
+picture_refused_because() {
+    case "$1" in
+        not-a-file) echo "is not a plain file" ;;
+        too-big) echo "is larger than 1 MB" ;;
+        not-a-jpeg) echo "is not a JPEG picture" ;;
+        unreadable) echo "could not be read" ;;
+    esac
+}
+
+# One line from the picture step, as a sentence of this script's own. The
+# words are checked before any is used, and a line that is not one of them
+# is never printed.
+picture_sentence() {
+    local line="$1" appid reason shows
+    if [[ "$line" =~ ^copied\ ([0-9]{1,10})$ ]]; then
+        changed "the picture for $(game_name "${BASH_REMATCH[1]}")"
+    elif [[ "$line" =~ ^removed\ ([0-9]{1,10})$ ]]; then
+        changed "the picture for $(game_name "${BASH_REMATCH[1]}"), which has no tile now, removed"
+    elif [[ "$line" =~ ^missing\ ([0-9]{1,10})$ ]]; then
+        echo "note: $(game_name "${BASH_REMATCH[1]}") has no picture yet, so its tile shows its name. Your own Steam keeps a game's picture once its library has shown the game: open Steam in your own login, then run this again."
+    elif [[ "$line" =~ ^refused\ ([0-9]{1,10})\ (not-a-file|too-big|not-a-jpeg|unreadable)$ ]]; then
+        appid="${BASH_REMATCH[1]}"
+        reason="${BASH_REMATCH[2]}"
+        # The picture step keeps a picture from an earlier run, and kidscan
+        # names it when it is a plain file.
+        if [ ! -L "$GAME_PICTURES/$appid.jpg" ] && [ -f "$GAME_PICTURES/$appid.jpg" ]; then
+            shows="keeps the picture from an earlier run"
+        else
+            shows="shows its name"
+        fi
+        echo "note: the picture your Steam keeps for $(game_name "$appid") was left out, because it $(picture_refused_because "$reason"), so its tile $shows."
+    fi
+}
+
+# A picture for each shared game, copied from the Guardian's own Steam by
+# root into a folder only root can change, then the games file, from
+# kidscan over the shared folder only, as root with an empty HOME, so that
+# no home's Steam is read for it. This runs before the copies, which stop
+# early for a child who is logged in. The trace is off while the picture
+# step's lines are read, because it would print each line before it is
+# checked.
+make_game_tiles() {
+    local home line ended=no games
+    # make_shared_library refuses a link here, so one now was put here while
+    # this ran. The picture step and kidscan refuse one that comes later
+    # still.
+    if [ -L "$SHARED_LIBRARY/steamapps" ]; then
+        echo "note: $SHARED_LIBRARY/steamapps is a link, which Cairn does not follow, so the game tiles were not made again; the children keep the ones from the last run."
+        return 0
+    fi
+    # With no shared folder the tiles from the last run stay.
+    [ -d "$SHARED_LIBRARY/steamapps" ] || return 0
+    # The picture step writes in it as root.
+    [ ! -L "$GAME_PICTURES" ] || refuse "$GAME_PICTURES is a link; move it aside and run this again"
+    [ -d "$GAME_PICTURES" ] || [ ! -e "$GAME_PICTURES" ] || refuse "$GAME_PICTURES is not a folder; move it aside and run this again"
+    if [ ! -d "$GAME_PICTURES" ]; then
+        mkdir --mode=755 "$GAME_PICTURES"
+        changed "$GAME_PICTURES"
+    fi
+    # Only root may change a child's tiles; every child reads them.
+    if [ "$(stat --format=%U:%G:%a -- "$GAME_PICTURES")" != root:root:755 ]; then
+        chown root:root "$GAME_PICTURES"
+        chmod 755 "$GAME_PICTURES"
+        changed "$GAME_PICTURES owned by root, mode 755"
+    fi
+    home="$(guardian_home)"
+    { set +x; } 2> /dev/null
+    while IFS= read -r line; do
+        picture_sentence "$line"
+        if [ "$line" = finished ]; then
+            ended=yes
+        fi
+    done < <(python3 -I -B "$PREFIX/libexec/cairn/cairn-game-pictures" --home "$home" \
+        --shared "$SHARED_LIBRARY" --pictures "$GAME_PICTURES" < /dev/null 2> /dev/null || true)
+    if [ "$ended" = no ]; then
+        echo "note: the game pictures were not all made; a tile without one shows the game's name."
+    fi
+    set -x
+    # install_file reports a change only when the bytes differ.
+    games="$(mktemp)"
+    if env HOME= python3 -I -B "$PREFIX/libexec/cairn/kidscan.py" --no-scummvm \
+        --library "$SHARED_LIBRARY" --pictures "$GAME_PICTURES" > "$games" 2> /dev/null; then
+        install_file 644 "$games" "$GAMES_FILE"
+    else
+        echo "note: the game tiles could not be made again; the children keep the ones from the last run."
+    fi
+    rm "$games"
+}
+
+# --- 14. Each child's own copy of the games (ADR-0033) -------------------------
 # One child at a time, through the visit helper, which keeps the child from
 # logging in while it runs and runs the copy as the child. A child who cannot
 # be copied for now gets a note, and the others still get their copies. The
@@ -738,6 +849,7 @@ main() {
     make_shared_library
     install_copy_games
     relabel
+    make_game_tiles
     copy_games
 
     set +x

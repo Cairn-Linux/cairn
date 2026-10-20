@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "entries": [
+    {"id": "steam-1001", "title": "<b>Putt</b><img src=\"http://127.0.0.1:9/x.png\">", "category": "games", "exec": ["steam", "-applaunch", "1001"]}
+  ]
+}

@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "SteamAtLogin.h"
+#include "TileFiles.h"
 #include "TileModel.h"
 
+#include <QFile>
+#include <QTemporaryDir>
 #include <QTest>
 
 namespace {
@@ -55,6 +58,29 @@ private slots:
 
     void noTilesWantsNothing() {
         QVERIFY(!SteamAtLogin::wanted({}));
+    }
+
+    // main.cpp asks with the tiles of both files. A child whose only Steam
+    // games come from the games file still gets Steam at login (ADR-0033).
+    void gamesFromTheGamesFileWantSteam() {
+        const QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString manifest = dir.filePath(QStringLiteral("manifest.json"));
+        const QString games = dir.filePath(QStringLiteral("games.json"));
+        QFile manifestFile(manifest);
+        QVERIFY(manifestFile.open(QIODevice::WriteOnly));
+        manifestFile.write(R"({"version": 1, "entries": [
+            {"title": "Paint", "category": "make", "exec": ["tuxpaint"]}]})");
+        manifestFile.close();
+        QVERIFY(!SteamAtLogin::wanted(TileFiles::read(manifest, games).tiles));
+
+        QFile gamesFile(games);
+        QVERIFY(gamesFile.open(QIODevice::WriteOnly));
+        gamesFile.write(R"({"version": 1, "entries": [
+            {"title": "Game one", "category": "games", "exec": ["steam", "-applaunch", "1001"]}]})");
+        gamesFile.close();
+        QVERIFY(SteamAtLogin::wanted(TileFiles::read(manifest, games).tiles));
+        QVERIFY(SteamAtLogin::wanted(TileFiles::read(QString(), games).tiles));
     }
 
     // Its own service in the child's systemd, on the child's display, quiet.

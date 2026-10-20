@@ -9,6 +9,10 @@ Rectangle {
     required property string title
     required property int kind
     required property string accessibleName
+    // A picture of what the tile opens, such as a game's own box art, so a
+    // child who cannot read yet can tell one game from another (#138,
+    // ADR-0035). Empty shows the title instead.
+    property url picture
 
     // Enter, Space or a click. The launcher decides what happens next.
     signal activated
@@ -50,14 +54,40 @@ Rectangle {
         visible: tile.activeFocus
     }
 
+    // Inside the rounded corners on every side, so the picture's square
+    // corners never cross the card's. Decoded at the size it is drawn.
+    Image {
+        id: pictureImage
+
+        objectName: "tilePicture"
+        anchors.fill: parent
+        anchors.margins: Tokens.radiusTile
+        source: tile.picture
+        fillMode: Image.PreserveAspectFit
+        horizontalAlignment: Image.AlignHCenter
+        verticalAlignment: Image.AlignVCenter
+        asynchronous: true
+        sourceSize.width: width
+        sourceSize.height: height
+        smooth: true
+        mipmap: true
+        Accessible.ignored: true
+    }
+
     // A game's title is the store's full name, so it wraps inside the tile
     // and ends in an ellipsis rather than running into the next tile. Only
-    // the width is limited: Log out is a tile one line tall.
+    // the width is limited: Log out is a tile one line tall. A picture takes
+    // its place; a picture that cannot be drawn gives it back, so a tile is
+    // never blank. A title comes from a Steam game's own name, so it is plain
+    // text: markup in it is shown as written and never loads a picture from
+    // the network.
     Text {
         objectName: "tileTitle"
+        visible: tile.picture.toString() === "" || pictureImage.status === Image.Error
         anchors.centerIn: parent
         width: parent.width - 2 * Tokens.headingSize
         text: tile.title
+        textFormat: Text.PlainText
         horizontalAlignment: Text.AlignHCenter
         wrapMode: Text.Wrap
         maximumLineCount: 3

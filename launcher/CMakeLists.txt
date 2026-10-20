@@ -25,6 +25,9 @@ target_link_libraries(cairn-foreign-toplevel PRIVATE Qt6::WaylandClient)
 set(launcher_model_sources
     src/TileModel.h src/TileModel.cpp
     src/Manifest.h src/Manifest.cpp
+    src/GamesFile.h src/GamesFile.cpp
+    src/TileFiles.h src/TileFiles.cpp
+    src/TilePicture.h src/TilePicture.cpp
     src/AppLauncher.h src/AppLauncher.cpp
     src/AppScope.h src/AppScope.cpp
     src/LaunchWindows.h src/LaunchWindows.cpp
@@ -78,6 +81,11 @@ qt_add_executable(tst_manifest tests/tst_manifest.cpp ${launcher_model_sources})
 target_include_directories(tst_manifest PRIVATE src)
 target_link_libraries(tst_manifest PRIVATE Qt6::Qml Qt6::Test)
 add_test(NAME manifest COMMAND tst_manifest)
+
+qt_add_executable(tst_tilefiles tests/tst_tilefiles.cpp ${launcher_model_sources})
+target_include_directories(tst_tilefiles PRIVATE src)
+target_link_libraries(tst_tilefiles PRIVATE Qt6::Qml Qt6::Test)
+add_test(NAME tilefiles COMMAND tst_tilefiles)
 
 qt_add_executable(tst_applauncher tests/tst_applauncher.cpp ${launcher_model_sources})
 target_include_directories(tst_applauncher PRIVATE src)
@@ -158,14 +166,18 @@ target_include_directories(tst_doorsfromtiles PRIVATE src)
 target_link_libraries(tst_doorsfromtiles PRIVATE Qt6::Qml Qt6::Test footpath footpathplugin)
 add_test(NAME doorsfromtiles COMMAND tst_doorsfromtiles)
 
-# kidscan's own manifest, read by the launcher (#97). The first test scans a
-# synthetic Steam library and writes the file; CTest always runs it before
-# the second, which reads it, because one sets up the fixture the other needs.
+# kidscan's own manifest and games file, read by the launcher (#97,
+# ADR-0033). The first test scans a synthetic Steam library and writes both
+# files, with stand-in pictures beside the games file; CTest always runs it
+# before the second, which reads them, because one sets up the fixture the
+# other needs.
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 set(kidscan_manifest "${CMAKE_CURRENT_BINARY_DIR}/kidscan-roundtrip.json")
+set(kidscan_games "${CMAKE_CURRENT_BINARY_DIR}/kidscan-roundtrip-games.json")
 add_test(NAME kidscan_writes_manifest
     COMMAND Python3::Interpreter
         "${PROJECT_SOURCE_DIR}/tools/kidscan/tests/roundtrip_manifest.py" "${kidscan_manifest}"
+        "${kidscan_games}"
 )
 set_tests_properties(kidscan_writes_manifest PROPERTIES FIXTURES_SETUP kidscan_manifest)
 qt_add_executable(tst_kidscanmanifest tests/tst_kidscanmanifest.cpp ${launcher_model_sources})
@@ -174,7 +186,7 @@ target_link_libraries(tst_kidscanmanifest PRIVATE Qt6::Qml Qt6::Test)
 add_test(NAME launcher_reads_kidscan COMMAND tst_kidscanmanifest)
 set_tests_properties(launcher_reads_kidscan PROPERTIES
     FIXTURES_REQUIRED kidscan_manifest
-    ENVIRONMENT "KIDSCAN_MANIFEST=${kidscan_manifest}"
+    ENVIRONMENT "KIDSCAN_MANIFEST=${kidscan_manifest};KIDSCAN_GAMES=${kidscan_games}"
 )
 
 # Compile the same module into the Quick Test host, including the real Main.qml.
@@ -194,6 +206,6 @@ target_compile_definitions(tst_navigation PRIVATE
 )
 add_test(NAME navigation COMMAND tst_navigation)
 
-set_tests_properties(tilemodel manifest applauncher appscope launchwindows giveupwatch steamatlogin gridscroller closerequest logout batterylook upowerdevice foreignwindowlist tokens_loaded doorsfromtiles navigation PROPERTIES
+set_tests_properties(tilemodel manifest tilefiles applauncher appscope launchwindows giveupwatch steamatlogin gridscroller closerequest logout batterylook upowerdevice foreignwindowlist tokens_loaded doorsfromtiles navigation PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QML_IMPORT_PATH=${QT_QML_OUTPUT_DIRECTORY}"
 )

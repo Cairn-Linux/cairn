@@ -458,8 +458,14 @@ The launcher **is the product.** Everything else is packaging.
   a few seconds, the Cairn mark builds itself stone by stone over one
   sentence, "Putt-Putt Joins the Circus is starting." (ADR-0028).
 - Colour groups by *kind* (make / practice / games / machine), not one colour
-  per app. Games are quiet Paper cards with a hairline edge, so making stays
-  the loudest thing in the grid (ADR-0024).
+  per app. Games are Paper cards with a hairline edge (ADR-0024).
+- A game's tile shows the game's own picture inside its Paper card, in place
+  of its title, so a child who cannot read can find it. The picture is the
+  header art the Guardian's Steam already keeps, copied on the computer and
+  never downloaded; a game with no picture shows its name as a quiet card.
+  ADR-0024 kept the games quiet so that making stays the loudest thing in
+  the grid; the pictures make the games louder than making, which the next
+  child test checks (ADR-0035, proposed).
 
 ### 6.2 Visual direction
 
@@ -653,7 +659,8 @@ Filters out Proton, Steam Linux Runtimes, and Steamworks Redistributables so
 they don't appear as games.
 
 Not yet built: a GUI for category assignment (a parent should never edit
-appids), icon sourcing (§14), and the launch-timeout handling described in §8.3.
+appids), pictures for tiles other than games (§14; games have theirs,
+ADR-0035, proposed), and the launch-timeout handling described in §8.3.
 
 ---
 
@@ -825,7 +832,7 @@ parallel workstream.
 |---|---|---|
 | 1 | Launcher implementation | **Decided (ADR-0002):** C++20 with Qt 6 and QML for every first-party surface. |
 | 2 | L1/L2 command vocabulary | Which ~5 and ~12 commands, exactly. Needs testing with an actual child. |
-| 3 | Icon art source | Steam caches capsule art under `appcache/librarycache`, but using it drags the store's visual language onto the home screen. First-party icon set? Commissioned? Generated? |
+| 3 | Icon art source | **Partly decided (ADR-0035, proposed):** a game's tile shows the header art the Guardian's Steam keeps under `appcache/librarycache`, copied on the computer and never downloaded, inside Cairn's own Paper card. That brings some of the store's visual language onto the home screen; the next child test (ROADMAP P1-17) checks whether it pulls the children away from making. Still open for every other tile: the app's own icon, a picture a parent chooses, or a first-party icon set (brand v0.2)? |
 | 4 | Offline-first? | **Decided (ADR-0007):** offline-capable, not offline-first. Everything a child does works without a network; updates and the Steam/Minecraft integrations need one and fail calmly. |
 | 5 | Localization scope | **Decided (ADR-0007):** English-only v1, every first-party string externalised from the first commit so translation later is a translation job. |
 | 6 | Accessibility beyond typography | **Decided (ADR-0008):** high-contrast and large-text modes in v1 as token variants; screen reader and dwell click in Phase 3; `Accessible.name` on every control from the start. |

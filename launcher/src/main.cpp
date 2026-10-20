@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "GiveUpWatch.h"
-#include "Manifest.h"
 #include "SteamAtLogin.h"
+#include "TileFiles.h"
 #include "UPowerDevice.h"
 
 #include <QCommandLineOption>
@@ -23,6 +23,13 @@ int main(int argc, char* argv[]) {
         QStringLiteral("A kidscan manifest (version 1) that names the tiles and what they run."),
         QStringLiteral("file"));
     parser.addOption(manifestOption);
+    const QCommandLineOption gamesOption(
+        QStringLiteral("games"),
+        QStringLiteral("The games file (version 1) that provisioning makes from the shared Steam "
+                       "library. Its tiles follow the manifest's, and each may only start a Steam "
+                       "game."),
+        QStringLiteral("file"));
+    parser.addOption(gamesOption);
     const QCommandLineOption logOutOption(
         QStringLiteral("log-out"),
         QStringLiteral("The program that ends the session when the child chooses Log out. "
@@ -41,9 +48,12 @@ int main(int argc, char* argv[]) {
     parser.addOption(startSteamOption);
     parser.process(application);
 
+    // The same tiles the child will see, so a child whose only Steam tiles
+    // come from the games file still gets Steam at login (ADR-0033).
     const bool startSteam =
         parser.isSet(startSteamOption) &&
-        SteamAtLogin::wanted(Manifest::read(parser.value(manifestOption)).tiles);
+        SteamAtLogin::wanted(
+            TileFiles::read(parser.value(manifestOption), parser.value(gamesOption)).tiles);
     if (startSteam) {
         SteamAtLogin::start();
     }
@@ -51,6 +61,7 @@ int main(int argc, char* argv[]) {
     QQmlApplicationEngine engine(&application);
     engine.setInitialProperties({
         {QStringLiteral("manifestPath"), parser.value(manifestOption)},
+        {QStringLiteral("gamesPath"), parser.value(gamesOption)},
         {QStringLiteral("logOutProgram"), parser.value(logOutOption)},
         {QStringLiteral("scopeApps"), parser.isSet(scopeAppsOption)},
         {QStringLiteral("giveUpFile"), GiveUpWatch::sessionPath()},
