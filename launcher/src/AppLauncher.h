@@ -23,7 +23,9 @@
 // goes before the game's own window is part of the start (ADR-0028). Then it
 // is Running, and when the app's last window leaves the screen it returns to
 // Idle (issue #42). A Steam game Steam is still working on is waited for past
-// the grace, up to a limit (SteamGameWait, ADR-0029). A launch that has put
+// the grace, up to a limit (SteamGameWait, ADR-0029); while Steam's log says
+// it is working on the game, the starting screen says it is getting ready
+// (ADR-0036). A launch that has put
 // nothing on the screen when the grace timer ends, or when its program exits
 // after the settle window, is Failed (ADR-0030), and its window counts as the
 // app's if it comes late; one whose window came and went returns to Idle. A
@@ -44,6 +46,10 @@ class AppLauncher : public QObject {
     // The tile that was launched last, or the window that opened on its own,
     // for the one sentence on the grown-up screen that names it.
     Q_PROPERTY(QString title READ title NOTIFY titleChanged)
+    // While Starting: a grace has ended and Steam's log said it was still
+    // working on the game, so the starting screen says it is getting ready
+    // (ADR-0036). False in every other state.
+    Q_PROPERTY(bool gettingReady READ gettingReady NOTIFY gettingReadyChanged)
     // How long a program must stay alive before an exit is no longer a failed
     // launch. Tests set it short.
     Q_PROPERTY(int settleMilliseconds READ settleMilliseconds WRITE setSettleMilliseconds NOTIFY
@@ -78,6 +84,7 @@ public:
     State state() const;
     bool needsGrownUp() const;
     QString title() const;
+    bool gettingReady() const;
     int settleMilliseconds() const;
     void setSettleMilliseconds(int milliseconds);
     int launchGraceMilliseconds() const;
@@ -115,6 +122,7 @@ public:
 signals:
     void stateChanged();
     void titleChanged();
+    void gettingReadyChanged();
     void settleMillisecondsChanged();
     void launchGraceMillisecondsChanged();
     void steadyMillisecondsChanged();
@@ -125,6 +133,7 @@ signals:
 private:
     void setState(State state);
     void setTitle(const QString& title);
+    void setGettingReady(bool gettingReady);
     // Works out the state from the windows on the screen and the launch.
     void update();
     void appIsOpen();
@@ -152,6 +161,7 @@ private:
     QString m_launchTitle;
     QString m_ownAppId;
     bool m_settled = false;
+    bool m_gettingReady = false;
     // The program quit after the app's window came up, before the app was open.
     bool m_quitWhileOpening = false;
     // Nothing came in time and the grown-up screen is up, but the launch

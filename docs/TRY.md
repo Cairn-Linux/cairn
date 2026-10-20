@@ -215,6 +215,8 @@ themselves.
   stay on this computer only. To answer Steam, log the child out and open
   Steam for the child from your own account. A way to answer it without
   logging the child out is planned.
+  The journal command above also says it for each such launch: "Steam is
+  waiting for an answer about …" or "Steam refused to start …".
 - If the set-up command says some of a game's files can be read only by
   your own account, your own Steam made them private. This, in your own
   login, lets every account read them, and the children get their copies

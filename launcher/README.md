@@ -219,6 +219,10 @@ never pays its memory.
 A Steam game pressed while that client is still starting, or one Steam is
 still bringing up (its `reaper` runs), is waited for past the usual 15 s,
 up to two minutes; `SteamGameWait` decides (ADR-0029, #132).
+While Steam's own log says it is working on the game, downloading an
+update or running its install script, the wait runs up to ten minutes and
+the starting screen adds "Getting it ready. This can take a few minutes."
+`SteamLaunchLog` reads only the lines Steam adds after the tap (ADR-0036).
 With `--scope-apps`, which the kiosk wrapper passes, every program starts
 in a systemd user scope of its own, `cairn-app-<launcher pid>-<n>.scope`,
 so the grown-up's give-up key can end it and whatever it started

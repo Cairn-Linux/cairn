@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+#include "SteamLaunchLog.h"
+
 #include <QElapsedTimer>
 #include <QString>
 #include <QStringList>
@@ -15,9 +17,18 @@
 // at login a short while ago, or Steam's `reaper` for that game is running.
 // Either keeps the launch waiting, never past an outer limit, so a game that
 // never comes still ends in the tiles.
+//
+// Steam's own log is a third fact (ADR-0036): while it says Steam is working
+// on the game, downloading an update or running its install script, the
+// launch waits up to a longer limit, and the starting screen says the game is
+// getting ready. The other two facts count only until two minutes after
+// Steam last showed work, so a game whose download ends still gets the time a
+// Proton game needs for its first window, even one that ends just before the
+// longer limit.
 class SteamGameWait {
 public:
-    explicit SteamGameWait(QString processRoot = QStringLiteral("/proc"));
+    explicit SteamGameWait(QString processRoot = QStringLiteral("/proc"),
+                           QString steamLog = SteamLaunchLog::defaultPath());
 
     // The kiosk started the Steam client at login (ADR-0027); its startup
     // time is counted from now.
@@ -27,14 +38,21 @@ public:
     void startLaunch(const QStringList& exec);
     // The tile pressed last is a Steam game.
     bool steamGame() const;
-    // True while the game is worth waiting for: a Steam game, inside the
-    // outer limit, and Steam still starting or a new reaper for it running.
-    // Asked when a grace ends, so the wait can run one grace past the limit.
-    bool stillComing() const;
+    // True while the game is worth waiting for: a Steam game, and either
+    // Steam's log says it is working on it, inside the work limit, or, within
+    // the limit since Steam last showed work, Steam is still starting or a
+    // new reaper for it is running. Asked when a grace ends, so the wait can
+    // run one grace past a limit.
+    bool stillComing();
+    // At the last stillComing(), Steam's log said it was working on the game.
+    bool steamWorking() const;
+    // What Steam's log said at the last stillComing(), for the journal.
+    SteamLaunchLog::Step lastStep() const;
 
     // Tests set these short.
     void setStartupMilliseconds(int milliseconds);
     void setLimitMilliseconds(int milliseconds);
+    void setWorkLimitMilliseconds(int milliseconds);
 
     // The app id in `steam -applaunch <appid>`, or empty for anything else.
     static QString appIdOf(const QStringList& exec);
@@ -46,15 +64,25 @@ private:
     QStringList reapers() const;
 
     QString m_processRoot;
+    SteamLaunchLog m_log;
     QString m_appId;
     QStringList m_reapersBefore;
+    SteamLaunchLog::Step m_lastStep = SteamLaunchLog::Step::Nothing;
     QElapsedTimer m_sinceSteamStarted;
     QElapsedTimer m_sinceLaunch;
+    // Since the tap, or since Steam's log last said it was working.
+    QElapsedTimer m_sinceWork;
     // How long after login the Steam client counts as still starting. On the
     // first laptop (2026-10-08) it took the game up 20 s after it was started;
     // a slower machine, or Steam updating itself, takes longer.
     qint64 m_startupMilliseconds = 60000;
-    // The longest a Steam game is waited for. A Proton game took 84 s from
-    // the tap to its first window on the first laptop (#132).
+    // The longest a Steam game is waited for after the tap, or after Steam
+    // last showed work, on the client starting or the reaper alone. A Proton
+    // game took 84 s from the tap to its first window on the first laptop
+    // (#132).
     qint64 m_limitMilliseconds = 120000;
+    // The longest a Steam game is waited for while Steam works on it. Two
+    // runtime updates and an install script took 50 s on the kids' laptop's
+    // Wi-Fi (2026-10-20); a game update on a slow line takes minutes more.
+    qint64 m_workLimitMilliseconds = 600000;
 };

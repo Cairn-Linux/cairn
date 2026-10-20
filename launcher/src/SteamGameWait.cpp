@@ -19,7 +19,8 @@ QByteArray readAll(const QString& path) {
 }
 } // namespace
 
-SteamGameWait::SteamGameWait(QString processRoot) : m_processRoot(std::move(processRoot)) {}
+SteamGameWait::SteamGameWait(QString processRoot, QString steamLog)
+    : m_processRoot(std::move(processRoot)), m_log(std::move(steamLog)) {}
 
 void SteamGameWait::steamStartedAtLogin() {
     m_sinceSteamStarted.start();
@@ -28,16 +29,27 @@ void SteamGameWait::steamStartedAtLogin() {
 void SteamGameWait::startLaunch(const QStringList& exec) {
     m_appId = appIdOf(exec);
     m_reapersBefore = m_appId.isEmpty() ? QStringList() : reapers();
+    m_log.startLaunch(m_appId);
+    m_lastStep = SteamLaunchLog::Step::Nothing;
     m_sinceLaunch.start();
+    m_sinceWork.start();
 }
 
 bool SteamGameWait::steamGame() const {
     return !m_appId.isEmpty();
 }
 
-bool SteamGameWait::stillComing() const {
-    if (m_appId.isEmpty() || !m_sinceLaunch.isValid() ||
-        m_sinceLaunch.elapsed() >= m_limitMilliseconds) {
+bool SteamGameWait::stillComing() {
+    if (m_appId.isEmpty() || !m_sinceLaunch.isValid()) {
+        return false;
+    }
+    m_lastStep = m_log.read();
+    if (m_lastStep == SteamLaunchLog::Step::Working &&
+        m_sinceLaunch.elapsed() < m_workLimitMilliseconds) {
+        m_sinceWork.start();
+        return true;
+    }
+    if (m_sinceWork.elapsed() >= m_limitMilliseconds) {
         return false;
     }
     const bool steamStarting =
@@ -50,12 +62,24 @@ bool SteamGameWait::stillComing() const {
         now, [this](const QString& pid) { return !m_reapersBefore.contains(pid); });
 }
 
+bool SteamGameWait::steamWorking() const {
+    return m_lastStep == SteamLaunchLog::Step::Working;
+}
+
+SteamLaunchLog::Step SteamGameWait::lastStep() const {
+    return m_lastStep;
+}
+
 void SteamGameWait::setStartupMilliseconds(int milliseconds) {
     m_startupMilliseconds = milliseconds;
 }
 
 void SteamGameWait::setLimitMilliseconds(int milliseconds) {
     m_limitMilliseconds = milliseconds;
+}
+
+void SteamGameWait::setWorkLimitMilliseconds(int milliseconds) {
+    m_workLimitMilliseconds = milliseconds;
 }
 
 QString SteamGameWait::appIdOf(const QStringList& exec) {

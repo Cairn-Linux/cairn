@@ -7,12 +7,16 @@ import Cairn.Brand
 // screen (ADR-0028). A Steam game can take seconds to come up, and tiles
 // that look the same after a press read as broken. The mark builds itself,
 // bottom stone first, so the screen is plainly still working, and one
-// sentence says what is on its way.
+// sentence says what is on its way. While Steam is still working on a game
+// after the first wait, a second sentence says it is getting ready, so a
+// download before the game reads as worth waiting for (ADR-0036).
 Rectangle {
     id: screen
 
     // The tile that is starting, for the sentence that names it.
     required property string appTitle
+    // Steam is downloading or installing something before the game starts.
+    required property bool gettingReady
 
     // Steps through one round of the building: a stone more each step until
     // the mark is whole, the whole mark for a step, no mark for a step.
@@ -23,7 +27,7 @@ Rectangle {
     color: Tokens.ground
 
     Accessible.role: Accessible.ProgressBar
-    Accessible.name: sentence.text
+    Accessible.name: gettingReady ? sentence.text + " " + readySentence.text : sentence.text
 
     // Every start begins at the bottom stone. Keys pressed while it starts
     // land here and do nothing: the launcher runs one program at a time.
@@ -94,6 +98,21 @@ Rectangle {
             font.family: Tokens.fontFamily
             font.pixelSize: Tokens.headingSize
             font.weight: Tokens.weightBold
+            color: Tokens.text
+        }
+
+        Text {
+            id: readySentence
+
+            objectName: "gettingReadySentence"
+            width: parent.width
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.WordWrap
+            visible: screen.gettingReady
+            text: qsTr("Getting it ready. This can take a few minutes.")
+            textFormat: Text.PlainText
+            font.family: Tokens.fontFamily
+            font.pixelSize: Tokens.headingSize
             color: Tokens.text
         }
     }

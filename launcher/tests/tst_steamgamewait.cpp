@@ -26,11 +26,31 @@ QStringList steamGame() {
     return {QStringLiteral("steam"), QStringLiteral("-applaunch"), QStringLiteral("294650")};
 }
 
-// Whether a Steam game is still on its way (ADR-0029, #132).
+// A launch step as Steam writes it in its log for the game 294650.
+void steamSays(const QString& path, const QByteArray& says) {
+    QFile log(path);
+    QVERIFY(log.open(QIODevice::WriteOnly | QIODevice::Append));
+    log.write("[2026-10-20 15:30:43] GameAction [AppID 294650, ActionID 1] : LaunchApp " + says +
+              '\n');
+}
+
+// The cases without a log of their own read one in a folder of the test's,
+// never the Steam log of whoever runs the tests.
+const QTemporaryDir& dataHome() {
+    static const QTemporaryDir home;
+    return home;
+}
+
+// Whether a Steam game is still on its way (ADR-0029, #132, ADR-0036).
 class SteamGameWaitTest : public QObject {
     Q_OBJECT
 
 private slots:
+    void initTestCase() {
+        QVERIFY(dataHome().isValid());
+        qputenv("XDG_DATA_HOME", dataHome().path().toUtf8());
+    }
+
     void theAppIdComesFromApplaunch_data() {
         QTest::addColumn<QStringList>("exec");
         QTest::addColumn<QString>("appId");
@@ -166,8 +186,98 @@ private slots:
     }
 
     void nothingLaunchedIsNotWaitedFor() {
-        const SteamGameWait wait;
+        SteamGameWait wait;
         QVERIFY(!wait.stillComing());
+    }
+
+    // As on the kids' laptop (2026-10-20): Steam up, no reaper yet, while
+    // Steam downloads what the game needs. Its log says it is working.
+    void steamWorkingOnTheGameIsWaitedFor() {
+        const QTemporaryDir root;
+        const QString log = root.filePath(QStringLiteral("console_log.txt"));
+        SteamGameWait wait(root.path(), log);
+        wait.startLaunch(steamGame());
+        QVERIFY(!wait.stillComing());
+        QVERIFY(!wait.steamWorking());
+        steamSays(log, "changed task to DownloadingDepots with \"\"");
+        QVERIFY(wait.stillComing());
+        QVERIFY(wait.steamWorking());
+        QCOMPARE(wait.lastStep(), SteamLaunchLog::Step::Working);
+    }
+
+    // A question on a window the kiosk hides, or a refusal, is not work:
+    // nothing will come, so the launch is not waited for.
+    void aQuestionOrARefusalIsNotWaitedFor_data() {
+        QTest::addColumn<QByteArray>("says");
+        QTest::newRow("question") << QByteArray(
+            "waiting for user response to SynchronizingCloud \"syncfailed\"");
+        QTest::newRow("refusal") << QByteArray("failed with AppError_33 with \"\"");
+    }
+
+    void aQuestionOrARefusalIsNotWaitedFor() {
+        QFETCH(const QByteArray, says);
+        const QTemporaryDir root;
+        const QString log = root.filePath(QStringLiteral("console_log.txt"));
+        SteamGameWait wait(root.path(), log);
+        wait.startLaunch(steamGame());
+        steamSays(log, "changed task to SynchronizingCloud with \"\"");
+        steamSays(log, says);
+        QVERIFY(!wait.stillComing());
+        QVERIFY(!wait.steamWorking());
+    }
+
+    // Work outlasts the reaper's limit, but not the longer one for work.
+    void theWorkLimitEndsTheWait() {
+        const QTemporaryDir root;
+        const QString log = root.filePath(QStringLiteral("console_log.txt"));
+        SteamGameWait wait(root.path(), log);
+        wait.setLimitMilliseconds(100);
+        wait.setWorkLimitMilliseconds(400);
+        wait.startLaunch(steamGame());
+        steamSays(log, "changed task to DownloadingDepots with \"\"");
+        QTest::qWait(200);
+        QVERIFY(wait.stillComing());
+        QTRY_VERIFY(!wait.stillComing());
+    }
+
+    // Once the download is done the game itself starts, and a Proton game can
+    // take a minute more for its first window. The reaper then gets the usual
+    // limit counted from the last work, not from the tap.
+    void afterTheWorkTheReaperGetsItsLimitAgain() {
+        const QTemporaryDir root;
+        const QString log = root.filePath(QStringLiteral("console_log.txt"));
+        SteamGameWait wait(root.path(), log);
+        wait.setLimitMilliseconds(300);
+        wait.startLaunch(steamGame());
+        steamSays(log, "changed task to DownloadingDepots with \"\"");
+        QTest::qWait(350);
+        QVERIFY(wait.stillComing());
+        steamSays(log, "changed task to Completed with \"\"");
+        addProcess(root, QStringLiteral("8447"), "reaper",
+                   {"reaper", "SteamLaunch", "AppId=294650"});
+        QVERIFY(wait.stillComing());
+        QVERIFY(!wait.steamWorking());
+        QTRY_VERIFY(!wait.stillComing());
+    }
+
+    // Work that ends just before the work limit still leaves the game's
+    // reaper its own limit, counted from that work, past the work limit.
+    void workEndingNearTheWorkLimitLeavesTheReaperItsLimit() {
+        const QTemporaryDir root;
+        const QString log = root.filePath(QStringLiteral("console_log.txt"));
+        SteamGameWait wait(root.path(), log);
+        wait.setLimitMilliseconds(400);
+        wait.setWorkLimitMilliseconds(300);
+        wait.startLaunch(steamGame());
+        steamSays(log, "changed task to DownloadingDepots with \"\"");
+        QTest::qWait(250);
+        QVERIFY(wait.stillComing());
+        steamSays(log, "changed task to Completed with \"\"");
+        addProcess(root, QStringLiteral("8447"), "reaper",
+                   {"reaper", "SteamLaunch", "AppId=294650"});
+        QTest::qWait(150); // past the work limit, inside the reaper's.
+        QVERIFY(wait.stillComing());
+        QTRY_VERIFY(!wait.stillComing());
     }
 };
 

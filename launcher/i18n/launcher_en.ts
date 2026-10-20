@@ -4,7 +4,7 @@
 <context>
     <name>AppLauncher</name>
     <message>
-        <location filename="../src/AppLauncher.cpp" line="196"/>
+        <location filename="../src/AppLauncher.cpp" line="201"/>
         <source>Another program</source>
         <translation type="unfinished"></translation>
     </message>
@@ -146,8 +146,13 @@
 <context>
     <name>StartingScreen</name>
     <message>
-        <location filename="../qml/StartingScreen.qml" line="92"/>
+        <location filename="../qml/StartingScreen.qml" line="96"/>
         <source>%1 is starting.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/StartingScreen.qml" line="112"/>
+        <source>Getting it ready. This can take a few minutes.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
