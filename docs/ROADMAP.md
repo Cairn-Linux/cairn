@@ -1,7 +1,7 @@
 # Cairn Linux — Roadmap and working plan
 
 **Status:** living document
-**Last updated:** 2026-10-19
+**Last updated:** 2026-10-20
 (D1–D8, D11–D14 closed; D15 deferred)
 
 `DESIGN.md` is the specification. This document is the plan for building it:
@@ -254,8 +254,10 @@ done, and what could sink it. Decisions that change the design get an ADR in
   `/var/lib/cairn/game-pictures/`; nothing is downloaded. A game's tile
   shows that picture inside its Paper card in place of the title, and a
   game with no picture shows its name. Tested in C++, QML and Python with
-  stand-in pictures, and against a made-up machine; not yet run on the
-  laptop.
+  stand-in pictures, and against a made-up machine. Installed by hand on
+  the kids' laptop on 2026-10-20. There 9 of the 25 games had their
+  picture only as `library_header.jpg`, which the step did not read, so
+  their tiles showed names; it reads that name too now.
 - **Give-up spares Steam's interface again (2026-10-01, #117).** A Steam
   update moved Steam's own interface into a sandbox called `srt-bwrap`,
   which the give-up key's `bwrap` match caught. Flatpak's sandbox is now
@@ -441,7 +443,7 @@ first-boot wizard, quick-actions overlay, signed image, CI, ISO.
 | Kiosk escape via VT switch or forced windows | P0-4, P0-10 | logind `HandleXXX` and compositor config; labwc window rules plus foreign-toplevel detection (D3, ADR-0004). |
 | Steam client in every child's session | P0-10 RSS on the 4 GB floor; client UI changes under us | Measured 2026-09-08: about 800 MB proportional idle signed out and 1.4 GB signed in, in the VM. The child role in a Steam Family as defence in depth (Family View is gone); the launcher's grown-up screen is the universal fallback. |
 | Steam changes client behaviour under us | Phase 1 onward | Detection + graceful failure, never rely on a quiet client. |
-| Steam changes the files Cairn reads, which Valve does not document: its manifests and the `librarycache` layout, which already has two forms (ADR-0033, ADR-0035) | After a Steam update, provisioning leaves games out, or notes that new games have no picture | A game with no picture shows its name, and a launch that fails ends on the grown-up screen (ADR-0030). |
+| Steam changes the files Cairn reads, which Valve does not document: its manifests and the `librarycache` layout, which already has two forms and two names for a game's picture (ADR-0033, ADR-0035) | After a Steam update, provisioning leaves games out, or notes that new games have no picture | A game with no picture shows its name, and a launch that fails ends on the grown-up screen (ADR-0030). |
 | Phase 0 exited on thin evidence | One family, one laptop above the 4 GB floor, no Terminal use seen (ADR-0031) | P1-17 tests what was not seen before an image leaves the family; P1-1 measures the floor. |
 | Single maintainer | Always | Inherit upstream; keep first-party code small; document every mechanism. |
 | Base image trademark constraints | Reviewed 2026-09-03, no blocker | Compliance checklist in `docs/research/base-image-policy.md`; P1-14 executes it before any image is published. |
