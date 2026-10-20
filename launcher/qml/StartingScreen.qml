@@ -81,13 +81,16 @@ Rectangle {
             }
         }
 
+        // Plain text, as on the tile: the title may be a game's own name.
         Text {
             id: sentence
 
+            objectName: "startingSentence"
             width: parent.width
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
             text: qsTr("%1 is starting.").arg(screen.appTitle)
+            textFormat: Text.PlainText
             font.family: Tokens.fontFamily
             font.pixelSize: Tokens.headingSize
             font.weight: Tokens.weightBold

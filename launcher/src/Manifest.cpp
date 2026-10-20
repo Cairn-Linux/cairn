@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "Manifest.h"
 
+#include "TilePicture.h"
+
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -12,11 +14,6 @@
 namespace {
 
 constexpr int supportedVersion = 1;
-
-QString localPath(const QString& pathOrUrl) {
-    const QUrl url(pathOrUrl);
-    return url.isLocalFile() ? url.toLocalFile() : pathOrUrl;
-}
 
 // The tile kinds the brand defines (DESIGN §6.1, ADR-0024). Anything else is
 // refused rather than guessed.
@@ -52,13 +49,19 @@ std::optional<QStringList> execFromJson(const QJsonValue& value) {
 
 } // namespace
 
+QString Manifest::localPath(const QString& pathOrUrl) {
+    const QUrl url(pathOrUrl);
+    return url.isLocalFile() ? url.toLocalFile() : pathOrUrl;
+}
+
 Manifest::Result Manifest::read(const QString& path) {
     const QString file = localPath(path);
     QFile source(file);
     if (!source.open(QIODevice::ReadOnly)) {
         return {.tiles = {},
                 .error = QStringLiteral("Could not open the manifest %1.").arg(file),
-                .skipped = {}};
+                .skipped = {},
+                .notes = {}};
     }
 
     QJsonParseError parseError;
@@ -66,7 +69,8 @@ Manifest::Result Manifest::read(const QString& path) {
     if (parseError.error != QJsonParseError::NoError || !document.isObject()) {
         return {.tiles = {},
                 .error = QStringLiteral("The manifest %1 is not valid JSON.").arg(file),
-                .skipped = {}};
+                .skipped = {},
+                .notes = {}};
     }
 
     const QJsonObject root = document.object();
@@ -75,7 +79,8 @@ Manifest::Result Manifest::read(const QString& path) {
                 .error = QStringLiteral("The manifest %1 is not version %2.")
                              .arg(file)
                              .arg(supportedVersion),
-                .skipped = {}};
+                .skipped = {},
+                .notes = {}};
     }
 
     Result result;
@@ -95,7 +100,18 @@ Manifest::Result Manifest::read(const QString& path) {
                     .arg(file, title.isEmpty() ? QStringLiteral("(untitled)") : title));
             continue;
         }
-        result.tiles.append({.title = title, .kind = *kind, .exec = *exec, .opensTerminal = false});
+        const TilePicture::Result picture = TilePicture::fromEntry(entry);
+        if (picture.refused) {
+            result.notes.append(QStringLiteral("The manifest %1 names a picture for %2 that is not "
+                                               "the full path of a file: %3. The tile shows its "
+                                               "name.")
+                                    .arg(file, title, *picture.refused));
+        }
+        result.tiles.append({.title = title,
+                             .kind = *kind,
+                             .exec = *exec,
+                             .opensTerminal = false,
+                             .picture = picture.url});
     }
     if (result.tiles.isEmpty()) {
         result.error =

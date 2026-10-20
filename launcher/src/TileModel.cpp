@@ -1,25 +1,25 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "TileModel.h"
 
-#include "Manifest.h"
+#include "TileFiles.h"
 
 #include <QDebug>
 
-TileModel::TileModel(QObject* parent) : QAbstractListModel(parent), m_tiles(defaultTiles()) {}
+TileModel::TileModel(QObject* parent) : QAbstractListModel(parent), m_tiles(builtInTiles()) {
+    m_tiles.append(terminalTile());
+}
 
 QList<TileModel::Tile> TileModel::tiles() const {
     return m_tiles;
 }
 
-QList<TileModel::Tile> TileModel::defaultTiles() {
-    // The six tiles of the L1 front page (DESIGN §5.1). None launches anything
-    // until a manifest names a program for it; the last is the Terminal.
+QList<TileModel::Tile> TileModel::builtInTiles() {
+    // None launches anything until a manifest names a program for it.
     return {{.title = tr("Draw"), .kind = Kind::Make, .exec = {}, .opensTerminal = false},
             {.title = tr("Music"), .kind = Kind::Make, .exec = {}, .opensTerminal = false},
             {.title = tr("Build"), .kind = Kind::Make, .exec = {}, .opensTerminal = false},
             {.title = tr("Story"), .kind = Kind::Make, .exec = {}, .opensTerminal = false},
-            {.title = tr("Practice"), .kind = Kind::Practice, .exec = {}, .opensTerminal = false},
-            terminalTile()};
+            {.title = tr("Practice"), .kind = Kind::Practice, .exec = {}, .opensTerminal = false}};
 }
 
 TileModel::Tile TileModel::terminalTile() {
@@ -47,6 +47,8 @@ QVariant TileModel::data(const QModelIndex& index, int role) const {
         return tile.exec;
     case OpensTerminalRole:
         return tile.opensTerminal;
+    case PictureRole:
+        return tile.picture;
     default:
         return {};
     }
@@ -57,7 +59,8 @@ QHash<int, QByteArray> TileModel::roleNames() const {
             {KindRole, "kind"},
             {AccessibleNameRole, "accessibleName"},
             {ExecRole, "exec"},
-            {OpensTerminalRole, "opensTerminal"}};
+            {OpensTerminalRole, "opensTerminal"},
+            {PictureRole, "picture"}};
 }
 
 QString TileModel::manifestPath() const {
@@ -70,36 +73,53 @@ void TileModel::setManifestPath(const QString& path) {
     }
     m_manifestPath = path;
     emit manifestPathChanged();
-
-    const QString previousError = m_loadError;
-    if (path.isEmpty()) {
-        m_loadError.clear();
-        replaceTiles(defaultTiles());
-    } else {
-        const Manifest::Result result = Manifest::read(path);
-        // A parent reads these in the terminal or the journal; the child sees
-        // the tiles that did load.
-        for (const QString& sentence : result.skipped) {
-            qWarning().noquote() << sentence;
-        }
-        m_loadError = result.error;
-        if (result.error.isEmpty()) {
-            QList<Tile> tiles = result.tiles;
-            tiles.append(terminalTile());
-            replaceTiles(tiles);
-        } else {
-            // A parent reads this in the terminal; the child keeps the built-in tiles.
-            qWarning().noquote() << result.error;
-            replaceTiles(defaultTiles());
-        }
+    if (m_loadsOnChange) {
+        load();
     }
-    if (m_loadError != previousError) {
-        emit loadErrorChanged();
+}
+
+QString TileModel::gamesPath() const {
+    return m_gamesPath;
+}
+
+void TileModel::setGamesPath(const QString& path) {
+    if (path == m_gamesPath) {
+        return;
+    }
+    m_gamesPath = path;
+    emit gamesPathChanged();
+    if (m_loadsOnChange) {
+        load();
     }
 }
 
 QString TileModel::loadError() const {
     return m_loadError;
+}
+
+void TileModel::classBegin() {
+    m_loadsOnChange = false;
+}
+
+void TileModel::componentComplete() {
+    m_loadsOnChange = true;
+    load();
+}
+
+void TileModel::load() {
+    const TileFiles::Result result = TileFiles::read(m_manifestPath, m_gamesPath);
+    // A parent reads these in the journal; the child sees the tiles that did
+    // load, or the built-in ones.
+    for (const QString& sentence : result.sentences) {
+        qWarning().noquote() << sentence;
+    }
+    QList<Tile> tiles = result.tiles;
+    tiles.append(terminalTile());
+    replaceTiles(tiles);
+    if (result.manifestError != m_loadError) {
+        m_loadError = result.manifestError;
+        emit loadErrorChanged();
+    }
 }
 
 void TileModel::replaceTiles(const QList<Tile>& tiles) {

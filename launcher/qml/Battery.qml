@@ -134,6 +134,7 @@ Item {
         height: parent.height
         visible: battery.warning !== BatteryLook.None
         text: battery.warning === BatteryLook.AlmostEmpty ? qsTr("The battery is almost empty. Ask a grown-up for the charger.") : qsTr("The battery is low. Ask a grown-up for the charger.")
+        textFormat: Text.PlainText
         verticalAlignment: Text.AlignVCenter
         wrapMode: Text.WordWrap
         maximumLineCount: 2

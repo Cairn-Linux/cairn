@@ -32,13 +32,17 @@ Rectangle {
         spacing: Tokens.headingSize
         width: parent.width - Tokens.headingSize * 2
 
+        // Both sentences may hold a title, or the title of a window that
+        // opened on its own, so both are plain text, as on the tile.
         Text {
             id: heading
 
+            objectName: "grownUpHeading"
             width: parent.width
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
             text: screen.comingSoon ? qsTr("%1 is coming soon.").arg(screen.appTitle) : qsTr("Something needs a grown-up.")
+            textFormat: Text.PlainText
             font.family: Tokens.fontFamily
             font.pixelSize: Tokens.displaySize
             font.weight: Tokens.weightBold
@@ -46,10 +50,12 @@ Rectangle {
         }
 
         Text {
+            objectName: "grownUpSentence"
             width: parent.width
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
             text: screen.comingSoon ? qsTr("It is not ready yet. Try something else.") : screen.openedOnItsOwn ? qsTr("%1 opened on its own.").arg(screen.appTitle) : qsTr("%1 did not start.").arg(screen.appTitle)
+            textFormat: Text.PlainText
             font.family: Tokens.fontFamily
             font.pixelSize: Tokens.headingSize
             color: Tokens.text

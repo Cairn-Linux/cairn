@@ -10,6 +10,9 @@ Window {
 
     // Set from the command line (--manifest). Empty means the built-in tiles.
     property string manifestPath: ""
+    // Set from the command line (--games): the games file provisioning makes
+    // from the shared Steam library (ADR-0033). Empty means no game tiles.
+    property string gamesPath: ""
     // The Terminal tile is open; the tiles are hidden behind it.
     property bool terminalOpen: false
     // Set from the command line (--log-out). Empty means no Log out.
@@ -38,6 +41,7 @@ Window {
         id: tiles
 
         manifestPath: window.manifestPath
+        gamesPath: window.gamesPath
     }
 
     // Windows of other programs, from the compositor. Nothing arrives on
@@ -290,6 +294,7 @@ Window {
                 required property int index
                 required property list<string> exec
                 required property bool opensTerminal
+                required picture
 
                 width: grid.cellWidth - Tokens.headingSize
                 height: grid.cellHeight - Tokens.headingSize

@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "entries": [
+    {"id": "steam-1001", "title": "Game one", "category": "games", "exec": ["steam", "-applaunch", "1001"]},
+    {"id": "steam-1002", "title": "Game two", "category": "games", "exec": ["steam", "-applaunch", "1002"]},
+    {"id": "steam-1003", "title": "Game three", "category": "games", "exec": ["steam", "-applaunch", "1003"]}
+  ]
+}

@@ -2,6 +2,10 @@
 #include "Manifest.h"
 #include "TileModel.h"
 
+#include <QDir>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QRegularExpression>
 #include <QTemporaryDir>
 #include <QTest>
@@ -111,6 +115,81 @@ private slots:
     void emptyManifestIsRefused() {
         const QString path = write("empty.json", R"({"version": 1, "entries": []})");
         QVERIFY(Manifest::read(path).error.contains(QStringLiteral("no entries")));
+    }
+
+    // A picture the manifest names is a file on this computer, by its full
+    // path (ADR-0035). The stand-in is any bytes: only the launcher's window
+    // ever decodes it.
+    void aPictureIsAFullPathToAFile() {
+        const QString picture = write("picture.jpg", "stand-in picture");
+        const QJsonObject entry{{QStringLiteral("title"), QStringLiteral("Paint")},
+                                {QStringLiteral("category"), QStringLiteral("make")},
+                                {QStringLiteral("exec"), QJsonArray{QStringLiteral("tuxpaint")}},
+                                {QStringLiteral("picture"), picture}};
+        const QString path =
+            write("picture.json",
+                  QJsonDocument(QJsonObject{{QStringLiteral("version"), 1},
+                                            {QStringLiteral("entries"), QJsonArray{entry}}})
+                      .toJson());
+        const Manifest::Result result = Manifest::read(path);
+        QVERIFY2(result.error.isEmpty(), qPrintable(result.error));
+        QVERIFY(result.skipped.isEmpty());
+        QVERIFY2(result.notes.isEmpty(), qPrintable(result.notes.join(QLatin1Char('\n'))));
+        QCOMPARE(result.tiles.size(), 1);
+        QCOMPARE(result.tiles.at(0).picture, QUrl::fromLocalFile(picture));
+    }
+
+    void noPictureSaysNothing() {
+        const QString path = write("no-picture.json", R"({"version": 1, "entries": [
+            {"title": "Paint", "category": "make", "exec": ["tuxpaint"]}]})");
+        const Manifest::Result result = Manifest::read(path);
+        QCOMPARE(result.tiles.size(), 1);
+        QVERIFY(result.tiles.at(0).picture.isEmpty());
+        QVERIFY(result.notes.isEmpty());
+    }
+
+    // A picture the launcher cannot use costs the picture, never the tile.
+    void anUnusablePictureKeepsTheTile_data() {
+        QTest::addColumn<QJsonValue>("picture");
+        QTest::addColumn<QString>("named");
+        QTest::newRow("a relative path")
+            << QJsonValue(QStringLiteral("picture.jpg")) << QStringLiteral("picture.jpg");
+        QTest::newRow("a web address") << QJsonValue(QStringLiteral("http://localhost/p.jpg"))
+                                       << QStringLiteral("http://localhost/p.jpg");
+        QTest::newRow("a file URL") << QJsonValue(QStringLiteral("file:///tmp/p.jpg"))
+                                    << QStringLiteral("file:///tmp/p.jpg");
+        QTest::newRow("a file that is not there")
+            << QJsonValue(QStringLiteral("/nonexistent/cairn/p.jpg"))
+            << QStringLiteral("/nonexistent/cairn/p.jpg");
+        QTest::newRow("a folder") << QJsonValue(QDir::rootPath()) << QDir::rootPath();
+        QTest::newRow("inside the program")
+            << QJsonValue(QStringLiteral(":/qt-project.org")) << QStringLiteral(":/qt-project.org");
+        QTest::newRow("empty") << QJsonValue(QString()) << QStringLiteral("(empty)");
+        QTest::newRow("not a string") << QJsonValue(7) << QStringLiteral("(not text)");
+    }
+
+    void anUnusablePictureKeepsTheTile() {
+        QFETCH(const QJsonValue, picture);
+        QFETCH(const QString, named);
+        const QJsonObject entry{{QStringLiteral("title"), QStringLiteral("Paint")},
+                                {QStringLiteral("category"), QStringLiteral("make")},
+                                {QStringLiteral("exec"), QJsonArray{QStringLiteral("tuxpaint")}},
+                                {QStringLiteral("picture"), picture}};
+        const QString path =
+            write("unusable-picture.json",
+                  QJsonDocument(QJsonObject{{QStringLiteral("version"), 1},
+                                            {QStringLiteral("entries"), QJsonArray{entry}}})
+                      .toJson());
+        const Manifest::Result result = Manifest::read(path);
+        QVERIFY2(result.error.isEmpty(), qPrintable(result.error));
+        QVERIFY(result.skipped.isEmpty());
+        QCOMPARE(result.tiles.size(), 1);
+        QCOMPARE(result.tiles.at(0).title, QStringLiteral("Paint"));
+        QVERIFY(result.tiles.at(0).picture.isEmpty());
+        QCOMPARE(result.notes,
+                 QStringList{QStringLiteral("The manifest %1 names a picture for Paint that is not "
+                                            "the full path of a file: %2. The tile shows its name.")
+                                 .arg(path, named)});
     }
 
     void modelFallsBackToDefaultsOnError() {

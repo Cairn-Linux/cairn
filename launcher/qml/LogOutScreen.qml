@@ -65,6 +65,7 @@ Rectangle {
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
             text: screen.leaving ? qsTr("Logging out.") : screen.didNotFinish ? qsTr("Log out did not finish.") : qsTr("Log out now?")
+            textFormat: Text.PlainText
             font.family: Tokens.fontFamily
             font.pixelSize: Tokens.displaySize
             font.weight: Tokens.weightBold
@@ -79,6 +80,7 @@ Rectangle {
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
             text: screen.leaving ? qsTr("This takes a few seconds.") : screen.didNotFinish ? qsTr("Try again, or ask a grown-up.") : qsTr("The next person can choose their name.")
+            textFormat: Text.PlainText
             font.family: Tokens.fontFamily
             font.pixelSize: Tokens.headingSize
             color: Tokens.text

@@ -136,11 +136,23 @@ made while installing Bazzite cannot change the shared folder.
    line says when a child was logged in, when their Steam has not run yet,
    or why a game was left out. Those children get their copies at a later
    run.
+
+   The same run makes a tile for each game in the shared folder, with the
+   game's picture on it. The picture is the one your own Steam keeps for
+   the game on this computer; nothing is downloaded. A `note:` line names
+   a game that has no picture yet. Open Steam in your own login, so its
+   library shows the game, then run the set-up command again. Until then
+   that game's tile shows its name.
+
+   Every child sees the new tiles at their next login, even a child who
+   did not get their copies in this run. Until a later run copies the
+   game for that child, its tile ends on "Something needs a grown-up".
 7. Open **Steam for** the child and start one game, so Steam fetches the
    tools it needs out of the child's sight.
 
-A new game reaches a child the next time you run the set-up command with
-that child logged out. Each child's Steam keeps its own copy up to date, so
+A new game's tile reaches every child at their next login, and the game
+itself the next time you run the set-up command with that child logged
+out. Each child's Steam keeps its own copy up to date, so
 an update downloads once for you and once for each child.
 
 Try games in **Steam for** the child, not in your own Steam. A game played
@@ -191,6 +203,9 @@ themselves.
   journalctl -t cairn-launcher -t cairn-kiosk -t cairn-steam-for -t cairn-steam-visit --since today
   ```
 
+- If a Steam game says "did not start" and it is new, the child may not
+  have their copy yet: run the set-up command again with that child logged
+  out.
 - If a Steam game says "did not start", Steam is often waiting for an
   answer in a window the child's session hides. Its own log says which:
   look for "waiting for user response" in
@@ -220,9 +235,9 @@ themselves.
   screen extends the desktop instead of mirroring it.
 - The battery shows above the tiles and says when it is low, but not
   while a game is open, so keep a laptop plugged in.
-- Games copied into a child's Steam have no tile on the child's screen
-  yet.
-- Running the script again puts the default tiles back.
+- Running the script again puts the repository's tiles back, so a tile
+  you added by hand goes. Game tiles come from the shared folder and
+  stay.
 - After a system update that brings a newer Qt, rebuild in the toolbox and
   run the script again.
 
@@ -236,5 +251,6 @@ These steps were checked on 2026-10-01 in a Bazzite 44 virtual machine,
 from the toolbox build to a child's session. Steam for a child was checked
 there on 2026-10-12, with no Steam account signed in. The games section
 has not been tried as written: adding the folder in Steam, installing into
-it, Move, and the set-up command's copy step have not been run on a real
-computer yet. The kids' laptop got its copies by hand on 2026-10-13.
+it, Move, and the set-up command's copy step, game tiles and pictures have
+not been run on a real computer yet. The kids' laptop got its copies by
+hand on 2026-10-13.
