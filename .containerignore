@@ -1,0 +1,37 @@
+# SPDX-License-Identifier: Apache-2.0
+# What `podman build` leaves out of the build context (ADR-0038). podman
+# reads this with Docker's rules, not git's: a pattern without `**/` matches
+# only at the top of the checkout. Build folders, keys, tool caches and
+# git's own data stay out at any depth; the submodule's files stay in.
+**/.git
+.claude/
+**/build/
+**/build-*/
+**/output/
+**/.cache/
+**/__pycache__/
+**/*.pyc
+**/.venv/
+**/.ruff_cache/
+**/node_modules/
+**/.idea/
+**/.vscode/
+**/*.user
+**/*.user.*
+**/*.autosave
+**/*.swp
+**/.qmlls.ini
+docs/brand-guide/_ds/
+**/CMakeUserPresets.json
+**/compile_commands.json
+**/*.iso
+**/*.qcow2
+**/*.raw
+**/*.img
+**/*.tar
+**/*.oci
+**/*.key
+**/*.pem
+# A trailing `/` does not limit a pattern to folders here, so `build-*/`
+# also matches the build stage's own scripts. Keep them.
+!build_files/build-*.sh

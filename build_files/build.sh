@@ -1,24 +1,24 @@
 #!/bin/bash
-# Cairn Linux image build script. Runs inside the Containerfile with the repo's
-# build_files/ mounted at /ctx and system_files/ at /ctx/system_files.
-# Phase 1 fills this in (ROADMAP P1-1..P1-4). Kept runnable so the image
-# builds even now.
+# SPDX-License-Identifier: Apache-2.0
+# Cairn Linux image build script. Runs in the Containerfile's final stage,
+# after Cairn's own files are in place, with the repo's build_files/ mounted
+# at /ctx and system_files/ at /ctx/system_files.
 
 set -ouex pipefail
 
-# Lay system_files/ over / — session entries,
-# the display manager and greeter configuration (D6), PAM rules,
-# launcher and shell packaging outputs.
-cp -avf /ctx/system_files/. /
+# Lay system_files/ over /, all but its own README. Empty for now: every
+# file Cairn ships comes from `cmake --install` in the build stage
+# (ADR-0038).
+find /ctx/system_files -mindepth 1 -maxdepth 1 ! -name README.md \
+    -exec cp -avf {} / \;
 
-### Packages that must live in the image, not in Flatpak (DESIGN §4.2):
-### the launcher, the restricted shell, session plumbing, the kiosk
-### compositor, ScummVM. Uncomment as each lands.
-# dnf5 install -y labwc scummvm
-# dnf5 install -y atkinson-hyperlegible-next-fonts atkinson-hyperlegible-mono-fonts
+### Slice 3 of #164 (ADR-0038, "What the image does itself"):
+### - layered packages: labwc, ScummVM, SDDM and the brand's fonts, with
+###   sddm.service enabled and plasmalogin.service disabled;
+### - the visit's cage: install -m 0711 /usr/bin/cage /usr/libexec/cairn/cage-visit;
+### - groups from sysusers.d and folders from tmpfiles.d;
+### - the Guardian's window owned by root:cairn-guardian;
+### - authselect with-faillock and the semanage fcontext labels.
 
 ### Everything else arrives as Flatpak at first boot or via the Guardian tool:
 ### GCompris (org.kde.gcompris), Tux Paint (org.tuxpaint.Tuxpaint), etc.
-
-### Services: the display manager and greeter configuration (D6)
-# systemctl enable <display-manager>.service  # D6

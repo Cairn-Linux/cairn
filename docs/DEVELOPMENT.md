@@ -152,6 +152,37 @@ instead of "Segmentation fault". Release builds are for the image only. The
 presets do not pin a compiler; `CC=clang CXX=clang++ cmake --preset debug`
 picks clang for the clearer messages.
 
+## Building the image
+
+The image compiles Cairn in a stage of the `Containerfile` it then throws
+away, runs every test there, and copies the tree `cmake --install` makes
+over the Bazzite base (ADR-0038). Build it from the checkout, with the
+submodule present, since the build reads the checkout and not git:
+
+```sh
+git submodule update --init
+podman build -t localhost/cairn:dev .
+```
+
+Rootless podman is enough. A build from an already pulled Bazzite
+base takes 3 to 4 minutes on the dev PC, most of it compiling and the
+tests. Later builds reuse the layer with the build tools, and an edit to the
+docs or to `build.sh` reuses the compiled tree too. The image is the base's
+11.6 GB plus about 2 MB of Cairn. The build stops if a test fails, or if
+Fedora's Qt headers are not exactly the Qt the base ships.
+
+Some tests need what a container build does not have, so they skip
+themselves there: two give-up tests need user namespaces or a systemd user
+manager, and seven `copy_games` tests need a folder that can reflink
+(btrfs or XFS). The build log lists every skip under "Tests skipped in the
+build stage". Run `ctest` on the host before building an image; it is the
+only place those tests run.
+
+The build stage copies only what CMake reads. `.containerignore` keeps
+build folders, keys, tool caches, `.git` and `.claude/` out of the build
+context at any depth, so a build folder or a key anywhere in the checkout
+does not reach podman's storage.
+
 ## Quality gates
 
 Run these before every commit that touches code. Each one is a single

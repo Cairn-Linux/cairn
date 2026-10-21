@@ -51,6 +51,15 @@ configures with `-DCMAKE_INSTALL_PREFIX=/usr` and installs into a folder
 replace the copy later, because the files already sit where an RPM would
 put them.
 
+The stage runs `ctest` after compiling, and a failing test stops the
+image. Compiling and testing run as an unprivileged user, because some
+tests refuse to run as root or check what a person without root cannot
+read; only the install runs as root, so every file is owned by root. Tests
+that need what a container build lacks skip themselves and are listed in
+the build log, so `ctest` on the host is still required. The stage stops
+if Fedora's `qt6-*-devel` packages are not exactly the version-release of
+the Qt the base ships.
+
 The paths inside Cairn's files are fixed when the build is configured.
 The project's default prefix is now `/usr`. The `release` preset keeps
 `/usr/local`, because provisioning installs from that build and its
