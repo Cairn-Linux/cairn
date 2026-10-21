@@ -10,7 +10,8 @@ Guardian tool; the rest of that tool is still to come.
 
 Provisioning puts a "Steam for <child>" entry in the application menu for
 each child. Only a Guardian's menu shows them: the entry names
-`/usr/local/bin/cairn-steam-for` as its `TryExec`, which only the
+`/usr/local/bin/cairn-steam-for` (`/usr/bin/cairn-steam-for` in the
+image, ADR-0038) as its `TryExec`, which only the
 `cairn-guardian` group may run, and Plasma's menu leaves out an entry whose
 program the account cannot run. The window:
 

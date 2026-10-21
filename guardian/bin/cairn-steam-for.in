@@ -1,0 +1,13 @@
+#!/bin/bash
+# SPDX-License-Identifier: Apache-2.0
+# The Guardian's window for a child's Steam (ADR-0032), made by CMake from
+# guardian/bin/cairn-steam-for.in (ADR-0038). Provisioning writes its own.
+set -ouex pipefail
+window=(@CAIRN_FULL_LIBEXECDIR@/cairn-steam-for "$@")
+# The window's notes and the root helper's trace go to the journal under
+# their own name: journalctl -t cairn-steam-for. systemd-cat runs the window
+# in its own place, so the window stays the parent pkexec needs.
+if systemd-cat --identifier=cairn-steam-for true > /dev/null 2>&1; then
+    exec systemd-cat --identifier=cairn-steam-for "${window[@]}"
+fi
+exec "${window[@]}"

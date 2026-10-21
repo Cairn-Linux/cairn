@@ -3,6 +3,13 @@ cmake_minimum_required(VERSION 3.28)
 
 project(cairn LANGUAGES C CXX)
 
+# Cairn is an operating system, so its image installs under /usr (ADR-0038).
+# The release preset keeps /usr/local, where provisioning puts its files.
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    set(CMAKE_INSTALL_PREFIX "/usr" CACHE PATH "Where cmake --install puts Cairn" FORCE)
+endif()
+include(cmake/CairnInstall.cmake)
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -29,3 +36,4 @@ add_subdirectory(greeter)
 add_subdirectory(guardian)
 add_subdirectory(session)
 add_subdirectory(provision)
+add_subdirectory(cmake)

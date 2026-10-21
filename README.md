@@ -87,6 +87,7 @@ The design follows these principles; not every planned feature is complete.
 | `Containerfile`, `build_files/`, `system_files/`, `disk_config/` | The bootc image, following the Universal Blue `image-template` layout. Not built until Phase 1. |
 | `cairn.env` | Universal Blue image-template variables; Phase 1, see issue #37. |
 | `CMakeLists.txt`, `CMakePresets.json` | The C++ build, first landed 2026-09-04. |
+| `cmake/` | Where `cmake --install` puts every file the image ships, and the test of that tree (ADR-0038). |
 | `launcher/` | The fullscreen tile launcher — the product. |
 | `external/footpath/` | Footpath, the child-facing terminal, a submodule pinned to a tag (ADR-0014; its own repository is `Cairn-Linux/footpath`). |
 | `greeter/` | The login screen: an SDDM theme and the small C++ QML module it imports (ADR-0020). |

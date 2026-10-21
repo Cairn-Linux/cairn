@@ -19,6 +19,11 @@ ssh cairn-min                                                # then, in the VM
 cd cairn && sudo ./provision/cairn-provision.sh --guardian guardian --child ada --child ben:2
 ```
 
+Use the `release` preset: it keeps the install prefix `/usr/local`, so
+the Guardian's window names the root helper where this script puts it.
+The image installs the same files under `/usr` with `cmake --install`
+instead (ADR-0038); this script does not use that.
+
 When the script creates the Guardian and runs at a terminal, it runs
 `passwd` for that account, which asks for the password twice without
 showing it; the script never sees it. Without a terminal it says to run

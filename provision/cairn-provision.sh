@@ -183,6 +183,15 @@ check_accounts() {
     fi
 }
 
+# The programs name the paths they were configured for, so a build made for
+# the image's /usr would ask for helpers that are not where this script puts
+# them (ADR-0038). The release preset configures for /usr/local.
+check_build() {
+    local cache="$REPO/build/release/CMakeCache.txt"
+    grep -qx 'CMAKE_INSTALL_PREFIX:PATH=/usr/local' "$cache" 2> /dev/null ||
+        refuse "build/release is not configured for /usr/local; build it with cmake --preset release"
+}
+
 # The password must never reach the trace, a log or a command line (#103).
 # At a terminal, passwd asks for it: it does not echo, asks twice, and this
 # script never sees it. CAIRN_GUARDIAN_PASSWORD is for a run from a root
@@ -832,6 +841,7 @@ main() {
     parse_arguments "$@"
     [ "$(id -u)" -eq 0 ] || { echo "run as root" >&2; exit 1; }
     check_accounts
+    check_build
 
     record_facts
     ensure_groups

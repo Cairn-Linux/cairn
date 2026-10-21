@@ -23,6 +23,22 @@ qt_add_qml_module(cairn-steam-for
 target_include_directories(cairn-steam-for PRIVATE src)
 target_link_libraries(cairn-steam-for PRIVATE Qt6::Quick Qt6::DBus CairnBrand)
 
+# The root helper it asks pkexec to run, where this build installs it.
+target_compile_definitions(cairn-steam-for PRIVATE
+    CAIRN_STEAM_VISIT="${CAIRN_FULL_LIBEXECDIR}/cairn-steam-visit"
+)
+
+# Only a Guardian may run the window or its wrapper, mode 0750 with the
+# group cairn-guardian. The group does not exist when the image is built
+# here, so the image sets it in a later step (ADR-0038).
+set_target_properties(cairn-steam-for PROPERTIES INSTALL_RPATH "${CAIRN_FULL_LIBDIR}")
+cairn_permissions(750 guardian_only)
+install(TARGETS cairn-steam-for RUNTIME DESTINATION "${CAIRN_LIBEXECDIR}"
+    PERMISSIONS ${guardian_only})
+configure_file(bin/cairn-steam-for.in bin/cairn-steam-for @ONLY)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/bin/cairn-steam-for" DESTINATION "${CMAKE_INSTALL_BINDIR}"
+    PERMISSIONS ${guardian_only})
+
 qt_add_lupdate(
     SOURCE_TARGETS cairn-steam-for
     TS_FILES i18n/guardian_en.ts
