@@ -89,8 +89,9 @@ Fonts: `atkinson-hyperlegible-next-fonts` and `atkinson-hyperlegible-mono-fonts`
 
 ## Flathub
 
-Fedora ships only its own Flatpak remote. `provision/` and `build.sh` name
-Flathub IDs, so add Flathub and install the Phase 0 set once:
+Fedora ships only its own Flatpak remote. `provision/` names Flathub IDs,
+so add Flathub and install the Phase 0 set once. The image will install
+its Flatpaks itself in slice 4 of #164 (ADR-0038).
 
 ```sh
 flatpak remote-add --if-not-exists flathub \
@@ -168,8 +169,49 @@ Rootless podman is enough. A build from an already pulled Bazzite
 base takes 3 to 4 minutes on the dev PC, most of it compiling and the
 tests. Later builds reuse the layer with the build tools, and an edit to the
 docs or to `build.sh` reuses the compiled tree too. The image is the base's
-11.6 GB plus about 2 MB of Cairn. The build stops if a test fails, or if
-Fedora's Qt headers are not exactly the Qt the base ships.
+11.6 GB plus about 420 MB, most of it ScummVM; Cairn itself is about
+2 MB. The build stops if a test fails, if Fedora's Qt headers are not
+exactly the Qt the base ships, or if `bootc container lint` warns about
+anything.
+
+The final stage layers the packages Cairn needs (`build_files/packages.sh`),
+copies Cairn's tree in, then sets the image up to boot into Cairn
+(`build_files/build.sh`): SDDM as the login screen, the groups, the
+folders in `/var`, faillock and the SELinux labels (ADR-0038). To check
+the result without booting it:
+
+```sh
+podman run --rm localhost/cairn:dev systemctl is-enabled sddm plasmalogin
+podman run --rm localhost/cairn:dev systemd-sysusers --dry-run
+podman run --rm localhost/cairn:dev semanage fcontext -l -C
+podman run --rm localhost/cairn:dev rpm -V sddm
+```
+
+The first prints `enabled` then `disabled`. `rpm -V sddm` lists
+`/etc/pam.d/sddm` as changed, which is Cairn's file, and `/run/sddm` as
+missing, which systemd makes at boot.
+
+To boot it, switch a VM that runs stock Bazzite to it. The VM should never
+have been provisioned, because provisioning's changes to `/etc` would
+override the image's. Copy the image in as an archive and switch to it:
+
+```sh
+podman save --format oci-archive localhost/cairn:dev \
+  | ssh cairn-min 'cat > /var/tmp/cairn-dev.oci.tar'
+ssh cairn-min sudo bootc switch --transport oci-archive /var/tmp/cairn-dev.oci.tar
+ssh cairn-min sudo systemctl reboot
+```
+
+The image has no accounts of its own. Make a test child and a test
+Guardian by hand, the way provisioning would:
+
+```sh
+sudo useradd --create-home -c Ada ada
+sudo passwd --lock ada
+sudo gpasswd -a ada cairn-l1
+sudo gpasswd -a bazzite cairn-guardian
+sudo systemctl restart sddm
+```
 
 Some tests need what a container build does not have, so they skip
 themselves there: two give-up tests need user namespaces or a systemd user

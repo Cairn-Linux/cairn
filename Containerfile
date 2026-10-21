@@ -13,11 +13,16 @@
 # always compiled against the Qt the image ships.
 ARG BASE_IMAGE=ghcr.io/ublue-os/bazzite:stable
 
-# Build context: the scripts each stage runs, and system_files/ to lay over
-# the image.
+# Build context: the scripts the image's stage runs, and system_files/ to
+# lay over the image.
 FROM scratch AS ctx
 COPY build_files /
 COPY system_files /system_files
+
+# packages.sh alone, so editing build.sh or system_files/ keeps the cached
+# packages layer.
+FROM scratch AS packages
+COPY build_files/packages.sh /
 
 # Compile Cairn. This stage is thrown away: its compiler, the -devel packages
 # and the systemd update they pull in never reach the image. Only the folder
@@ -49,6 +54,13 @@ RUN --mount=type=tmpfs,dst=/tmp \
 # The image.
 FROM ${BASE_IMAGE}
 
+# Packages first, so that no RPM puts its own file over one of Cairn's.
+RUN --mount=type=bind,from=packages,source=/,target=/ctx \
+    --mount=type=cache,dst=/var/cache \
+    --mount=type=cache,dst=/var/log \
+    --mount=type=tmpfs,dst=/tmp \
+    /ctx/packages.sh
+
 COPY --from=build /cairn-root/ /
 
 RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
@@ -57,4 +69,5 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=tmpfs,dst=/tmp \
     /ctx/build.sh
 
-RUN bootc container lint
+# Any lint warning stops the build.
+RUN bootc container lint --fatal-warnings
