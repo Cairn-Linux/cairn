@@ -2,6 +2,7 @@
 #include "AppLauncher.h"
 
 #include <QCoreApplication>
+#include <QDateTime>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -30,6 +31,22 @@ void steamSays(const QByteArray& appId, const QByteArray& says) {
     QVERIFY(log.open(QIODevice::WriteOnly | QIODevice::Append));
     log.write("[2026-10-20 15:30:43] GameAction [AppID " + appId + ", ActionID 1] : LaunchApp " +
               says + '\n');
+}
+
+// A line Steam writes in one of its logs, `secondsAgo` before now.
+void steamLogs(const QString& name, qint64 secondsAgo, const QByteArray& says) {
+    QFile log(dataHome().filePath(QStringLiteral("Steam/logs/") + name));
+    QVERIFY(log.open(QIODevice::WriteOnly | QIODevice::Append));
+    const QString time = QDateTime::currentDateTime()
+                             .addSecs(-secondsAgo)
+                             .toString(QStringLiteral("yyyy-MM-dd HH:mm:ss"));
+    log.write('[' + time.toLatin1() + "] " + says + '\n');
+}
+
+// The client's own start command, which it runs once it has started.
+QByteArray steamStartsItself() {
+    return "ExecCommandLine: \"'/var/home/child/.local/share/Steam/ubuntu12_32/steam' "
+           "'-srt-logger-opened' '-silent'\"";
 }
 
 // Cases about whose a window is set the steady wait to zero, so the app is
@@ -930,6 +947,102 @@ private slots:
         steamSays("3586650", "changed task to Completed with \"\"");
         QTRY_VERIFY(!launcher.gettingReady());
         QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+        qputenv("PATH", path);
+    }
+
+    // Steam was installing an update of itself when the tile was pressed and
+    // lost the tap when it restarted, as on the kids' laptop on 2026-10-20:
+    // the launch waits, saying the game is getting ready, and once the new
+    // client has started without the game, the tap is sent again (ADR-0037).
+    void aTapLostWhileSteamUpdatedItselfIsSentAgain() {
+        const QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString runs = dir.filePath(QStringLiteral("runs"));
+        QFile fake(dir.filePath(QStringLiteral("steam")));
+        QVERIFY(fake.open(QIODevice::WriteOnly));
+        fake.write("#!/bin/sh\necho \"$@\" >> '" + runs.toUtf8() + "'\n");
+        fake.close();
+        QVERIFY(fake.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
+        const QByteArray path = qgetenv("PATH");
+        qputenv("PATH", dir.path().toUtf8() + ':' + path);
+        const auto timesRun = [&runs] {
+            QFile file(runs);
+            return file.open(QIODevice::ReadOnly) ? file.readAll().count('\n') : 0;
+        };
+
+        steamLogs(QStringLiteral("bootstrap_log.txt"), 16,
+                  "Startup - updater built Sep  3 2026 01:31:48");
+        steamLogs(QStringLiteral("bootstrap_log.txt"), 16, "Found pending update");
+        steamLogs(QStringLiteral("bootstrap_log.txt"), 16, "Installing update...");
+        AppLauncher launcher(this);
+        launcher.setSteadyMilliseconds(0);
+        launcher.setLaunchGraceMilliseconds(200);
+        launcher.launch(
+            QStringLiteral("Arthur's Reading Race"),
+            {QStringLiteral("steam"), QStringLiteral("-applaunch"), QStringLiteral("2471160")});
+        QTRY_COMPARE(timesRun(), 1);
+        QTRY_VERIFY(launcher.gettingReady());
+
+        steamLogs(QStringLiteral("bootstrap_log.txt"), 5, "Update complete, launching Steam...");
+        steamLogs(QStringLiteral("bootstrap_log.txt"), 5, "Shutdown");
+        steamLogs(QStringLiteral("bootstrap_log.txt"), 5,
+                  "Startup - updater built Oct 13 2026 18:44:25");
+        steamLogs(QStringLiteral("console_log.txt"), 4, "System startup time: 16.79 seconds");
+        QTest::qWait(450);
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+        QVERIFY(launcher.gettingReady());
+        QCOMPARE(timesRun(), 1);
+        steamLogs(QStringLiteral("console_log.txt"), 4, steamStartsItself());
+        QTRY_COMPARE(timesRun(), 2);
+        // Asked again: the screen waits, saying so, until Steam takes it.
+        QTest::qWait(450);
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+        QVERIFY(launcher.gettingReady());
+        steamLogs(QStringLiteral("console_log.txt"), 0,
+                  "ExecCommandLine: \"'~/.steam/root/ubuntu12_32/steam' '-applaunch' "
+                  "'2471160'\"");
+        steamSays("2471160", "changed task to Completed with \"\"");
+        launcher.windowOpened(QStringLiteral("g1"), QStringLiteral("steam_app_2471160"),
+                              QStringLiteral("Arthur's Reading Race"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Running);
+        QTest::qWait(500);
+        QCOMPARE(timesRun(), 2);
+        QVERIFY(QFile::remove(dataHome().filePath(QStringLiteral("Steam/logs/bootstrap_log.txt"))));
+        qputenv("PATH", path);
+    }
+
+    // The game's window has been up: Steam had the tap, whatever its log says,
+    // so it is never sent again.
+    void aGameWhoseWindowCameIsNeverSentAgain() {
+        const QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString runs = dir.filePath(QStringLiteral("runs"));
+        QFile fake(dir.filePath(QStringLiteral("steam")));
+        QVERIFY(fake.open(QIODevice::WriteOnly));
+        fake.write("#!/bin/sh\necho \"$@\" >> '" + runs.toUtf8() + "'\n");
+        fake.close();
+        QVERIFY(fake.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
+        const QByteArray path = qgetenv("PATH");
+        qputenv("PATH", dir.path().toUtf8() + ':' + path);
+        const auto timesRun = [&runs] {
+            QFile file(runs);
+            return file.open(QIODevice::ReadOnly) ? file.readAll().count('\n') : 0;
+        };
+
+        AppLauncher launcher(this);
+        launcher.setSteadyMilliseconds(5000);
+        launcher.setLaunchGraceMilliseconds(200);
+        launcher.launch(
+            QStringLiteral("Arthur's Reading Race"),
+            {QStringLiteral("steam"), QStringLiteral("-applaunch"), QStringLiteral("2471160")});
+        QTRY_COMPARE(timesRun(), 1);
+        launcher.windowOpened(QStringLiteral("g1"), QStringLiteral("steam_app_2471160"),
+                              QStringLiteral("Arthur's Reading Race"));
+        steamLogs(QStringLiteral("console_log.txt"), 10, steamStartsItself());
+        QTest::qWait(600);
+        QCOMPARE(timesRun(), 1);
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+        launcher.giveUp();
         qputenv("PATH", path);
     }
 

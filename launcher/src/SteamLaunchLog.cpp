@@ -18,6 +18,8 @@ SteamLaunchLog::SteamLaunchLog(QString path) : m_path(std::move(path)) {}
 void SteamLaunchLog::startLaunch(const QString& appId) {
     m_appId = appId;
     m_step = Step::Nothing;
+    m_reached = false;
+    m_steamStartedAt.reset();
     const QFile log(m_path);
     m_offset = log.exists() ? log.size() : 0;
 }
@@ -44,13 +46,32 @@ SteamLaunchLog::Step SteamLaunchLog::read() {
     // A line Steam is still writing is read whole next time.
     const qsizetype end = gained.lastIndexOf('\n') + 1;
     m_offset = from + end;
+    // The quote after the id keeps 294650 from matching 2946501.
+    const QByteArray thisGame = "'-applaunch' '" + m_appId.toUtf8() + "'";
     for (const QByteArray& line : gained.first(end).split('\n')) {
         const Step step = stepOf(line, m_appId);
         if (step != Step::Nothing) {
             m_step = step;
         }
+        if (!line.contains("ExecCommandLine: ")) {
+            continue;
+        }
+        if (line.contains(thisGame)) {
+            m_reached = true;
+        } else if (line.contains("'-srt-logger-opened'")) {
+            // A client's own start command, `steam -silent` from the login.
+            m_steamStartedAt = timeOf(line);
+        }
     }
     return m_step;
+}
+
+bool SteamLaunchLog::reachedSteam() const {
+    return m_reached;
+}
+
+std::optional<QDateTime> SteamLaunchLog::steamStartedAt() const {
+    return m_steamStartedAt;
 }
 
 SteamLaunchLog::Step SteamLaunchLog::stepOf(const QByteArray& line, const QString& appId) {
@@ -80,6 +101,18 @@ SteamLaunchLog::Step SteamLaunchLog::stepOf(const QByteArray& line, const QStrin
         return Step::WaitingForAnswer;
     }
     return Step::Nothing;
+}
+
+std::optional<QDateTime> SteamLaunchLog::timeOf(const QByteArray& line) {
+    if (!line.startsWith('[') || line.size() < 21 || line.at(20) != ']') {
+        return std::nullopt;
+    }
+    QDateTime time = QDateTime::fromString(QString::fromLatin1(line.mid(1, 19)),
+                                           QStringLiteral("yyyy-MM-dd HH:mm:ss"));
+    if (!time.isValid()) {
+        return std::nullopt;
+    }
+    return time;
 }
 
 QString SteamLaunchLog::defaultPath() {

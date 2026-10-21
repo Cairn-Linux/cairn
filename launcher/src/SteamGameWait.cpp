@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "SteamGameWait.h"
 
+#include <QDateTime>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
 
 #include <algorithm>
+#include <optional>
 #include <unistd.h>
 #include <utility>
 
@@ -19,8 +21,9 @@ QByteArray readAll(const QString& path) {
 }
 } // namespace
 
-SteamGameWait::SteamGameWait(QString processRoot, QString steamLog)
-    : m_processRoot(std::move(processRoot)), m_log(std::move(steamLog)) {}
+SteamGameWait::SteamGameWait(QString processRoot, QString steamLog, QString steamStartupLog)
+    : m_processRoot(std::move(processRoot)), m_log(steamLog),
+      m_startup(std::move(steamStartupLog), std::move(steamLog)) {}
 
 void SteamGameWait::steamStartedAtLogin() {
     m_sinceSteamStarted.start();
@@ -31,6 +34,8 @@ void SteamGameWait::startLaunch(const QStringList& exec) {
     m_reapersBefore = m_appId.isEmpty() ? QStringList() : reapers();
     m_log.startLaunch(m_appId);
     m_lastStep = SteamLaunchLog::Step::Nothing;
+    m_steamNow = SteamStartup::Now::Ready;
+    m_sentAgain = false;
     m_sinceLaunch.start();
     m_sinceWork.start();
 }
@@ -44,8 +49,8 @@ bool SteamGameWait::stillComing() {
         return false;
     }
     m_lastStep = m_log.read();
-    if (m_lastStep == SteamLaunchLog::Step::Working &&
-        m_sinceLaunch.elapsed() < m_workLimitMilliseconds) {
+    m_steamNow = m_startup.read(QDateTime::currentDateTime());
+    if (steamWorking() && m_sinceLaunch.elapsed() < m_workLimitMilliseconds) {
         m_sinceWork.start();
         return true;
     }
@@ -57,13 +62,29 @@ bool SteamGameWait::stillComing() {
     if (steamStarting) {
         return true;
     }
-    const QStringList now = reapers();
-    return std::ranges::any_of(
-        now, [this](const QString& pid) { return !m_reapersBefore.contains(pid); });
+    return newReaper();
 }
 
 bool SteamGameWait::steamWorking() const {
-    return m_lastStep == SteamLaunchLog::Step::Working;
+    // A client started since the tap that has not taken it yet is about to
+    // be asked again, or has just been.
+    const bool tapToTake = m_log.steamStartedAt().has_value() && !m_log.reachedSteam();
+    return m_lastStep == SteamLaunchLog::Step::Working || m_steamNow != SteamStartup::Now::Ready ||
+           tapToTake;
+}
+
+bool SteamGameWait::sendAgain() {
+    if (m_appId.isEmpty() || m_sentAgain || m_log.reachedSteam()) {
+        return false;
+    }
+    const std::optional<QDateTime> started = m_log.steamStartedAt();
+    if (!started || started->secsTo(QDateTime::currentDateTime()) < takeTapSeconds || newReaper()) {
+        return false;
+    }
+    m_sentAgain = true;
+    // The game gets its time for a first window from the new tap.
+    m_sinceWork.start();
+    return true;
 }
 
 SteamLaunchLog::Step SteamGameWait::lastStep() const {
@@ -94,6 +115,12 @@ QString SteamGameWait::appIdOf(const QStringList& exec) {
     bool number = false;
     appId.toULongLong(&number);
     return number ? appId : QString();
+}
+
+bool SteamGameWait::newReaper() const {
+    const QStringList now = reapers();
+    return std::ranges::any_of(
+        now, [this](const QString& pid) { return !m_reapersBefore.contains(pid); });
 }
 
 QStringList SteamGameWait::reapers() const {

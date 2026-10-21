@@ -156,6 +156,11 @@ void AppLauncher::launch(const QString& title, const QStringList& exec) {
     m_settleTimer.start();
     m_launchGraceTimer.start();
     m_exitGraceTimer.stop();
+    m_launchExec = exec;
+    startProgram(exec);
+}
+
+void AppLauncher::startProgram(const QStringList& exec) {
     ++m_launches;
     const QStringList command = m_scoped ? AppScope::command(exec, m_launches) : exec;
     // A process for each launch, so one left from an earlier launch never
@@ -394,7 +399,16 @@ void AppLauncher::onLaunchGraceTimeout() {
     if (!m_windows.launching()) {
         return;
     }
-    if (m_steamGame.stillComing()) {
+    const bool stillComing = m_steamGame.stillComing();
+    if (!m_windows.appWasOnScreen() && m_steamGame.sendAgain()) {
+        // Steam lost the tap while it updated itself (ADR-0037).
+        qInfo().noquote() << QStringLiteral("Steam started again without taking %1; asking again.")
+                                 .arg(m_launchTitle);
+        startProgram(m_launchExec);
+        m_launchGraceTimer.start();
+        return;
+    }
+    if (stillComing) {
         // Steam is still starting, or has the game in hand: wait another grace
         // before looking again (ADR-0029). Also with a window up, so a splash
         // that closes after this moment is still part of the start.
