@@ -34,6 +34,7 @@ set(launcher_model_sources
     src/GiveUpWatch.h src/GiveUpWatch.cpp
     src/SteamAtLogin.h src/SteamAtLogin.cpp
     src/SteamGameWait.h src/SteamGameWait.cpp
+    src/SteamLaunchLog.h src/SteamLaunchLog.cpp
     src/GridScroller.h src/GridScroller.cpp
     src/CloseRequest.h src/CloseRequest.cpp
     src/LogOut.h src/LogOut.cpp
@@ -97,10 +98,16 @@ target_include_directories(tst_launchwindows PRIVATE src)
 target_link_libraries(tst_launchwindows PRIVATE Qt6::Core Qt6::Test)
 add_test(NAME launchwindows COMMAND tst_launchwindows)
 
-qt_add_executable(tst_steamgamewait tests/tst_steamgamewait.cpp src/SteamGameWait.h src/SteamGameWait.cpp)
+qt_add_executable(tst_steamgamewait tests/tst_steamgamewait.cpp src/SteamGameWait.h src/SteamGameWait.cpp
+    src/SteamLaunchLog.h src/SteamLaunchLog.cpp)
 target_include_directories(tst_steamgamewait PRIVATE src)
 target_link_libraries(tst_steamgamewait PRIVATE Qt6::Core Qt6::Test)
 add_test(NAME steamgamewait COMMAND tst_steamgamewait)
+
+qt_add_executable(tst_steamlaunchlog tests/tst_steamlaunchlog.cpp src/SteamLaunchLog.h src/SteamLaunchLog.cpp)
+target_include_directories(tst_steamlaunchlog PRIVATE src)
+target_link_libraries(tst_steamlaunchlog PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME steamlaunchlog COMMAND tst_steamlaunchlog)
 
 qt_add_executable(tst_giveupwatch tests/tst_giveupwatch.cpp ${launcher_model_sources})
 target_include_directories(tst_giveupwatch PRIVATE src)

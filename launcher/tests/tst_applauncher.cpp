@@ -2,6 +2,7 @@
 #include "AppLauncher.h"
 
 #include <QCoreApplication>
+#include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QRegularExpression>
@@ -16,12 +17,33 @@ QString shell() {
     return QStringLiteral("/bin/sh");
 }
 
+// The child's home data folder for these tests, so Steam's log is read from
+// a folder of the test's, never from the Steam of whoever runs them.
+const QTemporaryDir& dataHome() {
+    static const QTemporaryDir home;
+    return home;
+}
+
+// A launch step as Steam writes it in the child's own Steam log.
+void steamSays(const QByteArray& appId, const QByteArray& says) {
+    QFile log(dataHome().filePath(QStringLiteral("Steam/logs/console_log.txt")));
+    QVERIFY(log.open(QIODevice::WriteOnly | QIODevice::Append));
+    log.write("[2026-10-20 15:30:43] GameAction [AppID " + appId + ", ActionID 1] : LaunchApp " +
+              says + '\n');
+}
+
 // Cases about whose a window is set the steady wait to zero, so the app is
 // open the moment its window is up; the cases about the wait set it short.
 class AppLauncherTest : public QObject {
     Q_OBJECT
 
 private slots:
+    void initTestCase() {
+        QVERIFY(dataHome().isValid());
+        qputenv("XDG_DATA_HOME", dataHome().path().toUtf8());
+        QVERIFY(QDir(dataHome().path()).mkpath(QStringLiteral("Steam/logs")));
+    }
+
     void startsIdle() {
         const AppLauncher launcher(this);
         QCOMPARE(launcher.state(), AppLauncher::State::Idle);
@@ -783,6 +805,131 @@ private slots:
         QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
         QVERIFY(launcher.needsGrownUp());
         QCOMPARE(launcher.title(), QStringLiteral("Putt-Putt Enters the Race"));
+        qputenv("PATH", path);
+    }
+
+    // As on the kids' laptop (2026-10-20): Steam is up, and before the game
+    // starts it downloads what the game needs, with no reaper yet. The
+    // launch waits past the grace and the starting screen says the game is
+    // getting ready, until the game's window comes (ADR-0036).
+    void aGameSteamIsGettingReadyIsWaitedFor() {
+        const QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        QFile fake(dir.filePath(QStringLiteral("steam")));
+        QVERIFY(fake.open(QIODevice::WriteOnly));
+        fake.write("#!/bin/sh\nexit 0\n");
+        fake.close();
+        QVERIFY(fake.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
+        const QByteArray path = qgetenv("PATH");
+        qputenv("PATH", dir.path().toUtf8() + ':' + path);
+
+        AppLauncher launcher(this);
+        launcher.setSteadyMilliseconds(0);
+        launcher.setLaunchGraceMilliseconds(200);
+        const QSignalSpy ready(&launcher, &AppLauncher::gettingReadyChanged);
+        launcher.launch(
+            QStringLiteral("Arthur's Birthday"),
+            {QStringLiteral("steam"), QStringLiteral("-applaunch"), QStringLiteral("2471140")});
+        QVERIFY(!launcher.gettingReady());
+        steamSays("2471140", "changed task to DownloadingDepots with \"\"");
+        QTRY_VERIFY(launcher.gettingReady());
+        QTest::qWait(500);
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+        QVERIFY(launcher.gettingReady());
+        QCOMPARE(ready.count(), 1);
+        steamSays("2471140", "changed task to Completed with \"\"");
+        launcher.windowOpened(QStringLiteral("g1"), QStringLiteral("steam_app_2471140"),
+                              QStringLiteral("Arthur's Birthday"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Running);
+        QVERIFY(!launcher.gettingReady());
+        qputenv("PATH", path);
+    }
+
+    // Steam got part-way and then asked a question on a window the kiosk
+    // hides: the grown-up screen comes at the next grace, as before.
+    void aQuestionAfterTheWorkNeedsAGrownUp() {
+        const QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        QFile fake(dir.filePath(QStringLiteral("steam")));
+        QVERIFY(fake.open(QIODevice::WriteOnly));
+        fake.write("#!/bin/sh\nexit 0\n");
+        fake.close();
+        QVERIFY(fake.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
+        const QByteArray path = qgetenv("PATH");
+        qputenv("PATH", dir.path().toUtf8() + ':' + path);
+
+        AppLauncher launcher(this);
+        launcher.setLaunchGraceMilliseconds(200);
+        launcher.launch(
+            QStringLiteral("Putt-Putt Joins the Circus"),
+            {QStringLiteral("steam"), QStringLiteral("-applaunch"), QStringLiteral("294690")});
+        steamSays("294690", "changed task to DownloadingDepots with \"\"");
+        QTRY_VERIFY(launcher.gettingReady());
+        QTest::ignoreMessage(QtWarningMsg, "Steam is waiting for an answer about Putt-Putt Joins "
+                                           "the Circus on a window the kiosk hides.");
+        QTest::ignoreMessage(QtWarningMsg,
+                             "Nothing of Putt-Putt Joins the Circus came on the screen in time.");
+        steamSays("294690", "changed task to SynchronizingCloud with \"\"");
+        steamSays("294690", "waiting for user response to SynchronizingCloud \"syncfailed\"");
+        QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
+        QVERIFY(!launcher.gettingReady());
+        QCOMPARE(launcher.title(), QStringLiteral("Putt-Putt Joins the Circus"));
+        qputenv("PATH", path);
+    }
+
+    // Steam refused the launch, as when another game runs: the grown-up
+    // screen at the grace, and the journal says Steam refused.
+    void aRefusalNeedsAGrownUpAndSaysSo() {
+        const QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        QFile fake(dir.filePath(QStringLiteral("steam")));
+        QVERIFY(fake.open(QIODevice::WriteOnly));
+        fake.write("#!/bin/sh\nexit 0\n");
+        fake.close();
+        QVERIFY(fake.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
+        const QByteArray path = qgetenv("PATH");
+        qputenv("PATH", dir.path().toUtf8() + ':' + path);
+
+        AppLauncher launcher(this);
+        launcher.setLaunchGraceMilliseconds(200);
+        QTest::ignoreMessage(QtWarningMsg, "Steam refused to start Putt-Putt Saves The Zoo.");
+        QTest::ignoreMessage(QtWarningMsg,
+                             "Nothing of Putt-Putt Saves The Zoo came on the screen in time.");
+        launcher.launch(
+            QStringLiteral("Putt-Putt Saves The Zoo"),
+            {QStringLiteral("steam"), QStringLiteral("-applaunch"), QStringLiteral("294660")});
+        steamSays("294660", "failed with AppError_33 with \"\"");
+        steamSays("294660", "changed task to Failed with \"\"");
+        QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
+        QVERIFY(!launcher.gettingReady());
+        qputenv("PATH", path);
+    }
+
+    // The download ends and Steam, started at login, still has the game in
+    // hand: the launch goes on waiting, but the sentence goes at the next
+    // grace, since nothing is being got ready any more.
+    void theSentenceGoesWhenTheWorkEnds() {
+        const QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        QFile fake(dir.filePath(QStringLiteral("steam")));
+        QVERIFY(fake.open(QIODevice::WriteOnly));
+        fake.write("#!/bin/sh\nexit 0\n");
+        fake.close();
+        QVERIFY(fake.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
+        const QByteArray path = qgetenv("PATH");
+        qputenv("PATH", dir.path().toUtf8() + ':' + path);
+
+        AppLauncher launcher(this);
+        launcher.setLaunchGraceMilliseconds(200);
+        launcher.setSteamStartedAtLogin(true);
+        launcher.launch(
+            QStringLiteral("Stellaluna"),
+            {QStringLiteral("steam"), QStringLiteral("-applaunch"), QStringLiteral("3586650")});
+        steamSays("3586650", "changed task to DownloadingDepots with \"\"");
+        QTRY_VERIFY(launcher.gettingReady());
+        steamSays("3586650", "changed task to Completed with \"\"");
+        QTRY_VERIFY(!launcher.gettingReady());
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
         qputenv("PATH", path);
     }
 

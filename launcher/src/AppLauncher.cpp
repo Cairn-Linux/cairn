@@ -67,6 +67,10 @@ QString AppLauncher::title() const {
     return m_title;
 }
 
+bool AppLauncher::gettingReady() const {
+    return m_gettingReady;
+}
+
 int AppLauncher::settleMilliseconds() const {
     return m_settleTimer.interval();
 }
@@ -145,6 +149,7 @@ void AppLauncher::launch(const QString& title, const QStringList& exec) {
     m_settled = false;
     m_quitWhileOpening = false;
     m_waitingLate = false;
+    setGettingReady(false);
     m_windows.startLaunch();
     m_steamGame.startLaunch(exec);
     setState(State::Starting);
@@ -218,6 +223,9 @@ void AppLauncher::windowClosed(const QString& identifier) {
 }
 
 void AppLauncher::setState(State state) {
+    if (state != State::Starting) {
+        setGettingReady(false);
+    }
     if (state == m_state) {
         return;
     }
@@ -231,6 +239,14 @@ void AppLauncher::setTitle(const QString& title) {
     }
     m_title = title;
     emit titleChanged();
+}
+
+void AppLauncher::setGettingReady(bool gettingReady) {
+    if (gettingReady == m_gettingReady) {
+        return;
+    }
+    m_gettingReady = gettingReady;
+    emit gettingReadyChanged();
 }
 
 void AppLauncher::update() {
@@ -382,6 +398,11 @@ void AppLauncher::onLaunchGraceTimeout() {
         // Steam is still starting, or has the game in hand: wait another grace
         // before looking again (ADR-0029). Also with a window up, so a splash
         // that closes after this moment is still part of the start.
+        if (m_steamGame.steamWorking() && !m_gettingReady) {
+            qInfo().noquote()
+                << QStringLiteral("Steam is getting %1 ready before it starts.").arg(m_launchTitle);
+        }
+        setGettingReady(m_steamGame.steamWorking());
         m_launchGraceTimer.start();
         return;
     }
@@ -398,5 +419,14 @@ void AppLauncher::onLaunchGraceTimeout() {
     }
     // Nothing came at all. Back at the tiles a child presses again, and again
     // (#139); the grown-up screen says the tile did not start (ADR-0030).
+    // What Steam last said goes to the journal for the grown-up.
+    if (m_steamGame.lastStep() == SteamLaunchLog::Step::WaitingForAnswer) {
+        qWarning().noquote()
+            << QStringLiteral(
+                   "Steam is waiting for an answer about %1 on a window the kiosk hides.")
+                   .arg(m_launchTitle);
+    } else if (m_steamGame.lastStep() == SteamLaunchLog::Step::Refused) {
+        qWarning().noquote() << QStringLiteral("Steam refused to start %1.").arg(m_launchTitle);
+    }
     nothingCame();
 }

@@ -355,6 +355,7 @@ Window {
         anchors.fill: parent
         visible: launcher.state === AppLauncher.Starting
         appTitle: launcher.title
+        gettingReady: launcher.gettingReady
         onVisibleChanged: {
             if (visible || grownUp.visible)
                 return;

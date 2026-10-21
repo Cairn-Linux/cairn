@@ -26,6 +26,12 @@ TestCase {
     }
 
     Component {
+        id: startingComponent
+
+        StartingScreen {}
+    }
+
+    Component {
         id: signalSpyComponent
 
         SignalSpy {}
@@ -828,5 +834,39 @@ TestCase {
         verify(label.contentWidth <= label.width);
         verify(label.x > 0 && label.x + label.width < tile.width);
         verify(label.y >= 0 && label.y + label.contentHeight <= tile.height);
+    }
+
+    // While Steam is still working on a game after the first wait, the
+    // starting screen says it is getting ready (ADR-0036); before that, and
+    // for every other tile, it names the tile and nothing more.
+    function test_aGameSteamIsGettingReadySaysSo_data() {
+        return [
+            {
+                tag: "starting",
+                gettingReady: false,
+                name: "Arthur's Birthday is starting."
+            },
+            {
+                tag: "getting ready",
+                gettingReady: true,
+                name: "Arthur's Birthday is starting. Getting it ready. This can take a few minutes."
+            }
+        ];
+    }
+
+    function test_aGameSteamIsGettingReadySaysSo(data) {
+        // Inside the launcher's window, which is on the screen, so the
+        // sentence's visibility is its own.
+        const starting = createTemporaryObject(startingComponent, launcher.contentItem, {
+            "appTitle": "Arthur's Birthday",
+            "gettingReady": data.gettingReady,
+            "width": 800,
+            "height": 600
+        });
+        verify(starting !== null);
+        const ready = findChild(starting, "gettingReadySentence");
+        verify(ready !== null);
+        compare(ready.visible, data.gettingReady);
+        compare(starting.Accessible.name, data.name);
     }
 }
