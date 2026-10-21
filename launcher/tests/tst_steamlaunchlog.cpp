@@ -15,6 +15,13 @@ QByteArray line(const QByteArray& says, const QByteArray& appId = "294650") {
            says + '\n';
 }
 
+// The command line Steam says it was given, as it writes it.
+QByteArray commandLine(const QByteArray& arguments) {
+    return "[2026-10-20 21:32:29] ExecCommandLine: \"'/var/home/child/.local/share/Steam/"
+           "ubuntu12_32/steam' " +
+           arguments + "\"\n";
+}
+
 void append(const QString& path, const QByteArray& text) {
     QFile log(path);
     QVERIFY(log.open(QIODevice::WriteOnly | QIODevice::Append));
@@ -149,6 +156,71 @@ private slots:
         QCOMPARE(log.read(), Step::Nothing);
         QCOMPARE(SteamLaunchLog::stepOf(line("changed task to DownloadingDepots with \"\""), {}),
                  Step::Nothing);
+    }
+
+    // Steam names the tap the moment it takes it (ADR-0037).
+    void theTapReachingSteamIsSeen() {
+        const QTemporaryDir dir;
+        const QString path = dir.filePath(QStringLiteral("console_log.txt"));
+        SteamLaunchLog log(path);
+        log.startLaunch(QStringLiteral("294650"));
+        append(path, commandLine("'-applaunch' '2946501'"));
+        log.read();
+        QVERIFY(!log.reachedSteam());
+        append(path, "[2026-10-20 21:40:13] ExecCommandLine: \"'~/.steam/root/ubuntu12_32/steam' "
+                     "'-applaunch' '294650'\"\n");
+        log.read();
+        QVERIFY(log.reachedSteam());
+        QVERIFY(!log.steamStartedAt());
+    }
+
+    // A client started after the tap runs its own start command; one that
+    // takes no tap with it leaves the tap where it was.
+    void aClientStartedAfterTheTapIsSeen() {
+        const QTemporaryDir dir;
+        const QString path = dir.filePath(QStringLiteral("console_log.txt"));
+        append(path, commandLine("'-srt-logger-opened' '-silent'"));
+        SteamLaunchLog log(path);
+        log.startLaunch(QStringLiteral("294650"));
+        log.read();
+        QVERIFY(!log.steamStartedAt());
+        append(path, commandLine("'-srt-logger-opened' '-silent'"));
+        log.read();
+        QCOMPARE(log.steamStartedAt(),
+                 QDateTime::fromString(QStringLiteral("2026-10-20 21:32:29"),
+                                       QStringLiteral("yyyy-MM-dd HH:mm:ss")));
+        QVERIFY(!log.reachedSteam());
+        log.startLaunch(QStringLiteral("294650"));
+        QVERIFY(!log.steamStartedAt());
+    }
+
+    // A tap made before any Steam ran starts the client with the game.
+    void aClientStartedWithTheGameTookTheTap() {
+        const QTemporaryDir dir;
+        const QString path = dir.filePath(QStringLiteral("console_log.txt"));
+        SteamLaunchLog log(path);
+        log.startLaunch(QStringLiteral("294650"));
+        append(path, commandLine("'-srt-logger-opened' '-applaunch' '294650'"));
+        log.read();
+        QVERIFY(log.reachedSteam());
+        QVERIFY(!log.steamStartedAt());
+    }
+
+    void theTimeOfALine_data() {
+        QTest::addColumn<QByteArray>("line");
+        QTest::addColumn<bool>("valid");
+        QTest::newRow("steam") << QByteArray("[2026-10-20 21:32:28] System startup time: 16.79 "
+                                             "seconds")
+                               << true;
+        QTest::newRow("no time") << QByteArray("Running install script evaluator") << false;
+        QTest::newRow("not a time") << QByteArray("[2026-13-45 99:00:00] Startup - ") << false;
+        QTest::newRow("cut short") << QByteArray("[2026-10-20 21:3") << false;
+    }
+
+    void theTimeOfALine() {
+        QFETCH(const QByteArray, line);
+        QFETCH(const bool, valid);
+        QCOMPARE(SteamLaunchLog::timeOf(line).has_value(), valid);
     }
 
     void theLogIsInTheChildsSteamFolder() {

@@ -582,13 +582,16 @@ Mechanism:
   is up and returns to the tiles when the window closes (issue #42). While
   Steam is still starting after login, or its `reaper` for the game is
   running, the launcher keeps waiting for that window past its usual 15 s,
-  up to two minutes (ADR-0029). While Steam's own log says it is getting
-  the game ready, downloading an update or running its install script, the
-  wait runs up to ten minutes and the starting screen says "Getting it
-  ready. This can take a few minutes." (ADR-0036). A game that has put
-  nothing on the screen when the wait ends, such as one Steam holds behind
-  a dialog the kiosk hides, ends on the grown-up screen, and its window
-  still takes over if it comes late (ADR-0030).
+  up to two minutes (ADR-0029). While Steam's own log says it is getting the
+  game ready, downloading an update or running its install script, the wait
+  runs up to ten minutes and the starting screen says "Getting it ready.
+  This can take a few minutes." (ADR-0036). Steam starting, or installing an
+  update of its own client, counts as getting the game ready too, by Steam's
+  update log; a tap the client lost when it restarted after its update is
+  sent again, once (ADR-0037). A game that has put nothing on the screen
+  when the wait ends, such as one Steam holds behind a dialog the kiosk
+  hides, ends on the grown-up screen, and its window still takes over if it
+  comes late (ADR-0030).
 - Proton work happens in the background; the game comes up fullscreen.
 
 **Known failure modes.** Steam forces its window open for client updates, game

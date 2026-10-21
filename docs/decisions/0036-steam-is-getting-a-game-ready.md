@@ -5,6 +5,8 @@ an update has shown the sentence on the kids' laptop and the game has
 taken over from it.
 **Date:** 2026-10-20
 **Closes:** (none) — amends ADR-0029 and ADR-0030; part of ROADMAP P1-13
+**Amended by:** ADR-0037 (Steam updating itself is work too; a tap lost to
+its restart is sent again)
 
 ## Context
 

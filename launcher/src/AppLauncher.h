@@ -25,7 +25,8 @@
 // Idle (issue #42). A Steam game Steam is still working on is waited for past
 // the grace, up to a limit (SteamGameWait, ADR-0029); while Steam's log says
 // it is working on the game, the starting screen says it is getting ready
-// (ADR-0036). A launch that has put
+// (ADR-0036). A tap Steam lost while it updated itself is sent again once the
+// new client has started (ADR-0037). A launch that has put
 // nothing on the screen when the grace timer ends, or when its program exits
 // after the settle window, is Failed (ADR-0030), and its window counts as the
 // app's if it comes late; one whose window came and went returns to Idle. A
@@ -145,6 +146,9 @@ private:
     void onErrorOccurred(QProcess* process, QProcess::ProcessError error);
     void onFinished(QProcess* process, int exitCode, QProcess::ExitStatus exitStatus);
     void onLaunchGraceTimeout();
+    // Runs the tile's program for the current launch, in a scope of its own
+    // when scoped.
+    void startProgram(const QStringList& exec);
 
     // The program started for the current launch, or nullptr once the launch
     // is over. One from an earlier launch may still be running, a game that
@@ -159,6 +163,7 @@ private:
     State m_state = State::Idle;
     QString m_title;
     QString m_launchTitle;
+    QStringList m_launchExec;
     QString m_ownAppId;
     bool m_settled = false;
     bool m_gettingReady = false;

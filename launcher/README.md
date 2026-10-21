@@ -223,6 +223,11 @@ While Steam's own log says it is working on the game, downloading an
 update or running its install script, the wait runs up to ten minutes and
 the starting screen adds "Getting it ready. This can take a few minutes."
 `SteamLaunchLog` reads only the lines Steam adds after the tap (ADR-0036).
+Steam starting, or installing an update of itself, is work too: `SteamStartup`
+reads the last part of Steam's `bootstrap_log.txt` and `console_log.txt`. A
+tap made during an update is lost when Steam restarts, so once a client
+started after the tap has run its own start command without taking it, the
+launcher runs the tile's command again, once (ADR-0037).
 With `--scope-apps`, which the kiosk wrapper passes, every program starts
 in a systemd user scope of its own, `cairn-app-<launcher pid>-<n>.scope`,
 so the grown-up's give-up key can end it and whatever it started

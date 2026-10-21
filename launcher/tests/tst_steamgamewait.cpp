@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "SteamGameWait.h"
 
+#include <QDateTime>
 #include <QDir>
 #include <QFile>
 #include <QTemporaryDir>
@@ -32,6 +33,22 @@ void steamSays(const QString& path, const QByteArray& says) {
     QVERIFY(log.open(QIODevice::WriteOnly | QIODevice::Append));
     log.write("[2026-10-20 15:30:43] GameAction [AppID 294650, ActionID 1] : LaunchApp " + says +
               '\n');
+}
+
+// A line as Steam writes it, `secondsAgo` before now.
+void steamLine(const QString& path, qint64 secondsAgo, const QByteArray& says) {
+    QFile log(path);
+    QVERIFY(log.open(QIODevice::WriteOnly | QIODevice::Append));
+    const QString time = QDateTime::currentDateTime()
+                             .addSecs(-secondsAgo)
+                             .toString(QStringLiteral("yyyy-MM-dd HH:mm:ss"));
+    log.write('[' + time.toLatin1() + "] " + says + '\n');
+}
+
+// The client's own start command, as the login's `steam -silent` runs it.
+QByteArray ownStart() {
+    return "ExecCommandLine: \"'/var/home/child/.local/share/Steam/ubuntu12_32/"
+           "steam' '-srt-logger-opened' '-silent'\"";
 }
 
 // The cases without a log of their own read one in a folder of the test's,
@@ -278,6 +295,108 @@ private slots:
         QTest::qWait(150); // past the work limit, inside the reaper's.
         QVERIFY(wait.stillComing());
         QTRY_VERIFY(!wait.stillComing());
+    }
+
+    // Steam installing an update of itself is work: the launch waits for it
+    // and the starting screen says the game is getting ready (ADR-0037).
+    void steamUpdatingItselfIsWaitedFor() {
+        const QTemporaryDir root;
+        const QString log = root.filePath(QStringLiteral("console_log.txt"));
+        const QString bootstrap = root.filePath(QStringLiteral("bootstrap_log.txt"));
+        SteamGameWait wait(root.path(), log, bootstrap);
+        wait.setLimitMilliseconds(100);
+        steamLine(bootstrap, 20, "Startup - updater built Sep  3 2026 01:31:48");
+        steamLine(bootstrap, 20, "Found pending update");
+        steamLine(bootstrap, 19, "Installing update...");
+        wait.startLaunch(steamGame());
+        QTest::qWait(150);
+        QVERIFY(wait.stillComing());
+        QVERIFY(wait.steamWorking());
+        steamLine(bootstrap, 0, "Update complete, launching Steam...");
+        steamLine(bootstrap, 0, "Shutdown");
+        steamLine(bootstrap, 0, "Startup - updater built Oct 13 2026 18:44:25");
+        QVERIFY(wait.stillComing());
+        QVERIFY(wait.steamWorking());
+        // Still starting between its startup time and its own start command.
+        steamLine(log, 0, "System startup time: 16.79 seconds");
+        QVERIFY(wait.stillComing());
+        QVERIFY(wait.steamWorking());
+        // Started without the tap: still getting ready, until it takes the
+        // tap that is sent again.
+        steamLine(log, 0, ownStart());
+        QVERIFY(wait.stillComing());
+        QVERIFY(wait.steamWorking());
+        steamLine(log, 0,
+                  "ExecCommandLine: \"'~/.steam/root/ubuntu12_32/steam' '-applaunch' '294650'\"");
+        QVERIFY(!wait.stillComing());
+        QVERIFY(!wait.steamWorking());
+    }
+
+    // The client restarted after its update without taking the tap: the tap
+    // is sent again, once.
+    void aTapLostInAnUpdateIsSentAgainOnce() {
+        const QTemporaryDir root;
+        const QString log = root.filePath(QStringLiteral("console_log.txt"));
+        SteamGameWait wait(root.path(), log, root.filePath(QStringLiteral("bootstrap_log.txt")));
+        steamLine(log, 3600, ownStart());
+        wait.startLaunch(steamGame());
+        wait.stillComing();
+        QVERIFY(!wait.sendAgain());
+        steamLine(log, 5, ownStart());
+        wait.stillComing();
+        QVERIFY(wait.sendAgain());
+        wait.stillComing();
+        QVERIFY(!wait.sendAgain());
+        wait.startLaunch(steamGame());
+        wait.stillComing();
+        QVERIFY(!wait.sendAgain());
+    }
+
+    // Steam takes a tap it held in the same second as its own start command,
+    // so the new client gets a moment before the tap counts as lost.
+    void aClientJustStartedHasAMomentToTakeTheTap() {
+        const QTemporaryDir root;
+        const QString log = root.filePath(QStringLiteral("console_log.txt"));
+        SteamGameWait wait(root.path(), log, root.filePath(QStringLiteral("bootstrap_log.txt")));
+        wait.startLaunch(steamGame());
+        steamLine(log, 0, ownStart());
+        wait.stillComing();
+        QVERIFY(!wait.sendAgain());
+    }
+
+    void aTapSteamTookIsNotSentAgain() {
+        const QTemporaryDir root;
+        const QString log = root.filePath(QStringLiteral("console_log.txt"));
+        SteamGameWait wait(root.path(), log, root.filePath(QStringLiteral("bootstrap_log.txt")));
+        wait.startLaunch(steamGame());
+        steamLine(log, 5, ownStart());
+        steamLine(log, 5,
+                  "ExecCommandLine: \"'~/.steam/root/ubuntu12_32/steam' '-applaunch' '294650'\"");
+        wait.stillComing();
+        QVERIFY(!wait.sendAgain());
+    }
+
+    // A new reaper for the game is Steam working on it, whatever its log says.
+    void aGameWithANewReaperIsNotSentAgain() {
+        const QTemporaryDir root;
+        const QString log = root.filePath(QStringLiteral("console_log.txt"));
+        SteamGameWait wait(root.path(), log, root.filePath(QStringLiteral("bootstrap_log.txt")));
+        wait.startLaunch(steamGame());
+        steamLine(log, 5, ownStart());
+        addProcess(root, QStringLiteral("8447"), "reaper",
+                   {"reaper", "SteamLaunch", "AppId=294650"});
+        wait.stillComing();
+        QVERIFY(!wait.sendAgain());
+    }
+
+    void notASteamGameIsNeverSentAgain() {
+        const QTemporaryDir root;
+        const QString log = root.filePath(QStringLiteral("console_log.txt"));
+        SteamGameWait wait(root.path(), log, root.filePath(QStringLiteral("bootstrap_log.txt")));
+        wait.startLaunch({QStringLiteral("tuxpaint")});
+        steamLine(log, 5, ownStart());
+        wait.stillComing();
+        QVERIFY(!wait.sendAgain());
     }
 };
 

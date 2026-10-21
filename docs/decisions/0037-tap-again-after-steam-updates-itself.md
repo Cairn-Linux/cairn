@@ -1,0 +1,123 @@
+# ADR-0037: Wait while Steam updates itself, and tap again if it lost the tap
+
+**Status:** proposed. It becomes accepted when a tap made while Steam
+installs an update of itself has shown the starting screen on the kids'
+laptop until the game, with no grown-up screen between.
+**Date:** 2026-10-20
+**Closes:** (none) — amends ADR-0029 and ADR-0036; part of ROADMAP P1-13
+
+## Context
+
+ADR-0036 left one case open: Steam updating its own client at login. On
+2026-10-20 at 21:31 a child account logged in on the kids' laptop, and
+Steam began installing an update of itself that it had downloaded in the
+background the session before. A tile was pressed 18 s after login. Steam
+finished the update 21 s later and restarted. The restarted client never
+took the tap: its log has no line about the game at all. The launcher
+waited out ADR-0029's minute for Steam to start and showed the grown-up
+screen. This time no game came later, because Steam no longer had it.
+
+The laptop's logs from 2026-10-07 to 2026-10-20 show this is the rule, not
+bad luck:
+
+- Steam updated itself at login 5 times: 3 first installs of the client
+  (about 5 minutes each) and 2 updates downloaded in an earlier session
+  (39 and 55 s).
+- 5 taps were made while Steam was downloading or installing an update of
+  itself. All 5 were lost.
+- 12 taps were made while Steam was starting with no update, or not yet
+  running. Steam took all 12, 11 of them in the same second it ran its
+  own start command.
+- 81 taps were made with Steam already up. Steam took each one within 1 s.
+
+The `steam` a tile runs hands its command to the running client through a
+pipe and exits. Nothing queues the command across the updater's restart.
+
+Steam's updater writes what it does to `logs/bootstrap_log.txt`:
+
+```
+[2026-10-20 21:31:33] Startup - updater built Sep  3 2026 01:31:48
+[2026-10-20 21:31:33] Found pending update
+[2026-10-20 21:31:33] Installing update...
+[2026-10-20 21:32:10] Update complete, launching Steam...
+[2026-10-20 21:32:10] Shutdown
+[2026-10-20 21:32:10] Startup - updater built Oct 13 2026 18:44:25
+```
+
+The client writes `System startup time: 16.79 seconds` to
+`console_log.txt` as it finishes starting. 0 to 21 s later it runs its own
+start command, and it writes that and every command it takes, a tap
+included:
+
+```
+[2026-10-20 21:32:29] ExecCommandLine: "'.../ubuntu12_32/steam' '-srt-logger-opened' '-silent'"
+[2026-10-20 21:40:13] ExecCommandLine: "'~/.steam/root/ubuntu12_32/steam' '-applaunch' '2471160'"
+```
+
+## Decision
+
+**While Steam is starting or updating itself, the launch waits and says the
+game is getting ready. If the client that starts after the tap does not
+take it, the launcher taps again, once.**
+
+`SteamStartup` reads the last part of both logs. The client is **starting**
+when the updater's last `Startup -` line is newer than the last time the
+client ran its own start command. It is **updating** when the updater has also
+written a line about downloading or installing an update since that
+`Startup -`. A download while the client runs comes after the client has
+started, so it does not count. A start older than 20 minutes that never
+finished counts as no start: Steam was stopped or crashed.
+
+Starting and updating are work, as in ADR-0036. The launch waits up to 10
+minutes from the tap, the starting screen says "Getting it ready. This can
+take a few minutes.", and the 2-minute limit for the game's window counts
+from when the work ends. ADR-0029's fixed minute after login stays as a
+floor for a Steam whose logs say nothing.
+
+`SteamLaunchLog` now also reads two kinds of line after the tap:
+
+- `ExecCommandLine:` naming `'-applaunch' '<appid>'` means Steam took the
+  tap.
+- `ExecCommandLine:` with `'-srt-logger-opened'` and no game means a client
+  started after the tap and ran only its own start command.
+
+A client that started after the tap and has not taken it is work too, so
+the launch keeps waiting, with the sentence, until Steam takes the tap.
+When a grace ends and that client has run its own start command at least
+3 s before, the launcher runs the tile's command again. Steam takes a
+held tap in the same second as its own start command, so 3 s is ample. It
+does this once per tap. It never does it while a new reaper for the game
+runs, or once the game's window has been up. The journal says "Steam
+started again without taking Arthur's Reading Race; asking again."
+
+## Consequences
+
+- A child who taps a game right after login while Steam updates itself
+  sees the starting screen and the sentence, then the game. On the laptop's
+  update that is about a minute.
+- The first install of the client on a new account takes about 5 minutes
+  to download and up to 10 more to start. That fits inside the 10-minute
+  work limit only on a quick line. Otherwise the launch ends on the grown-up
+  screen, as before. Running Steam once for a new account before a child
+  uses it is part of setting Steam up (#130).
+- A tap sent again reaches a Steam that took nothing, so it cannot start
+  the game twice. If Valve changes the `ExecCommandLine` wording, neither
+  line matches, and the launcher never taps again: a lost feature, not a
+  wrong one. If only the wording for the game changed, a second tap would
+  reach a Steam already starting the game. On the laptop, 6 repeat taps of
+  a game already starting or running each wrote that one line and nothing
+  more.
+- Both logs are read only when a grace ends, the last 256 KB of each.
+- Steam starting now shows "Getting it ready" when it takes longer than the
+  first 15 s grace. That was rare on the laptop: Steam started within 17 s
+  of login at most logins.
+- Tested in C++ with lines from the laptop's logs. An update, the restart
+  and the started client each read as such. A background download while
+  the client runs does not count, nor does a start that never finished long
+  ago. A tap Steam took, a client started after the tap, and a client
+  started with the game are each told apart. A lost tap is sent again
+  once, never in the client's first moment, never with a reaper running.
+  An `AppLauncher` test runs an update at login, the restart, the lost
+  tap, the second tap and the game's window, with the sentence up
+  throughout. Another has the game's window up, and nothing is sent
+  again.
