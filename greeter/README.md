@@ -41,6 +41,13 @@ one.
 `../session/sddm/sddm.conf.d/10-cairn.conf` puts on the greeter's import
 path. The module comes from the release build.
 
+In the image, `cmake --install` puts the theme in
+`/usr/share/sddm/themes/cairn/`, where SDDM looks by default, and both
+modules in `/usr/lib64/cairn/qml/`. The modules stay in Cairn's own folder
+rather than Qt's, because only the login screen imports them (ADR-0038).
+The same settings file, installed as
+`/usr/lib/sddm/sddm.conf.d/zz-cairn.conf`, names those paths.
+
 ## Not here yet
 
 A picture a child chooses for their tile (ADR-0020 leaves it for later), a

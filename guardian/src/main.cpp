@@ -26,6 +26,7 @@ int main(int argc, char* argv[]) {
 
     SteamForChild::Setup setup;
     setup.child = parser.positionalArguments().constFirst();
+    setup.helper = QStringLiteral(CAIRN_STEAM_VISIT);
     setup.uid = getuid();
     // The menu entry for this child, so the taskbar shows its name and icon.
     QGuiApplication::setDesktopFileName(QStringLiteral("cairn-steam-for-") + setup.child);

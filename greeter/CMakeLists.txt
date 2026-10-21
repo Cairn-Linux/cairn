@@ -24,6 +24,21 @@ target_link_libraries(cairngreeter PRIVATE Qt6::Qml Qt6::Core)
 # The plugin finds the library beside it once both are installed together.
 set_target_properties(cairngreeterplugin PROPERTIES INSTALL_RPATH "$ORIGIN" BUILD_WITH_INSTALL_RPATH TRUE)
 
+# The theme where SDDM looks for one, and both modules it imports in
+# Cairn's own QML directory, which the SDDM settings name (ADR-0038).
+foreach(file ${greeter_theme_files} theme/metadata.desktop theme/theme.conf theme/mark-on-ink.svg)
+    cairn_install_file(SOURCE ${file} DESTINATION "${CAIRN_SDDM_THEMESDIR}/cairn" MODE 644)
+endforeach()
+# The tokens as plain QML, so the greeter needs no brand library.
+foreach(file qmldir Tokens.qml)
+    cairn_install_file(SOURCE ../brand/qml/Cairn/Brand/${file} DESTINATION "${CAIRN_QMLDIR}/Cairn/Brand"
+        MODE 644)
+endforeach()
+install(TARGETS cairngreeter cairngreeterplugin LIBRARY DESTINATION "${CAIRN_QMLDIR}/Cairn/Greeter")
+install(FILES "${QT_QML_OUTPUT_DIRECTORY}/Cairn/Greeter/qmldir"
+    "${QT_QML_OUTPUT_DIRECTORY}/Cairn/Greeter/cairngreeter.qmltypes"
+    DESTINATION "${CAIRN_QMLDIR}/Cairn/Greeter")
+
 qt_add_lupdate(
     SOURCES ${greeter_theme_files}
     TS_FILES i18n/greeter_en.ts

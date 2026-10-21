@@ -12,10 +12,12 @@
     },
     {
       "name": "release",
+      "description": "The build provisioning installs from; its programs name provisioning's /usr/local paths (ADR-0038)",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/release",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_INSTALL_PREFIX": "/usr/local"
       }
     }
   ],

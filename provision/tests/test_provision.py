@@ -342,6 +342,33 @@ class WindowWrapperTest(unittest.TestCase):
         )
 
 
+class BuildCheckTest(unittest.TestCase):
+    """Provisioning installs only a build configured for its /usr/local."""
+
+    def check(self, cache):
+        with tempfile.TemporaryDirectory() as work:
+            if cache is not None:
+                build = pathlib.Path(work, "build/release")
+                build.mkdir(parents=True)
+                (build / "CMakeCache.txt").write_text(cache)
+            return run_steps(f"REPO={shlex.quote(work)}; check_build")[:2]
+
+    def test_the_release_preset_passes(self):
+        code, output = self.check("CMAKE_BUILD_TYPE:STRING=Release\nCMAKE_INSTALL_PREFIX:PATH=/usr/local\n")
+        self.assertEqual(code, 0, output)
+
+    def test_a_build_for_the_image_is_refused(self):
+        code, output = self.check("CMAKE_INSTALL_PREFIX:PATH=/usr\n")
+        self.assertEqual(code, 1, output)
+        self.assertIn("refused: build/release is not configured for /usr/local", output)
+        self.assertIn("cmake --preset release", output)
+
+    def test_no_build_is_refused(self):
+        code, output = self.check(None)
+        self.assertEqual(code, 1, output)
+        self.assertIn("cmake --preset release", output)
+
+
 class InstallFileTest(unittest.TestCase):
     def install(self, make_source):
         with tempfile.TemporaryDirectory() as work:

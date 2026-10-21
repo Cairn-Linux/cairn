@@ -1,0 +1,14 @@
+#!/bin/bash
+# SPDX-License-Identifier: Apache-2.0
+# The launcher as the kiosk session starts it, made by CMake from
+# launcher/bin/cairn-launcher.in (ADR-0038). Provisioning writes its own.
+set -ouex pipefail
+launcher=(@CAIRN_FULL_LIBEXECDIR@/cairn-launcher --manifest @CAIRN_FULL_DATADIR@/manifest.json
+    --games /var/lib/cairn/games.json --log-out @CMAKE_INSTALL_FULL_BINDIR@/cairn-log-out
+    --scope-apps --start-steam "$@")
+# The launcher's notes for a grown-up go to the journal under their own name
+# (#122): journalctl -t cairn-launcher. No journal must never mean no tiles.
+if systemd-cat --identifier=cairn-launcher true > /dev/null 2>&1; then
+    exec systemd-cat --identifier=cairn-launcher "${launcher[@]}"
+fi
+exec "${launcher[@]}"

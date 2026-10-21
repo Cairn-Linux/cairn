@@ -269,6 +269,9 @@ maintain, versus something that is structurally true.
 
 RPM layering is reserved for things that genuinely must be in the image:
 the launcher, the shell, session plumbing, ScummVM.
+Until Cairn's own parts are RPMs (ROADMAP P1-2), the image compiles them in
+a build stage and copies the tree `cmake --install` makes, with each file
+where its RPM would put it (ADR-0038).
 
 ### 4.3 Sessions and accounts
 

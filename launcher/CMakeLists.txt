@@ -68,6 +68,15 @@ target_include_directories(cairn-launcher PRIVATE src)
 target_link_libraries(cairn-launcher PRIVATE Qt6::Quick Qt6::DBus CairnBrand cairn-foreign-toplevel
     footpath footpathplugin)
 
+# Installed beside its one shared library's directory, which it finds
+# through its rpath; the session starts it through the wrapper (ADR-0038).
+set_target_properties(cairn-launcher PROPERTIES INSTALL_RPATH "${CAIRN_FULL_LIBDIR}")
+install(TARGETS cairn-launcher RUNTIME DESTINATION "${CAIRN_LIBEXECDIR}")
+install(TARGETS CairnBrand LIBRARY DESTINATION "${CAIRN_LIBDIR}")
+configure_file(bin/cairn-launcher.in bin/cairn-launcher @ONLY)
+install(PROGRAMS "${CMAKE_CURRENT_BINARY_DIR}/bin/cairn-launcher" DESTINATION "${CMAKE_INSTALL_BINDIR}")
+cairn_install_file(SOURCE ../provision/manifest.json DESTINATION "${CAIRN_DATADIR}" MODE 644)
+
 qt_add_lupdate(
     SOURCE_TARGETS cairn-launcher
     TS_FILES i18n/launcher_en.ts

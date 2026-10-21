@@ -60,7 +60,8 @@ public:
     struct Setup {
         QString child;
         QString pkexec = QStringLiteral("/usr/bin/pkexec");
-        QString helper = QStringLiteral("/usr/local/libexec/cairn/cairn-steam-visit");
+        // The root helper; main() names the one this build installs.
+        QString helper;
         uint uid = 0;
         OwnSteam::Programs ownSteam;
     };

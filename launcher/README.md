@@ -82,6 +82,10 @@ The presets do not pin a compiler.
 Debug enables AddressSanitizer and UndefinedBehaviorSanitizer.
 Use `cmake --preset release && cmake --build --preset release` for a build
 without sanitizers.
+In the image, `cmake --install` puts the launcher in `/usr/libexec/cairn/`,
+`libCairnBrand.so` in `/usr/lib64/cairn/`, which the launcher finds through
+its rpath, and a wrapper made from `bin/cairn-launcher.in` in `/usr/bin/`
+(ADR-0038). The session runs the wrapper.
 The launcher has twenty CTest tests, run offscreen: the tile model, the
 manifest reader, the manifest and the games file read together (the tile
 files), kidscan's manifest and games file written and read back (two
