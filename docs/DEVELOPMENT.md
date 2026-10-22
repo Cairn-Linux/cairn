@@ -90,8 +90,9 @@ Fonts: `atkinson-hyperlegible-next-fonts` and `atkinson-hyperlegible-mono-fonts`
 ## Flathub
 
 Fedora ships only its own Flatpak remote. `provision/` names Flathub IDs,
-so add Flathub and install the Phase 0 set once. The image will install
-its Flatpaks itself in slice 4 of #164 (ADR-0038).
+so add Flathub and install the Phase 0 set once. The image ships no
+Flatpaks, because they are the family's choice: on a computer that runs
+it, `provision/cairn-family-setup.sh` installs them (ADR-0038).
 
 ```sh
 flatpak remote-add --if-not-exists flathub \
@@ -202,23 +203,27 @@ ssh cairn-min sudo bootc switch --transport oci-archive /var/tmp/cairn-dev.oci.t
 ssh cairn-min sudo systemctl reboot
 ```
 
-The image has no accounts of its own. Make a test child and a test
-Guardian by hand, the way provisioning would:
+The image has no accounts of its own. The family's setup makes them, with
+the menu entries, the game tiles and the Flatpaks (ADR-0038, slice 4). Copy
+the checkout in and run it there; nothing needs building, but the checkout
+must be the commit the image was built from:
 
 ```sh
-sudo useradd --create-home -c Ada ada
-sudo passwd --lock ada
-sudo gpasswd -a ada cairn-l1
-sudo gpasswd -a bazzite cairn-guardian
-sudo systemctl restart sddm
+rsync -a --exclude build --exclude .git --exclude .claude ./ cairn-min:cairn/
+ssh -t cairn-min 'cd cairn && sudo ./provision/cairn-family-setup.sh --guardian bazzite --child ada --child ben:2'
+ssh cairn-min sudo systemctl restart sddm
 ```
+
+A VM that was provisioned by hand first needs `cairn-guardian` renumbered,
+before the switch: `provision/README.md`, "Renumbering cairn-guardian".
 
 Some tests need what a container build does not have, so they skip
 themselves there: two give-up tests need user namespaces or a systemd user
-manager, and seven `copy_games` tests need a folder that can reflink
-(btrfs or XFS). The build log lists every skip under "Tests skipped in the
-build stage". Run `ctest` on the host before building an image; it is the
-only place those tests run.
+manager, seven `copy_games` tests need a folder that can reflink
+(btrfs or XFS), and one `provision` test reads `system_files/`, which
+the build stage does not copy. The build log lists every skip under
+"Tests skipped in the build stage". Run `ctest` on the host before
+building an image; it is the only place those tests run.
 
 The build stage copies only what CMake reads. `.containerignore` keeps
 build folders, keys, tool caches, `.git` and `.claude/` out of the build

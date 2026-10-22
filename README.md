@@ -93,7 +93,7 @@ The design follows these principles; not every planned feature is complete.
 | `greeter/` | The login screen: an SDDM theme and the small C++ QML module it imports (ADR-0020). |
 | `guardian/` | The Guardian's side, so far one window: a child's own Steam, opened from the Guardian's own login (ADR-0032). |
 | `session/` | Login-to-session plumbing: one session entry that dispatches by account level. |
-| `provision/` | Phase 0 script that turns a stock install into a Cairn machine, for testing before any ISO exists. |
+| `provision/` | Phase 0 script that turns a stock install into a Cairn machine, for testing before any ISO exists, and the family's own steps (accounts, apps, games) on a machine that runs the image. |
 | `tools/kidscan/` | Game library scanner: Steam + ScummVM detection → launcher manifest. |
 | `NOTICE` | Upstream attribution and notices. |
 

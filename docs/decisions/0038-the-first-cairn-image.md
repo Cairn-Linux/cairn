@@ -38,8 +38,8 @@ image:
 
 **Cairn is compiled in a stage of the Containerfile that is thrown away,
 and `cmake --install` puts every file in its standard place under `/usr`.
-The image copies that tree. Nothing goes in `/usr/local`, and nothing that
-names a person goes in the image.**
+The image copies that tree. The image ships nothing in `/usr/local`, and
+nothing that names a person goes in the image.**
 
 ### How it is built
 
@@ -187,14 +187,111 @@ folders in `/var` and their labels were right, the Guardian's window was
 When the kids' laptop moves to the image, its groups keep the numbers
 `groupadd --system` gave them, because `systemd-sysusers` leaves a group
 that exists alone. Its `cairn-guardian` will not be 465, so no Guardian
-could open the window. That move must renumber the groups first, and
-the shared game folder's files with them (slice 4).
+could open the window. That move must renumber `cairn-guardian` first,
+and the files that carry its number with it (slice 4, below).
+
+### What the family does on a computer that runs the image (slice 4)
+
+What is left on a computer that runs the image names a person or is the
+family's own choice: the accounts, a "Steam for <child>" menu entry for
+each child, `games.json` and the game pictures, each child's copy of the
+games, and the Flatpaks. `provision/cairn-family-setup.sh` does these,
+run as root from a checkout. It needs no build.
+
+- **A script of its own, made of provisioning's steps.** It loads
+  `cairn-provision.sh` for its functions and runs its own short list.
+  So both kinds of computer check accounts the same way. A step added to
+  provisioning later never runs on an image until it is added to that
+  list. `cairn-provision.sh` refuses on a computer that runs the image,
+  and the family's setup refuses on one that does not. The image's
+  `/usr/lib/sysusers.d/cairn.conf` tells them apart: only the image ships
+  it, and `/usr` cannot be written on a stock Bazzite.
+- **Nothing new in the image.** The script stays in `provision/`, which
+  goes when the first-boot wizard (P1-6) and the Guardian tool (#167)
+  arrive. The install-tree test keeps refusing any file that names
+  `/usr/local`.
+- **The checkout must match the image.** The script reads what the
+  image's copy step, picture step and visit helper print, word by word.
+  It compares each of them, and kidscan, with the checkout's file, with
+  `/usr/local` changed to `/usr` as the build changes it. It refuses on
+  any difference and says to check out the commit the image was built
+  from.
+- **The menu entries go in `/usr/local/share/applications`.** On Bazzite
+  that is `/var/usrlocal/share/applications`: the computer's own, and
+  writable. A Guardian's Plasma already reads it. In the VM on 2026-10-21
+  the Guardian's `plasmashell` had
+  `XDG_DATA_DIRS=/home/bazzite/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:/usr/local/share:/usr/share`.
+  `matchpathcon` gives the folder `usr_t`, so it needs no SELinux rule.
+  The image ships nothing there. The menu entries are data the family's
+  setup writes on the computer, which is what `/usr/local` is for. A
+  `tmpfiles.d` line makes the folder at boot, so it is there before
+  Plasma first builds its menu. Each entry names `/usr/bin/cairn-steam-for`.
+  That program is `root:cairn-guardian`, mode 0750, so Plasma shows the
+  entries only to a Guardian.
+  In the VM on 2026-10-21 the entries showed up in the Guardian's menu
+  without logging in again.
+- **The Flatpaks come last.** They need the internet. An offline computer
+  still gets the accounts, entries and tiles, and then the run stops with
+  flatpak's own message. A second run online installs them.
+- **Groups.** A group that is missing is made with its fixed number, and
+  `groupadd` stops if another group has it. `systemd-sysusers` would give
+  it some other number without saying so. A `cairn-guardian` with
+  another number is refused, with a pointer to the renumbering below.
+  The level groups may keep any number: the polkit rules, PAM, the login
+  screen and provisioning all read them by name. They are fixed on new
+  computers so that every computer installed from the image matches.
+  Provisioning by hand now gives a new group its fixed number too,
+  unless another group has it.
+
+**Renumbering before the move.** `provision/cairn-renumber-guardians.sh`
+gives `cairn-guardian` the number 465. It runs once, on the computer set
+up by hand, before `bootc switch`. Nothing on that computer reads the
+number, so it keeps working. Each deployment has its own `/etc`, and all
+of them share `/var`. Done before the switch, the new number is in the
+`/etc` that `bootc switch` carries into the image, and in the one a
+rollback would boot. Done after, a rollback would find files at 465 and a
+group with the old number.
+
+- It moves the files first, then the group. A file's group is only a
+  number, so a file can move before `/etc/group` says so. It walks
+  `/etc`, `/var/lib/cairn`, `/var/usrlocal`, `/var/home` and `/var/tmp`,
+  each on its own filesystem. It leaves the rest of `/var` alone, because
+  the container and Flatpak stores keep numbers of their own.
+- ACLs name a group by number, and the shared game folder's default ACL
+  puts the Guardian's group on every file Steam makes there. getfacl's
+  dump of those places is rewritten and restored with `setfacl
+  --restore`.
+- After `groupmod` it walks again, so a file made meanwhile moves too, and
+  then names any file still on the old number.
+  A file that vanishes during a walk does not stop the run, so the check
+  at the end is always reached.
+  A run that stops after `groupmod` prints the command to run again with
+  the old number, which walks the files from it once more.
+  Without that number a rerun would see 465 and do nothing.
+- It refuses while a Guardian has a desktop open or has Steam open. A
+  Guardian who is logged in keeps the old number until they log in
+  again. Their Steam would lose the shared game folder in the middle of
+  a download, and anything it made meanwhile would keep the old number.
+- It runs from a text console or over ssh, and the Guardian's own login
+  there is fine. It judges a session by its Type: only `x11`, `wayland`
+  or `mir` counts as a desktop. A text console or ssh login is `tty`.
+  The first version read logind's `Display`, which names a text session
+  when there is no desktop. In the VM it refused the very ssh login
+  that ran it, so it could never run as written.
+  In the VM on 2026-10-21 the fixed script refused while the Guardian was
+  in Plasma. Logged out of it, with a Ctrl+Alt+F3 login open, it ran over
+  ssh and moved every file and ACL entry from 945 to 465.
+- It refuses when another group has 465. Then the laptop still works as
+  it did, and nothing has changed.
+- Only `cairn-guardian` moves. The level groups are read by name, so
+  walking the children's homes for them would buy nothing.
 
 ### What stays out of the image
 
 - **Anything that names a person.** Accounts, `games.json`, a child's
   "Steam for <child>" menu entry, Flatpaks, and each child's copy of the
-  games stay a later step for the family, never in the image.
+  games stay a step for the family, never in the image. That step is
+  `provision/cairn-family-setup.sh` (slice 4).
 - **Name and logos.** The `os-release` rewrite, swapping
   `generic-logos`, Bazzite's 28 logo files including
   `distributor-logo-steamdeck.svg`, and the attribution in `NOTICE` are
@@ -233,8 +330,9 @@ pass (ADR-0031).
   release build still names `/usr/local`, and it now refuses a build that
   was not configured for `/usr/local`.
 - Two copies of the wrappers now exist, provisioning's and the build's.
-  Once a machine runs the image, provisioning shrinks to the family's own
-  steps (slice 4), and its copies of the files go.
+  On a computer that runs the image, only the family's setup runs, and
+  provisioning's copies are not made. The two copies stay until the kids'
+  laptop has moved; `provision/README.md` lists what that move removes.
 - A build configured for one prefix and installed to another names the
   wrong paths. The install-tree test runs only in a build configured for
   `/usr`, and says it was skipped otherwise.
@@ -243,7 +341,10 @@ pass (ADR-0031).
   `cairn-guardian`, so a tree installed some other way needs that step
   too.
 - The level and Guardian groups have the same numbers on every machine
-  installed from the image. A machine that made them by hand has to be
-  renumbered before it moves to the image.
+  installed from the image. A machine that made them by hand renumbers
+  `cairn-guardian` before it moves to the image; its level groups may
+  keep their numbers.
+- The family's setup runs from a checkout of the commit the image was
+  built from. A checkout-free way waits for the first-boot wizard.
 - Compiling in the image's build stage makes every image build take a few
   minutes longer. RPMs (P1-2) would move that work out of the image build.

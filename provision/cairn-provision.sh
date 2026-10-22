@@ -9,6 +9,10 @@
 #
 # Each --child is a child's account, at level 1 unless a :2 follows the name.
 #
+# A computer that runs the Cairn image already has everything this script
+# installs, so it refuses there: provision/cairn-family-setup.sh does the
+# family's own steps instead, from these same functions (ADR-0038).
+#
 # Every step looks before it changes anything and says what it did, so a
 # second run on the same machine reports zero changes. Throwaway by design:
 # the Phase 1 image does all of this by construction (provision/README.md).
@@ -33,6 +37,15 @@ SHARED_LIBRARY=/var/lib/cairn/steam-library
 GAMES_FILE=/var/lib/cairn/games.json
 GAME_PICTURES=/var/lib/cairn/game-pictures
 LEVEL_GROUPS=(cairn-l1 cairn-l2 cairn-l3 cairn-l4 cairn-guardian)
+# Only the image ships this file, and /usr cannot be written on a stock
+# Bazzite, so a computer that has it runs the image (ADR-0038).
+IMAGE_MARK=/usr/lib/sysusers.d/cairn.conf
+# The groups' fixed numbers: the image's own list, as the checkout has it.
+GROUP_NUMBERS="$REPO/system_files/usr/lib/sysusers.d/cairn.conf"
+# A Guardian's "Steam for <child>" entries. In both kinds of machine this
+# is the machine's own folder, which Plasma's menu reads: on Bazzite
+# /usr/local is a link to /var/usrlocal.
+APPS=/usr/local/share/applications
 # The brand's typefaces (DESIGN §6.2, brand/tokens.json) are in Fedora but
 # not in the Bazzite image; without them every Cairn screen falls back to
 # another font, losing the letterforms early readers need (I/l/1, O/0).
@@ -107,11 +120,30 @@ record_facts() {
 }
 
 # --- 2. Level groups (ADR-0011) -----------------------------------------------
+# A group's fixed number, from the image's list, read the way the image's
+# build reads it (build_files/build.sh).
+fixed_gid() {
+    local number
+    number="$(awk -v name="$1" '$1 == "g" && $2 == name { print $3 }' "$GROUP_NUMBERS")" ||
+        refuse "$GROUP_NUMBERS cannot be read"
+    [[ "$number" =~ ^[0-9]+$ ]] || refuse "$GROUP_NUMBERS gives $1 no number"
+    echo "$number"
+}
+
+# A new group takes the number the image gives it, so the computer can move
+# to the image later without renumbering. A number already taken here is
+# left to that group, and the new one gets any free number.
 ensure_groups() {
-    local group
+    local group number
     for group in "${LEVEL_GROUPS[@]}"; do
         if ! getent group "$group" > /dev/null; then
-            groupadd --system "$group"
+            number="$(fixed_gid "$group")"
+            if getent group "$number" > /dev/null; then
+                groupadd --system "$group"
+                echo "note: number $number is taken here, so $group has another number (provision/README.md)"
+            else
+                groupadd --system --gid "$number" "$group"
+            fi
             changed "group $group"
         fi
     done
@@ -521,6 +553,7 @@ only_for_guardians() {
     fi
 }
 
+# The window and its wrapper. An image ships its own.
 install_steam_for() {
     local build="$REPO/build/release"
     install_file 750 "$build/guardian/cairn-steam-for" "$PREFIX/libexec/cairn/cairn-steam-for"
@@ -544,8 +577,11 @@ WINDOW
     install_file 750 "$wrapper" "$PREFIX/bin/cairn-steam-for"
     rm "$wrapper"
     only_for_guardians "$PREFIX/bin/cairn-steam-for"
+}
 
-    local apps="$PREFIX/share/applications" kids child entry
+# One entry for every child, naming the window where $PREFIX puts it.
+make_steam_entries() {
+    local apps="$APPS" kids child entry
     kids="$(child_accounts)"
     for child in $kids; do
         entry="$(mktemp)"
@@ -829,7 +865,7 @@ relabel() {
     if command -v restorecon > /dev/null; then
         restorecon -R "$PREFIX/bin/cairn-launcher" "$PREFIX/bin/cairn-session" \
             "$PREFIX/bin/cairn-give-up" "$PREFIX/bin/cairn-log-out" "$PREFIX/bin/cairn-steam-for" \
-            "$PREFIX/share/applications" \
+            "$APPS" \
             "$PREFIX/libexec/cairn" "$PREFIX/lib64/cairn" "$SHARE" \
             /etc/sddm.conf.d /etc/pam.d/sddm /etc/polkit-1/rules.d /etc/systemd/logind.conf.d \
             /etc/security/faillock.conf /etc/pam.d/cairn-steam-visit /etc/pam.d/login \
@@ -839,6 +875,8 @@ relabel() {
 
 main() {
     parse_arguments "$@"
+    [ ! -e "$IMAGE_MARK" ] ||
+        refuse "this computer runs the Cairn image; use provision/cairn-family-setup.sh instead"
     [ "$(id -u)" -eq 0 ] || { echo "run as root" >&2; exit 1; }
     check_accounts
     check_build
@@ -856,6 +894,7 @@ main() {
     protect_guardians
     install_steam_visit
     install_steam_for
+    make_steam_entries
     make_shared_library
     install_copy_games
     relabel

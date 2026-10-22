@@ -48,8 +48,10 @@ def getent_stub(gecos=None, groups=None):
     return "\n".join(lines) + "\n"
 
 
-def run_steps(snippet, accounts=None, env_extra=None, extra_stubs=None):
-    """Sources the script, sets names, runs `snippet`. Returns (code, output, log)."""
+def run_steps(snippet, accounts=None, env_extra=None, extra_stubs=None, script=SCRIPT):
+    """Sources the script, sets names, runs `snippet`. Returns (code, output, log).
+    No test may see the computer it runs on as one that runs the image, so
+    IMAGE_MARK names a file that is never there unless `snippet` sets it."""
     with tempfile.TemporaryDirectory() as work:
         bin_dir = pathlib.Path(work, "bin")
         bin_dir.mkdir()
@@ -64,7 +66,8 @@ def run_steps(snippet, accounts=None, env_extra=None, extra_stubs=None):
             stub.chmod(0o755)
         env = {"PATH": f"{bin_dir}:/usr/bin:/bin", "HOME": work}
         env.update(env_extra or {})
-        command = f"source {shlex.quote(str(SCRIPT))}\n{snippet}"
+        missing = shlex.quote(str(pathlib.Path(work, "no-image")))
+        command = f"source {shlex.quote(str(script))}\nIMAGE_MARK={missing}\n{snippet}"
         # No terminal on stdin, whoever runs the tests, so passwd is never
         # asked to prompt.
         result = subprocess.run(
@@ -309,6 +312,55 @@ class SteamForEntryTest(unittest.TestCase):
         self.assertEqual(code, 0, output)
         self.assertIn("Name=Steam for Ada Lovelace", output.splitlines())
         self.assertIn("Exec=/usr/local/bin/cairn-steam-for ada", output.splitlines())
+
+
+class SteamEntriesTest(unittest.TestCase):
+    """make_steam_entries writes into $APPS, the machine's own folder, and
+    removes the entry of an account that is no longer a child."""
+
+    def run_step(self, prefix=None):
+        with tempfile.TemporaryDirectory() as work:
+            apps = pathlib.Path(work, "applications")
+            apps.mkdir()
+            (apps / "cairn-steam-for-cy.desktop").write_text("old\n")
+            (apps / "other.desktop").write_text("keep\n")
+            accounts = {"ada": (1002, ["ada", "cairn-l1"]), "ben": (1003, ["ben", "cairn-l2"])}
+            groups = {"cairn-l1": ["ada"], "cairn-l2": ["ben"], "cairn-l3": [], "cairn-l4": []}
+            stubs = {
+                "getent": getent_stub(gecos={"ada": "Ada", "ben": ""}, groups=groups),
+                "chgrp": '#!/bin/sh\necho "chgrp $*" >> "$HOME/calls"\n',
+                "chmod": '#!/bin/sh\necho "chmod $*" >> "$HOME/calls"\n',
+            }
+            set_prefix = f"PREFIX={prefix}\n" if prefix else ""
+            code, output, _ = run_steps(
+                f"{set_prefix}APPS={shlex.quote(str(apps))}\nmake_steam_entries",
+                accounts, extra_stubs=stubs,
+            )
+            files = {path.name: path.read_text() for path in apps.iterdir()}
+            calls = pathlib.Path(work, "calls")
+            return code, output, files, calls.exists()
+
+    def test_one_entry_per_child_in_the_machines_folder(self):
+        code, output, files, chmodded = self.run_step()
+        self.assertEqual(code, 0, output)
+        self.assertEqual(sorted(files), [
+            "cairn-steam-for-ada.desktop", "cairn-steam-for-ben.desktop", "other.desktop"])
+        self.assertIn("Name=Steam for Ada\n", files["cairn-steam-for-ada.desktop"])
+        self.assertIn("Exec=/usr/local/bin/cairn-steam-for ben\n", files["cairn-steam-for-ben.desktop"])
+        self.assertIn("removed", output)
+        self.assertFalse(chmodded, "the entries never change the window")
+
+    def test_on_the_image_the_entries_name_its_window(self):
+        code, output, files, chmodded = self.run_step(prefix="/usr")
+        self.assertEqual(code, 0, output)
+        entry = files["cairn-steam-for-ada.desktop"]
+        self.assertIn("Exec=/usr/bin/cairn-steam-for ada\n", entry)
+        self.assertIn("TryExec=/usr/bin/cairn-steam-for\n", entry)
+        self.assertNotIn("cairn-steam-for-cy.desktop", files)
+        self.assertFalse(chmodded)
+
+    def test_the_folder_is_the_one_plasma_reads(self):
+        self.assertIn("\nAPPS=/usr/local/share/applications\n", SCRIPT.read_text())
 
 
 def window_wrapper():
@@ -1004,6 +1056,132 @@ class GameTilesTest(unittest.TestCase):
     def test_installs_the_picture_program_beside_kidscan(self):
         self.assertIn('install_file 644 "$REPO/provision/cairn-game-pictures.py" '
                       '"$PREFIX/libexec/cairn/cairn-game-pictures"', SCRIPT.read_text())
+
+
+GROUP_NUMBERS = """#Type Name           ID
+g     cairn-l1       461
+g     cairn-l2       462
+g     cairn-l3       463
+g     cairn-l4       464
+g     cairn-guardian 465
+"""
+
+# A `getent` for group lines, by name or number, from $STATE/group, written
+# as /etc/group is.
+GROUP_GETENT = r"""#!/bin/bash
+[ "$1" = group ] || exit 2
+awk -F: -v key="$2" '$1 == key || $3 == key { print; found = 1 } END { exit !found }' \
+    "$STATE/group" 2> /dev/null || exit 2
+"""
+
+
+class GroupNumbersTest(unittest.TestCase):
+    """A new group takes the number the image gives it (ADR-0038), so a
+    computer set up by hand can move to the image without renumbering."""
+
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.state = pathlib.Path(self.directory.name)
+        (self.state / "numbers").write_text(GROUP_NUMBERS)
+        self.stubs = {
+            "getent": GROUP_GETENT,
+            "groupadd": '#!/bin/bash\necho "groupadd $*" >> "$STATE/calls"\n',
+        }
+
+    def tearDown(self):
+        self.directory.cleanup()
+
+    def run_step(self, snippet, groups=""):
+        (self.state / "group").write_text(groups)
+        numbers = shlex.quote(str(self.state / "numbers"))
+        code, output, _ = run_steps(
+            f"GROUP_NUMBERS={numbers}\n{snippet}",
+            env_extra={"STATE": str(self.state)}, extra_stubs=self.stubs,
+        )
+        calls = self.state / "calls"
+        return code, output, calls.read_text().splitlines() if calls.exists() else []
+
+    def test_reads_the_images_number(self):
+        code, output, _ = self.run_step("fixed_gid cairn-guardian")
+        self.assertEqual(code, 0, output)
+        self.assertIn("465", output.splitlines())
+
+    def test_a_list_without_the_number_is_refused(self):
+        (self.state / "numbers").write_text("g cairn-guardian -\n")
+        code, output, _ = run_steps(
+            f"GROUP_NUMBERS={shlex.quote(str(self.state / 'numbers'))}\nfixed_gid cairn-guardian"
+        )
+        self.assertEqual(code, 1, output)
+        self.assertIn("refused:", output)
+
+    def test_new_groups_take_their_fixed_numbers(self):
+        code, output, calls = self.run_step("ensure_groups")
+        self.assertEqual(code, 0, output)
+        self.assertEqual(calls, [
+            "groupadd --system --gid 461 cairn-l1", "groupadd --system --gid 462 cairn-l2",
+            "groupadd --system --gid 463 cairn-l3", "groupadd --system --gid 464 cairn-l4",
+            "groupadd --system --gid 465 cairn-guardian",
+        ])
+
+    def test_a_taken_number_is_left_to_its_group(self):
+        groups = "\n".join([
+            "cairn-l1:x:941:", "cairn-l2:x:942:", "cairn-l3:x:943:", "cairn-l4:x:944:",
+            "games:x:465:",
+        ]) + "\n"
+        code, output, calls = self.run_step("ensure_groups", groups)
+        self.assertEqual(code, 0, output)
+        self.assertEqual(calls, ["groupadd --system cairn-guardian"])
+        self.assertIn("note: number 465 is taken here", output)
+
+    def test_groups_already_there_keep_their_numbers(self):
+        groups = "\n".join(f"{g}:x:{n}:" for g, n in (
+            ("cairn-l1", 941), ("cairn-l2", 942), ("cairn-l3", 943), ("cairn-l4", 944),
+            ("cairn-guardian", 945))) + "\n"
+        code, output, calls = self.run_step("ensure_groups", groups)
+        self.assertEqual(code, 0, output)
+        self.assertEqual(calls, [])
+
+    @unittest.skipUnless(
+        (SCRIPT.parents[1] / "system_files/usr/lib/sysusers.d/cairn.conf").exists(),
+        "the build stage copies no system_files",
+    )
+    def test_the_checkout_and_the_image_build_read_the_same_number(self):
+        repo = SCRIPT.parents[1]
+        code, output, _ = run_steps("fixed_gid cairn-guardian")
+        self.assertEqual(code, 0, output)
+        self.assertIn("465", output.splitlines())
+        build = (repo / "build_files/build.sh").read_text()
+        self.assertIn("""awk '$1 == "g" && $2 == "cairn-guardian" { print $3 }'""", build)
+
+
+class ImageGuardTest(unittest.TestCase):
+    """On a computer that runs the image, this script installs nothing; the
+    family's setup does what is left (ADR-0038)."""
+
+    def test_refuses_on_the_image_before_anything(self):
+        with tempfile.TemporaryDirectory() as work:
+            mark = pathlib.Path(work, "cairn.conf")
+            mark.write_text(GROUP_NUMBERS)
+            code, output, calls = run_steps(
+                f"IMAGE_MARK={shlex.quote(str(mark))}\nmain --guardian gina --child ada"
+            )
+        self.assertEqual(code, 1, output)
+        self.assertIn("refused: this computer runs the Cairn image; use provision/cairn-family-setup.sh", output)
+        self.assertEqual(calls, "")
+
+    def test_a_computer_set_up_by_hand_goes_on(self):
+        code, output, _ = run_steps("main --guardian gina --child ada")
+        # The tests do not run as root, so the next check stops it.
+        self.assertEqual(code, 1, output)
+        self.assertNotIn("Cairn image", output)
+        self.assertIn("run as root", output)
+
+    def test_the_mark_is_the_images_group_list(self):
+        self.assertIn("\nIMAGE_MARK=/usr/lib/sysusers.d/cairn.conf\n", SCRIPT.read_text())
+
+    def test_the_entries_follow_the_window(self):
+        steps = main_steps()
+        self.assertLess(steps.index("install_steam_for"), steps.index("make_steam_entries"))
 
 
 class ScriptTextTest(unittest.TestCase):

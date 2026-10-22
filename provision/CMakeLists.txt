@@ -14,6 +14,11 @@ find_package(Python3 REQUIRED COMPONENTS Interpreter)
 add_test(NAME provision
     COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_provision.py"
 )
+# The family's setup on a computer that runs the image, and the renumbering
+# of cairn-guardian before a computer set up by hand moves to it (ADR-0038).
+add_test(NAME family_setup
+    COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_family_setup.py"
+)
 # The copy of each shared game into a child's library (ADR-0033). Its copies
 # need a filesystem that can reflink; the test looks for one in the
 # temporary folder, then under build/.
