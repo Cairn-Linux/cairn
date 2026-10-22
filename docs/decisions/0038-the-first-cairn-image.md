@@ -371,6 +371,9 @@ The VM showed this: after two upgrades to slice 5 images, both entries
 still read "Bazzite".
 A fresh install is expected to write "Cairn Linux (ostree:0)", and
 slice 6 checks that.
+The test install of 2026-10-22 did, though it wrote two entries,
+"Cairn Linux (ostree:0)" and "(ostree:1)", for the same deployment (see
+"Test install").
 
 The hostname does not change yet either.
 On a computer with an empty `/etc/hostname`, like the VM, systemd picks
@@ -383,6 +386,8 @@ The prompt, DHCP, mDNS (`bazzite.local`), KDE Connect and Steam Remote
 Play keep showing `bazzite`.
 A fresh install from the slice 6 ISO uses the same initramfs, so it is
 called `bazzite` too, unless the installer writes `/etc/hostname`.
+The installer's kickstart does, and the test install of 2026-10-22 was
+called `cairn`.
 The image does not ship `/etc/hostname`, because every computer would
 then get the same fixed name, and the name is the family's choice.
 A `systemd.hostname=` kernel argument is not used either, because it
@@ -515,10 +520,10 @@ line too.
   installer shows Fedora's whatever the image ships. bootupd names the
   firmware entry from `/usr/lib/fedora-release`, but the shim's
   `BOOTX64.CSV` says "Fedora", and the firmware's fallback recreates a
-  lost entry with that name. Slice 6 checks both with `efibootmgr`.
-  Its pinned bootc-image-builder's `manifest` step proved the `ID_LIKE`
-  fallback. It also checks that the boot menu titles read "Cairn Linux"
-  after an ISO install. A fresh install is called `cairn` through the
+  lost entry with that name. The `efibootmgr` checks of both are still
+  open. Its pinned bootc-image-builder's `manifest` step proved the
+  `ID_LIKE` fallback. The boot menu titles read "Cairn Linux" after the
+  test ISO install of 2026-10-22. A fresh install is called `cairn` through the
   installer's hostname, which writes `/etc/hostname`, never a file in
   the image (slice 6, below).
 
@@ -527,8 +532,10 @@ line too.
 `tools/build-iso.sh` makes an installer ISO from `localhost/cairn:dev`
 with bootc-image-builder. `disk_config/iso.toml` holds its settings,
 under the name image-template uses.
-Prepared on the dev PC on 2026-10-21, and not yet built: the builder needs
-root, so the maintainer runs it.
+Prepared on the dev PC on 2026-10-21. The builder needs root, so the
+maintainer runs it.
+A test ISO was built and installed in a VM on 2026-10-22; "Test install",
+below, has what it showed.
 What is written here was read in the builder's x86_64 image of
 2026-10-19, which carries image-builder 85.0.0, in image-builder's source
 at the tag `v85.0.0`, in osbuild's at `v193`, and in Anaconda's main
@@ -593,7 +600,8 @@ Both planned cleanly, so the image's `ID=cairn` resolves through
   boots to the login screen with nobody to log in, until the first-boot
   wizard exists (P1-6). Only test ISOs are installed until then. Whether
   Anaconda really finishes with no account is the first thing the VM
-  checks.
+  checks. The test install of 2026-10-22 used the test config, with the
+  Users module on, so this is still untested.
 - **The hostname.** The kickstart sets `cairn`, and the family can change
   it in the installer. Anaconda writes it to `/etc/hostname`. Without it,
   a fresh install would be called `bazzite` until #165. It is a name the
@@ -623,18 +631,73 @@ Both planned cleanly, so the image's `ID=cairn` resolves through
   turned on, since the image ships it off. Anaconda makes groups before
   users (`pyanaconda/modules/users/users.py`). pykickstart parsed both
   kickstarts.
-- **What the builder shows.** The planned installer calls itself "Cairn
-  Linux 44" in its boot menu and title. Its volume label is
+- **What the builder shows.** The installer calls itself "Cairn Linux 44"
+  in its boot menu and title, as the test install showed. Its volume label is
   `Container-Installer-x86_64`, its UEFI folder is Fedora's, and it
   installs Anaconda 44.30 with `fedora-logos` from Fedora's repositories,
   so its artwork is Fedora's. Six Mesa packages come from Terra, as on the
   image. P1-14 decides whether the installer's artwork may stay Fedora's.
 
-A test install in the VM checks the rest: the installer shows no account
-screen and finishes; the boot menu says "Cairn Linux"; `efibootmgr` names
-the firmware entry; the computer is called `cairn`; and, from the test
-ISO, the Guardian's groups have their numbers and ssh works.
+A test install in the VM checks the rest.
+"Test install", below, has which passed on 2026-10-22: the boot menu
+titles, the hostname `cairn`, the groups' numbers and an ssh login.
+Still open: no account screen (needs an install from `iso.toml`) and the
+firmware entry with `efibootmgr`.
 docs/DEVELOPMENT.md, "Building the installer", has the steps.
+
+### Test install (2026-10-22)
+
+A test ISO from the private test config was built on the dev PC and
+installed in a new VM, `cairn-iso`.
+The ISO is 6.0 GB.
+The first full build took about six hours, most of it downloading about
+950 packages slowly overnight.
+While it ran, Fedora's updates repository replaced six of those packages
+with newer builds, so their downloads failed and so did the build.
+The old builds were still in Fedora's `updates-archive`, but the plan had
+pinned them to `updates`.
+The next run reused root's copy of the image, planned again, and made the
+ISO in about six minutes.
+
+- **The installer.** Its boot menu says "Install Cairn Linux 44", and
+  Anaconda says "WELCOME TO CAIRN LINUX 44." and "CAIRN LINUX 44
+  INSTALLATION", with Fedora's logo in the side panel.
+  It stops where a person must choose: Language, then the summary, where
+  Installation Destination, Keyboard and Time & Date each need opening
+  and Done before it goes on.
+  Installation Destination says "Kickstart insufficient" until the disk
+  is confirmed.
+  The only disk was already picked, with automatic partitioning and no
+  encryption.
+  With the test config's Users module on, the summary shows "Root account
+  is disabled" and, greyed out, "Administrator guardian will be created".
+  The install finished.
+- **The first boot.** A reboot from inside the VM started the installer
+  again; a full power-off and start booted the disk.
+  The boot splash is still Bazzite's (#165).
+- **The installed computer.** `os-release` says Cairn Linux, `ID=cairn`,
+  `ID_LIKE=fedora`, version 44.
+  It is called `cairn`.
+  The Guardian is uid 1000, in `wheel` and `cairn-guardian` (465), and
+  `cairn-l1` to `cairn-l4` are 461 to 464.
+  The Guardian logs in over ssh with the dev PC's key, and `sudo` asks
+  for a password.
+  `sshd` and SDDM run, and no unit failed.
+  `/var` is on btrfs.
+  `bootc status` shows `localhost/cairn:dev` as a registry image, version
+  44.20261012.1, with nothing staged.
+  Cairn's programs and helpers are in `/usr/bin` and `/usr/libexec/cairn`.
+- **Two boot entries.** `/boot/loader/entries` holds "Cairn Linux
+  (ostree:0)" and "Cairn Linux (ostree:1)", both for the same deployment.
+  This looks harmless and was not looked into.
+- **The login screen.** SDDM shows Cairn's: the mark, "cairn", "Who's
+  playing today?" and a tile for the test Guardian, its name cut short.
+  Whether a Guardian belongs on that screen at all is an open question
+  for the maintainer.
+
+Still not checked: an install from `iso.toml` itself, with no account;
+Secure Boot; and the firmware entry with `efibootmgr`.
+Updates on the installed computer still wait for P1-3.
 
 ### What stays out of the image
 

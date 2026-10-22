@@ -255,9 +255,11 @@ bootc-image-builder, with the settings in `disk_config/iso.toml`
 without it, then run the one script with `sudo` from your own account:
 
 ```sh
-sudo tools/build-iso.sh
+systemd-inhibit --what=idle:sleep --why="Building Cairn ISO" \
+  sudo tools/build-iso.sh
 ```
 
+`systemd-inhibit` keeps the PC from sleeping while it runs.
 It copies the image into root's storage, unless root already has that
 exact image, runs the builder pinned in `cairn.env`, and gives the result
 back to you. It writes `output/bootiso/install.iso`, a `.sha256` beside
@@ -266,16 +268,34 @@ log as `output/build-iso.log`. The last lines name the ISO and its size.
 It needs the internet, since the builder downloads Anaconda's packages
 from the image's own repositories. Allow about 60 GB free while it runs:
 root's copy of the image is 12 GB and stays, and the builder's working
-store is about as large again and goes. The ISO should be about 7 GB, as
-large as Bazzite's own. How long it takes is not measured yet; expect
-half an hour. `sudo podman rmi localhost/cairn:dev` frees root's copy.
+store is about as large again and goes. The ISO is about 6 GB.
+`sudo podman rmi localhost/cairn:dev` frees root's copy.
 
-The installer asks before it touches a disk and makes no account. Installed
-from it, a computer boots to the login screen with nobody to log in, until
-the first-boot wizard exists (P1-6).
+How long it takes, measured on the dev PC on 2026-10-21 and 22:
+
+- Copying the image into root's storage takes about 5 minutes, once.
+  The next build of the same image skips it.
+- The builder downloads about 950 packages from Fedora.
+  On a fast connection the whole installer step takes about 6 minutes.
+  The first build's download was slow: the build ran about six hours and
+  then failed (next item).
+- A slow download can fail when Fedora replaces a package while the
+  build runs.
+  The build then stops with "error running osbuild: exit status 1", after
+  downloads that failed with 404.
+  Run it again: root's copy is reused, and the builder plans with the new
+  packages.
+
+The installer asks before it touches a disk.
+It is set up to make no account, so a computer installed from it should
+boot to the login screen with nobody to log in, until the first-boot
+wizard exists (P1-6).
+That install has not been tested yet; only the test ISO has.
 
 **A test ISO for the VM** carries a test Guardian. Its config is private:
-keep it outside the checkout, and never commit it. Start from
+keep it outside the checkout, and never commit it.
+Keep it out of `/tmp` too, because `/tmp` is cleared on restart;
+`~/.local/share/` is one place. Start from
 `disk_config/iso.toml`, take `org.fedoraproject.Anaconda.Modules.Users`
 out of `disable` and put it in `enable`, and add to the kickstart:
 
@@ -321,9 +341,21 @@ virt-install --connect qemu:///system --name cairn-iso \
 virt-viewer --connect qemu:///system cairn-iso
 ```
 
-The VM boots the installer once, then its own disk. To upload a new ISO,
-first `virsh -c qemu:///system vol-delete --pool default
-cairn-install.iso`. After the install, find the VM's address with
+The installer first asks for a language; press Continue.
+On the summary, open Installation Destination, Keyboard and Time & Date,
+and press Done in each; Installation Destination says "Kickstart
+insufficient" until you do.
+When it finishes, do not press Reboot System: a reboot from inside the VM
+starts the installer again.
+Power the VM off fully instead, then start it, and it boots its own disk:
+
+```sh
+virsh -c qemu:///system shutdown cairn-iso
+virsh -c qemu:///system start cairn-iso
+```
+
+To upload a new ISO, first `virsh -c qemu:///system vol-delete --pool
+default cairn-install.iso`. After the install, find the VM's address with
 `virsh -c qemu:///system domifaddr cairn-iso` and log in with
 `ssh -i ~/.ssh/<key> guardian@<address>`. Then check what slice 6 lists:
 `efibootmgr`, the boot menu titles, `hostnamectl`, and
