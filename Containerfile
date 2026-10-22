@@ -48,7 +48,7 @@ COPY greeter /src/greeter
 COPY guardian /src/guardian
 COPY session /src/session
 COPY provision /src/provision
-COPY tools /src/tools
+COPY tools/kidscan /src/tools/kidscan
 
 COPY build_files/build-cairn.sh /cairn-build/
 RUN --mount=type=tmpfs,dst=/tmp \
