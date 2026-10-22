@@ -48,7 +48,9 @@ rmdir --ignore-fail-on-non-empty /var/lib
 semanage fcontext -a -t faillog_t '/var/lib/faillock(/.*)?'
 semanage fcontext -a -t etc_t '/run/cairn(/.*)?'
 
+### Not here, ever: accounts, games.json, a child's "Steam for <child>" menu
+### entry and the Flatpaks name a person or are the family's choice.
+### provision/cairn-family-setup.sh makes them on the computer (slice 4).
+###
 ### Not here yet:
-### - Accounts, games.json, a child's "Steam for <child>" menu entry and the
-###   Flatpaks name a person or are the family's choice: slice 4 of #164.
 ### - os-release, the logos and the attribution: slice 5 of #164.

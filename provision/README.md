@@ -22,7 +22,9 @@ cd cairn && sudo ./provision/cairn-provision.sh --guardian guardian --child ada 
 Use the `release` preset: it keeps the install prefix `/usr/local`, so
 the Guardian's window names the root helper where this script puts it.
 The image installs the same files under `/usr` with `cmake --install`
-instead (ADR-0038); this script does not use that.
+instead (ADR-0038). On a computer that runs the image this script refuses
+to run; [`cairn-family-setup.sh`](#on-a-computer-that-runs-the-image)
+does what is left there.
 
 When the script creates the Guardian and runs at a terminal, it runs
 `passwd` for that account, which asks for the password twice without
@@ -53,7 +55,7 @@ What it leaves on the machine:
 | Path | What |
 |---|---|
 | `/var/lib/cairn/facts.txt` | What the stock system shipped: image id, display manager, sddm and greetd presence |
-| groups `cairn-l1` … `cairn-guardian` | System groups, one per level (ADR-0011) |
+| groups `cairn-l1` … `cairn-guardian` | System groups, one per level (ADR-0011). A new group takes the number the image gives it, 461 to 465, from `../system_files/usr/lib/sysusers.d/cairn.conf`; when another group has that number, it gets any free one and a `note:` line says so. Only `cairn-guardian`'s number matters to the image; see [Renumbering cairn-guardian](#renumbering-cairn-guardian). A group that is there keeps its number |
 | the Guardian account | In `wheel` and `cairn-guardian`, password from the environment or set later |
 | each child's account | One per `--child`, in `cairn-l1`, or `cairn-l2` when the name ends `:2`; password locked: the greeter lets an L1 or L2 child in, `su` and `ssh` do not (#35). Today L2 gets the same kiosk and tiles as L1 |
 | labwc, ScummVM | Layered into the OS; Tux Paint and GCompris as system Flatpaks |
@@ -94,6 +96,134 @@ a `logind.conf` key for the lid.
 Re-running the script puts back the repository's `manifest.json`, so a tile
 added by hand in the VM goes; the game tiles in `/var/lib/cairn/games.json`
 stay, and are made again from the shared folder.
+
+## On a computer that runs the image
+
+The image already has every program and setting this script installs
+(ADR-0038). What is left names a person or is the family's own choice.
+`cairn-family-setup.sh` does it, from a checkout of the commit the image
+was built from. Nothing needs building:
+
+```sh
+rsync -a --exclude build --exclude .git --exclude .claude . cairn-min:cairn/
+ssh cairn-min                                                # then, in the VM
+cd cairn && sudo ./provision/cairn-family-setup.sh --guardian guardian --child ada --child ben:2
+```
+
+It runs this script's own steps, loaded from this file, so the accounts
+are checked the same way. It runs only its own list of them:
+
+1. The checks: the names, the computer runs the image, and the checkout
+   matches it. The image's copy step, picture step, visit helper and
+   kidscan must be the checkout's files, with `/usr/local` changed to
+   `/usr` as the build changes it. On any difference it refuses and says
+   to check out the commit the image was built from. `cairn-guardian`
+   must have the image's number, 465; if not, it refuses and points at
+   the renumbering below.
+2. A group that is missing, made with its fixed number. `groupadd` stops
+   if another group has it.
+3. The Guardian and the children, as above.
+4. A "Steam for <child>" entry for each child, in
+   `/usr/local/share/applications`, naming `/usr/bin/cairn-steam-for`.
+5. The shared game folder, put right now rather than at the next boot.
+6. The game tiles and pictures, and each child's copy of the games.
+7. The Flatpaks, last, because they need the internet. Offline, the run
+   gets everything above and then stops with flatpak's own message; run
+   it again once online.
+
+It skips everything else: no build check, no layered packages, and none
+of this script's programs or settings in `/usr` or `/etc`.
+It writes only the accounts, in `/etc`, and the menu entries in
+`/usr/local`, which is the computer's own folder.
+The second run ends with `done: 0 change(s)`.
+
+What it leaves on the computer:
+
+| Path | What |
+|---|---|
+| the Guardian account | In `wheel` and `cairn-guardian`, password as above |
+| each child's account | In `cairn-l1` or `cairn-l2`, password locked |
+| Tux Paint and GCompris | System Flatpaks from Flathub, which the image has as a remote |
+| `/usr/local/share/applications/cairn-steam-for-CHILD.desktop` | "Steam for <child>" in a Guardian's menu, running `/usr/bin/cairn-steam-for`. On Bazzite `/usr/local` is a link to `/var/usrlocal`, which belongs to the computer, and a Guardian's Plasma reads it. The image's `tmpfiles.d` makes the folder at boot. The image's window is `root:cairn-guardian`, mode 0750, so only a Guardian sees the entries |
+| `/var/lib/cairn/games.json`, `/var/lib/cairn/game-pictures/` | The game tiles and their pictures, as above, made by the image's kidscan and picture step in `/usr/libexec/cairn` |
+| each child's `~/.local/share/Steam/steamapps/` | Their own copy of each shared game, as above, through the image's `/usr/libexec/cairn/cairn-steam-visit` |
+
+### Renumbering cairn-guardian
+
+The image gives the Guardian's window the number 465, the one its
+`sysusers.d` gives `cairn-guardian`. A computer set up by hand made the
+group with another number, so after a move to the image no Guardian
+could open "Steam for <child>". `cairn-renumber-guardians.sh` fixes that.
+Run it once, before `bootc switch`, from a text console (Ctrl+Alt+F3) or
+over ssh, with every Guardian logged out of the desktop and Steam closed.
+A Guardian's own console or ssh login is fine, including the one that
+runs the script:
+
+```sh
+sudo ./provision/cairn-renumber-guardians.sh
+```
+
+Nothing on a computer set up by hand reads the number, so it keeps
+working afterwards. Each deployment has its own `/etc`, and they share
+`/var`. Done before the switch, the new number goes into the image with
+`/etc`, and a rollback finds it too.
+
+- It moves every file in `/etc`, `/var/lib/cairn`, `/var/usrlocal`,
+  `/var/home` and `/var/tmp` from the old number to 465, then the group,
+  then walks again for a file made meanwhile. Each walk stays on its own
+  filesystem and changes a link itself, never what it leads to. It can
+  take some minutes, because it crosses every child's copy of the games.
+- ACL entries for the old number move too. The shared game folder's
+  default ACL puts the group on every file Steam made there.
+- At the end it names any file still on the old number.
+- It refuses while a Guardian has a desktop open (an X11 or Wayland
+  session) or has Steam open, and when another group has 465. A text
+  console or ssh login does not count. A refused run changes nothing.
+- A file that vanishes during a walk, in `/var/tmp` or a home in use,
+  does not stop the run. The check at the end still names anything a
+  walk missed.
+- A run cut off before the group moves starts again from the start.
+  One cut off after it prints the command to run again, with the old
+  number: `sudo ./provision/cairn-renumber-guardians.sh 945`, say.
+  That walks the files from 945 once more. Without the number, a rerun
+  sees 465 and says so.
+- `chgrp` takes the setgid bit off a program file, as Linux does on any
+  change of group. Folders keep theirs, and the shared game folder is
+  put right by the family's setup and at every boot.
+- Anyone logged in keeps the old number until they log in again.
+- Only `cairn-guardian` moves. The level groups are read by name
+  everywhere, so they keep their numbers.
+
+### What the kids' laptop's move will need
+
+Not done yet; only the maintainer runs these, on the laptop. Before anything,
+check that no group has the image's numbers:
+`getent group 461 462 463 464 465` should print nothing, or only Cairn's
+own groups.
+
+1. `sudo ./provision/cairn-renumber-guardians.sh`, over ssh as the
+   Guardian, with every Guardian logged out of the desktop and Steam
+   closed. The ssh login itself is fine.
+2. `rpm-ostree reset` of the layered packages, including the forced
+   `desktop-backgrounds-compat`.
+3. `bootc switch` to the image, then reboot.
+4. Remove `/usr/local/{bin,libexec,lib64,share}/cairn*`. The copies in
+   `/usr/local/bin` come before `/usr/bin` in `PATH`, so they would
+   shadow the image's. Keep `/usr/local/share/applications`.
+5. Remove the `/etc` files that would override or repeat the image's
+   copies in `/usr`: `/etc/sddm.conf.d/10-cairn.conf`,
+   `/etc/polkit-1/rules.d/10-cairn-levels.rules`,
+   `/etc/polkit-1/actions/com.cairnlinux.steam-visit.policy`, which names
+   `/var/usrlocal`, and `/etc/systemd/logind.conf.d/10-cairn-power.conf`.
+6. Compare `/etc/pam.d/sddm`, `/etc/pam.d/login`,
+   `/etc/pam.d/cairn-steam-visit`, `/etc/security/faillock.conf` and
+   `/etc/sddm.conf.d/zz-cairn-no-autologin.conf` with the image's.
+   bootc keeps an `/etc` file that was changed on the computer.
+7. Delete the local `semanage fcontext` rules for `/var/lib/faillock` and
+   `/run/cairn`, which the image now carries.
+8. Remove the leftover sudoers file.
+9. Run `cairn-family-setup.sh` from a checkout of the image's commit.
+   Its entries replace provisioning's, which named `/usr/local/bin`.
 
 ## What it must do
 

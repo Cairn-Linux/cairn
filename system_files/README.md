@@ -12,9 +12,10 @@ Provisioning installs those same files on a machine set up by hand.
 Only a file the image needs and provisioning does not belongs here:
 
 - `usr/lib/sysusers.d/cairn.conf`: the level groups and
-  `cairn-guardian`, with fixed numbers.
-- `usr/lib/tmpfiles.d/cairn.conf`: `/var/lib/cairn`, its folders, and
-  `/var/lib/faillock`.
+  `cairn-guardian`, with fixed numbers. Provisioning reads the numbers
+  from here too, and a computer with this file runs the image.
+- `usr/lib/tmpfiles.d/cairn.conf`: `/var/lib/cairn`, its folders,
+  `/var/lib/faillock`, and the folder for the family's menu entries.
 - `usr/lib/systemd/system-preset/40-cairn.preset`: SDDM, not Plasma Login
   Manager, after a first boot's presets.
 
