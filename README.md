@@ -84,7 +84,7 @@ The design follows these principles; not every planned feature is complete.
 | `GOVERNANCE.md` | Project stewardship, decision authority, contribution ownership and succession. |
 | `CONTRIBUTING.md` | Where help is useful and what every contribution must include. |
 | `TRADEMARKS.md` | Permitted use of the Cairn name and stacked-stones mark. |
-| `Containerfile`, `build_files/`, `system_files/`, `disk_config/` | The bootc image, following the Universal Blue `image-template` layout. Not built until Phase 1. |
+| `Containerfile`, `build_files/`, `system_files/`, `disk_config/` | The bootc image, following the Universal Blue `image-template` layout. Built on the dev PC so far (ADR-0038; `docs/DEVELOPMENT.md`). |
 | `cairn.env` | Universal Blue image-template variables; Phase 1, see issue #37. |
 | `CMakeLists.txt`, `CMakePresets.json` | The C++ build, first landed 2026-09-04. |
 | `cmake/` | Where `cmake --install` puts every file the image ships, and the test of that tree (ADR-0038). |
