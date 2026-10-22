@@ -15,6 +15,9 @@ guideline (a design canvas, v0.1); this directory is what programs import.
 | `mark.svg` | The mark, variant C "Trail stack", in Ink. For light grounds. |
 | `mark-on-ink.svg` | The mark in Sand. For Ink grounds: terminal, login, boot splash. |
 | `mark-currentcolor.svg` | The mark filled with `currentColor` for inline use in HTML. |
+| `image/cairn-logo.svg` | The mark in Ink for the image's icon theme, in a square box with one base-stone height of clear space. |
+| `image/cairn-logo-on-ink.svg` | The same in Sand. The image's logo for dark grounds: the Guardian's start button, the splash, System Settings' About page. |
+| `image/ansi-color` | The colour of the system's name on the console, from `semantic.console`, in the form `os-release` wants. |
 
 ## Rules that code must keep
 
@@ -33,6 +36,13 @@ guideline (a design canvas, v0.1); this directory is what programs import.
   Mono for the terminal. Fonts must ship in the image, not load from the web.
 - **The mark is one ink.** Never outlined, rotated, gradient-filled, or
   given a face. Keep one base-stone height of clear space on all sides.
+- **Icons are square.** Icon loaders draw an SVG into a square and would
+  stretch the 120×110 mark, so `image/` uses a square box. The stones
+  fill 82 of its 120 units, so the mark keeps its 16 px minimum only in
+  an icon of 24 px or more.
+- `mark-currentcolor.svg` is for HTML only. Plasma recolours only its own
+  colour classes, not `currentColor`, so the image uses the two fixed
+  colours.
 - **No gradients, ever.**
 
 ## Regenerating
@@ -43,8 +53,9 @@ python3 brand/build.py --check
 ```
 
 The first command writes `tokens.css`, the QML singleton and module files,
-and the three SVGs. The second checks every recorded contrast figure, the
-3:1 label policy, reserved QML names, and byte-for-byte generated output.
+the three mark SVGs, and the image's two icons and console colour.
+The second checks every recorded contrast figure, the 3:1 label policy,
+reserved QML names, and byte-for-byte generated output.
 Both commands use the Python standard library only.
 
 Applications compile the module in with

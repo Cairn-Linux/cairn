@@ -286,16 +286,251 @@ group with the old number.
 - Only `cairn-guardian` moves. The level groups are read by name, so
   walking the children's homes for them would buy nothing.
 
+### Name and logos (slice 5)
+
+The base calls itself Bazzite in `os-release`, in System Settings' About
+page, in the boot menu and in its logos. Fedora's guidelines ask a system
+built from Fedora to drop `fedora-logos` and show no Fedora artwork.
+`build_files/name-and-logos.sh` gives the image Cairn's name and mark.
+`build_files/check-name-and-logos.sh` runs in its own step after it, so
+a base update that brings back a Bazzite logo or welcome file stops the
+build.
+Checked on 2026-10-21 in `localhost/cairn:dev`, built from Bazzite
+44.20261012, and in bootc-image-builder's source (osbuild/image-builder
+at f43ddf4, where its code now lives).
+The image booted in the VM the same day.
+Everything below held there except the hostname and the boot menu
+titles, which stay Bazzite's until #165; "What does not change on the
+screen yet" says why.
+
+**`/usr/lib/os-release`** is written whole:
+
+| Key | Value | Why |
+|---|---|---|
+| `NAME`, `PRETTY_NAME` | `Cairn Linux` | The boot menu entry on a fresh install or after a kernel change, System Settings' heading, `hostnamectl` and the installer's title |
+| `ID` | `cairn` | See below |
+| `ID_LIKE` | `fedora` | bootc-image-builder and Steam fall back on it |
+| `VERSION_ID`, `VERSION` | the base's, `44` | Must equal the Fedora release; the build stops if it does not equal `rpm -E %fedora` |
+| `ANSI_COLOR` | Sky, from `semantic.console` in `brand/tokens.json` | The name on the boot console and in the Guardian's prompt; Ink would vanish on black |
+| `LOGO` | `cairn-logo-on-ink` | Drawn by System Settings' About page and kinfocenter in the Guardian's Vapor window colours, a dark grey; Sand measures 12.9:1 on it and Ink 1.2:1 |
+| `DEFAULT_HOSTNAME` | `cairn` | Only `hostnamectl` reports it today; the name in use stays `bazzite` until #165 rebuilds the initramfs (below) |
+| `HOME_URL` | `https://cairnlinux.com/` | A link a person clicks; nothing fetches it |
+| `BUG_REPORT_URL` | Cairn's issues | Own support channels only |
+| `SUPPORT_END` | the base's | Fedora 44's real end date |
+| `OSTREE_VERSION` | the base's | Bazzite's `custom-resolution-helper` exits when it is empty |
+| `IMAGE_ID` | `cairn` | `hostnamectl` shows it as "OS Image" |
+
+Dropped: `VARIANT`, `VARIANT_ID` and `VERSION_CODENAME`, which said
+Kinoite or bazzite; `DOCUMENTATION_URL` and `SUPPORT_URL`, which pointed
+at Bazzite's docs and Discord; `BUILD_ID` and `BOOTLOADER_NAME`, which a
+search of `/usr` and `/etc` found no reader for; and `CPE_NAME`.
+Cairn has no registered CPE vendor, and an invented one helps no scanner.
+`/usr/lib/system-release-cpe` keeps `cpe:/o:fedoraproject:fedora:44`,
+which is true of the packages. `REDHAT_*` keys were already absent.
+
+**Why `ID=cairn` is safe.** Every tool that reads the ID treats an
+unknown one the same way, so `cairn` behaves exactly as `bazzite` did.
+
+- bootc-image-builder picks its distro definition in
+  `pkg/distro/defs/bootc_imagetype.go`, `NewDistroYAMLFrom`. It tries
+  `ID-VERSION_ID`, then each `ID_LIKE` entry with the same `VERSION_ID`.
+  `bazzite-44` has no definition either, so both fall back to
+  `fedora-44`, and no `--distro` is needed. `GetDistroAndRunner` gives an
+  unknown ID the same null distro and the same ISO label. The source has
+  no "bazzite" anywhere. The UEFI vendor comes from the shim's folder,
+  not from `os-release`.
+- Bazzite's and Universal Blue's scripts read
+  `/usr/share/ublue-os/image-info.json`, not `os-release`. Several rerun
+  their first-boot work when its `image-name` changes, so that file stays
+  as it is. Bazzite's extras are P1-1.
+- dnf takes `$releasever` from `fedora-release`'s `system-release(44)`.
+  rpm-ostree's package layering on a running computer takes it from
+  `VERSION_ID`. Both stay 44.
+- `bootc` and `uupd` read nothing from `os-release` but text to show.
+- The only Cairn reader is provisioning's log, which records
+  `PRETTY_NAME` and `IMAGE_ID`.
+
+**`/usr/lib/fedora-release`** says `Cairn Linux release 44`. bootupd names
+a new install's firmware boot entry from the words before "release".
+`/etc/system-release` and `/etc/redhat-release` link to it. The
+`fedora-release` packages stay installed, because dnf's `$releasever` and
+many packages depend on them; Bazzite already rewrites this file.
+
+Both files are written to a temporary file and copied into place with
+`install -m 0644`. That gives them a known mode however the storage
+driver shares the old file. `mktemp`'s own 0600 would hide the system's
+name from everyone but root. The check asserts mode 644.
+
+**What does not change on the screen yet.** libostree takes a boot menu
+entry's title from `PRETTY_NAME`, but it writes the entries again only
+when the kernel, the initramfs or the kernel arguments change.
+Cairn reuses Bazzite's kernel and initramfs as they are.
+So a computer that updates from Bazzite keeps "Bazzite (ostree:N)"
+titles until the base kernel changes or #165 rebuilds the initramfs.
+The VM showed this: after two upgrades to slice 5 images, both entries
+still read "Bazzite".
+A fresh install is expected to write "Cairn Linux (ostree:0)", and
+slice 6 checks that.
+
+The hostname does not change yet either.
+On a computer with an empty `/etc/hostname`, like the VM, systemd picks
+the name in the initramfs, from that image's own `initrd-release`.
+That file is still Bazzite's and says `ID=bazzite`, and systemd keeps
+the name after it hands over to the real root.
+So `hostnamectl` reports the default as `cairn`, but the name in use is
+`bazzite`, with source "default".
+The prompt, DHCP, mDNS (`bazzite.local`), KDE Connect and Steam Remote
+Play keep showing `bazzite`.
+A fresh install from the slice 6 ISO uses the same initramfs, so it is
+called `bazzite` too, unless the installer writes `/etc/hostname`.
+The image does not ship `/etc/hostname`, because every computer would
+then get the same fixed name, and the name is the family's choice.
+A `systemd.hostname=` kernel argument is not used either, because it
+would override a name the family sets.
+
+**`fedora-logos` becomes `generic-logos`.** `packages.sh` runs
+`dnf5 swap fedora-logos generic-logos`. generic-logos is Fedora's own
+package for this. It provides `system-logos`, which Breeze, oxygen,
+Plymouth's graphics library, KDE's settings and SDDM require, so
+`rpm -Va --nofiles` finds nothing broken. It stays registered in rpm, and
+no Cairn step writes its files, so `rpm -V generic-logos` stays clean.
+Bluefin erases generic-logos from rpm's database after the swap; here
+that would leave five packages missing `system-logos`. A `cairn-logos`
+package can replace it with P1-2. generic-logos' art is Fedora's
+placeholder: a hot dog in `fedora-logo.png`, a plain `start-here` icon.
+Nothing Cairn shows names those files now, and the installer is slice 6.
+The swap leaves Bazzite's changed `/etc/favicon.png` as `.rpmsave`,
+which is removed. `fedora-release-notes` is not in the base, and the
+check keeps it out.
+
+**The mark.** `brand/build.py` makes `brand/image/cairn-logo.svg` (Ink)
+and `cairn-logo-on-ink.svg` (Sand). They are square, `0 -11 120 120`,
+computed from the stones with one base-stone height of clear space.
+Qt's icon loader stretches an SVG into the square it is asked for, and a
+box that is not square would change the mark's shape. Both go in hicolor's
+`scalable/places`. Bazzite's place names, which no package owns, lead to
+the Sand mark, and so does `os-release`'s `LOGO`, because the panel, the
+splash and the About page are all dark today:
+
+- `distributor-logo.svg` and `distributor-logo-white.svg` become links to
+  `cairn-logo-on-ink.svg`.
+- `distributor-logo-steamdeck.svg`, `bazzite-logo.svg` and
+  `bazzite-logo-white.svg` already link to those two, and keep their
+  names. The first is the Guardian's start-menu button, which Valve's
+  Vapor panel setup names. The second is the icon of Bazzite's Big
+  Picture dialog. A Guardian's own settings are not touched.
+- `bazzite-logo-le.svg` and the eight `bazzite-logo-icon.png`, which
+  nothing names, are removed.
+- The splash of the Vapor and VGUI looks loads
+  `images/bazzite_logo.svgz` on black. Bazzite's `Splash.qml` names the
+  file, so the Sand mark goes in under that name.
+
+Once deployed, every file in the image has the same time, the icon
+cache included, so nothing would see that the icons changed. The build runs
+`gtk-update-icon-cache` so the cache lists the new names. Plasma also
+keeps a cache of icons it has drawn in each account, which survived
+every image switch in the VM. The build writes a fingerprint of every
+icon file and link to `/usr/share/cairn/icons.sum`. A short script in
+`/etc/xdg/plasma-workspace/env/` removes the account's
+`icon-cache.kcache` at login when the fingerprint differs from the one it
+saw last.
+
+At 120 units a side the stones are 82 tall, so the mark keeps the brand's
+16 px minimum only in an icon of 24 px or more.
+
+**System Settings' About page.** Bazzite changed KDE's
+`/etc/xdg/kcm-about-distrorc` to name Bazzite, its website and a logo.
+`system_files/` replaces it with an empty `[General]`, so the page takes
+the name, logo and website from `os-release`. It is a config file the VM
+never changed, so bootc's merge of `/etc` takes the new one.
+
+**Bazzite's welcome and support channels.** Files no package owns are
+removed: the banner `/usr/libexec/ublue-motd` prints in every terminal
+(Bazzite's issues, docs, Discord and Bluesky), the fastfetch aliases with
+Bazzite's logo, the autostart that turns Bazzite's announcements into
+notifications, the "Documentation" menu entry that opens Bazzite's docs,
+and the "Bazzite Portal" autostart every new account gets from
+`/etc/skel`. With the banner gone, Universal Blue's `user-motd.sh` prints
+`/etc/user-motd`, which does not exist. A plain `fastfetch` now picks its
+own logo from `ID_LIKE`.
+
+**Labels.** The image's title, description, URLs, vendor and licence
+name Cairn; the revision, creation date and Artifact Hub labels are
+emptied, since they named Bazzite's commit, date and logo. The version
+label stays the base's build, which `bootc status` shows, until P1-3
+gives Cairn versions of its own. `containers.bootc` and the `ostree.*`
+labels stay, because bootc reads them.
+
+**Licence texts.** `LICENSE`, `LICENSE-CC-BY-SA-4.0`, `NOTICE` and
+`TRADEMARKS.md` go in `/usr/share/licenses/cairn/`, so the mark travels
+with its licence and trademark notice. The two image SVGs carry an SPDX
+line too.
+
+**Left on purpose, and where each goes:**
+
+- **#165, the boot screen and the hostname.** The initramfs is built in
+  the base. It still holds Bazzite's `initrd-release` (`ID=bazzite`), its
+  Plymouth watermark and `system-logo-white.png`, so the boot screen is
+  unchanged. The shutdown and reboot screen loads from the root
+  filesystem, where the watermark went with `fedora-logos`, so it now
+  shows none. #165 rebuilds the initramfs, and both match again.
+  The rebuilt initramfs carries Cairn's `os-release`, so the hostname
+  becomes `cairn` on every computer with an empty `/etc/hostname`.
+  That renames computers already installed, and the new name goes out in
+  DHCP and mDNS (`cairn.local`) and shows in KDE Connect and Steam Remote
+  Play. Nothing pairs by name, so nothing breaks, but #165 checks it in
+  the VM: `hostnamectl` should then report `cairn` with source "default".
+  The new kernel image set also makes libostree write new boot entries,
+  so upgraded computers get "Cairn Linux" titles then.
+- **#166, the Guardian's desktop.** The start-menu button and the splash
+  now show the Sand mark, chosen because Vapor's panel and the splash are
+  dark. `LOGO` names it too, because the About page is drawn in Vapor's
+  dark window colours. The panel and the windows have colour schemes of
+  their own, so #166 decides each one. A light panel points the three
+  Bazzite links at `cairn-logo.svg`, and light windows point `LOGO` at
+  `cairn-logo`. An About page opened without the session's settings,
+  such as `kinfocenter` started over ssh without
+  `XDG_CURRENT_DESKTOP=KDE`, falls back to light colours, where the Sand
+  mark nearly vanishes; a Guardian never opens it that way.
+  The splash ground is Splash.qml's black, not Ink, and #166 owns
+  Splash.qml. Valve's previews and `deck_icon.png` are Valve's and stay.
+  A Guardian who resets the panel or picks a Fedora look gets
+  generic-logos' plain `start-here` icon, not the mark; overwriting it
+  waits for `cairn-logos`. `mark-currentcolor.svg` is not used, because
+  Plasma recolours only its own colour classes, not `currentColor`.
+- **#167, the Guardian tool.** Fedora's guidelines also ask for a notice
+  where the system names itself: not provided or supported by the Fedora
+  Project, official Fedora at https://fedoraproject.org/. KDE's About page
+  has only its `Variant` line, which can hold no link and no
+  translation of Cairn's own. The notice goes on the Guardian tool's About
+  page. Until then this one condition is not met, and P1-14 blocks
+  publishing on it.
+- **P1-1, Bazzite's extras.** Still in menus a Guardian sees: "Bazzite
+  Updater" and "Bazzite Portal", from Bazzite's own packages, and a pin
+  of the portal that `bazzite-pins.js` adds to an empty task bar.
+  Bazzite's documentation, wallpapers, videos and `ujust` recipes stay
+  too. The check allows exactly these Bazzite file names and no others.
+- **Slice 6, the ISO.** bootc-image-builder's Fedora definition installs
+  `fedora-logos` in the installer and uses it for its artwork, so the
+  installer shows Fedora's whatever the image ships. bootupd names the
+  firmware entry from `/usr/lib/fedora-release`, but the shim's
+  `BOOTX64.CSV` says "Fedora", and the firmware's fallback recreates a
+  lost entry with that name. Slice 6 checks both with `efibootmgr`, and
+  runs one pinned bootc-image-builder whose `manifest` step proves the
+  `ID_LIKE` fallback. Next to that it checks that the boot menu titles
+  read "Cairn Linux" after an ISO install. If a fresh install should be
+  called `cairn` before #165 lands, that is an installer setting in
+  slice 6 that writes `/etc/hostname`, never a file in the image.
+
 ### What stays out of the image
 
 - **Anything that names a person.** Accounts, `games.json`, a child's
   "Steam for <child>" menu entry, Flatpaks, and each child's copy of the
   games stay a step for the family, never in the image. That step is
   `provision/cairn-family-setup.sh` (slice 4).
-- **Name and logos.** The `os-release` rewrite, swapping
-  `generic-logos`, Bazzite's 28 logo files including
-  `distributor-logo-steamdeck.svg`, and the attribution in `NOTICE` are
-  slice 5. The boot screen is #165.
+- **The boot screen and the Guardian's desktop.** Plymouth and the
+  initramfs are #165. The Guardian's wallpaper, colours, splash and lock
+  screen are #166. Slice 5, above, lists what each inherits from it.
 - **A first account.** The ISO ships with no user, and the installer does
   not offer one. The first account comes from the first-boot wizard
   (ADR-0020, P1-6). Until it exists, a test ISO for the VM adds a test
@@ -312,11 +547,12 @@ group with the old number.
   `gid = 465`. In a kickstart it is `group --name=cairn-guardian
   --gid=465`. The other way is to add the test Guardian only after first
   boot, once the groups exist.
-- **Bazzite's extras.** The first-boot portal, Game Mode and Waydroid stay
-  until P1-1. So does Bazzite's first-login step for every account, a
-  child's included. It runs as root through `pkexec`, turns on network
-  time, and makes the account a Tailscale operator. Tailscale is not
-  signed in, so that does nothing yet, but it is on the P1-1 list.
+- **Bazzite's extras.** The first-boot portal's menu entry, the updater,
+  Game Mode and Waydroid stay until P1-1.
+  So does Bazzite's first-login step for every account, a child's included.
+  It runs as root through `pkexec`, turns on network time, and makes the
+  account a Tailscale operator. Tailscale is not signed in, so that does
+  nothing yet, but it is on the P1-1 list.
 
 The image stays private and inside the family until P1-14, #86 and P1-17
 pass (ADR-0031).
@@ -346,5 +582,11 @@ pass (ADR-0031).
   keep their numbers.
 - The family's setup runs from a checkout of the commit the image was
   built from. A checkout-free way waits for the first-boot wizard.
+- The image calls itself Cairn Linux, with `ID=cairn`, and still reports
+  Fedora's release as its version. Cairn's own version numbers wait for
+  P1-3.
+- A base update that adds a Bazzite logo, menu entry, autostart or
+  terminal file stops the build at the slice-5 check, until it is removed
+  or named there.
 - Compiling in the image's build stage makes every image build take a few
   minutes longer. RPMs (P1-2) would move that work out of the image build.

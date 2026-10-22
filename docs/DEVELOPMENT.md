@@ -192,6 +192,23 @@ The first prints `enabled` then `disabled`. `rpm -V sddm` lists
 `/etc/pam.d/sddm` as changed, which is Cairn's file, and `/run/sddm` as
 missing, which systemd makes at boot.
 
+The image calls itself Cairn Linux and carries the Cairn mark (slice 5).
+`build_files/check-name-and-logos.sh` runs as its own step before the
+lint and stops the build if a Bazzite logo, welcome file or support link
+it does not know about appears. To look yourself:
+
+```sh
+podman run --rm localhost/cairn:dev cat /etc/os-release
+podman run --rm localhost/cairn:dev rpm -q generic-logos fedora-logos
+podman run --rm localhost/cairn:dev rpm -V --nomtime kde-settings steamdeck-kde-presets-desktop
+```
+
+The second prints generic-logos' version, then says `fedora-logos` is not
+installed. The third lists `kcm-about-distrorc` and the two splash
+`bazzite_logo.svgz` files, which are Cairn's, and
+`kicker-extra-favoritesrc`, which Bazzite changed. Leave out `--nomtime`
+and `rpm -V` lists hundreds of files whose times the base changed.
+
 To boot it, switch a VM that runs stock Bazzite to it. The VM should never
 have been provisioned, because provisioning's changes to `/etc` would
 override the image's. Copy the image in as an archive and switch to it:

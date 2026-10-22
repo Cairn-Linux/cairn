@@ -1,0 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
+# Empty on purpose: System Settings' About page then takes the name, logo
+# and website from /usr/lib/os-release (ADR-0038, slice 5).
+[General]

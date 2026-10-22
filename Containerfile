@@ -13,11 +13,14 @@
 # always compiled against the Qt the image ships.
 ARG BASE_IMAGE=ghcr.io/ublue-os/bazzite:stable
 
-# Build context: the scripts the image's stage runs, and system_files/ to
-# lay over the image.
+# Build context: the scripts the image's stage runs, system_files/ to lay
+# over the image, the brand files brand/build.py makes for it, and the
+# licence texts that go with Cairn's files.
 FROM scratch AS ctx
 COPY build_files /
 COPY system_files /system_files
+COPY brand/image /brand
+COPY LICENSE LICENSE-CC-BY-SA-4.0 NOTICE TRADEMARKS.md /licenses/
 
 # packages.sh alone, so editing build.sh or system_files/ keeps the cached
 # packages layer.
@@ -54,6 +57,21 @@ RUN --mount=type=tmpfs,dst=/tmp \
 # The image.
 FROM ${BASE_IMAGE}
 
+# The base's labels name Bazzite. bootc shows the version label, which
+# stays the base's build until Cairn has versions of its own (P1-3);
+# containers.bootc and the ostree labels stay as they are, because bootc
+# reads them.
+LABEL org.opencontainers.image.title="Cairn Linux" \
+      org.opencontainers.image.description="A computer that grows with your child." \
+      org.opencontainers.image.url="https://github.com/Cairn-Linux/cairn" \
+      org.opencontainers.image.source="https://github.com/Cairn-Linux/cairn" \
+      org.opencontainers.image.vendor="Cairn Linux" \
+      org.opencontainers.image.licenses="Apache-2.0 AND CC-BY-SA-4.0" \
+      org.opencontainers.image.revision="" \
+      org.opencontainers.image.created="" \
+      io.artifacthub.package.readme-url="" \
+      io.artifacthub.package.logo-url=""
+
 # Packages first, so that no RPM puts its own file over one of Cairn's.
 RUN --mount=type=bind,from=packages,source=/,target=/ctx \
     --mount=type=cache,dst=/var/cache \
@@ -68,6 +86,10 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=cache,dst=/var/log \
     --mount=type=tmpfs,dst=/tmp \
     /ctx/build.sh
+
+# The image must say Cairn, not Bazzite or Fedora (slice 5).
+RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
+    /ctx/check-name-and-logos.sh
 
 # Any lint warning stops the build.
 RUN bootc container lint --fatal-warnings
