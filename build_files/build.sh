@@ -48,9 +48,12 @@ rmdir --ignore-fail-on-non-empty /var/lib
 semanage fcontext -a -t faillog_t '/var/lib/faillock(/.*)?'
 semanage fcontext -a -t etc_t '/run/cairn(/.*)?'
 
+# Cairn's name, mark and licence texts in place of Bazzite's (slice 5).
+/ctx/name-and-logos.sh
+
 ### Not here, ever: accounts, games.json, a child's "Steam for <child>" menu
 ### entry and the Flatpaks name a person or are the family's choice.
 ### provision/cairn-family-setup.sh makes them on the computer (slice 4).
 ###
-### Not here yet:
-### - os-release, the logos and the attribution: slice 5 of #164.
+### Not here yet: the boot screen (#165) and the Guardian's desktop
+### (#166).

@@ -432,6 +432,54 @@ def render_marks(tokens):
     }
 
 
+def icon_view_box(tokens):
+    """A square box around the stones with the brand's clear space.
+
+    Icon loaders draw an SVG into a square, so a box that is not square
+    would stretch the mark.
+    """
+    stones = tokens["mark"]["stones"]
+    clear_space = stones[-1][3]
+    left = min(x for x, _, _, _ in stones) - clear_space
+    top = min(y for _, y, _, _ in stones) - clear_space
+    right = max(x + width for x, _, width, _ in stones) + clear_space
+    bottom = max(y + height for _, y, _, height in stones) + clear_space
+    side = max(right - left, bottom - top)
+    left -= (side - (right - left)) // 2
+    top -= (side - (bottom - top)) // 2
+    return left, top, side
+
+
+def ansi_color(hex_color):
+    value = hex_color.lstrip("#")
+    red, green, blue = (int(value[index:index + 2], 16) for index in (0, 2, 4))
+    return f"0;38;2;{red};{green};{blue}"
+
+
+def render_image_files(tokens):
+    left, top, side = icon_view_box(tokens)
+    stones = "".join(
+        f'<rect x="{x}" y="{y}" width="{width}" height="{height}" rx="{tokens["mark"]["rx"]}"/>'
+        for x, y, width, height in tokens["mark"]["stones"]
+    )
+
+    def svg(fill):
+        return (
+            "<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->\n"
+            f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{left} {top} {side} {side}" '
+            f'width="{side}" height="{side}" role="img" aria-label="Cairn"><g fill="{fill}">'
+            f"{stones}</g></svg>\n"
+        )
+
+    colors = color_values(tokens)
+    console = colors[tokens["semantic"]["console"]]
+    return {
+        Path("image/cairn-logo.svg"): svg(colors["ink"]),
+        Path("image/cairn-logo-on-ink.svg"): svg(colors["sand"]),
+        Path("image/ansi-color"): ansi_color(console) + "\n",
+    }
+
+
 def render_outputs(tokens):
     outputs = {
         Path("tokens.css"): render_css(tokens),
@@ -440,6 +488,7 @@ def render_outputs(tokens):
         Path("qml/Cairn/Brand/CMakeLists.txt"): render_cmake(),
     }
     outputs.update(render_marks(tokens))
+    outputs.update(render_image_files(tokens))
     return outputs
 
 
@@ -490,7 +539,7 @@ def main(argv=None):
             print("brand tokens and generated outputs are current")
         else:
             write_outputs(outputs)
-            print("wrote CSS, QML module files, and 3 SVGs")
+            print("wrote CSS, QML module files, 5 SVGs and the console colour")
     except BuildError as error:
         print(error, file=sys.stderr)
         return 1

@@ -18,6 +18,12 @@ Only a file the image needs and provisioning does not belongs here:
   `/var/lib/faillock`, and the folder for the family's menu entries.
 - `usr/lib/systemd/system-preset/40-cairn.preset`: SDDM, not Plasma Login
   Manager, after a first boot's presets.
+- `etc/xdg/kcm-about-distrorc`: empty, so System Settings' About page
+  takes the name, logo and website from `os-release` instead of
+  Bazzite's copy of this file.
+- `etc/xdg/plasma-workspace/env/cairn-icon-cache.sh`: clears a
+  Guardian's Plasma icon cache at login after an update changed the
+  image's icons, which Plasma cannot tell on its own.
 
 Packages, fonts among them, are installed by dnf in
 `build_files/packages.sh`, not copied here.

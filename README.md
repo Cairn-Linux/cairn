@@ -80,7 +80,7 @@ The design follows these principles; not every planned feature is complete.
 | `docs/decisions/` | Architecture decision records (ADRs) for choices made after the design doc. |
 | `docs/research/` | Research notes, measurements and child-test observations. |
 | `docs/brand-guide/` | Brand guidelines v0.1 as a design canvas (`.dc.html`). |
-| `brand/` | Brand as code: colour/type tokens (`tokens.css`, `tokens.json`) and the mark as SVG. |
+| `brand/` | Brand as code: colour/type tokens (`tokens.css`, `tokens.json`), the mark as SVG, and the image's icons in `brand/image/`. |
 | `GOVERNANCE.md` | Project stewardship, decision authority, contribution ownership and succession. |
 | `CONTRIBUTING.md` | Where help is useful and what every contribution must include. |
 | `TRADEMARKS.md` | Permitted use of the Cairn name and stacked-stones mark. |

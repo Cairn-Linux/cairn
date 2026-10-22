@@ -31,6 +31,19 @@ dnf5 install -y \
     atkinson-hyperlegible-next-fonts \
     atkinson-hyperlegible-mono-fonts
 
+# Fedora's trademark guidelines ask a system derived from Fedora to
+# remove fedora-logos. generic-logos is Fedora's own replacement with no
+# trademarks in it, and it provides the system-logos that Breeze,
+# Plymouth, SDDM and KDE's settings require, so nothing is left broken.
+# It stays registered in rpm, and name-and-logos.sh writes none of its
+# files, so `rpm -V generic-logos` stays clean. The swap leaves Bazzite's
+# changed /etc/favicon.png behind as .rpmsave, which nothing reads.
+dnf5 swap -y fedora-logos generic-logos
+rm /etc/favicon.png.rpmsave
+
 # dnf's lock and the folder sddm's tmpfiles make at install belong to a
-# running machine; systemd makes /run afresh at every boot.
+# running machine; systemd makes /run afresh at every boot. Some weeks dnf
+# also keeps a counter for a repository in /var/lib/dnf/repos, which an
+# image may not ship.
 rm -r /run/dnf /run/sddm
+rm -rf /var/lib/dnf/repos

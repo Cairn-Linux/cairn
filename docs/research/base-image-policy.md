@@ -84,23 +84,33 @@ with non-Fedora or modified Fedora Materials"):
 - [ ] **Own support channels only.** Cairn's docs and UI never point users at
   Bazzite's or Universal Blue's Discord, forums or issue trackers. This was
   the substance of the GPD complaint.
-- [ ] **Rewrite `/usr/lib/os-release`** in the Containerfile the way
+  *In the image since 2026-10-21 (ADR-0038, slice 5):* Bazzite's terminal
+  banner, announcements and documentation entry are gone. Its updater and
+  portal menu entries stay until P1-1.
+- [x] **Rewrite `/usr/lib/os-release`** in the Containerfile the way
   Bazzite's `image-info` script does: `NAME`, `ID=cairn`, `ID_LIKE`,
   `PRETTY_NAME`, `LOGO`, `HOME_URL`, `SUPPORT_URL`, `BUG_REPORT_URL`,
   `CPE_NAME`, and drop the `REDHAT_*` keys.
-- [ ] **Swap `fedora-logos` for a `cairn-logos` package** (or `generic-logos`
+  *Done 2026-10-21 (ADR-0038, slice 5).* `CPE_NAME` and `SUPPORT_URL` are
+  left out until Cairn has something true to put there.
+- [x] **Swap `fedora-logos` for a `cairn-logos` package** (or `generic-logos`
   as Bluefin does) so no Fedora artwork ships. Replace or remove
   `fedora-release-notes`. `fedora-release` provides files many packages
   depend on; follow Bazzite's practice of rewriting its `os-release` in place
   rather than removing the package, and record that choice in the ADR.
+  *Done 2026-10-21 (ADR-0038, slice 5)* with `generic-logos`, which stays
+  registered in rpm. `fedora-release-notes` is not in the base.
 - [ ] **Display the Fedora notice** where the OS identifies itself (About
   screen, website download page, docs): not provided or supported by the
   Fedora Project; official Fedora is at https://fedoraproject.org/.
+  *Still open:* the About screen's notice goes on the Guardian tool's
+  About page (#167, ADR-0038 slice 5).
 - [ ] **Installer branding.** Bazzite issue #1104 shows the installer can
   carry Fedora imagery unless replaced. Cairn's ISO (P1-4) must ship its own
   installer artwork.
-- [ ] **`NOTICE`:** add Bazzite and Universal Blue attribution (Apache-2.0)
+- [x] **`NOTICE`:** add Bazzite and Universal Blue attribution (Apache-2.0)
   when the image first builds on them.
+  *Done; slice 5 of ADR-0038 adds a trademark and derivation paragraph.*
 - [ ] **Optional courtesy:** email press@bazzite.gg once there is something to
   show, so the name appears nowhere they would object to. Not required.
 

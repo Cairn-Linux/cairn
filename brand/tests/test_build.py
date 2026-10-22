@@ -140,6 +140,66 @@ class BrandBuildTests(unittest.TestCase):
             )
             self.assertNotIn("Traceback", altered.stderr)
 
+    def image_svg(self, name):
+        outputs = brand_build.render_image_files(self.tokens)
+        return outputs[Path("image") / name]
+
+    def view_box(self, svg):
+        start = svg.index('viewBox="') + len('viewBox="')
+        return [int(part) for part in svg[start:svg.index('"', start)].split()]
+
+    def test_image_icons_are_square_with_clear_space(self):
+        stones = self.tokens["mark"]["stones"]
+        clear_space = stones[-1][3]
+        for name in ("cairn-logo.svg", "cairn-logo-on-ink.svg"):
+            left, top, width, height = self.view_box(self.image_svg(name))
+            self.assertEqual(width, height, name)
+            self.assertGreaterEqual(min(x for x, _, _, _ in stones) - left, clear_space)
+            self.assertGreaterEqual(min(y for _, y, _, _ in stones) - top, clear_space)
+            self.assertGreaterEqual(
+                left + width - max(x + w for x, _, w, _ in stones), clear_space
+            )
+            self.assertGreaterEqual(
+                top + height - max(y + h for _, y, _, h in stones), clear_space
+            )
+
+    def test_image_icons_use_the_mark_colours_and_licence(self):
+        colors = brand_build.color_values(self.tokens)
+        for name, color in (
+            ("cairn-logo.svg", colors["ink"]),
+            ("cairn-logo-on-ink.svg", colors["sand"]),
+        ):
+            svg = self.image_svg(name)
+            self.assertTrue(
+                svg.startswith("<!-- SPDX-License-Identifier: CC-BY-SA-4.0 -->\n")
+            )
+            self.assertIn(f'<g fill="{color}">', svg)
+            self.assertEqual(svg.count("<rect "), len(self.tokens["mark"]["stones"]))
+
+    def test_console_colour_is_the_console_token_in_decimal(self):
+        console = self.tokens["semantic"]["console"]
+        value = self.tokens["color"][console]["hex"].lstrip("#")
+        red, green, blue = (int(value[i:i + 2], 16) for i in (0, 2, 4))
+        self.assertEqual(
+            self.image_svg("ansi-color"), f"0;38;2;{red};{green};{blue}\n"
+        )
+
+    def test_check_detects_an_altered_image_file(self):
+        temporary, copied_brand = self.temporary_brand_copy()
+        with temporary:
+            icon_path = copied_brand / "image" / "cairn-logo-on-ink.svg"
+            icon_path.write_text(
+                icon_path.read_text(encoding="utf-8").replace("-11", "0"),
+                encoding="utf-8",
+            )
+            altered = self.run_copied_build(copied_brand, "--check")
+
+            self.assertNotEqual(altered.returncode, 0)
+            self.assertEqual(
+                altered.stderr.strip(),
+                "generated brand output differs: image/cairn-logo-on-ink.svg",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
