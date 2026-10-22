@@ -1,8 +1,7 @@
 # ADR-0038: The first Cairn image
 
-**Status:** proposed. It becomes accepted when the image boots in the VM
-to the Cairn login screen, a child reaches the tiles, and a Guardian
-reaches Plasma.
+**Status:** accepted 2026-10-21. The image booted in the VM to the Cairn
+login screen, a child reached the tiles, and a Guardian reached Plasma.
 **Date:** 2026-10-21
 **Closes:** (none) — the first slice of issue #164; part of ROADMAP P1-2
 and P1-3
@@ -124,28 +123,72 @@ path now comes from the build.
 
 ### What the image does itself (slice 3)
 
-Some steps are not files the build makes. The Containerfile does them:
+Some steps are not files the build makes. Two scripts in the final stage
+do them, and the files they need come from `system_files/`, because
+provisioning has no use for them.
 
-- **Layered packages.** labwc, ScummVM, SDDM and the brand's fonts, as
-  provisioning layers them, with `sddm.service` enabled and
-  `plasmalogin.service` disabled.
+- **Layered packages.** `build_files/packages.sh` installs labwc,
+  ScummVM, `sddm`, `sddm-breeze`, `sddm-wayland-plasma` and the brand's
+  two fonts with `dnf5`, the list provisioning layers. None is in the
+  base. It runs before Cairn's files are copied in. Fedora's `sddm` ships
+  `/etc/pam.d/sddm`; installed after Cairn's, rpm would keep Cairn's and
+  leave its own beside it as `sddm.rpmnew`.
+- **desktop-backgrounds-compat.** `sddm` needs it, and its two wallpaper
+  links clash with links in the base that no package owns. Provisioning
+  forces it over them in an `rpm-ostree` transaction of its own. `dnf5`
+  in a build replaces a file no package owns without asking, so here it
+  needs no step of its own. Fedora's default wallpaper links replace
+  Bazzite's, as on the kids' laptop.
+- **The login screen.** `build_files/build.sh` disables
+  `plasmalogin.service` and enables `sddm.service`, in that order, since
+  both claim `display-manager.service`. A preset,
+  `40-cairn.preset`, says the same. Without it a first boot's presets
+  would try to enable Plasma Login Manager again, from Fedora's
+  `85-display-manager.preset`, and log an error.
 - **The visit's cage.** `install -m 0711 /usr/bin/cage
   /usr/libexec/cairn/cage-visit`. The copy is made again whenever the
   image is built, so it always matches the base's cage.
 - **The polkit action.** Provisioning rewrites it to the helper's real
   path under `/var/usrlocal`. In the image `/usr/libexec` is a real path,
   so the build's copy is already right.
-- **Groups and folders.** The level groups come from
-  `/usr/lib/sysusers.d/cairn.conf`, and `/var/lib/cairn` and its folders
-  from `/usr/lib/tmpfiles.d/cairn.conf`.
+- **Groups.** `/usr/lib/sysusers.d/cairn.conf` makes the four level
+  groups and `cairn-guardian` at first boot, with fixed numbers 461 to
+  465. Nothing in the base uses them: Bazzite's system groups count down
+  from 999 and reach 959, and Fedora's fixed ones stay below 201. The
+  level groups get fixed numbers too, so every Cairn machine numbers
+  them the same.
 - **The Guardian's window.** It must be `root:cairn-guardian`, mode 0750.
-  The group does not exist when the build installs it, so the tree has
-  the mode only. `/usr` is read-only on a booted machine, so tmpfiles
-  cannot set the group there. The image sets it at build time, which
-  needs a fixed group number in `sysusers.d`.
+  `/usr` is read-only on a booted machine, so the build sets the group
+  by its number, 465, read from `sysusers.d`.
+- **Folders.** `/usr/lib/tmpfiles.d/cairn.conf` makes `/var/lib/cairn`,
+  the shared game folder and its `steamapps` with provisioning's owner,
+  mode and ACL, `game-pictures`, and `/var/lib/faillock`. systemd makes
+  them at every boot and puts back anything that changed.
 - **faillock and SELinux.** `authselect enable-feature with-faillock`,
   and the `semanage fcontext` labels for `/var/lib/faillock` and
-  `/run/cairn`.
+  `/run/cairn`. authselect also writes a checksum in
+  `/var/lib/authselect`, which an image cannot ship, so the build
+  removes it. authselect uses it only to notice its files changed by
+  hand, and `authselect check` passes without it.
+
+`/run/cairn` itself is made by the visit helper, as on the kids' laptop.
+
+`dnf5` leaves its lock and `sddm`'s run folder in `/run`, which
+`packages.sh` removes. `bootc container lint` then passes with no
+warnings, and the build runs it with `--fatal-warnings` so it stays that
+way. The image was built and checked on the dev PC on 2026-10-21. The same
+day it booted in the VM, switched from a never-provisioned Bazzite with
+`bootc switch`. SDDM showed the Cairn login screen. A test child in
+`cairn-l1` reached the tiles in labwc, and a test Guardian in
+`cairn-guardian` reached Plasma. The groups had their fixed numbers, the
+folders in `/var` and their labels were right, the Guardian's window was
+`root:cairn-guardian`, and SELinux denied nothing.
+
+When the kids' laptop moves to the image, its groups keep the numbers
+`groupadd --system` gave them, because `systemd-sysusers` leaves a group
+that exists alone. Its `cairn-guardian` will not be 465, so no Guardian
+could open the window. That move must renumber the groups first, and
+the shared game folder's files with them (slice 4).
 
 ### What stays out of the image
 
@@ -161,8 +204,22 @@ Some steps are not files the build makes. The Containerfile does them:
   (ADR-0020, P1-6). Until it exists, a test ISO for the VM adds a test
   Guardian through a `bootc-image-builder` config kept on the dev PC. That
   config is never committed or shipped.
+  The image's groups only exist after `systemd-sysusers` runs at first
+  boot. So any config that adds an account at install time must first
+  create `cairn-guardian` itself, with number 465. It does the same for
+  any level group it uses (`cairn-l1` to `cairn-l4`, 461 to 464).
+  Otherwise the group is missing, or it gets some other number that
+  `systemd-sysusers` then leaves alone, and the Guardian cannot open
+  "Steam for <child>". In a `bootc-image-builder` config that is
+  `[[customizations.group]]` with `name = "cairn-guardian"` and
+  `gid = 465`. In a kickstart it is `group --name=cairn-guardian
+  --gid=465`. The other way is to add the test Guardian only after first
+  boot, once the groups exist.
 - **Bazzite's extras.** The first-boot portal, Game Mode and Waydroid stay
-  until P1-1.
+  until P1-1. So does Bazzite's first-login step for every account, a
+  child's included. It runs as root through `pkexec`, turns on network
+  time, and makes the account a Tailscale operator. Tailscale is not
+  signed in, so that does nothing yet, but it is on the P1-1 list.
 
 The image stays private and inside the family until P1-14, #86 and P1-17
 pass (ADR-0031).
@@ -181,7 +238,12 @@ pass (ADR-0031).
 - A build configured for one prefix and installed to another names the
   wrong paths. The install-tree test runs only in a build configured for
   `/usr`, and says it was skipped otherwise.
-- The tree has the Guardian's window and wrapper with mode 0750 and the
-  group `root` until slice 3. Until then only root could run them.
+- The tree `cmake --install` makes has the Guardian's window and wrapper
+  with mode 0750 and the group `root`. Only the image gives them
+  `cairn-guardian`, so a tree installed some other way needs that step
+  too.
+- The level and Guardian groups have the same numbers on every machine
+  installed from the image. A machine that made them by hand has to be
+  renumbered before it moves to the image.
 - Compiling in the image's build stage makes every image build take a few
   minutes longer. RPMs (P1-2) would move that work out of the image build.

@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SDDM is the login screen, not Plasma Login Manager (ADR-0016). The image
+# enables and disables them itself. This keeps a first boot's presets from
+# turning plasmalogin.service back on, which Fedora's
+# 85-display-manager.preset would: the first file to name a unit wins.
+enable sddm.service
+disable plasmalogin.service

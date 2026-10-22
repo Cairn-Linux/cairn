@@ -5,11 +5,18 @@ all but this README.
 Mirror the target filesystem:
 `system_files/usr/lib/example.conf` lands at `/usr/lib/example.conf`.
 
-Empty for now.
 Every file Cairn builds or ships from `session/`, `greeter/` and the other
 folders is installed by `cmake --install` in the Containerfile's build
 stage, at the place `cmake/CairnInstall.cmake` names (ADR-0038).
-Only a file the image needs that the CMake tree does not install belongs
-here.
-Fonts are installed by dnf in `build_files/build.sh` (slice 3 of #164),
-not copied here.
+Provisioning installs those same files on a machine set up by hand.
+Only a file the image needs and provisioning does not belongs here:
+
+- `usr/lib/sysusers.d/cairn.conf`: the level groups and
+  `cairn-guardian`, with fixed numbers.
+- `usr/lib/tmpfiles.d/cairn.conf`: `/var/lib/cairn`, its folders, and
+  `/var/lib/faillock`.
+- `usr/lib/systemd/system-preset/40-cairn.preset`: SDDM, not Plasma Login
+  Manager, after a first boot's presets.
+
+Packages, fonts among them, are installed by dnf in
+`build_files/packages.sh`, not copied here.
