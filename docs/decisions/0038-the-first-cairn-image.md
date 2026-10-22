@@ -515,12 +515,126 @@ line too.
   installer shows Fedora's whatever the image ships. bootupd names the
   firmware entry from `/usr/lib/fedora-release`, but the shim's
   `BOOTX64.CSV` says "Fedora", and the firmware's fallback recreates a
-  lost entry with that name. Slice 6 checks both with `efibootmgr`, and
-  runs one pinned bootc-image-builder whose `manifest` step proves the
-  `ID_LIKE` fallback. Next to that it checks that the boot menu titles
-  read "Cairn Linux" after an ISO install. If a fresh install should be
-  called `cairn` before #165 lands, that is an installer setting in
-  slice 6 that writes `/etc/hostname`, never a file in the image.
+  lost entry with that name. Slice 6 checks both with `efibootmgr`.
+  Its pinned bootc-image-builder's `manifest` step proved the `ID_LIKE`
+  fallback. It also checks that the boot menu titles read "Cairn Linux"
+  after an ISO install. A fresh install is called `cairn` through the
+  installer's hostname, which writes `/etc/hostname`, never a file in
+  the image (slice 6, below).
+
+### The installer (slice 6)
+
+`tools/build-iso.sh` makes an installer ISO from `localhost/cairn:dev`
+with bootc-image-builder. `disk_config/iso.toml` holds its settings,
+under the name image-template uses.
+Prepared on the dev PC on 2026-10-21, and not yet built: the builder needs
+root, so the maintainer runs it.
+What is written here was read in the builder's x86_64 image of
+2026-10-19, which carries image-builder 85.0.0, in image-builder's source
+at the tag `v85.0.0`, in osbuild's at `v193`, and in Anaconda's main
+branch.
+The builder's `manifest` step, which plans a build without making it,
+ran without root in a store of its own for both `iso.toml` and the
+private test config below.
+Both planned cleanly, so the image's `ID=cairn` resolves through
+`ID_LIKE` to Fedora 44's definitions, as slice 5 expected.
+
+- **Which builder.** bootc-image-builder is now a build of
+  osbuild/image-builder; its old repository only packages it. Its
+  `anaconda-iso` type, which image-template's disk workflow names, and
+  `iso`, which its Justfile names, are one type. The source marks both as
+  legacy. The newer `bootc-installer` type needs Anaconda inside the image
+  itself, which would put the installer on every Cairn computer. Cairn
+  uses `anaconda-iso` until image-template moves.
+- **Pinned.** `cairn.env` names the builder by digest as `BIB_IMAGE`, the
+  name image-template's Justfile reads. A new builder is a change made on
+  purpose.
+- **A script for now, not image-template's Justfile.** Adopting the
+  Justfile is P1-3. Its `build` recipe sets image labels that would undo
+  slice 5's title, vendor and dates. Its ISO recipe runs `sudo` six times
+  and needs a terminal. The script runs once under `sudo`, and passes the
+  builder the recipe's own flags: `--use-librepo=True`, `--rootfs=btrfs`,
+  `--net=host`, and root's container storage. It writes
+  `output/bootiso/install.iso`, where the recipe does. P1-3 replaces it
+  with `just build-iso`.
+- **Root's copy of the image.** The image is built without root, and the
+  builder reads only root's storage. The script saves the image as the
+  person who ran `sudo` and loads it as root. Save and load keep the
+  image's ID, which the scratch store showed, so the script stops if the
+  two IDs differ. It skips the copy when root already has that ID.
+- **The image's signing keys.** The builder picks the installer's
+  packages from the image's own repositories. Bazzite's `terra-mesa`
+  checks signed metadata, and for that osbuild's solver looks for the key
+  in the builder's container, not in the image (`osbuild/solver/dnf.py`
+  rewrites only the TLS paths). The first `manifest` run stopped there.
+  The script lends the image's `/etc/pki/rpm-gpg` to the builder, read
+  only, and the plan then went through. This is an upstream bug worth
+  reporting; the loan can go when it is fixed.
+- **btrfs.** The image's `bootc install` settings name no filesystem, so
+  the builder needs `--rootfs`. Bazzite installs on btrfs, image-template
+  passes btrfs, and each child's game copies need reflinks (ADR-0033).
+- **The installer asks before it touches a disk.** With no kickstart of
+  its own, the builder writes one that clears every disk it finds,
+  installs and reboots, without a question
+  (`pkg/manifest/anaconda_installer_iso_tree.go`; its README calls it
+  "an unattended Anaconda installer"). With no config at all
+  it does the same, and quietly. On a family computer that would erase a
+  disk nobody chose. `iso.toml` carries a kickstart, so the installer
+  shows its usual summary and the family picks the disk. The script names
+  the config with `--config`, so a missing file stops the build.
+- **No account in the installer.** The builder turns Anaconda's Users
+  module on itself, but a module in `disable` wins
+  (`pkg/osbuild/anaconda_stage.go`). The planned build's Anaconda settings
+  list no Users module. Without it Anaconda's user and root screens do not
+  run (`should_run` in `pyanaconda/ui/gui/spokes/user.py` and
+  `root_password.py`), so neither can be required, and the install skips
+  making users (`pyanaconda/modules/boss/installation.py`). root stays
+  locked, as the image ships it (`root:*`). The installed computer then
+  boots to the login screen with nobody to log in, until the first-boot
+  wizard exists (P1-6). Only test ISOs are installed until then. Whether
+  Anaconda really finishes with no account is the first thing the VM
+  checks.
+- **The hostname.** The kickstart sets `cairn`, and the family can change
+  it in the installer. Anaconda writes it to `/etc/hostname`. Without it,
+  a fresh install would be called `bazzite` until #165. It is a name the
+  family accepted, not a file in the image, so slice 5's rule holds.
+- **Updates on an installed computer.** image-template's kickstart
+  switches the installed computer to its registry. Cairn's image is in no
+  registry (ADR-0031), so `iso.toml` leaves that out. The builder adds its
+  own switch, to `localhost/cairn:dev` as a registry, which no computer
+  can reach. An installed computer updates the way the VM did in slices 3
+  to 5, from an archive, until P1-3 publishes the image. Its automatic
+  image check fails until then, and reaches nothing outside the
+  computer.
+- **Secure Boot.** The installer runs Fedora's signed kernel. The image
+  runs Bazzite's, signed with Universal Blue's key, which a computer does
+  not trust until that key is enrolled. The image carries the key and a
+  `ujust enroll-secure-boot-key` recipe that queues it with `mokutil`, but
+  only a running computer can use it, and this installer does nothing
+  about it. So an installed computer with Secure Boot on is expected not
+  to boot. The VM runs with it off, as `cairn-min` does. The real
+  computers in P1-4 need an answer first.
+- **Language and keyboard.** `iso.toml` turns on Anaconda's Localization
+  module, which image-template's leaves off, so a family can pick both.
+- **A test Guardian.** The test config described in "A first account",
+  below, is `iso.toml` with the Users module left on and these kickstart
+  lines: the five groups with their fixed numbers, a Guardian in `wheel`
+  and `cairn-guardian`, a locked root, the dev PC's ssh key, and `sshd`
+  turned on, since the image ships it off. Anaconda makes groups before
+  users (`pyanaconda/modules/users/users.py`). pykickstart parsed both
+  kickstarts.
+- **What the builder shows.** The planned installer calls itself "Cairn
+  Linux 44" in its boot menu and title. Its volume label is
+  `Container-Installer-x86_64`, its UEFI folder is Fedora's, and it
+  installs Anaconda 44.30 with `fedora-logos` from Fedora's repositories,
+  so its artwork is Fedora's. Six Mesa packages come from Terra, as on the
+  image. P1-14 decides whether the installer's artwork may stay Fedora's.
+
+A test install in the VM checks the rest: the installer shows no account
+screen and finishes; the boot menu says "Cairn Linux"; `efibootmgr` names
+the firmware entry; the computer is called `cairn`; and, from the test
+ISO, the Guardian's groups have their numbers and ssh works.
+docs/DEVELOPMENT.md, "Building the installer", has the steps.
 
 ### What stays out of the image
 
@@ -542,11 +656,14 @@ line too.
   any level group it uses (`cairn-l1` to `cairn-l4`, 461 to 464).
   Otherwise the group is missing, or it gets some other number that
   `systemd-sysusers` then leaves alone, and the Guardian cannot open
-  "Steam for <child>". In a `bootc-image-builder` config that is
-  `[[customizations.group]]` with `name = "cairn-guardian"` and
-  `gid = 465`. In a kickstart it is `group --name=cairn-guardian
-  --gid=465`. The other way is to add the test Guardian only after first
-  boot, once the groups exist.
+  "Steam for <child>". In a kickstart it is `group --name=cairn-guardian
+  --gid=465`. `bootc-image-builder` also has
+  `[[customizations.group]]`, but it refuses that and
+  `[[customizations.user]]` in a config with a kickstart
+  (`pkg/customizations/kickstart/kickstart.go`), and Cairn's has one
+  (slice 6). So the test config writes groups and the Guardian as
+  kickstart lines. The other way is to add the test Guardian only after
+  first boot, once the groups exist.
 - **Bazzite's extras.** The first-boot portal's menu entry, the updater,
   Game Mode and Waydroid stay until P1-1.
   So does Bazzite's first-login step for every account, a child's included.
@@ -590,3 +707,11 @@ pass (ADR-0031).
   or named there.
 - Compiling in the image's build stage makes every image build take a few
   minutes longer. RPMs (P1-2) would move that work out of the image build.
+- Building the installer needs root, once, through `tools/build-iso.sh`.
+  It keeps a 12 GB copy of the image in root's storage, so the next build
+  of the same image skips the copy.
+- A computer installed from the ISO has no account and no way to make one
+  until the first-boot wizard (P1-6). Only test ISOs, with a test
+  Guardian from a private config, go on any computer before then.
+- A computer installed from the ISO cannot update itself until the image
+  is in a registry (P1-3); it updates from an archive, as the VM does.

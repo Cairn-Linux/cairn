@@ -95,6 +95,7 @@ The design follows these principles; not every planned feature is complete.
 | `session/` | Login-to-session plumbing: one session entry that dispatches by account level. |
 | `provision/` | Phase 0 script that turns a stock install into a Cairn machine, for testing before any ISO exists, and the family's own steps (accounts, apps, games) on a machine that runs the image. |
 | `tools/kidscan/` | Game library scanner: Steam + ScummVM detection → launcher manifest. |
+| `tools/build-iso.sh` | Builds the installer ISO from the image, with `sudo`, until image-template's Justfile is adopted (ADR-0038). |
 | `NOTICE` | Upstream attribution and notices. |
 
 ## Hardware targets

@@ -247,6 +247,88 @@ build folders, keys, tool caches, `.git` and `.claude/` out of the build
 context at any depth, so a build folder or a key anywhere in the checkout
 does not reach podman's storage.
 
+## Building the installer
+
+The installer ISO is made from `localhost/cairn:dev` by
+bootc-image-builder, with the settings in `disk_config/iso.toml`
+(ADR-0038, slice 6). The builder needs root, so build the image first
+without it, then run the one script with `sudo` from your own account:
+
+```sh
+sudo tools/build-iso.sh
+```
+
+It copies the image into root's storage, unless root already has that
+exact image, runs the builder pinned in `cairn.env`, and gives the result
+back to you. It writes `output/bootiso/install.iso`, a `.sha256` beside
+it, the builder's plan as `output/manifest-anaconda-iso.json`, and its own
+log as `output/build-iso.log`. The last lines name the ISO and its size.
+It needs the internet, since the builder downloads Anaconda's packages
+from the image's own repositories. Allow about 60 GB free while it runs:
+root's copy of the image is 12 GB and stays, and the builder's working
+store is about as large again and goes. The ISO should be about 7 GB, as
+large as Bazzite's own. How long it takes is not measured yet; expect
+half an hour. `sudo podman rmi localhost/cairn:dev` frees root's copy.
+
+The installer asks before it touches a disk and makes no account. Installed
+from it, a computer boots to the login screen with nobody to log in, until
+the first-boot wizard exists (P1-6).
+
+**A test ISO for the VM** carries a test Guardian. Its config is private:
+keep it outside the checkout, and never commit it. Start from
+`disk_config/iso.toml`, take `org.fedoraproject.Anaconda.Modules.Users`
+out of `disable` and put it in `enable`, and add to the kickstart:
+
+```
+group --name=cairn-l1 --gid=461
+group --name=cairn-l2 --gid=462
+group --name=cairn-l3 --gid=463
+group --name=cairn-l4 --gid=464
+group --name=cairn-guardian --gid=465
+user --name=guardian --groups=wheel,cairn-guardian --iscrypted --password=<openssl passwd -6 output>
+sshkey --username=guardian "<the dev PC's public key>"
+rootpw --lock
+services --enabled=sshd
+```
+
+The groups come first, with their fixed numbers, because the image only
+makes them at first boot (ADR-0038, "A first account"). Pass the config
+to the script:
+
+```sh
+sudo tools/build-iso.sh /path/to/test-config.toml
+```
+
+A test ISO goes in `output/test/bootiso/install.iso`, apart from the
+family's, because it holds a password and a key.
+
+**Installing it in a VM** needs no `sudo`. qemu cannot read your home
+folder, so upload the ISO into libvirt's own pool, which libvirt writes as
+root. Then make a new VM, UEFI with Secure Boot off as on `cairn-min`,
+since the base's kernel is signed with Universal Blue's key:
+
+```sh
+iso=output/test/bootiso/install.iso
+virsh -c qemu:///system vol-create-as default cairn-install.iso \
+  "$(stat -c %s "$iso")" --format raw
+virsh -c qemu:///system vol-upload --pool default cairn-install.iso "$iso"
+virt-install --connect qemu:///system --name cairn-iso \
+  --memory 4096 --vcpus 2 --cpu host-passthrough \
+  --disk pool=default,size=64,format=qcow2 \
+  --boot uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no,firmware.feature1.name=enrolled-keys,firmware.feature1.enabled=no \
+  --graphics spice --video virtio --osinfo fedora-unknown \
+  --cdrom /var/lib/libvirt/images/cairn-install.iso --noautoconsole
+virt-viewer --connect qemu:///system cairn-iso
+```
+
+The VM boots the installer once, then its own disk. To upload a new ISO,
+first `virsh -c qemu:///system vol-delete --pool default
+cairn-install.iso`. After the install, find the VM's address with
+`virsh -c qemu:///system domifaddr cairn-iso` and log in with
+`ssh -i ~/.ssh/<key> guardian@<address>`. Then check what slice 6 lists:
+`efibootmgr`, the boot menu titles, `hostnamectl`, and
+`getent group cairn-guardian`, which should say 465.
+
 ## Quality gates
 
 Run these before every commit that touches code. Each one is a single

@@ -1,0 +1,39 @@
+# SPDX-License-Identifier: Apache-2.0
+# bootc-image-builder's settings for Cairn's installer ISO (ADR-0038,
+# slice 6). Same keys as image-template's iso-kde.toml. Build it with
+# `sudo tools/build-iso.sh`; docs/DEVELOPMENT.md, "Building the installer".
+
+# A kickstart of our own keeps the installer interactive. Without one,
+# bootc-image-builder writes its own kickstart that wipes every disk and
+# installs without asking.
+#
+# The hostname is a default the family can change in the installer. It is
+# written to /etc/hostname, because until #165 the initramfs would
+# otherwise name the computer "bazzite".
+#
+# image-template's `bootc switch` line is left out: it points the computer
+# at a registry for updates, and Cairn's image is in no registry yet
+# (ADR-0031, P1-3).
+[customizations.installer.kickstart]
+contents = """
+network --hostname=cairn
+"""
+
+# No account is made in the installer. The first account comes from the
+# first-boot wizard (ADR-0020, P1-6). Turning off Anaconda's Users module
+# hides the user and root spokes, and the installer then needs neither.
+[customizations.installer.modules]
+enable = [
+  "org.fedoraproject.Anaconda.Modules.Localization",
+  "org.fedoraproject.Anaconda.Modules.Storage",
+  "org.fedoraproject.Anaconda.Modules.Runtime",
+  "org.fedoraproject.Anaconda.Modules.Network",
+  "org.fedoraproject.Anaconda.Modules.Security",
+  "org.fedoraproject.Anaconda.Modules.Services",
+  "org.fedoraproject.Anaconda.Modules.Timezone"
+]
+
+disable = [
+  "org.fedoraproject.Anaconda.Modules.Subscription",
+  "org.fedoraproject.Anaconda.Modules.Users"
+]
