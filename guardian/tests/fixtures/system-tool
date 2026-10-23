@@ -1,0 +1,13 @@
+#!/bin/sh
+# SPDX-License-Identifier: Apache-2.0
+#
+# A stand-in for useradd, passwd, gpasswd, usermod and restorecon, for
+# cairn-family's tests. A test links it under each tool's name in a folder
+# of its own. It writes its name and arguments, one call to a line, to
+# "calls" in that folder, and the environment it was given to
+# "environment". It fails when that folder has "fail-<its name>".
+here="${0%/*}"
+name="${0##*/}"
+echo "$name $*" >> "$here/calls"
+env > "$here/environment"
+[ ! -e "$here/fail-$name" ]

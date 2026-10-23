@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
-# The Guardian's side of Cairn (P1-5). So far one window: a child's own Steam,
-# opened from the Guardian's own login (ADR-0032).
+# The Guardian's side of Cairn (P1-5). So far one window, a child's own Steam
+# opened from the Guardian's own login (ADR-0032), and cairn-family, the root
+# command that makes children and sets their levels (ADR-0039).
 find_package(Qt6 REQUIRED COMPONENTS DBus LinguistTools)
 
 set(guardian_sources
@@ -38,13 +39,36 @@ configure_file(bin/cairn-steam-for.in bin/cairn-steam-for @ONLY)
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/bin/cairn-steam-for" DESTINATION "${CMAKE_INSTALL_BINDIR}"
     PERMISSIONS ${guardian_only})
 
+# cairn-family: no window, only Qt Core, run as root by pkexec or sudo.
+set(family_sources
+    src/Refusal.h src/Refusal.cpp
+    src/FamilyRequest.h src/FamilyRequest.cpp
+    src/SystemTool.h src/SystemTool.cpp
+    src/PasswordLock.h src/PasswordLock.cpp
+    src/SteamEntry.h src/SteamEntry.cpp
+    src/FamilyCommand.h src/FamilyCommand.cpp
+)
+qt_add_executable(cairn-family src/familymain.cpp ${family_sources})
+target_include_directories(cairn-family PRIVATE src)
+target_link_libraries(cairn-family PRIVATE Qt6::Core cairn-accounts)
+# The window each child's menu entry names, where this build installs it,
+# and the folder for the entries. That folder is the machine's own in both
+# kinds of install: on Bazzite /usr/local is a link to /var/usrlocal, which
+# the image may not ship files in but the family's computer may write.
+target_compile_definitions(cairn-family PRIVATE
+    CAIRN_STEAM_FOR="${CMAKE_INSTALL_FULL_BINDIR}/cairn-steam-for"
+    CAIRN_APPLICATIONS="/usr/local/share/applications"
+)
+install(TARGETS cairn-family RUNTIME DESTINATION "${CAIRN_LIBEXECDIR}")
+
 qt_add_lupdate(
-    SOURCE_TARGETS cairn-steam-for
+    SOURCE_TARGETS cairn-steam-for cairn-family
     TS_FILES i18n/guardian_en.ts
     LUPDATE_TARGET guardian_lupdate
 )
 
-# Stand-ins for pkexec with the root helper behind it, and for Steam.
+# Stand-ins for pkexec with the root helper behind it, for Steam, and for
+# the system's account tools.
 set(guardian_fixtures "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures")
 
 qt_add_executable(tst_steamvisit tests/tst_steamvisit.cpp src/SteamVisit.h src/SteamVisit.cpp)
@@ -91,6 +115,23 @@ target_compile_definitions(tst_steamwindow PRIVATE
 )
 add_test(NAME steamwindow COMMAND "${DBUS_RUN_SESSION}" -- $<TARGET_FILE:tst_steamwindow>)
 
-set_tests_properties(steamvisit ownsteam screenlockwatch steamforchild steamwindow PROPERTIES
+# cairn-family with stand-ins for the account tools and a table of accounts,
+# so no test needs root or changes a real account.
+qt_add_executable(tst_familycommand tests/tst_familycommand.cpp ${family_sources})
+target_include_directories(tst_familycommand PRIVATE src)
+target_link_libraries(tst_familycommand PRIVATE Qt6::Core Qt6::Test cairn-accounts)
+target_compile_definitions(tst_familycommand PRIVATE FIXTURES="${guardian_fixtures}")
+add_test(NAME familycommand COMMAND tst_familycommand)
+
+qt_add_executable(tst_steamentry tests/tst_steamentry.cpp src/SteamEntry.h src/SteamEntry.cpp)
+target_include_directories(tst_steamentry PRIVATE src)
+target_link_libraries(tst_steamentry PRIVATE Qt6::Core Qt6::Test)
+target_compile_definitions(tst_steamentry PRIVATE
+    PROVISION_SCRIPT="${PROJECT_SOURCE_DIR}/provision/cairn-provision.sh"
+)
+add_test(NAME steamentry COMMAND tst_steamentry)
+
+set_tests_properties(steamvisit ownsteam screenlockwatch steamforchild steamwindow familycommand
+    steamentry PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QML_IMPORT_PATH=${QT_QML_OUTPUT_DIRECTORY}"
 )

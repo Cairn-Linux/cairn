@@ -196,4 +196,17 @@
         <translation type="unfinished"></translation>
     </message>
 </context>
+<context>
+    <name>SteamEntry</name>
+    <message>
+        <location filename="../src/SteamEntry.cpp" line="18"/>
+        <source>Steam for %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/SteamEntry.cpp" line="19"/>
+        <source>Open %1&apos;s own Steam, to sign in or change its settings</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
 </TS>
