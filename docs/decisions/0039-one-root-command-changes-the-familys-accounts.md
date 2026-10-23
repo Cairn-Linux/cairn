@@ -1,8 +1,10 @@
 # ADR-0039: One root command changes the family's accounts
 
-**Status:** proposed. It becomes accepted when the Guardian's window (the
-second slice of #167) runs the command through pkexec in the VM, and the
-family's setup has made a child with it there.
+**Status:** accepted 2026-10-23. In the cairn-iso VM, the family's
+setup made a child with the command on 2026-10-22, and on 2026-10-23 the
+Guardian tool's window (ADR-0040) ran it through pkexec at the Guardian's
+desktop: a cancelled prompt changed nothing, then the password moved a
+child to level 1 and added another at level 1.
 **Date:** 2026-10-22
 **Closes:** (none) — the first slice of issue #167; part of ROADMAP P1-5
 
@@ -127,6 +129,19 @@ password, or uses a fingerprint, for every change. `allow_any` and
 administrator through first and refuses every `com.cairnlinux.` action
 to everyone else, before any prompt.
 
+### The window
+
+The Guardian tool runs the command (ADR-0040). It starts `pkexec`
+directly with the command's absolute path, one change at a time, and
+reads the one line back: `done` with exit 0, `refused` and a word with
+exit 1, or pkexec's own 126 and 127 when the command never ran. Each
+word and an answer it cannot read get a sentence of their own; pkexec's
+two share one. Before it asks for the password, the window checks the
+request with the command's own `FamilyRequest`, so a value the command
+would refuse is refused without a prompt. It never gives `create-child` the login of an
+account or group that already exists, except to finish an add of its
+own that failed part way, with the same name.
+
 ### One rule for who an account is
 
 The rule moves into a small static library, `accounts/`
@@ -186,6 +201,6 @@ account must be in a level group, checked before anything changes.
     copy mode under pkexec, so the window needs its own way (ADR-0033).
   - Making an existing account a child, or a Guardian (#113).
   - The Guardian's window on top of the command, the second slice of
-    #167.
+    #167: built, ADR-0040.
 - Dependencies: Qt Core and the C library only. pkexec through
   `QProcess` needs no new library, as in ADR-0032.

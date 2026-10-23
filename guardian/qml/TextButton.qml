@@ -3,7 +3,8 @@ import QtQuick
 import Cairn.Brand
 
 // A plain word that does one thing. The quiet kind is for the way out
-// beside the main button.
+// beside the main button. A disabled one is a flat pebble, so it does not
+// look pressable.
 Rectangle {
     id: button
 
@@ -15,9 +16,9 @@ Rectangle {
     width: label.implicitWidth + Tokens.headingSize * 2
     height: Tokens.headingSize * 2
     radius: Tokens.radiusSm
-    color: button.quiet ? Tokens.card : Tokens.machine
+    color: !button.enabled ? Tokens.pebble : button.quiet ? Tokens.card : Tokens.machine
     border.color: Tokens.gamesEdge
-    border.width: button.quiet ? Tokens.strokeHairline : 0
+    border.width: button.quiet && button.enabled ? Tokens.strokeHairline : 0
     activeFocusOnTab: true
 
     Accessible.role: Accessible.Button
@@ -46,7 +47,7 @@ Rectangle {
         font.family: Tokens.fontFamily
         font.pixelSize: Tokens.bodySize
         font.weight: Tokens.weightBold
-        color: button.quiet ? Tokens.paperLabel : Tokens.machineLabel
+        color: button.quiet || !button.enabled ? Tokens.paperLabel : Tokens.machineLabel
     }
 
     TapHandler {

@@ -13,18 +13,6 @@
 
 namespace {
 
-// The first number useradd gives a person, from Fedora's login.defs.
-// Anything lower is a system account.
-constexpr unsigned int firstPersonUid = 1000;
-
-// A child's account that Cairn made: a person's account in a level group,
-// and no administrator. Anything else under the same name is not Cairn's
-// to change.
-bool isCairnChild(const Account& account) {
-    return account.uid >= firstPersonUid &&
-           FamilyRole::fromGroups(account.groups).kind == FamilyRole::Kind::Child;
-}
-
 QString askedFor(const FamilyRequest& request) {
     const QString action = request.action == FamilyRequest::Action::SetLevel
                                ? QStringLiteral("set-level")
@@ -62,7 +50,7 @@ FamilyCommand::Outcome FamilyCommand::run(const QStringList& arguments) const {
     const QString asked = askedFor(request);
     const std::optional<Account> account = m_setup.lookUp(request.login);
     if (request.action == FamilyRequest::Action::SetLevel) {
-        if (!account || !isCairnChild(*account)) {
+        if (!account || !account->isCairnChild()) {
             return {.refusal = Refusal::NotAChild, .asked = asked};
         }
         return {.refusal = changeChild(*account, request), .asked = asked};
@@ -72,7 +60,7 @@ FamilyCommand::Outcome FamilyCommand::run(const QStringList& arguments) const {
     }
     // An account Cairn did not make is never quietly made a child: it would
     // keep whatever it had before (#113).
-    if (!isCairnChild(*account)) {
+    if (!account->isCairnChild()) {
         return {.refusal = Refusal::Taken, .asked = asked};
     }
     return {.refusal = changeChild(*account, request), .asked = asked};

@@ -1,0 +1,31 @@
+#!/bin/bash
+# SPDX-License-Identifier: Apache-2.0
+#
+# A stand-in for cairn-family behind pkexec-family, for the Guardian
+# tool's tests. CAIRN_TEST_SCENARIO says how it answers, including
+# pkexec's own 126 and 127. When CAIRN_TEST_ARGUMENTS names a file, each
+# argument is written to it on a line of its own, and each run adds a
+# line "run" first.
+set -u
+scenario="${CAIRN_TEST_SCENARIO:-}"
+if [ -n "${CAIRN_TEST_ARGUMENTS:-}" ]; then
+    { echo run; printf '%s\n' "$@"; } >> "$CAIRN_TEST_ARGUMENTS"
+fi
+
+case "$scenario" in
+    done) echo "done" ;;
+    refused-*) echo "refused ${scenario#refused-}"; exit 1 ;;
+    # pkexec's own: the box was dismissed, or the password not accepted.
+    dismissed) exit 126 ;;
+    not-authorized) exit 127 ;;
+    # The Guardian has not answered the box yet.
+    asking) exec sleep 30 ;;
+    # Answers the window cannot read.
+    silent) exit 0 ;;
+    garbage) echo "it went fine"; exit 0 ;;
+    two-lines) echo "done"; echo "done" ;;
+    done-but-failed) echo "done"; exit 1 ;;
+    zero-after-refused) echo "refused taken" ;;
+    crashes) kill -KILL $$ ;;
+    *) exit 1 ;;
+esac

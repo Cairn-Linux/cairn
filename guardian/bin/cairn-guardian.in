@@ -1,0 +1,13 @@
+#!/bin/bash
+# SPDX-License-Identifier: Apache-2.0
+# The Guardian tool, "Family" in the menu (ADR-0040), made by CMake from
+# guardian/bin/cairn-guardian.in.
+set -ouex pipefail
+window=(@CAIRN_FULL_LIBEXECDIR@/cairn-guardian "$@")
+# The window's notes and cairn-family's tools' error output go to the
+# journal under its name: journalctl -t cairn-guardian. systemd-cat runs
+# the window in its own place, so the window stays the parent pkexec needs.
+if systemd-cat --identifier=cairn-guardian true > /dev/null 2>&1; then
+    exec systemd-cat --identifier=cairn-guardian "${window[@]}"
+fi
+exec "${window[@]}"

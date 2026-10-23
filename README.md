@@ -92,7 +92,7 @@ The design follows these principles; not every planned feature is complete.
 | `external/footpath/` | Footpath, the child-facing terminal, a submodule pinned to a tag (ADR-0014; its own repository is `Cairn-Linux/footpath`). |
 | `greeter/` | The login screen: an SDDM theme and the small C++ QML module it imports (ADR-0020). |
 | `accounts/` | Who each account is in the family, one small library the login screen and the Guardian's side share (ADR-0039). |
-| `guardian/` | The Guardian's side: a window that opens a child's own Steam from the Guardian's own login (ADR-0032), and `cairn-family`, the root command that makes children and sets their levels (ADR-0039). |
+| `guardian/` | The Guardian's side: the Guardian tool, "Family" in the menu, whose Children page adds children and changes their levels (ADR-0040); `cairn-family`, the root command under it (ADR-0039); and a window that opens a child's own Steam from the Guardian's own login (ADR-0032). |
 | `session/` | Login-to-session plumbing: one session entry that dispatches by account level. |
 | `provision/` | Phase 0 script that turns a stock install into a Cairn machine, for testing before any ISO exists, and the family's own steps (accounts, apps, games) on a machine that runs the image. |
 | `tools/kidscan/` | Game library scanner: Steam + ScummVM detection → launcher manifest. |

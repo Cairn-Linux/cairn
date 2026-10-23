@@ -234,6 +234,12 @@ ssh cairn-min sudo systemctl restart sddm
 A VM that was provisioned by hand first needs `cairn-guardian` renumbered,
 before the switch: `provision/README.md`, "Renumbering cairn-guardian".
 
+To try the Guardian tool (ADR-0040), log in at the VM's own screen as the
+Guardian and open "Family" from the menu. Each change asks for the
+Guardian's password; `journalctl -t cairn-guardian -t cairn-family` shows
+what happened. Run it from the Plasma session, not over ssh: polkit asks
+only an active session at the computer.
+
 Some tests need what a container build does not have, so they skip
 themselves there: two give-up tests need user namespaces or a systemd user
 manager, seven `copy_games` tests need a folder that can reflink
