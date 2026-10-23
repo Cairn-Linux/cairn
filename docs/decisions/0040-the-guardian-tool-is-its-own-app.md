@@ -1,9 +1,10 @@
 # ADR-0040: The Guardian tool is its own app, "Family" in the menu
 
-**Status:** proposed. It becomes accepted when a Guardian in the VM has
-opened "Family" from the menu, added a child and moved a child to another
-level with it, and an account that is not a Guardian has no "Family"
-entry. The names `cairn-guardian` and "Family" stay proposals until then.
+**Status:** accepted 2026-10-23. In the cairn-iso VM, the Guardian
+opened "Family" from the menu, moved a child to level 1 and added a child
+with it, each after their password. The two children's accounts cannot
+run the program, so `TryExec` keeps "Family" out of any menu of theirs.
+The names `cairn-guardian` and "Family" are now the program's names.
 **Date:** 2026-10-23
 **Closes:** (none) — the second slice of issue #167; part of ROADMAP P1-5
 
@@ -25,8 +26,8 @@ accounts that may run it.
 
 ## Decision
 
-**The Guardian tool is a program of its own, `cairn-guardian` (a
-proposal), shown as "Family" in a Guardian's application menu. Its first
+**The Guardian tool is a program of its own, `cairn-guardian`, shown
+as "Family" in a Guardian's application menu. Its first
 page is Children. It runs `cairn-family` through pkexec, one change at a
 time, and turns every answer into one plain sentence.**
 

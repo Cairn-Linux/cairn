@@ -1,9 +1,10 @@
 # ADR-0039: One root command changes the family's accounts
 
-**Status:** proposed. It becomes accepted when the Guardian's window (the
-second slice of #167) runs the command through pkexec in the VM, and the
-family's setup has made a child with it there. The window is built
-(ADR-0040, 2026-10-23); neither run has happened in the VM yet.
+**Status:** accepted 2026-10-23. In the cairn-iso VM, the family's
+setup made a child with the command on 2026-10-22, and on 2026-10-23 the
+Guardian tool's window (ADR-0040) ran it through pkexec at the Guardian's
+desktop: a cancelled prompt changed nothing, then the password moved a
+child to level 1 and added another at level 1.
 **Date:** 2026-10-22
 **Closes:** (none) — the first slice of issue #167; part of ROADMAP P1-5
 

@@ -3,11 +3,11 @@
 The Guardian's side of Cairn (ROADMAP P1-5). So far it has three pieces:
 
 - **The Guardian tool**, "Family" in a Guardian's application menu
-  (ADR-0040, proposed). Its one page so far, Children, lists the family's
+  (ADR-0040). Its one page so far, Children, lists the family's
   children with their levels, adds a child and moves a child to another
   level.
 - **`cairn-family`**, the root command under it that makes a child's
-  account and sets a child's level (ADR-0039, proposed). The family's
+  account and sets a child's level (ADR-0039). The family's
   setup on the image runs it too.
 - **Steam for a child**, a small window that opens a child's own Steam
   from the Guardian's own Plasma login, to sign the child in, switch the
