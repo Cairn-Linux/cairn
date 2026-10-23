@@ -1,17 +1,51 @@
 # guardian
 
-The Guardian's side of Cairn (ROADMAP P1-5). So far it has two pieces:
+The Guardian's side of Cairn (ROADMAP P1-5). So far it has three pieces:
 
+- **The Guardian tool**, "Family" in a Guardian's application menu
+  (ADR-0040, proposed). Its one page so far, Children, lists the family's
+  children with their levels, adds a child and moves a child to another
+  level.
+- **`cairn-family`**, the root command under it that makes a child's
+  account and sets a child's level (ADR-0039, proposed). The family's
+  setup on the image runs it too.
 - **Steam for a child**, a small window that opens a child's own Steam
   from the Guardian's own Plasma login, to sign the child in, switch the
   account or change Steam's settings (ADR-0032, proposed).
-- **`cairn-family`**, the root command that makes a child's account and
-  sets a child's level (ADR-0039, proposed). The Guardian tool's window
-  will run it; the family's setup on the image already does.
 
-The rest of the Guardian tool is still to come.
+## Family
 
-## What a Guardian sees
+`/usr/bin/cairn-guardian`, from the "Family" entry in the menu. Like the
+Steam window, only the `cairn-guardian` group may run it, and the entry
+names it as its `TryExec`, so no one else's menu shows it. It is on the
+image only: hand provisioning installs neither it nor `cairn-family`.
+
+The Children page:
+
+1. Lists every child Cairn made, in the order their accounts were made,
+   with their name and level. A child at level 3 or 4 shows that level.
+2. **Move to level N** beside each child, for each level the page can
+   give, 1 or 2. Up or down, the button and the sentence after it read
+   the same (DESIGN §3). The new level starts the next time the child
+   logs in, because PAM and the session read the groups at login.
+3. **Add a child:** the name for the login tile, and level 1 or 2. The
+   window makes the account's own short name from the name, such as `zoe`
+   from "Zoë", and asks for one only when the name has no letters a to z.
+   If an account or a group already has it, it uses `zoe2`, `zoe3` and so
+   on, so it never names an existing child.
+4. Each change runs `cairn-family` through `pkexec`, which asks for the
+   Guardian's password every time. Every control waits until the answer
+   is in, and one sentence says what happened, or why nothing changed and
+   what to do next. A refusal leaves the form as it was.
+
+The window's notes and the error output of `cairn-family`'s tools go to
+the journal:
+
+```sh
+journalctl -t cairn-guardian -t cairn-family --since today
+```
+
+## Steam for a child
 
 Provisioning puts a "Steam for <child>" entry in the application menu for
 each child. Only a Guardian's menu shows them: the entry names
@@ -83,7 +117,14 @@ QML draws, C++ decides (ADR-0002):
 | `src/OwnSteam` | The Guardian's own Steam: whether it runs (from `/proc`), closing it before a visit, starting it after. |
 | `src/ScreenLockWatch` | KWin's `org.freedesktop.ScreenSaver` `ActiveChanged` signal on the session bus, through Qt D-Bus. |
 | `src/SteamForChild` | The steps the window shows, and what Done, the screen lock and the close button do at each one. |
-| `qml/Main.qml` | The window. |
+| `qml/Main.qml` | The Steam window. |
+| `src/LoginName` | The account's login name, made from the name a parent types, and the first free one when it is taken. |
+| `src/ChildList` | The family's children among the accounts, in the order they were made, each with their name and level. |
+| `src/FamilyChange` | Runs `pkexec` with `cairn-family`, one change at a time, and reads its one-line answer, or pkexec's own exit code. |
+| `src/ChildrenPage` | What the Children page shows and what its buttons do: the list, the checks before a change, and why a change was refused. Its account database is in its `Setup`, so a test can replace it. |
+| `qml/FamilyWindow.qml`, `qml/ChildrenView.qml` | The Guardian tool's window and its Children page, with the sentence for every answer. |
+| `qml/ChildRow.qml`, `qml/AddChildForm.qml`, `qml/LabelledField.qml`, `qml/LevelChoice.qml` | A child on the list, the Add form, a text field with its label, and one level to pick. |
+| `qml/TextButton.qml` | The button both windows use. |
 | `src/FamilyCommand` | `cairn-family`: who may run it, which accounts it may change, and the steps for each subcommand. Everything it reads from or does to the machine is in its `Setup`, so a test can replace it. |
 | `src/FamilyRequest` | The subcommand and its values, read from the arguments and checked before anything looks at an account. |
 | `src/Refusal` | Why the command made no change, and the word for each. |
@@ -104,12 +145,21 @@ journalctl -t cairn-steam-for -t cairn-steam-visit --since today
 
 ## Tests
 
-CTest runs seven: `steamvisit`, `ownsteam`, `screenlockwatch`,
+CTest runs twelve: `steamvisit`, `ownsteam`, `screenlockwatch`,
 `steamforchild`, `steamwindow` (the real window in Qt Quick Test),
-`familycommand` and `steamentry`. They use stand-ins in `tests/fixtures/`
+`familycommand`, `steamentry`, and for the Guardian tool `loginname`,
+`childlist`, `familychange`, `childrenpage` and `familywindow` (the real
+window in Qt Quick Test). They use stand-ins in `tests/fixtures/`
 for `pkexec` with the helper behind it, which takes a scenario where the
 helper's path goes, and for the Guardian's Steam client, over a stand-in
-process list. `familycommand` runs `cairn-family`'s steps with
+process list. `pkexec-family` stands in for `pkexec` with `cairn-family`
+behind it in the same way: it answers each of the command's refusal
+words, pkexec's own 126 and 127, answers that cannot be read, or waits
+like an open password box, and writes down the arguments it was given.
+The Guardian tool's tests give the page a table of accounts in place of
+the system's, so they cover the order, who is left out, the login names,
+every check before a change, one change at a time, and the sentence
+after each answer, with no root and no real account. `familycommand` runs `cairn-family`'s steps with
 `system-tool`, one stand-in linked under each account tool's name that
 writes down what it was asked, and a table of accounts in place of the
 system's, so no test needs root or touches a real account. It covers
@@ -131,5 +181,7 @@ What the stand-ins cannot show was run in the VM (`docs/research/steam-visit.md`
   cage at once in the same way.
 - The Guardian's own Steam, started again by the window, runs in the
   window's own systemd unit, which then stays until Steam ends.
-- No window runs `cairn-family` yet; that is the next slice of #167.
-  Nor has the command run in the VM.
+- Neither `cairn-family` nor the Guardian tool has run in the VM yet.
+- The Guardian tool cannot copy Steam games to a new child; the family
+  set-up script still does (ADR-0033). Nor can it reset a child, set a
+  PIN, or make an existing account a child (#113).
