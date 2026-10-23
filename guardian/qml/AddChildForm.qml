@@ -18,6 +18,20 @@ Column {
     Accessible.role: Accessible.Grouping
     Accessible.name: qsTr("Add a child")
 
+    // Just before the page is asked to add the child.
+    signal submitting
+
+    function focusName() {
+        nameField.takeFocus();
+    }
+
+    function focusShortName() {
+        if (shortNameField.visible)
+            shortNameField.takeFocus();
+        else
+            nameField.takeFocus();
+    }
+
     function clear() {
         nameField.text = "";
         shortNameField.text = "";
@@ -25,6 +39,7 @@ Column {
     }
 
     function submit() {
+        form.submitting();
         form.page.addChild(nameField.text, shortNameField.visible ? shortNameField.text : "", form.level);
     }
 

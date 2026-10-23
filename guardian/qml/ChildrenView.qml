@@ -12,6 +12,14 @@ Column {
     id: view
 
     required property ChildrenPage page
+    // The box with what the last change did, for the window to scroll to.
+    readonly property alias outcomeBox: outcomeBox
+    // The login of the child whose level the parent changed last, or ""
+    // when the last change came from the Add form. Focus goes back there.
+    property string changing: ""
+
+    // The outcome has changed, and focus is back where the parent was.
+    signal outcomeShown
 
     spacing: Tokens.bodySize
 
@@ -50,6 +58,10 @@ Column {
             return qsTr("Another account on this computer has that short name. Press Add again to use a different one.");
         case ChildrenPage.NotAChild:
             return qsTr("%1 is not a child's account on this computer. The list shows the children there are now.").arg(name);
+        case ChildrenPage.NotRoot:
+            return qsTr("Cairn's family command did not get the rights it needs, so it changed nothing. Close Family and open it again. If it happens again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian");
+        case ChildrenPage.Usage:
+            return qsTr("This window asked Cairn's family command for something it does not do, so nothing changed. The window and the command may come from different versions of Cairn. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian");
         case ChildrenPage.NotAGrownUp:
             return qsTr("This account may not change the family. A grown-up's account can.");
         case ChildrenPage.Dismissed:
@@ -102,6 +114,8 @@ Column {
     }
 
     Repeater {
+        id: rows
+
         objectName: "childRows"
         model: view.page.listedChildren
 
@@ -111,12 +125,17 @@ Column {
             width: view.width
             child: modelData
             enabled: !view.page.busy
-            onLevelChosen: level => view.page.changeLevel(modelData.login, level)
+            onLevelChosen: level => {
+                view.changing = modelData.login;
+                view.page.changeLevel(modelData.login, level);
+            }
         }
     }
 
     // The outcome sits between the list and the form, near both.
     Rectangle {
+        id: outcomeBox
+
         width: view.width
         height: outcomeText.implicitHeight + Tokens.bodySize * 2
         visible: outcomeText.text !== ""
@@ -150,15 +169,43 @@ Column {
         width: view.width
         page: view.page
         enabled: !view.page.busy
+        onSubmitting: view.changing = ""
     }
 
-    // A refusal leaves the form as it was, so the parent can try again.
+    // Every control waits while a change runs, which takes focus away, and
+    // the list is made again after it. So focus goes back to where the
+    // parent was: the child's row, or the form, at the field to change
+    // when the form was refused. A refusal leaves the form as it was, so
+    // the parent can try again.
+    function restoreFocus() {
+        if (view.changing !== "") {
+            for (let i = 0; i < rows.count; ++i) {
+                const row = rows.itemAt(i) as ChildRow;
+                if (row && row.child.login === view.changing) {
+                    row.takeFocus();
+                    view.outcomeShown();
+                    return;
+                }
+            }
+        }
+        if (view.changing === "" && view.page.reason === ChildrenPage.NoShortName)
+            form.focusShortName();
+        else
+            form.focusName();
+        view.outcomeShown();
+    }
+
     Connections {
         target: view.page
 
         function onStepChanged() {
             if (view.page.step === ChildrenPage.Added)
                 form.clear();
+            // Later, once the controls are enabled again.
+            if (view.page.step === ChildrenPage.Asking)
+                Qt.callLater(view.outcomeShown);
+            else
+                Qt.callLater(view.restoreFocus);
         }
     }
 }

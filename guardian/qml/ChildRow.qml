@@ -14,7 +14,18 @@ Rectangle {
 
     signal levelChosen(int level)
 
-    height: Math.max(names.implicitHeight, buttons.height) + Tokens.bodySize * 2
+    // The name and the buttons side by side when they fit, otherwise the
+    // buttons on a line of their own under the name, so a long name or two
+    // buttons never squeeze the name away.
+    readonly property bool sideBySide: Math.max(childName.implicitWidth, childLevel.implicitWidth) + buttons.width + Tokens.bodySize * 3 <= row.width
+
+    function takeFocus() {
+        const first = buttonRepeater.itemAt(0);
+        if (first)
+            first.forceActiveFocus(Qt.TabFocusReason);
+    }
+
+    height: (row.sideBySide ? Math.max(names.implicitHeight, buttons.height) : names.implicitHeight + Tokens.bodySize / 2 + buttons.height) + Tokens.bodySize * 2
     radius: Tokens.radiusSm
     color: Tokens.card
     border.color: Tokens.line
@@ -26,13 +37,13 @@ Rectangle {
     Column {
         id: names
 
-        anchors.left: parent.left
-        anchors.right: buttons.left
-        anchors.leftMargin: Tokens.bodySize
-        anchors.rightMargin: Tokens.bodySize
-        anchors.verticalCenter: parent.verticalCenter
+        x: Tokens.bodySize
+        y: row.sideBySide ? (row.height - names.implicitHeight) / 2 : Tokens.bodySize
+        width: row.sideBySide ? buttons.x - Tokens.bodySize * 2 : row.width - Tokens.bodySize * 2
 
         Text {
+            id: childName
+
             objectName: "childName"
             width: parent.width
             elide: Text.ElideRight
@@ -46,8 +57,11 @@ Rectangle {
         }
 
         Text {
+            id: childLevel
+
             objectName: "childLevel"
             width: parent.width
+            elide: Text.ElideRight
             text: qsTr("Level %1").arg(row.child.level)
             font.family: Tokens.fontFamily
             font.pixelSize: Tokens.bodySize
@@ -60,12 +74,14 @@ Rectangle {
     Row {
         id: buttons
 
-        anchors.right: parent.right
-        anchors.rightMargin: Tokens.bodySize
-        anchors.verticalCenter: parent.verticalCenter
+        objectName: "buttons"
+        x: row.sideBySide ? row.width - Tokens.bodySize - buttons.width : Tokens.bodySize
+        y: row.sideBySide ? (row.height - buttons.height) / 2 : names.y + names.implicitHeight + Tokens.bodySize / 2
         spacing: Tokens.bodySize / 2
 
         Repeater {
+            id: buttonRepeater
+
             model: row.child.otherLevels
 
             TextButton {

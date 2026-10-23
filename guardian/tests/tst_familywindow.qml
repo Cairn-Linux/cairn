@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import QtQuick
 import QtTest
+import Cairn.Brand
 import Cairn.Family
 
 TestCase {
@@ -15,12 +16,20 @@ TestCase {
         FamilyWindow {}
     }
 
-    function makeWindow(scenario, withChildren) {
-        // Tall enough for the whole page, so every control can be clicked.
-        const window = createTemporaryObject(windowComponent, testCase, {
-            "page": standIns.page(scenario, withChildren === undefined ? true : withChildren),
+    // Tall enough for the whole page unless the options say otherwise, so
+    // every control can be clicked.
+    function makeWindow(scenario, options) {
+        const given = options === undefined ? {} : options;
+        const properties = {
+            "page": standIns.page(scenario, given.withChildren !== false, given.withOlderChild === true),
             "height": 1400
-        });
+        };
+        const window = createTemporaryObject(windowComponent, testCase, properties);
+        // As small as the window may be made.
+        if (given.smallest === true) {
+            window.width = window.minimumWidth;
+            window.height = window.minimumHeight;
+        }
         verify(window !== null);
         window.requestActivate();
         tryCompare(window, "active", true);
@@ -64,7 +73,9 @@ TestCase {
     }
 
     function test_noChildrenYet() {
-        const window = makeWindow("done", false);
+        const window = makeWindow("done", {
+            "withChildren": false
+        });
         compare(rows(window), []);
         verify(findChild(window, "noChildren").visible);
     }
@@ -164,5 +175,113 @@ TestCase {
         mouseClick(findChild(findChild(window, "childRows").itemAt(0), "moveTo2"));
         tryCompare(window.page, "step", ChildrenPage.NotChanged);
         verify(outcome(window).startsWith("The change did not finish. Trying again is safe."));
+    }
+
+    // Two causes no one should meet, each with its own sentence.
+    function test_theCommandsOwnRefusals_data() {
+        return [
+            {
+                "tag": "not-root",
+                "scenario": "refused-not-root",
+                "start": "Cairn's family command did not get the rights it needs"
+            },
+            {
+                "tag": "usage",
+                "scenario": "refused-usage",
+                "start": "This window asked Cairn's family command for something it does not do"
+            }
+        ];
+    }
+
+    function test_theCommandsOwnRefusals(data) {
+        const window = makeWindow(data.scenario);
+        mouseClick(findChild(findChild(window, "childRows").itemAt(0), "moveTo2"));
+        tryCompare(window.page, "step", ChildrenPage.NotChanged);
+        verify(outcome(window).startsWith(data.start), outcome(window));
+    }
+
+    // Whether an item shows whole inside the window.
+    function inSight(window, item) {
+        const place = item.mapToItem(window.contentItem, 0, 0);
+        return place.y >= 0 && place.y + item.height <= window.height;
+    }
+
+    // With the window short and scrolled down to the form, the sentence
+    // after Add is scrolled into sight.
+    function test_theOutcomeComesIntoSight() {
+        const window = makeWindow("done", {
+            "smallest": true
+        });
+        const scroller = findChild(window, "scroller");
+        verify(findChild(window, "scrollIndicator").visible);
+        nameField(window).text = "Анна";
+        scroller.contentY = scroller.contentHeight - scroller.height;
+        const add = findChild(window, "addButton");
+        verify(inSight(window, add));
+        mouseClick(add);
+        compare(window.page.reason, ChildrenPage.NoShortName);
+        const box = findChild(window, "outcome").parent;
+        tryVerify(() => inSight(window, box));
+    }
+
+    // Tab never lands on something out of sight.
+    function test_focusIsKeptInSight() {
+        const window = makeWindow("done", {
+            "smallest": true
+        });
+        findChild(nameField(window), "input").forceActiveFocus();
+        const add = findChild(window, "addButton");
+        verify(!inSight(window, add));
+        keyClick(Qt.Key_Tab);
+        keyClick(Qt.Key_Tab);
+        keyClick(Qt.Key_Tab);
+        tryCompare(add, "activeFocus", true);
+        verify(inSight(window, add));
+    }
+
+    // After a refusal, focus is back in the name field to try again.
+    function test_focusReturnsAfterARefusal() {
+        const window = makeWindow("not-authorized");
+        nameField(window).text = "Cy";
+        mouseClick(findChild(window, "addButton"));
+        tryCompare(window.page, "step", ChildrenPage.NotChanged);
+        tryCompare(findChild(nameField(window), "input"), "activeFocus", true);
+    }
+
+    // A name with no letters a to z sends focus to the short name.
+    function test_focusGoesToTheShortName() {
+        const window = makeWindow("done");
+        nameField(window).text = "Анна";
+        mouseClick(findChild(window, "addButton"));
+        compare(window.page.reason, ChildrenPage.NoShortName);
+        tryCompare(findChild(findChild(window, "shortNameField"), "input"), "activeFocus", true);
+    }
+
+    // After a level change, focus is back on that child's row.
+    function test_focusReturnsToTheChild() {
+        const window = makeWindow("done");
+        mouseClick(findChild(findChild(window, "childRows").itemAt(1), "moveTo1"));
+        tryCompare(window.page, "step", ChildrenPage.LevelChanged);
+        tryCompare(findChild(findChild(window, "childRows").itemAt(1), "moveTo1"), "activeFocus", true);
+    }
+
+    // A child at level 3 has two buttons; in a narrow window they go
+    // under the name, which keeps its room.
+    function test_anOlderChildInANarrowWindow() {
+        const window = makeWindow("done", {
+            "withOlderChild": true,
+            "smallest": true
+        });
+        const row = findChild(window, "childRows").itemAt(2);
+        const name = findChild(row, "childName");
+        const level = findChild(row, "childLevel");
+        compare(level.text, "Level 3");
+        verify(!row.sideBySide);
+        compare(name.width, row.width - Tokens.bodySize * 2);
+        const buttons = findChild(row, "buttons");
+        verify(buttons.y >= level.mapToItem(row, 0, 0).y + level.height);
+        verify(buttons.x + buttons.width <= row.width);
+        // The other rows fit side by side.
+        verify(findChild(window, "childRows").itemAt(0).sideBySide);
     }
 }
