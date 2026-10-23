@@ -16,7 +16,7 @@ import shlex
 import tempfile
 import unittest
 
-from test_provision import GROUP_GETENT, GROUP_NUMBERS, id_stub, run_steps
+from test_provision import GROUP_GETENT, GROUP_NUMBERS, getent_stub, id_stub, run_steps
 
 HERE = pathlib.Path(__file__).resolve().parent.parent
 FAMILY = HERE / "cairn-family-setup.sh"
@@ -76,18 +76,22 @@ class FamilyStepsTest(unittest.TestCase):
     def test_runs_only_the_familys_own_steps(self):
         steps = set(main_steps(FAMILY))
         self.assertEqual(steps & MACHINE_STEPS, set())
-        for step in ("ensure_guardian", "make_children", "drop_old_steam_entries",
+        for step in ("ensure_guardian", "make_children", "make_steam_entries",
                      "make_shared_library", "make_game_tiles", "copy_games", "install_flatpaks"):
             self.assertIn(step, steps)
 
     def test_children_come_from_the_images_command(self):
         # cairn-family makes the children and their entries (ADR-0039), not
         # provisioning's own steps.
-        steps = set(main_steps(FAMILY))
+        steps = main_steps(FAMILY)
         self.assertNotIn("ensure_children", steps)
-        self.assertNotIn("make_steam_entries", steps)
-        self.assertLess(main_steps(FAMILY).index("ensure_image_groups"),
-                        main_steps(FAMILY).index("make_children"))
+        self.assertLess(steps.index("ensure_image_groups"), steps.index("make_children"))
+
+    def test_every_childs_entry_is_refreshed_after_the_children(self):
+        # A child left off this run keeps an up-to-date entry too.
+        steps = main_steps(FAMILY)
+        self.assertLess(steps.index("make_children"), steps.index("make_steam_entries"))
+        self.assertLess(steps.index("make_steam_entries"), steps.index("relabel_entries"))
 
     def test_checks_come_before_any_change(self):
         steps = main_steps(FAMILY)
@@ -318,21 +322,38 @@ class CairnChildrenTest(Scenario):
         self.assertEqual(calls, [])
 
 
-class OldEntriesTest(Scenario):
-    """An entry for an account that is no longer a child goes; the
-    children's stay as cairn-family wrote them."""
+class EntriesTest(Scenario):
+    """After cairn-family, every child has the image's entry, named on this
+    run or not, and an account that is no longer a child loses its own."""
 
-    def test_only_entries_without_a_child_go(self):
+    def test_every_child_gets_the_images_entry(self):
         apps = self.state / "applications"
         apps.mkdir()
-        for child in ("ada", "gone"):
-            (apps / f"cairn-steam-for-{child}.desktop").write_text("entry\n")
+        # ada was named and cairn-family wrote her entry. ben was left off
+        # this run and has none. cy was set up by hand, with /usr/local.
+        (apps / "cairn-steam-for-ada.desktop").write_text("from cairn-family\n")
+        (apps / "cairn-steam-for-cy.desktop").write_text(
+            "Exec=/usr/local/bin/cairn-steam-for cy\n")
+        (apps / "cairn-steam-for-gone.desktop").write_text("entry\n")
         (apps / "other.desktop").write_text("entry\n")
-        self.groups("cairn-l1:x:461:ada\ncairn-l2:x:462:\ncairn-l3:x:463:\ncairn-l4:x:464:\n")
-        code, output, calls = self.run_script(f"APPS={shlex.quote(str(apps))}\ndrop_old_steam_entries")
+        self.stubs["getent"] = getent_stub(
+            gecos={"ada": "Ada", "ben": "", "cy": "Cy"},
+            groups={"cairn-l1": ["ada", "cy"], "cairn-l2": ["ben"], "cairn-l3": [], "cairn-l4": []})
+        self.stubs["id"] = id_stub({"ada": (1002, ["ada", "cairn-l1"]),
+                                    "ben": (1003, ["ben", "cairn-l2"]),
+                                    "cy": (1004, ["cy", "cairn-l1"])})
+        code, output, calls = self.run_script(
+            f"APPS={shlex.quote(str(apps))}\nchildren=(ada); levels=(1)\nmake_steam_entries")
         self.assertEqual(code, 0, output)
-        self.assertEqual(sorted(path.name for path in apps.iterdir()),
-                         ["cairn-steam-for-ada.desktop", "other.desktop"])
+        files = {path.name: path.read_text() for path in apps.iterdir()}
+        self.assertEqual(sorted(files), [
+            "cairn-steam-for-ada.desktop", "cairn-steam-for-ben.desktop",
+            "cairn-steam-for-cy.desktop", "other.desktop"])
+        self.assertIn("Name=Steam for ben\n", files["cairn-steam-for-ben.desktop"])
+        self.assertIn("Exec=/usr/bin/cairn-steam-for ben\n", files["cairn-steam-for-ben.desktop"])
+        self.assertIn("Exec=/usr/bin/cairn-steam-for cy\n", files["cairn-steam-for-cy.desktop"])
+        self.assertNotIn("/usr/local/", files["cairn-steam-for-cy.desktop"])
+        self.assertIn("Name=Steam for Ada\n", files["cairn-steam-for-ada.desktop"])
         self.assertIn("removed", output)
         self.assertEqual(calls, [])
 

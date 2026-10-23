@@ -134,10 +134,12 @@ too (ADR-0039). It runs only its own list of steps:
    `/usr/local/share/applications`, naming `/usr/bin/cairn-steam-for`.
    The run stops on any answer but `done`, and prints the answer as it
    came; `journalctl -t cairn-family` has a line for each change.
+5. Every child's entry, with the same text, named on this run or not.
+   A child left off the run, or set up by hand, gets the image's entry.
    An entry whose account is no longer a child is removed.
-5. The shared game folder, put right now rather than at the next boot.
-6. The game tiles and pictures, and each child's copy of the games.
-7. The Flatpaks, last, because they need the internet. Offline, the run
+6. The shared game folder, put right now rather than at the next boot.
+7. The game tiles and pictures, and each child's copy of the games.
+8. The Flatpaks, last, because they need the internet. Offline, the run
    gets everything above and then stops with flatpak's own message; run
    it again once online.
 
@@ -233,7 +235,8 @@ own groups.
    `/run/cairn`, which the image now carries.
 8. Remove the leftover sudoers file.
 9. Run `cairn-family-setup.sh` from a checkout of the image's commit.
-   Its entries replace provisioning's, which named `/usr/local/bin`.
+   Its entries replace provisioning's, which named `/usr/local/bin`,
+   for every child, named on that run or not.
 
 ## What it must do
 

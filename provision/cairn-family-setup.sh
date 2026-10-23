@@ -13,7 +13,8 @@
 # the children's game tiles and their own copies of the games, then
 # installs the Flatpaks. The children's accounts and entries are made by
 # the image's own cairn-family, the command the Guardian's tool runs too
-# (ADR-0039). The other steps are cairn-provision.sh's own, loaded from
+# (ADR-0039). Then every child's entry is brought up to date, named on this
+# run or not. The other steps are cairn-provision.sh's own, loaded from
 # that file, so both kinds of machine check accounts the same way. Only the
 # steps in main run here: a new step in cairn-provision.sh never runs on an
 # image until it is added below.
@@ -130,22 +131,6 @@ make_children() {
     done
 }
 
-# An account that is no longer a child loses its entry. cairn-family writes
-# the entries of the children named; an earlier run's stay.
-drop_old_steam_entries() {
-    local kids entry child
-    kids="$(child_accounts)"
-    for entry in "$APPS"/cairn-steam-for-*.desktop; do
-        [ -e "$entry" ] || continue
-        child="${entry##*/cairn-steam-for-}"
-        child="${child%.desktop}"
-        if ! grep -qx -- "$child" <<< "$kids"; then
-            rm -- "$entry"
-            changed "$entry removed"
-        fi
-    done
-}
-
 relabel_entries() {
     if [ -d "$APPS" ] && command -v restorecon > /dev/null; then
         restorecon -R "$APPS"
@@ -164,7 +149,12 @@ main() {
     ensure_image_groups
     ensure_guardian
     make_children
-    drop_old_steam_entries
+    # Every child's entry, not only those named on this run: one left off
+    # the command line, or one made by hand with /usr/local paths, gets the
+    # image's entry too. It writes the bytes cairn-family writes, so the
+    # entries of the children named are left as they are. It also removes
+    # the entry of an account that is no longer a child.
+    make_steam_entries
     make_shared_library
     relabel_entries
     make_game_tiles
