@@ -104,6 +104,9 @@ What is here:
 - `polkit/actions/com.cairnlinux.steam-visit.policy`: the action pkexec
   finds by the helper's path, which asks an administrator for a password
   every time, and only at the machine (ADR-0032).
+- `polkit/actions/com.cairnlinux.family.policy`: the same for
+  `cairn-family`, the command that makes children and sets their levels
+  (`../guardian/`, ADR-0039). It asks for every change.
 
 `tests/` checks that the labwc and logind files, the greeter's PAM file,
 the polkit rule and `cairn-give-up` say what this README promises, runs the dispatcher with
