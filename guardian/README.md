@@ -152,22 +152,28 @@ CTest runs twelve: `steamvisit`, `ownsteam`, `screenlockwatch`,
 window in Qt Quick Test). They use stand-ins in `tests/fixtures/`
 for `pkexec` with the helper behind it, which takes a scenario where the
 helper's path goes, and for the Guardian's Steam client, over a stand-in
-process list. `pkexec-family` stands in for `pkexec` with `cairn-family`
-behind it in the same way: it answers each of the command's refusal
-words, pkexec's own 126 and 127, answers that cannot be read, or waits
+process list. `pkexec-family` stands in for `pkexec` as the Guardian
+tool uses it: like pkexec, it refuses a command that is not there with
+127, and otherwise runs it. Behind it, the stand-in `cairn-family`
+answers as `CAIRN_TEST_SCENARIO` says: each of the command's refusal
+words, pkexec's own 126 and 127, answers that cannot be read, or waiting
 like an open password box, and writes down the arguments it was given.
 The Guardian tool's tests give the page a table of accounts in place of
 the system's, so they cover the order, who is left out, the login names,
-every check before a change, one change at a time, and the sentence
-after each answer, with no root and no real account. `familycommand` runs `cairn-family`'s steps with
-`system-tool`, one stand-in linked under each account tool's name that
-writes down what it was asked, and a table of accounts in place of the
-system's, so no test needs root or touches a real account. It covers
-every refusal, the order of the group changes, a second run, the tools'
-environment and a tool that fails. `steamentry` checks the entry's text
-against provisioning's own `steam_entry`. The screen-lock tests and the
-ones that build the whole window run on a session bus of their own under
-`dbus-run-session`, which the build needs.
+every check before a change, one change at a time, trying an add again
+after it failed, a missing command, and the sentence and the keyboard
+focus after each answer, with no root and no real account.
+
+`familycommand` runs `cairn-family`'s steps with `system-tool`, one
+stand-in linked under each account tool's name that writes down what it
+was asked, and a table of accounts in place of the system's, so no test
+needs root or touches a real account. It covers every refusal, the
+order of the group changes, a second run, the tools' environment and a
+tool that fails. `steamentry` checks the entry's text against
+provisioning's own `steam_entry`. The screen-lock tests and the Steam
+window's tests run on a session bus of their own under
+`dbus-run-session`, which the build needs; the Guardian tool's tests
+need no bus.
 
 What the stand-ins cannot show was run in the VM (`docs/research/steam-visit.md`).
 

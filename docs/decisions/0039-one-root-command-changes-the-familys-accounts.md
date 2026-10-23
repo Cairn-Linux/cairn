@@ -134,11 +134,12 @@ The Guardian tool runs the command (ADR-0040). It starts `pkexec`
 directly with the command's absolute path, one change at a time, and
 reads the one line back: `done` with exit 0, `refused` and a word with
 exit 1, or pkexec's own 126 and 127 when the command never ran. Each
-word, pkexec's two and an answer it cannot read get a sentence of their
-own. Before it asks for the password, the window checks the request with
-the command's own `FamilyRequest`, so a value the command would refuse is
-refused without a prompt. It never gives `create-child` the login of an
-account or group that already exists.
+word and an answer it cannot read get a sentence of their own; pkexec's
+two share one. Before it asks for the password, the window checks the
+request with the command's own `FamilyRequest`, so a value the command
+would refuse is refused without a prompt. It never gives `create-child` the login of an
+account or group that already exists, except to finish an add of its
+own that failed part way, with the same name.
 
 ### One rule for who an account is
 

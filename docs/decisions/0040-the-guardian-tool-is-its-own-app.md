@@ -84,11 +84,16 @@ to move between them. Nothing is drawn for a page that does not exist.
   Every control waits while it runs; a second change cannot start. The
   answer is `done` with exit 0, `refused WORD` with exit 1, or pkexec's
   126 (box dismissed) or 127 (not authorized, and Plasma's Cancel). Any
-  other answer is unknown.
+  other answer is unknown. pkexec also gives 127, without a password
+  box, when the command is not there, so the window checks that the
+  command can be run first and calls a missing one unknown, never a
+  wrong password.
 - **Sentences:** each of ADR-0039's words, pkexec's two, an unknown
   answer and the window's own two checks is a `Reason` in C++, and the
-  page's QML picks one `qsTr` sentence for each, as the Steam window does.
-  They say what happened and what to do next, in the parent's voice:
+  page's QML picks a `qsTr` sentence for each, as the Steam window does.
+  A closed box and a wrong password share one; every other reason has its
+  own. They say what happened and what to do next, in the parent's
+  voice:
   - Added: the child can log in now, at that level, and this window does
     not copy Steam games to them yet; the family set-up script does.
   - Level changed: the child is at that level now, and it starts the next
@@ -98,9 +103,24 @@ to move between them. Nothing is drawn for a page that does not exist.
     password.
   - `failed`: the change did not finish, trying again is safe (ADR-0039:
     a second run finishes the first), and where the system log is.
+  - `not-root` and `usage`, which the window should never meet: nothing
+    changed, the likely cause, and where the system log is.
   - An unknown answer: where the system log is, and that the list shows
     what is in place now.
   A refusal leaves the form filled in, so the parent can try again.
+- **Trying an add again:** a `create-child` that fails, or whose answer
+  cannot be read, may have made the account before it stopped, so the
+  child is on the list. The window remembers that login. Adding the same
+  name again gives `create-child` the same login while it is free or is
+  still that child, so the second run finishes the first instead of
+  making a second account with the same name. A `done` for that login
+  forgets it.
+- **Keyboard and scrolling:** after each change, focus goes back to where
+  the parent was: the child's row, or the name field (the short name
+  field when that is what is missing). The window scrolls so the outcome
+  sentence, and whatever has keyboard focus, is in sight, and shows a
+  thin bar when the page is longer than the window. A child's buttons go
+  under their name when the row is too narrow for both.
 
 ## Consequences
 

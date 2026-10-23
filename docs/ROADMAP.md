@@ -343,15 +343,26 @@ done, and what could sink it. Decisions that change the design get an ADR in
 - **ADR-0039 (2026-10-22, #167): one root command changes the family's
   accounts.** `cairn-family create-child` and `cairn-family set-level`,
   in C++ with Qt Core only, make a child's account and change a child's
-  level, and write the child's "Steam for <child>" entry. The Guardian's
-  window will run it through pkexec, behind `com.cairnlinux.family`,
-  which asks for a password for every change; the family's setup runs it
-  with sudo. It checks the caller again itself, gives levels 1 and 2
-  only, adds the new level group before dropping the old one, and
-  refuses any account Cairn did not make rather than adopt it. It
-  answers `done` or `refused` and a word. The rule for who an account is
-  moves into `accounts/`, which the login screen shares. Tested with
-  stand-ins for the tools and the accounts; not yet run in the VM.
+  level, and write the child's "Steam for <child>" entry. The Guardian
+  tool's window runs it through pkexec (ADR-0040), behind
+  `com.cairnlinux.family`, which asks for a password for every change;
+  the family's setup runs it with sudo. It checks the caller again
+  itself, gives levels 1 and 2 only, adds the new level group before
+  dropping the old one, and refuses any account Cairn did not make
+  rather than adopt it. It answers `done` or `refused` and a word. The
+  rule for who an account is moves into `accounts/`, which the login
+  screen shares. Tested with stand-ins for the tools and the accounts;
+  not yet run in the VM.
+- **ADR-0040 (2026-10-23, #167): the Guardian tool is its own app.**
+  `cairn-guardian`, "Family" in a Guardian's menu (both names are
+  proposals), is a window of its own beside the Steam window. Its one
+  page so far, Children, lists each child with their level, adds a child
+  at level 1 or 2 with a login name made from the name the parent types,
+  and moves a child to another level with the same words up or down.
+  Each change is one run of `cairn-family` through pkexec, one at a
+  time, with a plain sentence after each answer. Tested with stand-ins
+  for pkexec, the command and the accounts; proposed until a Guardian
+  uses it in the VM.
 - **Give-up spares Steam's interface again (2026-10-01, #117).** A Steam
   update moved Steam's own interface into a sandbox called `srt-bwrap`,
   which the give-up key's `bwrap` match caught. Flatpak's sandbox is now
