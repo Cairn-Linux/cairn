@@ -111,20 +111,30 @@ cd cairn && sudo ./provision/cairn-family-setup.sh --guardian guardian --child a
 ```
 
 It runs this script's own steps, loaded from this file, so the accounts
-are checked the same way. It runs only its own list of them:
+are checked the same way. The children come from the image's own
+`/usr/libexec/cairn/cairn-family`, the command the Guardian's tool runs
+too (ADR-0039). It runs only its own list of steps:
 
 1. The checks: the names, the computer runs the image, and the checkout
    matches it. The image's copy step, picture step, visit helper and
    kidscan must be the checkout's files, with `/usr/local` changed to
    `/usr` as the build changes it. On any difference it refuses and says
-   to check out the commit the image was built from. `cairn-guardian`
-   must have the image's number, 465; if not, it refuses and points at
-   the renumbering below.
+   to check out the commit the image was built from. `cairn-family` is
+   compiled, so it cannot be compared; it must be there, and an image
+   built before it is refused. A child named who already has an account
+   must be one Cairn made, in a level group: `cairn-family` never makes
+   another account a child. `cairn-guardian` must have the image's
+   number, 465; if not, it refuses and points at the renumbering below.
 2. A group that is missing, made with its fixed number. `groupadd` stops
    if another group has it.
-3. The Guardian and the children, as above.
-4. A "Steam for <child>" entry for each child, in
+3. The Guardian, as above.
+4. Each child, with `cairn-family create-child CHILD LEVEL`: the account
+   with its level group and a locked password, or an existing child's
+   level, and its "Steam for <child>" entry in
    `/usr/local/share/applications`, naming `/usr/bin/cairn-steam-for`.
+   The run stops on any answer but `done`, and prints the answer as it
+   came; `journalctl -t cairn-family` has a line for each change.
+   An entry whose account is no longer a child is removed.
 5. The shared game folder, put right now rather than at the next boot.
 6. The game tiles and pictures, and each child's copy of the games.
 7. The Flatpaks, last, because they need the internet. Offline, the run

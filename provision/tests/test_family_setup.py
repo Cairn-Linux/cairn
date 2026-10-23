@@ -16,7 +16,7 @@ import shlex
 import tempfile
 import unittest
 
-from test_provision import GROUP_GETENT, GROUP_NUMBERS, getent_stub, run_steps
+from test_provision import GROUP_GETENT, GROUP_NUMBERS, id_stub, run_steps
 
 HERE = pathlib.Path(__file__).resolve().parent.parent
 FAMILY = HERE / "cairn-family-setup.sh"
@@ -76,15 +76,24 @@ class FamilyStepsTest(unittest.TestCase):
     def test_runs_only_the_familys_own_steps(self):
         steps = set(main_steps(FAMILY))
         self.assertEqual(steps & MACHINE_STEPS, set())
-        for step in ("ensure_guardian", "ensure_children", "make_steam_entries",
+        for step in ("ensure_guardian", "make_children", "drop_old_steam_entries",
                      "make_shared_library", "make_game_tiles", "copy_games", "install_flatpaks"):
             self.assertIn(step, steps)
+
+    def test_children_come_from_the_images_command(self):
+        # cairn-family makes the children and their entries (ADR-0039), not
+        # provisioning's own steps.
+        steps = set(main_steps(FAMILY))
+        self.assertNotIn("ensure_children", steps)
+        self.assertNotIn("make_steam_entries", steps)
+        self.assertLess(main_steps(FAMILY).index("ensure_image_groups"),
+                        main_steps(FAMILY).index("make_children"))
 
     def test_checks_come_before_any_change(self):
         steps = main_steps(FAMILY)
         first_change = steps.index("ensure_image_groups")
         for check in ("parse_arguments \"$@\"", "check_image", "check_accounts",
-                      "check_checkout", "check_guardian_number"):
+                      "check_children_are_cairns", "check_checkout", "check_guardian_number"):
             self.assertLess(steps.index(check), first_change, check)
 
     def test_the_tiles_come_before_the_copies_and_the_flatpaks_last(self):
@@ -99,6 +108,7 @@ class FamilyStepsTest(unittest.TestCase):
         self.assertIn("\nPREFIX=/usr\n", text)
         self.assertIn("\nSHARE=/usr/share/cairn\n", text)
         self.assertIn('\nGROUP_NUMBERS="$IMAGE_MARK"\n', text)
+        self.assertIn('\nFAMILY_COMMAND="$PREFIX/libexec/cairn/cairn-family"\n', text)
 
 
 class FamilyGuardTest(Scenario):
@@ -135,10 +145,14 @@ class CheckoutTest(Scenario):
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(f"{installed}\nCAGE=/usr/local/libexec/cairn/cage-visit\n")
             (self.libexec / installed).write_text(f"{installed}\nCAGE=/usr/libexec/cairn/cage-visit\n")
+        self.command = self.libexec / "cairn-family"
+        self.command.write_text("#!/bin/bash\necho done\n")
+        self.command.chmod(0o755)
 
     def check(self):
         return self.run_script(
             f"REPO={shlex.quote(str(self.repo))}\nPREFIX={shlex.quote(str(self.state / 'prefix'))}\n"
+            f"FAMILY_COMMAND={shlex.quote(str(self.command))}\n"
             "check_checkout\necho after"
         )
 
@@ -163,6 +177,15 @@ class CheckoutTest(Scenario):
         (self.libexec / "kidscan.py").unlink()
         code, output, _ = self.check()
         self.assertEqual(code, 1, output)
+
+    def test_an_image_without_the_family_command_is_refused(self):
+        # It is compiled, so it cannot be compared with the checkout; an
+        # image built before it is refused instead (ADR-0039).
+        self.command.unlink()
+        code, output, _ = self.check()
+        self.assertEqual(code, 1, output)
+        self.assertIn("refused: this image has no", output)
+        self.assertIn("cairn-family", output)
 
 
 class ImageGroupsTest(Scenario):
@@ -205,25 +228,112 @@ class ImageGroupsTest(Scenario):
         self.assertEqual(calls, [])
 
 
-class FamilyEntriesTest(Scenario):
-    """The entries name the image's window and go in the machine's folder;
-    the window itself is the image's and is never changed."""
+# A stand-in for cairn-family: it writes its arguments to the log, says
+# what $STATE/answer says, or done, and on done writes the child's entry
+# into $STATE/applications, as the real command does.
+FAMILY_STAND_IN = r"""#!/bin/bash
+echo "cairn-family $*" >> "$STATE/calls"
+answer="$(cat "$STATE/answer" 2> /dev/null || echo done)"
+echo "$answer"
+[ "$answer" = done ] || exit 1
+mkdir -p "$STATE/applications"
+echo "entry for $2" > "$STATE/applications/cairn-steam-for-$2.desktop"
+"""
 
-    def test_entries_name_the_images_window(self):
-        apps = self.state / "applications"
-        stubs = {
-            "getent": getent_stub(gecos={"ada": "Ada"}, groups={"cairn-l1": ["ada"], "cairn-l2": [],
-                                                                "cairn-l3": [], "cairn-l4": []}),
-            "chgrp": logger("chgrp"), "chmod": logger("chmod"),
-        }
-        self.stubs = stubs
-        code, output, calls = self.run_script(
-            f"APPS={shlex.quote(str(apps))}\nmake_steam_entries"
-        )
+
+class ChildrenTest(Scenario):
+    """Each child named is made, or brought to its level, by the image's
+    cairn-family, and the run stops on anything but done."""
+
+    def setUp(self):
+        super().setUp()
+        command = self.state / "cairn-family"
+        command.write_text(FAMILY_STAND_IN)
+        command.chmod(0o755)
+        self.apps = self.state / "applications"
+        self.setup = (f"FAMILY_COMMAND={shlex.quote(str(command))}\n"
+                      f"APPS={shlex.quote(str(self.apps))}\n"
+                      "children=(ada ben); levels=(1 2)\n")
+
+    def test_each_child_is_made_at_its_level(self):
+        code, output, calls = self.run_script(self.setup + "make_children\necho after")
         self.assertEqual(code, 0, output)
-        entry = (apps / "cairn-steam-for-ada.desktop").read_text()
-        self.assertIn("Exec=/usr/bin/cairn-steam-for ada\n", entry)
-        self.assertIn("TryExec=/usr/bin/cairn-steam-for\n", entry)
+        self.assertEqual(calls, ["cairn-family create-child ada 1", "cairn-family create-child ben 2"])
+        self.assertIn("changed: child ada at level 1", output)
+        self.assertIn("changed: child ben at level 2", output)
+        self.assertIn("after", output.splitlines())
+
+    def test_a_second_run_counts_no_change(self):
+        self.apps.mkdir()
+        for child in ("ada", "ben"):
+            (self.apps / f"cairn-steam-for-{child}.desktop").write_text(f"entry for {child}\n")
+        code, output, calls = self.run_script(self.setup + "make_children")
+        self.assertEqual(code, 0, output)
+        self.assertEqual(len(calls), 2)
+        self.assertNotIn("changed:", output)
+
+    def test_a_refusal_stops_the_run_and_says_the_word(self):
+        (self.state / "answer").write_text("refused taken\n")
+        code, output, calls = self.run_script(self.setup + "make_children\necho after")
+        self.assertEqual(code, 1, output)
+        self.assertEqual(calls, ["cairn-family create-child ada 1"])
+        self.assertIn("ada's account was not made or changed; cairn-family said: refused taken", output)
+        self.assertIn("journalctl -t cairn-family", output)
+        self.assertNotIn("after", output.splitlines())
+
+    def test_a_word_this_checkout_does_not_know_is_not_done(self):
+        # An image from another commit may answer otherwise; that stops too.
+        (self.state / "answer").write_text("done-and-more\n")
+        code, output, _ = self.run_script(self.setup + "make_children")
+        self.assertEqual(code, 1, output)
+        self.assertIn("cairn-family said: done-and-more", output)
+
+    def test_silence_is_not_done(self):
+        (self.state / "answer").write_text("")
+        code, output, _ = self.run_script(self.setup + "make_children")
+        self.assertEqual(code, 1, output)
+        self.assertIn("cairn-family said: nothing", output)
+
+
+class CairnChildrenTest(Scenario):
+    """An existing account named as a child must be one Cairn made."""
+
+    def check(self, accounts):
+        self.stubs["id"] = id_stub(accounts)
+        return self.run_script("children=(ada ben); levels=(1 2)\ncheck_children_are_cairns\necho after")
+
+    def test_new_accounts_and_cairns_children_pass(self):
+        code, output, _ = self.check({"ada": (1002, ["ada", "cairn-l1"])})
+        self.assertEqual(code, 0, output)
+        self.assertIn("after", output.splitlines())
+
+    def test_a_child_at_another_level_passes(self):
+        code, output, _ = self.check({"ben": (1003, ["ben", "cairn-l3"])})
+        self.assertEqual(code, 0, output)
+
+    def test_an_account_cairn_did_not_make_is_refused(self):
+        code, output, calls = self.check({"ben": (1003, ["ben", "users"])})
+        self.assertEqual(code, 1, output)
+        self.assertIn("refused: ben is an account Cairn did not make", output)
+        self.assertEqual(calls, [])
+
+
+class OldEntriesTest(Scenario):
+    """An entry for an account that is no longer a child goes; the
+    children's stay as cairn-family wrote them."""
+
+    def test_only_entries_without_a_child_go(self):
+        apps = self.state / "applications"
+        apps.mkdir()
+        for child in ("ada", "gone"):
+            (apps / f"cairn-steam-for-{child}.desktop").write_text("entry\n")
+        (apps / "other.desktop").write_text("entry\n")
+        self.groups("cairn-l1:x:461:ada\ncairn-l2:x:462:\ncairn-l3:x:463:\ncairn-l4:x:464:\n")
+        code, output, calls = self.run_script(f"APPS={shlex.quote(str(apps))}\ndrop_old_steam_entries")
+        self.assertEqual(code, 0, output)
+        self.assertEqual(sorted(path.name for path in apps.iterdir()),
+                         ["cairn-steam-for-ada.desktop", "other.desktop"])
+        self.assertIn("removed", output)
         self.assertEqual(calls, [])
 
 
