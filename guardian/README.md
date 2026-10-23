@@ -59,6 +59,7 @@ again that the account that started it is an administrator.
   otherwise changes nothing.
 - `set-level` changes an existing child's level: the new group first,
   then the old one goes (#100).
+  It also locks the child's password if it is not locked.
 - An account Cairn did not make is refused, never made a child: an
   administrator, a Guardian, a system account, or one in no level group.
 - Both write the child's "Steam for <child>" entry in

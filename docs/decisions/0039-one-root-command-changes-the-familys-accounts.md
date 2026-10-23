@@ -64,7 +64,7 @@ in `guardian/`, the Guardian's side. It has two subcommands:
 | Subcommand | What it does |
 |---|---|
 | `create-child LOGIN LEVEL [--full-name NAME]` | A new account gets `useradd --create-home`, with the full name as its comment when one is given and its level group, then `passwd --lock`. An existing Cairn child gets its password locked if it is not, its full name if one is given and differs, and its level. A second run with the same values changes nothing. |
-| `set-level LOGIN LEVEL` | An existing Cairn child gets the new level group, then leaves every other level group. An account already at exactly that level is left alone. |
+| `set-level LOGIN LEVEL` | An existing Cairn child gets its password locked if it is not, then the new level group, then leaves every other level group. A child already at exactly that level, with its password locked and its entry as written, is left alone. |
 
 Both write the child's "Steam for <child>" entry in
 `/usr/local/share/applications`, with the same text as provisioning's
@@ -142,8 +142,10 @@ display name comes from `Account` too, and `AccountName` goes.
 
 `cairn-family-setup.sh` makes each child with the image's
 `cairn-family create-child`, in place of provisioning's
-`ensure_children` and `make_steam_entries`. It still removes the entry of
-an account that is no longer a child. The Guardian's steps stay in bash.
+`ensure_children`. Then provisioning's `make_steam_entries` writes every
+child's entry, named on that run or not, with the same text. So a child left off the run still gets the
+image's entry. It also removes the entry of an account that is no longer
+a child. The Guardian's steps stay in bash.
 `cairn-provision.sh` is unchanged; it goes away with the rest of
 `provision/` (ADR-0038).
 
