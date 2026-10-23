@@ -29,16 +29,18 @@ std::vector<Account> family() {
     };
 }
 
-// A page whose cairn-family is the pkexec stand-in's scenario, over a table
-// of accounts the test may change, and that writes down each run's
-// arguments.
+// A page whose pkexec and cairn-family are the stand-ins, answering as the
+// scenario says, over a table of accounts the test may change, and that
+// writes down each run's arguments.
 class StandInFamily {
 public:
-    explicit StandInFamily(const QString& scenario) {
+    explicit StandInFamily(const QString& scenario, ChildrenPage::Setup setup = {}) {
         qputenv("CAIRN_TEST_ARGUMENTS", record().toLocal8Bit());
-        ChildrenPage::Setup setup;
-        setup.pkexec = QStringLiteral(FIXTURES "/pkexec-family");
-        setup.command = scenario;
+        answerWith(scenario);
+        if (setup.command.isEmpty()) {
+            setup.pkexec = QStringLiteral(FIXTURES "/pkexec-family");
+            setup.command = QStringLiteral(FIXTURES "/cairn-family");
+        }
         setup.accounts = [this] { return accounts; };
         setup.nameInUse = [this](const QString& name) {
             return groups.contains(name) ||
@@ -50,11 +52,17 @@ public:
 
     ~StandInFamily() {
         qunsetenv("CAIRN_TEST_ARGUMENTS");
+        qunsetenv("CAIRN_TEST_SCENARIO");
     }
     StandInFamily(const StandInFamily&) = delete;
     StandInFamily& operator=(const StandInFamily&) = delete;
     StandInFamily(StandInFamily&&) = delete;
     StandInFamily& operator=(StandInFamily&&) = delete;
+
+    // How the stand-ins answer the next run.
+    static void answerWith(const QString& scenario) {
+        qputenv("CAIRN_TEST_SCENARIO", scenario.toLocal8Bit());
+    }
 
     QString record() const {
         return m_folder.filePath(QStringLiteral("arguments"));
@@ -233,6 +241,96 @@ private slots:
         family.page->changeLevel(QStringLiteral("ada"), 3);
         QCOMPARE(family.page->reason(), ChildrenPage::Reason::BadLevel);
         QVERIFY(family.runs().isEmpty());
+    }
+
+    // An add that failed may have made the account. Adding the same name
+    // again finishes that one, with the same login, and makes no second.
+    void addingAgainAfterAFailureFinishesTheFirst() {
+        StandInFamily family(QStringLiteral("refused-failed"));
+        family.page->addChild(QStringLiteral("Cy"), QString(), 1);
+        // useradd ran, then a later step failed.
+        family.accounts.push_back(
+            {.uid = 1005, .groups = {"cy", "cairn-l1"}, .login = "cy", .fullName = "Cy"});
+        QVERIFY(family.waitUntilAnswered());
+        QCOMPARE(family.page->reason(), ChildrenPage::Reason::Failed);
+        QCOMPARE(loginsOf(family.page->listedChildren()), QStringList({"ada", "ben", "cy"}));
+
+        StandInFamily::answerWith(QStringLiteral("done"));
+        family.page->addChild(QStringLiteral("Cy"), QString(), 1);
+        QVERIFY(family.waitUntilAnswered());
+        QCOMPARE(family.page->step(), ChildrenPage::Step::Added);
+        QCOMPARE(family.runs(),
+                 QList<QStringList>({{"create-child", "cy", "1", "--full-name", "Cy"},
+                                     {"create-child", "cy", "1", "--full-name", "Cy"}}));
+
+        // Once it is done, another Cy is another child.
+        family.page->addChild(QStringLiteral("Cy"), QString(), 1);
+        QVERIFY(family.waitUntilAnswered());
+        QCOMPARE(family.runs().value(2).value(1), QStringLiteral("cy2"));
+    }
+
+    // The same after an answer the window cannot read, and after a closed
+    // password box in between. A different name is a different child.
+    void anUnreadableAddIsRememberedToo() {
+        StandInFamily family(QStringLiteral("garbage"));
+        family.page->addChild(QStringLiteral("Cy"), QString(), 2);
+        family.accounts.push_back(
+            {.uid = 1005, .groups = {"cy", "cairn-l2"}, .login = "cy", .fullName = "Cy"});
+        QVERIFY(family.waitUntilAnswered());
+        StandInFamily::answerWith(QStringLiteral("dismissed"));
+        family.page->addChild(QStringLiteral("Cy"), QString(), 2);
+        QVERIFY(family.waitUntilAnswered());
+        StandInFamily::answerWith(QStringLiteral("done"));
+        family.page->addChild(QStringLiteral("Ben"), QString(), 2);
+        QVERIFY(family.waitUntilAnswered());
+        family.page->addChild(QStringLiteral("Cy"), QString(), 2);
+        QVERIFY(family.waitUntilAnswered());
+        QStringList logins;
+        for (const QStringList& run : family.runs()) {
+            logins.append(run.value(1));
+        }
+        QCOMPARE(logins, QStringList({"cy", "cy", "ben2", "cy"}));
+    }
+
+    // Another account took the login meanwhile, so it is not used again.
+    void anUnfinishedLoginNowSomeoneElsesIsNotUsed() {
+        StandInFamily family(QStringLiteral("refused-failed"));
+        family.page->addChild(QStringLiteral("Cy"), QString(), 1);
+        QVERIFY(family.waitUntilAnswered());
+        family.accounts.push_back({.uid = 1005, .groups = {"cy"}, .login = "cy", .fullName = {}});
+        family.page->reload();
+        StandInFamily::answerWith(QStringLiteral("done"));
+        family.page->addChild(QStringLiteral("Cy"), QString(), 1);
+        QVERIFY(family.waitUntilAnswered());
+        QCOMPARE(family.runs().value(1).value(1), QStringLiteral("cy2"));
+    }
+
+    // When cairn-family is not there, pkexec would say 127 as for a wrong
+    // password. The page says instead that the answer could not be read.
+    void aMissingCommandIsNotAPassword() {
+        ChildrenPage::Setup setup;
+        setup.pkexec = QStringLiteral(FIXTURES "/pkexec-family");
+        setup.command = QStringLiteral(FIXTURES "/no-such-cairn-family");
+        StandInFamily family(QStringLiteral("not-authorized"), setup);
+        family.page->changeLevel(QStringLiteral("ada"), 2);
+        QVERIFY(family.waitUntilAnswered());
+        QCOMPARE(family.page->step(), ChildrenPage::Step::NotChanged);
+        QCOMPARE(family.page->reason(), ChildrenPage::Reason::Unknown);
+        QVERIFY(family.runs().isEmpty());
+    }
+
+    // QProcess answers inside start() when it cannot even try, as with no
+    // program; the page must not then wait for ever.
+    void aChangeThatCannotStartEnds() {
+        ChildrenPage::Setup setup;
+        setup.pkexec = QString();
+        setup.command = QStringLiteral(FIXTURES "/cairn-family");
+        StandInFamily family(QStringLiteral("done"), setup);
+        family.page->changeLevel(QStringLiteral("ada"), 2);
+        QVERIFY(family.waitUntilAnswered());
+        QCOMPARE(family.page->step(), ChildrenPage::Step::NotChanged);
+        QCOMPARE(family.page->reason(), ChildrenPage::Reason::Unknown);
+        QVERIFY(!family.page->busy());
     }
 
     // While the password box is open, nothing else starts.

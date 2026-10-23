@@ -11,6 +11,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <optional>
 #include <vector>
 
 class FamilyChange;
@@ -98,6 +99,14 @@ signals:
     void stepChanged();
 
 private:
+    // An add that may have made the account before it stopped.
+    struct UnfinishedAdd {
+        QString login;
+        QString fullName;
+    };
+
+    std::optional<QString> loginToAdd(const QString& login, const QString& fullName) const;
+    void rememberAdd(const QString& answer);
     void run(const QStringList& arguments, Step onDone);
     void finished(const QString& answer);
     void setStep(Step step, Reason reason = Reason::None);
@@ -110,4 +119,6 @@ private:
     QString m_subject;
     int m_level = 0;
     Step m_onDone = Step::Ready;
+    UnfinishedAdd m_adding;
+    std::optional<UnfinishedAdd> m_unfinished;
 };

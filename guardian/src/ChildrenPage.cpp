@@ -87,14 +87,33 @@ void ChildrenPage::addChild(const QString& name, const QString& shortName, int l
         setStep(Step::NotChanged, Reason::NoShortName);
         return;
     }
-    const std::optional<QString> free = freeLogin(*login, m_setup.nameInUse);
+    const std::optional<QString> free = loginToAdd(*login, fullName);
     if (!free) {
         setStep(Step::NotChanged, Reason::Taken);
         return;
     }
+    m_adding = UnfinishedAdd{.login = *free, .fullName = fullName};
     run({QStringLiteral("create-child"), *free, QString::number(level),
          QStringLiteral("--full-name"), fullName},
         Step::Added);
+}
+
+// After an add that may have stopped part way, adding the same name again
+// gives create-child the same login, so the second run finishes the first
+// (ADR-0039) instead of making a second account with that name. It does
+// only while that login is free or is still that very child.
+std::optional<QString> ChildrenPage::loginToAdd(const QString& login,
+                                                const QString& fullName) const {
+    if (m_unfinished && m_unfinished->fullName == fullName) {
+        const QString& earlier = m_unfinished->login;
+        const bool sameChild = std::ranges::any_of(m_children, [&](const ListedChild& child) {
+            return child.login == earlier && child.name == fullName;
+        });
+        if (sameChild || !m_setup.nameInUse(earlier)) {
+            return earlier;
+        }
+    }
+    return freeLogin(login, m_setup.nameInUse);
 }
 
 // Only a child the page lists, so the page never names another account.
@@ -143,21 +162,41 @@ void ChildrenPage::run(const QStringList& arguments, Step onDone) {
         setStep(Step::NotChanged, reasonFor(refusalWord(*request.refusal)));
         return;
     }
-    if (!m_change->start(arguments)) {
-        return;
-    }
+    // Asking comes first: when the process cannot start at all, its answer
+    // arrives inside start(), and must not be overwritten.
+    const Step before = m_step;
+    const Reason reasonBefore = m_reason;
     m_onDone = onDone;
     setStep(Step::Asking);
+    if (!m_change->start(arguments)) {
+        setStep(before, reasonBefore);
+    }
 }
 
 // Whatever the answer, the list is read again: a refusal such as
 // not-a-child means it was out of date.
 void ChildrenPage::finished(const QString& answer) {
     reload();
+    if (m_onDone == Step::Added) {
+        rememberAdd(answer);
+    }
     if (answer == QLatin1String("done")) {
         setStep(m_onDone);
     } else {
         setStep(Step::NotChanged, reasonFor(answer));
+    }
+}
+
+// A failed add, or one with an answer the window cannot read, may have
+// made the account before it stopped. It is remembered until an add with
+// that login is done. A refusal or a closed password box changes nothing.
+void ChildrenPage::rememberAdd(const QString& answer) {
+    if (answer == QLatin1String("done")) {
+        if (m_unfinished && m_unfinished->login == m_adding.login) {
+            m_unfinished.reset();
+        }
+    } else if (answer == QLatin1String("failed") || reasonFor(answer) == Reason::Unknown) {
+        m_unfinished = m_adding;
     }
 }
 
