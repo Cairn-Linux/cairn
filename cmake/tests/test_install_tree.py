@@ -54,6 +54,7 @@ EXPECTED = {
     "usr/share/cairn/labwc/rc.xml": 0o644,
     "usr/share/cairn/manifest.json": 0o644,
     "usr/share/cairn/sessions/cairn.desktop": 0o644,
+    "usr/share/polkit-1/actions/com.cairnlinux.family.policy": 0o644,
     "usr/share/polkit-1/actions/com.cairnlinux.steam-visit.policy": 0o644,
     "usr/share/polkit-1/rules.d/10-cairn-levels.rules": 0o644,
     "usr/share/sddm/themes/cairn/FamilyTile.qml": 0o644,
@@ -136,12 +137,18 @@ class InstallTree(unittest.TestCase):
         helper = "/usr/libexec/cairn/cairn-steam-visit\0".encode("utf-16-le")
         self.assertTrue(helper in program)
 
-    def test_polkit_action_names_the_helper(self):
-        # pkexec matches the helper's real path; /usr/libexec is one.
-        tree = ElementTree.parse(self.root / "usr/share/polkit-1/actions/com.cairnlinux.steam-visit.policy")
-        paths = [note.text for note in tree.iter("annotate")
-                 if note.get("key") == "org.freedesktop.policykit.exec.path"]
-        self.assertEqual(paths, ["/usr/libexec/cairn/cairn-steam-visit"])
+    def test_polkit_actions_name_their_programs(self):
+        # pkexec matches the program's real path; /usr/libexec is one.
+        actions = {
+            "com.cairnlinux.steam-visit": "/usr/libexec/cairn/cairn-steam-visit",
+            "com.cairnlinux.family": "/usr/libexec/cairn/cairn-family",
+        }
+        for action, program in actions.items():
+            with self.subTest(action=action):
+                tree = ElementTree.parse(self.root / f"usr/share/polkit-1/actions/{action}.policy")
+                paths = [note.text for note in tree.iter("annotate")
+                         if note.get("key") == "org.freedesktop.policykit.exec.path"]
+                self.assertEqual(paths, [program])
 
     def test_family_command_names_the_image_paths(self):
         # QStringLiterals are stored as UTF-16. The menu entries' folder is
