@@ -43,6 +43,7 @@ COPY CMakeLists.txt CMakePresets.json /src/
 COPY cmake /src/cmake
 COPY brand /src/brand
 COPY external /src/external
+COPY accounts /src/accounts
 COPY launcher /src/launcher
 COPY greeter /src/greeter
 COPY guardian /src/guardian

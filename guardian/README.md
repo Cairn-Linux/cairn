@@ -44,7 +44,6 @@ QML draws, C++ decides (ADR-0002):
 | `src/OwnSteam` | The Guardian's own Steam: whether it runs (from `/proc`), closing it before a visit, starting it after. |
 | `src/ScreenLockWatch` | KWin's `org.freedesktop.ScreenSaver` `ActiveChanged` signal on the session bus, through Qt D-Bus. |
 | `src/SteamForChild` | The steps the window shows, and what Done, the screen lock and the close button do at each one. |
-| `src/AccountName` | The child's full name, or the login name when there is none, as on the login screen. |
 | `qml/Main.qml` | The window. |
 
 The window's notes and the helper's trace go to the journal as

@@ -14,9 +14,13 @@ constexpr int realNameRole = Qt::UserRole + 2;
 
 std::optional<Account> family(const QString& name) {
     static const QHash<QString, Account> accounts = {
-        {"guardian", {.uid = 1001, .groups = {"guardian", "cairn-guardian"}}},
-        {"ada", {.uid = 1002, .groups = {"ada", "cairn-l1"}}},
-        {"ben", {.uid = 1003, .groups = {"ben", "cairn-l3"}}},
+        {"guardian",
+         {.uid = 1001,
+          .groups = {"guardian", "cairn-guardian"},
+          .login = "guardian",
+          .fullName = {}}},
+        {"ada", {.uid = 1002, .groups = {"ada", "cairn-l1"}, .login = "ada", .fullName = {}}},
+        {"ben", {.uid = 1003, .groups = {"ben", "cairn-l3"}, .login = "ben", .fullName = {}}},
     };
     const auto found = accounts.constFind(name);
     return found == accounts.constEnd() ? std::nullopt : std::optional<Account>(*found);

@@ -4,7 +4,6 @@
 find_package(Qt6 REQUIRED COMPONENTS DBus LinguistTools)
 
 set(guardian_sources
-    src/AccountName.h src/AccountName.cpp
     src/SteamVisit.h src/SteamVisit.cpp
     src/OwnSteam.h src/OwnSteam.cpp
     src/ScreenLockWatch.h src/ScreenLockWatch.cpp
@@ -21,7 +20,7 @@ qt_add_qml_module(cairn-steam-for
     SOURCES ${guardian_sources}
 )
 target_include_directories(cairn-steam-for PRIVATE src)
-target_link_libraries(cairn-steam-for PRIVATE Qt6::Quick Qt6::DBus CairnBrand)
+target_link_libraries(cairn-steam-for PRIVATE Qt6::Quick Qt6::DBus CairnBrand cairn-accounts)
 
 # The root helper it asks pkexec to run, where this build installs it.
 target_compile_definitions(cairn-steam-for PRIVATE
@@ -70,7 +69,7 @@ add_test(NAME screenlockwatch COMMAND "${DBUS_RUN_SESSION}" -- $<TARGET_FILE:tst
 
 qt_add_executable(tst_steamforchild tests/tst_steamforchild.cpp ${guardian_sources})
 target_include_directories(tst_steamforchild PRIVATE src)
-target_link_libraries(tst_steamforchild PRIVATE Qt6::Qml Qt6::DBus Qt6::Test)
+target_link_libraries(tst_steamforchild PRIVATE Qt6::Qml Qt6::DBus Qt6::Test cairn-accounts)
 target_compile_definitions(tst_steamforchild PRIVATE FIXTURES="${guardian_fixtures}")
 add_test(NAME steamforchild COMMAND "${DBUS_RUN_SESSION}" -- $<TARGET_FILE:tst_steamforchild>)
 
@@ -84,7 +83,8 @@ qt_add_qml_module(tst_steamwindow
     SOURCES ${guardian_sources}
 )
 target_include_directories(tst_steamwindow PRIVATE src)
-target_link_libraries(tst_steamwindow PRIVATE Qt6::Gui Qt6::DBus Qt6::QuickTest CairnBrand)
+target_link_libraries(tst_steamwindow PRIVATE Qt6::Gui Qt6::DBus Qt6::QuickTest CairnBrand
+    cairn-accounts)
 target_compile_definitions(tst_steamwindow PRIVATE
     QUICK_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests"
     FIXTURES="${guardian_fixtures}"

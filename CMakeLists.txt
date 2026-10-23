@@ -31,6 +31,7 @@ add_subdirectory(brand/qml/Cairn/Brand)
 # tests run in its own repository.
 set(FOOTPATH_BUILD_TESTS OFF)
 add_subdirectory(external/footpath)
+add_subdirectory(accounts)
 add_subdirectory(launcher)
 add_subdirectory(greeter)
 add_subdirectory(guardian)

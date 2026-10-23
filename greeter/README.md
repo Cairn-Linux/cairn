@@ -10,10 +10,11 @@ theme and the small C++ module the theme imports.
   buttons. `mark-on-ink.svg` links to the brand's mark.
 - `src/`: `Cairn.Greeter`, the module. `AccountKind` says what kind of
   family member an account is from its groups (ADR-0011) and whether its
-  tile asks for a password. `FamilyModel` sits over SDDM's user model: it
+  tile asks for a password. It takes the role from the family's one rule
+  in `../accounts/`, which also looks an account up through NSS, as PAM
+  does. `FamilyModel` sits over SDDM's user model: it
   sorts children first, then Guardians, then anyone outside the family, and
-  adds the name, first letter and colour a tile draws. `Account` looks an
-  account up through NSS, as PAM does. `FailedLogin` says why PAM refused a
+  adds the name, first letter and colour a tile draws. `FailedLogin` says why PAM refused a
   login, and the theme picks its words from that: a wrong password,
   "Something needs a grown-up.", or, for a child whose Steam a grown-up has
   open from their own login, "A grown-up is setting something up for you.
