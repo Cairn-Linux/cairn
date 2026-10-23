@@ -1,15 +1,19 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "Account.h"
 
+#include "FamilyRole.h"
+
+#include <cerrno>
 #include <grp.h>
 #include <pwd.h>
 #include <unistd.h>
-#include <vector>
+#include <utility>
 
 namespace {
 
 // Enough for any line of /etc/passwd or /etc/group on a family computer.
 constexpr std::size_t lookUpBufferSize = 16384;
+constexpr std::size_t largestEntry = 1048576;
 
 QString groupName(gid_t gid) {
     group entry{};
@@ -57,6 +61,10 @@ QString Account::displayName() const {
     return fullName.isEmpty() ? login : fullName;
 }
 
+bool Account::isCairnChild() const {
+    return uid >= firstPersonUid && FamilyRole::fromGroups(groups).kind == FamilyRole::Kind::Child;
+}
+
 std::optional<Account> lookUpAccount(const QString& name) {
     const QByteArray login = name.toLocal8Bit();
     passwd entry{};
@@ -78,4 +86,41 @@ std::optional<Account> lookUpAccountByUid(unsigned int uid) {
         return std::nullopt;
     }
     return fromEntry(*found);
+}
+
+// getpwent_r says ERANGE when an entry does not fit the buffer, and then the
+// same entry comes again with a bigger one, up to a size no real entry needs.
+std::vector<Account> listAccounts() {
+    std::vector<Account> accounts;
+    std::vector<char> buffer(lookUpBufferSize);
+    passwd entry{};
+    passwd* found = nullptr;
+    setpwent();
+    for (;;) {
+        const int result = getpwent_r(&entry, buffer.data(), buffer.size(), &found);
+        if (result == ERANGE && buffer.size() < largestEntry) {
+            buffer.resize(buffer.size() * 2);
+            continue;
+        }
+        if (result != 0 || found == nullptr) {
+            break;
+        }
+        if (std::optional<Account> account = fromEntry(*found)) {
+            accounts.push_back(std::move(*account));
+        }
+    }
+    endpwent();
+    return accounts;
+}
+
+bool nameInUse(const QString& name) {
+    const QByteArray bytes = name.toLocal8Bit();
+    group entry{};
+    group* found = nullptr;
+    std::vector<char> buffer(lookUpBufferSize);
+    const bool isGroup =
+        !bytes.isEmpty() &&
+        getgrnam_r(bytes.constData(), &entry, buffer.data(), buffer.size(), &found) == 0 &&
+        found != nullptr;
+    return isGroup || lookUpAccount(name).has_value();
 }
