@@ -7,14 +7,18 @@ real check is `pkcheck` as the child in the VM, recorded in
 docs/research/kiosk-containment.md.
 """
 
+import json
 import pathlib
 import re
+import shutil
+import subprocess
 import unittest
 import xml.etree.ElementTree as ElementTree
 
 POLKIT = pathlib.Path(__file__).resolve().parent.parent / "polkit"
 RULES = POLKIT / "rules.d" / "10-cairn-levels.rules"
 VISIT_ACTION = POLKIT / "actions" / "com.cairnlinux.steam-visit.policy"
+FAMILY_ACTION = POLKIT / "actions" / "com.cairnlinux.family.policy"
 PROVISION = POLKIT.parents[1] / "provision" / "cairn-provision.sh"
 
 # The action families the P0-4 run found open to a child (kiosk-containment.md).
@@ -112,6 +116,83 @@ class SteamVisitActionTest(unittest.TestCase):
         self.assertIn('"$PREFIX/libexec/cairn/cairn-steam-visit"', provision)
         self.assertIn("PREFIX=/usr/local\n", provision)
         self.assertIn("/etc/polkit-1/actions/com.cairnlinux.steam-visit.policy", provision)
+
+    def test_has_the_licence_line(self):
+        self.assertEqual(self.text.splitlines()[1], "<!-- SPDX-License-Identifier: Apache-2.0 -->")
+
+
+# A stand-in for polkit's engine, enough to run the rule: it loads the file
+# and answers for one action and one account's groups.
+RULE_RUNNER = """
+var rules = [];
+var polkit = {
+    Result: {NO: "no", NOT_HANDLED: "not-handled", YES: "yes"},
+    addRule: function (rule) { rules.push(rule); },
+};
+var input = JSON.parse(process.argv[process.argv.length - 1]);
+eval(require("fs").readFileSync(input.rules, "utf8"));
+var subject = {isInGroup: function (group) { return input.groups.indexOf(group) >= 0; }};
+process.stdout.write(rules[0]({id: input.action}, subject));
+"""
+
+
+class FamilyActionTest(unittest.TestCase):
+    """cairn-family's action (ADR-0039): the levels rule refuses it to a
+    child and lets an administrator through to the password prompt, with no
+    change of its own."""
+
+    def setUp(self):
+        self.text = FAMILY_ACTION.read_text()
+        self.action = ElementTree.fromstring(self.text.encode()).find("action")
+        self.rules = RULES.read_text()
+
+    def test_is_one_of_cairns_own_actions(self):
+        [prefix] = re.findall(r'var cairnActions = "([^"]+)";', self.rules)
+        self.assertEqual(self.action.get("id"), "com.cairnlinux.family")
+        self.assertTrue(self.action.get("id").startswith(prefix))
+
+    def test_a_child_is_refused_and_a_guardian_falls_through(self):
+        # The rule steps aside for an administrator first and then refuses
+        # every Cairn action, before it reads any level (PolkitRulesTest),
+        # so this holds for any com.cairnlinux. action.
+        self.assertRegex(
+            self.rules,
+            r'if \(subject\.isInGroup\("cairn-guardian"\) \|\| subject\.isInGroup\("wheel"\)\) \{\s*'
+            r"return polkit\.Result\.NOT_HANDLED;\s*\}\s*"
+            r"if \(startsWith\(action\.id, cairnActions\)\) \{\s*"
+            r"return polkit\.Result\.NO;",
+        )
+
+    def test_the_rule_itself_answers_so(self):
+        node = shutil.which("node")
+        if node is None:
+            self.skipTest("no node here to run the rule with")
+        cases = {
+            ("ada", "cairn-l1"): "no",
+            ("ben", "cairn-l2"): "no",
+            ("ada", "cairn-l3"): "no",
+            ("lodger",): "no",
+            ("gina", "wheel", "cairn-guardian"): "not-handled",
+            ("dad", "cairn-guardian", "cairn-l1"): "not-handled",
+            ("bazzite", "wheel"): "not-handled",
+        }
+        for groups, answer in cases.items():
+            with self.subTest(groups=groups):
+                given = json.dumps({"rules": str(RULES), "action": self.action.get("id"),
+                                    "groups": list(groups)})
+                result = subprocess.run([node, "-e", RULE_RUNNER, given], capture_output=True,
+                                        text=True, check=True)
+                self.assertEqual(result.stdout, answer)
+
+    def test_asks_an_administrator_for_every_change_and_only_at_the_machine(self):
+        # auth_admin, never auth_admin_keep: each change asks again.
+        defaults = {child.tag: child.text for child in self.action.find("defaults")}
+        self.assertEqual(defaults, {"allow_any": "no", "allow_inactive": "no", "allow_active": "auth_admin"})
+
+    def test_pkexec_finds_it_by_the_commands_path(self):
+        # The build changes /usr/local to its own prefix (cmake/CairnInstall.cmake).
+        [path] = [a.text for a in self.action.findall("annotate") if a.get("key") == "org.freedesktop.policykit.exec.path"]
+        self.assertEqual(path, "/usr/local/libexec/cairn/cairn-family")
 
     def test_has_the_licence_line(self):
         self.assertEqual(self.text.splitlines()[1], "<!-- SPDX-License-Identifier: Apache-2.0 -->")

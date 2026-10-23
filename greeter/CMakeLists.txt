@@ -1,11 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
 # The login screen (ADR-0020): an SDDM theme in theme/, and the small C++ QML
 # module it imports, Cairn.Greeter, which says what kind of family member each
-# account is. SDDM loads the module as a plugin from its import path.
+# account is, by the family's one rule in ../accounts. SDDM loads the module
+# as a plugin from its import path.
 
 set(greeter_sources
     src/AccountKind.h src/AccountKind.cpp
-    src/Account.h src/Account.cpp
     src/FamilyModel.h src/FamilyModel.cpp
     src/FailedLogin.h src/FailedLogin.cpp
 )
@@ -20,7 +20,7 @@ qt_add_qml_module(cairngreeter
     SOURCES ${greeter_sources}
 )
 target_include_directories(cairngreeter PRIVATE src)
-target_link_libraries(cairngreeter PRIVATE Qt6::Qml Qt6::Core)
+target_link_libraries(cairngreeter PRIVATE Qt6::Qml Qt6::Core cairn-accounts)
 # The plugin finds the library beside it once both are installed together.
 set_target_properties(cairngreeterplugin PROPERTIES INSTALL_RPATH "$ORIGIN" BUILD_WITH_INSTALL_RPATH TRUE)
 
@@ -47,12 +47,12 @@ qt_add_lupdate(
 
 qt_add_executable(tst_accountkind tests/tst_accountkind.cpp src/AccountKind.h src/AccountKind.cpp)
 target_include_directories(tst_accountkind PRIVATE src)
-target_link_libraries(tst_accountkind PRIVATE Qt6::Qml Qt6::Test)
+target_link_libraries(tst_accountkind PRIVATE Qt6::Qml Qt6::Test cairn-accounts)
 add_test(NAME accountkind COMMAND tst_accountkind)
 
 qt_add_executable(tst_familymodel tests/tst_familymodel.cpp ${greeter_sources})
 target_include_directories(tst_familymodel PRIVATE src)
-target_link_libraries(tst_familymodel PRIVATE Qt6::Gui Qt6::Qml Qt6::Test)
+target_link_libraries(tst_familymodel PRIVATE Qt6::Gui Qt6::Qml Qt6::Test cairn-accounts)
 add_test(NAME familymodel COMMAND tst_familymodel)
 
 qt_add_executable(tst_failedlogin tests/tst_failedlogin.cpp src/FailedLogin.h src/FailedLogin.cpp)
@@ -70,7 +70,7 @@ qt_add_qml_module(tst_loginscreen
     SOURCES ${greeter_sources}
 )
 target_include_directories(tst_loginscreen PRIVATE src tests)
-target_link_libraries(tst_loginscreen PRIVATE Qt6::Gui Qt6::QuickTest CairnBrand)
+target_link_libraries(tst_loginscreen PRIVATE Qt6::Gui Qt6::QuickTest CairnBrand cairn-accounts)
 target_compile_definitions(tst_loginscreen PRIVATE
     QUICK_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests"
 )

@@ -1,14 +1,25 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "SteamForChild.h"
 
-#include "AccountName.h"
+#include "Account.h"
 #include "ScreenLockWatch.h"
 #include "SteamVisit.h"
 
 #include <QHash>
 
+namespace {
+
+// The child's full name, or the login name when there is none, as on the
+// login screen.
+QString nameOf(const QString& child) {
+    const std::optional<Account> account = lookUpAccount(child);
+    return account ? account->displayName() : child;
+}
+
+} // namespace
+
 SteamForChild::SteamForChild(const Setup& setup, QObject* parent)
-    : QObject(parent), m_child(setup.child), m_childName(AccountName::of(setup.child)),
+    : QObject(parent), m_child(setup.child), m_childName(nameOf(setup.child)),
       m_visit(new SteamVisit(setup.pkexec, setup.helper, this)),
       m_ownSteam(new OwnSteam(setup.uid, setup.ownSteam, this)),
       m_lock(new ScreenLockWatch(QDBusConnection::sessionBus(), this)),

@@ -111,23 +111,35 @@ cd cairn && sudo ./provision/cairn-family-setup.sh --guardian guardian --child a
 ```
 
 It runs this script's own steps, loaded from this file, so the accounts
-are checked the same way. It runs only its own list of them:
+are checked the same way. The children come from the image's own
+`/usr/libexec/cairn/cairn-family`, the command the Guardian's tool runs
+too (ADR-0039). It runs only its own list of steps:
 
 1. The checks: the names, the computer runs the image, and the checkout
    matches it. The image's copy step, picture step, visit helper and
    kidscan must be the checkout's files, with `/usr/local` changed to
    `/usr` as the build changes it. On any difference it refuses and says
-   to check out the commit the image was built from. `cairn-guardian`
-   must have the image's number, 465; if not, it refuses and points at
-   the renumbering below.
+   to check out the commit the image was built from. `cairn-family` is
+   compiled, so it cannot be compared; it must be there, and an image
+   built before it is refused. A child named who already has an account
+   must be one Cairn made, in a level group: `cairn-family` never makes
+   another account a child. `cairn-guardian` must have the image's
+   number, 465; if not, it refuses and points at the renumbering below.
 2. A group that is missing, made with its fixed number. `groupadd` stops
    if another group has it.
-3. The Guardian and the children, as above.
-4. A "Steam for <child>" entry for each child, in
+3. The Guardian, as above.
+4. Each child, with `cairn-family create-child CHILD LEVEL`: the account
+   with its level group and a locked password, or an existing child's
+   level, and its "Steam for <child>" entry in
    `/usr/local/share/applications`, naming `/usr/bin/cairn-steam-for`.
-5. The shared game folder, put right now rather than at the next boot.
-6. The game tiles and pictures, and each child's copy of the games.
-7. The Flatpaks, last, because they need the internet. Offline, the run
+   The run stops on any answer but `done`, and prints the answer as it
+   came; `journalctl -t cairn-family` has a line for each change.
+5. Every child's entry, with the same text, named on this run or not.
+   A child left off the run, or set up by hand, gets the image's entry.
+   An entry whose account is no longer a child is removed.
+6. The shared game folder, put right now rather than at the next boot.
+7. The game tiles and pictures, and each child's copy of the games.
+8. The Flatpaks, last, because they need the internet. Offline, the run
    gets everything above and then stops with flatpak's own message; run
    it again once online.
 
@@ -223,7 +235,8 @@ own groups.
    `/run/cairn`, which the image now carries.
 8. Remove the leftover sudoers file.
 9. Run `cairn-family-setup.sh` from a checkout of the image's commit.
-   Its entries replace provisioning's, which named `/usr/local/bin`.
+   Its entries replace provisioning's, which named `/usr/local/bin`,
+   for every child, named on that run or not.
 
 ## What it must do
 

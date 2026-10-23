@@ -43,6 +43,8 @@ EXPECTED = {
     "usr/lib64/cairn/qml/Cairn/Greeter/libcairngreeterplugin.so": 0o755,
     "usr/lib64/cairn/qml/Cairn/Greeter/qmldir": 0o644,
     "usr/libexec/cairn/cairn-copy-games": 0o644,
+    # Root runs it, through pkexec or sudo; anyone may read it.
+    "usr/libexec/cairn/cairn-family": 0o755,
     "usr/libexec/cairn/cairn-game-pictures": 0o644,
     "usr/libexec/cairn/cairn-launcher": 0o755,
     "usr/libexec/cairn/cairn-steam-for": 0o750,
@@ -52,6 +54,7 @@ EXPECTED = {
     "usr/share/cairn/labwc/rc.xml": 0o644,
     "usr/share/cairn/manifest.json": 0o644,
     "usr/share/cairn/sessions/cairn.desktop": 0o644,
+    "usr/share/polkit-1/actions/com.cairnlinux.family.policy": 0o644,
     "usr/share/polkit-1/actions/com.cairnlinux.steam-visit.policy": 0o644,
     "usr/share/polkit-1/rules.d/10-cairn-levels.rules": 0o644,
     "usr/share/sddm/themes/cairn/FamilyTile.qml": 0o644,
@@ -134,12 +137,28 @@ class InstallTree(unittest.TestCase):
         helper = "/usr/libexec/cairn/cairn-steam-visit\0".encode("utf-16-le")
         self.assertTrue(helper in program)
 
-    def test_polkit_action_names_the_helper(self):
-        # pkexec matches the helper's real path; /usr/libexec is one.
-        tree = ElementTree.parse(self.root / "usr/share/polkit-1/actions/com.cairnlinux.steam-visit.policy")
-        paths = [note.text for note in tree.iter("annotate")
-                 if note.get("key") == "org.freedesktop.policykit.exec.path"]
-        self.assertEqual(paths, ["/usr/libexec/cairn/cairn-steam-visit"])
+    def test_polkit_actions_name_their_programs(self):
+        # pkexec matches the program's real path; /usr/libexec is one.
+        actions = {
+            "com.cairnlinux.steam-visit": "/usr/libexec/cairn/cairn-steam-visit",
+            "com.cairnlinux.family": "/usr/libexec/cairn/cairn-family",
+        }
+        for action, program in actions.items():
+            with self.subTest(action=action):
+                tree = ElementTree.parse(self.root / f"usr/share/polkit-1/actions/{action}.policy")
+                paths = [note.text for note in tree.iter("annotate")
+                         if note.get("key") == "org.freedesktop.policykit.exec.path"]
+                self.assertEqual(paths, [program])
+
+    def test_family_command_names_the_image_paths(self):
+        # QStringLiterals are stored as UTF-16. The menu entries' folder is
+        # the computer's own, /usr/local/share/applications, on purpose:
+        # /usr/local is a link to /var/usrlocal there (ADR-0038).
+        program = (self.root / "usr/libexec/cairn/cairn-family").read_bytes()
+        for path in ("/usr/bin/cairn-steam-for\0", "/usr/local/share/applications\0",
+                     "/usr/sbin/useradd\0", "/usr/bin/passwd\0", "/usr/bin/gpasswd\0"):
+            with self.subTest(path=path):
+                self.assertTrue(path.encode("utf-16-le") in program)
 
     def test_sddm_settings_name_the_image_paths(self):
         settings = self.text("usr/lib/sddm/sddm.conf.d/zz-cairn.conf").splitlines()

@@ -11,7 +11,10 @@
 #
 # It makes the accounts, a "Steam for <child>" menu entry for each child,
 # the children's game tiles and their own copies of the games, then
-# installs the Flatpaks. Each step is cairn-provision.sh's own, loaded from
+# installs the Flatpaks. The children's accounts and entries are made by
+# the image's own cairn-family, the command the Guardian's tool runs too
+# (ADR-0039). Then every child's entry is brought up to date, named on this
+# run or not. The other steps are cairn-provision.sh's own, loaded from
 # that file, so both kinds of machine check accounts the same way. Only the
 # steps in main run here: a new step in cairn-provision.sh never runs on an
 # image until it is added below.
@@ -25,6 +28,8 @@ source "$(dirname "${BASH_SOURCE[0]}")/cairn-provision.sh"
 PREFIX=/usr
 SHARE=/usr/share/cairn
 GROUP_NUMBERS="$IMAGE_MARK"
+# Makes each child's account and menu entry (ADR-0039).
+FAMILY_COMMAND="$PREFIX/libexec/cairn/cairn-family"
 
 check_image() {
     [ -f "$IMAGE_MARK" ] ||
@@ -35,7 +40,16 @@ check_image() {
 # checkout of another commit may expect other words, and then drops lines
 # without a word, so each helper must be the checkout's own. The build
 # changes /usr/local to /usr in each file it installs (cmake/CairnInstall.cmake).
+#
+# cairn-family is compiled, so it cannot be compared with the checkout. It
+# must be there; an image built before it is refused. Its answer is one
+# line, done or refused and a word, and make_children stops on anything
+# but done and prints the line as it came. So an image from another commit
+# that answers with a word this checkout does not know still stops the run
+# and says what the command said; it is never taken for done.
 check_checkout() {
+    [ -x "$FAMILY_COMMAND" ] ||
+        refuse "this image has no $FAMILY_COMMAND; check out the commit the image was built from"
     local source installed
     for source in provision/cairn-copy-games.py:cairn-copy-games \
         provision/cairn-game-pictures.py:cairn-game-pictures \
@@ -73,6 +87,50 @@ ensure_image_groups() {
     done
 }
 
+# cairn-family refuses an account Cairn did not make (ADR-0039), so this is
+# checked before anything changes: each child named that is already there
+# must be in a level group. check_accounts has refused administrators.
+# Giving a level to an account made some other way waits for #113.
+check_children_are_cairns() {
+    local child level found
+    for child in "${children[@]}"; do
+        id "$child" > /dev/null 2>&1 || continue
+        found=no
+        for level in cairn-l1 cairn-l2 cairn-l3 cairn-l4; do
+            if in_group "$child" "$level"; then
+                found=yes
+            fi
+        done
+        [ "$found" = yes ] ||
+            refuse "$child is an account Cairn did not make; name a new account for each child"
+    done
+}
+
+# What a run of cairn-family can change about one child, so a run that
+# changed nothing is not counted.
+child_state() {
+    getent passwd "$1" || true
+    id -nG "$1" 2> /dev/null || true
+    passwd --status "$1" 2> /dev/null | cut -d' ' -f2 || true
+    cat "$APPS/cairn-steam-for-$1.desktop" 2> /dev/null || true
+}
+
+# Each child's account, level and "Steam for <child>" entry, from the same
+# command a Guardian's window runs. The command answers in one line.
+make_children() {
+    local i child answer before
+    for i in "${!children[@]}"; do
+        child="${children[$i]}"
+        before="$(child_state "$child")"
+        answer="$("$FAMILY_COMMAND" create-child "$child" "${levels[$i]}" < /dev/null)" || true
+        [ "$answer" = "done" ] ||
+            refuse "$child's account was not made or changed; cairn-family said: ${answer:-nothing} (journalctl -t cairn-family)"
+        if [ "$(child_state "$child")" != "$before" ]; then
+            changed "child $child at level ${levels[$i]}"
+        fi
+    done
+}
+
 relabel_entries() {
     if [ -d "$APPS" ] && command -v restorecon > /dev/null; then
         restorecon -R "$APPS"
@@ -84,12 +142,18 @@ main() {
     check_image
     [ "$(id -u)" -eq 0 ] || { echo "run as root" >&2; exit 1; }
     check_accounts
+    check_children_are_cairns
     check_checkout
     check_guardian_number
 
     ensure_image_groups
     ensure_guardian
-    ensure_children
+    make_children
+    # Every child's entry, not only those named on this run: one left off
+    # the command line, or one made by hand with /usr/local paths, gets the
+    # image's entry too. It writes the bytes cairn-family writes, so the
+    # entries of the children named are left as they are. It also removes
+    # the entry of an account that is no longer a child.
     make_steam_entries
     make_shared_library
     relabel_entries

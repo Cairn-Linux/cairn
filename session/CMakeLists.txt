@@ -17,6 +17,8 @@ cairn_install_file(SOURCE polkit/rules.d/10-cairn-levels.rules DESTINATION "${CA
     MODE 644)
 cairn_install_file(SOURCE polkit/actions/com.cairnlinux.steam-visit.policy
     DESTINATION "${CAIRN_POLKITDIR}/actions" MODE 644)
+cairn_install_file(SOURCE polkit/actions/com.cairnlinux.family.policy
+    DESTINATION "${CAIRN_POLKITDIR}/actions" MODE 644)
 cairn_install_file(SOURCE logind.conf.d/10-cairn-power.conf DESTINATION "${CAIRN_LOGIND_CONFDIR}" MODE 644)
 # Fedora's plasma-wayland.conf sits in the same folder and sets
 # GreeterEnvironment too; SDDM reads the folder in name order, so Cairn's

@@ -30,13 +30,18 @@ public:
 
 std::optional<Account> family(const QString& name) {
     static const QHash<QString, Account> accounts = {
-        {"bazzite", {.uid = 1000, .groups = {"bazzite", "wheel"}}},
-        {"guardian", {.uid = 1001, .groups = {"guardian", "wheel", "cairn-guardian"}}},
-        {"ada", {.uid = 1002, .groups = {"ada", "cairn-l1"}}},
-        {"ben", {.uid = 1003, .groups = {"ben", "cairn-l3"}}},
-        {"cleo", {.uid = 1004, .groups = {"cleo", "cairn-l2"}}},
-        {"dad", {.uid = 1005, .groups = {"dad", "cairn-guardian"}}},
-        {"eve", {.uid = 1006, .groups = {"eve", "cairn-l1"}}},
+        {"bazzite",
+         {.uid = 1000, .groups = {"bazzite", "wheel"}, .login = "bazzite", .fullName = {}}},
+        {"guardian",
+         {.uid = 1001,
+          .groups = {"guardian", "wheel", "cairn-guardian"},
+          .login = "guardian",
+          .fullName = {}}},
+        {"ada", {.uid = 1002, .groups = {"ada", "cairn-l1"}, .login = "ada", .fullName = {}}},
+        {"ben", {.uid = 1003, .groups = {"ben", "cairn-l3"}, .login = "ben", .fullName = {}}},
+        {"cleo", {.uid = 1004, .groups = {"cleo", "cairn-l2"}, .login = "cleo", .fullName = {}}},
+        {"dad", {.uid = 1005, .groups = {"dad", "cairn-guardian"}, .login = "dad", .fullName = {}}},
+        {"eve", {.uid = 1006, .groups = {"eve", "cairn-l1"}, .login = "eve", .fullName = {}}},
     };
     const auto found = accounts.constFind(name);
     return found == accounts.constEnd() ? std::nullopt : std::optional<Account>(*found);
@@ -158,18 +163,6 @@ private slots:
         QCOMPARE(model.data(model.index(0, 0), realNameRole).toString(), QString("Ada"));
         QCOMPARE(model.roleNames().value(FamilyModel::AsksForPasswordRole),
                  QByteArray("asksForPassword"));
-    }
-
-    // The system's own lookup finds the account running the test and gives
-    // it groups; an account that cannot exist is nothing.
-    void theSystemLookUp() {
-        QVERIFY(!lookUpAccount("no-such-account-cairn-test").has_value());
-        QVERIFY(!lookUpAccount(QString()).has_value());
-        const std::optional<Account> found = lookUpAccount("root");
-        QVERIFY(found.has_value());
-        const Account root = found.value_or(Account{.uid = 1, .groups = {}});
-        QCOMPARE(root.uid, 0U);
-        QVERIFY(root.groups.contains("root"));
     }
 };
 

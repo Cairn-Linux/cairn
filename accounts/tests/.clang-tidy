@@ -1,0 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+# Qt Test finds test functions through the meta-object, so they are slots on
+# an instance and cannot be static, whatever they touch.
+InheritParentConfig: true
+Checks: '-readability-convert-member-functions-to-static'

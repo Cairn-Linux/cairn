@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!--
+  Making a child's account and changing a child's level (ADR-0039). The
+  Guardian's tool runs cairn-family through pkexec, which finds this action
+  by the command's path and asks for an administrator's password, or a
+  fingerprint, for every change. polkit's levels rule answers no to it,
+  before any prompt, for every account that is not an administrator. The
+  image installs it in /usr/share/polkit-1/actions with the path the image
+  puts the command at.
+-->
+<!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<policyconfig>
+  <vendor>Cairn Linux</vendor>
+  <vendor_url>https://cairnlinux.com</vendor_url>
+  <action id="com.cairnlinux.family">
+    <description>Change a child's account</description>
+    <message>A grown-up's password is needed to change a child's account.</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/local/libexec/cairn/cairn-family</annotate>
+  </action>
+</policyconfig>

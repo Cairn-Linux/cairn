@@ -33,7 +33,7 @@ Checks: >
   -readability-identifier-length,
   -readability-uppercase-literal-suffix
 WarningsAsErrors: '*'
-HeaderFilterRegex: '(launcher|guardian|shell|session|brand)/.*\.h$'
+HeaderFilterRegex: '(accounts|launcher|guardian|shell|session|brand)/.*\.h$'
 # Wayland protocol code that wayland-scanner writes into the build tree.
 ExcludeHeaderFilterRegex: 'build/.*'
 FormatStyle: file
