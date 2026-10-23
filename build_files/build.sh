@@ -24,14 +24,18 @@ systemctl enable sddm.service
 # it always matches the base's cage.
 install -m 0711 /usr/bin/cage /usr/libexec/cairn/cage-visit
 
-# Only a Guardian may run the window that opens a child's Steam, or its
-# wrapper. The group is made at first boot, so the files take its fixed
-# number from sysusers.d now.
+# Only a Guardian may run the window that opens a child's Steam, the
+# Guardian tool, or their wrappers. The group is made at first boot, so the
+# files take its fixed number from sysusers.d now.
 guardian_gid=$(awk '$1 == "g" && $2 == "cairn-guardian" { print $3 }' \
     /usr/lib/sysusers.d/cairn.conf)
 [[ "${guardian_gid}" =~ ^[0-9]+$ ]]
-chgrp "${guardian_gid}" /usr/bin/cairn-steam-for /usr/libexec/cairn/cairn-steam-for
-chmod 0750 /usr/bin/cairn-steam-for /usr/libexec/cairn/cairn-steam-for
+guardian_only=(
+    /usr/bin/cairn-steam-for /usr/libexec/cairn/cairn-steam-for
+    /usr/bin/cairn-guardian /usr/libexec/cairn/cairn-guardian
+)
+chgrp "${guardian_gid}" "${guardian_only[@]}"
+chmod 0750 "${guardian_only[@]}"
 
 # A lockout after wrong Guardian passwords that survives a reboot
 # (ADR-0020). authselect writes a checksum of its files to

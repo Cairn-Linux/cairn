@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
-# The Guardian's side of Cairn (P1-5). So far one window, a child's own Steam
-# opened from the Guardian's own login (ADR-0032), and cairn-family, the root
-# command that makes children and sets their levels (ADR-0039).
+# The Guardian's side of Cairn (P1-5): a window for a child's own Steam
+# opened from the Guardian's own login (ADR-0032), cairn-family, the root
+# command that makes children and sets their levels (ADR-0039), and the
+# Guardian tool, "Family" in the menu, that runs it (ADR-0040).
 find_package(Qt6 REQUIRED COMPONENTS DBus LinguistTools)
 
 set(guardian_sources
@@ -61,8 +62,9 @@ target_compile_definitions(cairn-family PRIVATE
 )
 install(TARGETS cairn-family RUNTIME DESTINATION "${CAIRN_LIBEXECDIR}")
 
-# The Guardian tool's logic. It checks what it asks for with cairn-family's
-# own rule before it asks for a password.
+# The Guardian tool: its own program and QML module, so the Steam window
+# stays as it is. It shares the Steam window's button, and checks what it
+# asks for with cairn-family's own rule before it asks for a password.
 set(family_window_sources
     src/Refusal.h src/Refusal.cpp
     src/FamilyRequest.h src/FamilyRequest.cpp
@@ -71,9 +73,44 @@ set(family_window_sources
     src/FamilyChange.h src/FamilyChange.cpp
     src/ChildrenPage.h src/ChildrenPage.cpp
 )
+set(family_window_qml_files
+    qml/FamilyWindow.qml
+    qml/ChildrenView.qml
+    qml/ChildRow.qml
+    qml/AddChildForm.qml
+    qml/LabelledField.qml
+    qml/LevelChoice.qml
+    qml/TextButton.qml
+)
+foreach(file IN LISTS family_window_qml_files)
+    cmake_path(GET file FILENAME name)
+    set_source_files_properties(${file} PROPERTIES QT_RESOURCE_ALIAS ${name})
+endforeach()
+
+qt_add_executable(cairn-guardian src/guardianmain.cpp)
+qt_add_qml_module(cairn-guardian
+    URI Cairn.Family
+    QML_FILES ${family_window_qml_files}
+    SOURCES ${family_window_sources}
+)
+target_include_directories(cairn-guardian PRIVATE src)
+target_link_libraries(cairn-guardian PRIVATE Qt6::Quick CairnBrand cairn-accounts)
+target_compile_definitions(cairn-guardian PRIVATE
+    CAIRN_FAMILY="${CAIRN_FULL_LIBEXECDIR}/cairn-family"
+)
+# Only a Guardian may run it, as the Steam window.
+set_target_properties(cairn-guardian PROPERTIES INSTALL_RPATH "${CAIRN_FULL_LIBDIR}")
+install(TARGETS cairn-guardian RUNTIME DESTINATION "${CAIRN_LIBEXECDIR}"
+    PERMISSIONS ${guardian_only})
+configure_file(bin/cairn-guardian.in bin/cairn-guardian @ONLY)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/bin/cairn-guardian" DESTINATION "${CMAKE_INSTALL_BINDIR}"
+    PERMISSIONS ${guardian_only})
+configure_file(applications/cairn-guardian.desktop.in applications/cairn-guardian.desktop @ONLY)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/applications/cairn-guardian.desktop"
+    DESTINATION "${CMAKE_INSTALL_DATADIR}/applications")
 
 qt_add_lupdate(
-    SOURCE_TARGETS cairn-steam-for cairn-family
+    SOURCE_TARGETS cairn-steam-for cairn-family cairn-guardian
     TS_FILES i18n/guardian_en.ts
     LUPDATE_TARGET guardian_lupdate
 )
@@ -124,7 +161,9 @@ target_compile_definitions(tst_steamwindow PRIVATE
     QUICK_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests"
     FIXTURES="${guardian_fixtures}"
 )
-add_test(NAME steamwindow COMMAND "${DBUS_RUN_SESSION}" -- $<TARGET_FILE:tst_steamwindow>)
+# Each Quick Test host runs only its own file from the tests folder.
+add_test(NAME steamwindow COMMAND "${DBUS_RUN_SESSION}" -- $<TARGET_FILE:tst_steamwindow>
+    -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/tst_steamwindow.qml")
 
 # cairn-family with stand-ins for the account tools and a table of accounts,
 # so no test needs root or changes a real account.
@@ -167,7 +206,24 @@ target_link_libraries(tst_childrenpage PRIVATE Qt6::Qml Qt6::Test cairn-accounts
 target_compile_definitions(tst_childrenpage PRIVATE FIXTURES="${guardian_fixtures}")
 add_test(NAME childrenpage COMMAND tst_childrenpage)
 
+# The real window in the Quick Test host, as for the Steam window.
+qt_add_executable(tst_familywindow tests/tst_familywindow.cpp)
+qt_add_qml_module(tst_familywindow
+    URI Cairn.Family
+    OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/tests/Cairn/Family"
+    QML_FILES ${family_window_qml_files}
+    SOURCES ${family_window_sources}
+)
+target_include_directories(tst_familywindow PRIVATE src)
+target_link_libraries(tst_familywindow PRIVATE Qt6::Gui Qt6::QuickTest CairnBrand cairn-accounts)
+target_compile_definitions(tst_familywindow PRIVATE
+    QUICK_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests"
+    FIXTURES="${guardian_fixtures}"
+)
+add_test(NAME familywindow COMMAND tst_familywindow
+    -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/tst_familywindow.qml")
+
 set_tests_properties(steamvisit ownsteam screenlockwatch steamforchild steamwindow familycommand
-    steamentry loginname childlist familychange childrenpage PROPERTIES
+    steamentry loginname childlist familychange childrenpage familywindow PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QML_IMPORT_PATH=${QT_QML_OUTPUT_DIRECTORY}"
 )

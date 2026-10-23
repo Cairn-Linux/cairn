@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: Apache-2.0
+# The Guardian tool in the application menu (ADR-0040). Only a Guardian
+# sees it: Plasma's menu leaves out an entry whose TryExec program the
+# account cannot run, and only cairn-guardian may run this one.
+[Desktop Entry]
+Type=Application
+Name=Family
+GenericName=Children and their levels
+Comment=Add a child, or move a child to another level
+Exec=@CMAKE_INSTALL_FULL_BINDIR@/cairn-guardian
+TryExec=@CMAKE_INSTALL_FULL_BINDIR@/cairn-guardian
+Icon=system-users
+Terminal=false
+Categories=Settings;System;

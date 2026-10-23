@@ -28,6 +28,8 @@ EXPECTED = {
     "etc/sddm.conf.d/zz-cairn-no-autologin.conf": 0o644,
     "etc/security/faillock.conf": 0o644,
     "usr/bin/cairn-give-up": 0o755,
+    # The group, cairn-guardian, is set when the image is made.
+    "usr/bin/cairn-guardian": 0o750,
     "usr/bin/cairn-launcher": 0o755,
     "usr/bin/cairn-log-out": 0o755,
     "usr/bin/cairn-session": 0o755,
@@ -46,6 +48,7 @@ EXPECTED = {
     # Root runs it, through pkexec or sudo; anyone may read it.
     "usr/libexec/cairn/cairn-family": 0o755,
     "usr/libexec/cairn/cairn-game-pictures": 0o644,
+    "usr/libexec/cairn/cairn-guardian": 0o750,
     "usr/libexec/cairn/cairn-launcher": 0o755,
     "usr/libexec/cairn/cairn-steam-for": 0o750,
     "usr/libexec/cairn/cairn-steam-visit": 0o755,
@@ -53,6 +56,7 @@ EXPECTED = {
     "usr/share/cairn/labwc/environment": 0o644,
     "usr/share/cairn/labwc/rc.xml": 0o644,
     "usr/share/cairn/manifest.json": 0o644,
+    "usr/share/applications/cairn-guardian.desktop": 0o644,
     "usr/share/cairn/sessions/cairn.desktop": 0o644,
     "usr/share/polkit-1/actions/com.cairnlinux.family.policy": 0o644,
     "usr/share/polkit-1/actions/com.cairnlinux.steam-visit.policy": 0o644,
@@ -126,8 +130,21 @@ class InstallTree(unittest.TestCase):
         self.assertIn('window=(/usr/libexec/cairn/cairn-steam-for "$@")\n', wrapper)
         self.assertNotIn("LD_LIBRARY_PATH", wrapper)
 
+    def test_guardian_wrapper_names_the_image_path(self):
+        wrapper = self.text("usr/bin/cairn-guardian")
+        self.assertIn('window=(/usr/libexec/cairn/cairn-guardian "$@")\n', wrapper)
+        self.assertNotIn("LD_LIBRARY_PATH", wrapper)
+
+    def test_guardian_menu_entry_names_the_wrapper(self):
+        # TryExec hides the entry from everyone who may not run the wrapper.
+        entry = self.text("usr/share/applications/cairn-guardian.desktop").splitlines()
+        self.assertIn("Name=Family", entry)
+        self.assertIn("Exec=/usr/bin/cairn-guardian", entry)
+        self.assertIn("TryExec=/usr/bin/cairn-guardian", entry)
+
     def test_programs_find_the_brand_library(self):
-        for name in ("usr/libexec/cairn/cairn-launcher", "usr/libexec/cairn/cairn-steam-for"):
+        for name in ("usr/libexec/cairn/cairn-launcher", "usr/libexec/cairn/cairn-steam-for",
+                     "usr/libexec/cairn/cairn-guardian"):
             with self.subTest(name=name):
                 self.assertTrue(b"/usr/lib64/cairn\0" in (self.root / name).read_bytes())
 
@@ -136,6 +153,12 @@ class InstallTree(unittest.TestCase):
         program = (self.root / "usr/libexec/cairn/cairn-steam-for").read_bytes()
         helper = "/usr/libexec/cairn/cairn-steam-visit\0".encode("utf-16-le")
         self.assertTrue(helper in program)
+
+    def test_guardian_runs_the_image_family_command(self):
+        # pkexec matches the command by the path the polkit action names.
+        program = (self.root / "usr/libexec/cairn/cairn-guardian").read_bytes()
+        command = "/usr/libexec/cairn/cairn-family\0".encode("utf-16-le")
+        self.assertTrue(command in program)
 
     def test_polkit_actions_name_their_programs(self):
         # pkexec matches the program's real path; /usr/libexec is one.

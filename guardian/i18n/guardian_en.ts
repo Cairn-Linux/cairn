@@ -2,6 +2,188 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="en_US">
 <context>
+    <name>AddChildForm</name>
+    <message>
+        <location filename="../qml/AddChildForm.qml" line="19"/>
+        <location filename="../qml/AddChildForm.qml" line="34"/>
+        <source>Add a child</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AddChildForm.qml" line="49"/>
+        <source>Name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AddChildForm.qml" line="50"/>
+        <source>The name on their login tile, such as Ada.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AddChildForm.qml" line="60"/>
+        <source>Short name for the account</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AddChildForm.qml" line="61"/>
+        <source>The account also needs a short name with letters a to z. Only the computer uses it; the login tile shows the name above.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AddChildForm.qml" line="68"/>
+        <source>Level</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AddChildForm.qml" line="80"/>
+        <source>The launcher only. Opens apps and games, and nothing else.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AddChildForm.qml" line="89"/>
+        <source>The launcher, and their own files too.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AddChildForm.qml" line="96"/>
+        <source>Add</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AddChildForm.qml" line="97"/>
+        <source>Add the child</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>ChildRow</name>
+    <message>
+        <location filename="../qml/ChildRow.qml" line="24"/>
+        <source>%1, level %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/ChildRow.qml" line="51"/>
+        <source>Level %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/ChildRow.qml" line="76"/>
+        <source>Move to level %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/ChildRow.qml" line="77"/>
+        <source>Move %1 to level %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>ChildrenView</name>
+    <message>
+        <location filename="../qml/ChildrenView.qml" line="25"/>
+        <source>Confirm with your password, or your fingerprint, in the box that opened.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/ChildrenView.qml" line="27"/>
+        <source>%1 can log in now, at level %2. This window does not copy Steam games to %1 yet; the family set-up script does.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/ChildrenView.qml" line="29"/>
+        <source>%1 is at level %2 now. It starts the next time %1 logs in.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/ChildrenView.qml" line="40"/>
+        <source>Type the child&apos;s name first.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/ChildrenView.qml" line="42"/>
+        <source>Type a short name for the account as well, with letters a to z.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/ChildrenView.qml" line="44"/>
+        <source>A name cannot hold a colon, a comma, a backslash or a line break. Change the name and try again.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/ChildrenView.qml" line="46"/>
+        <source>The short name can hold only letters a to z, digits, - and _, and starts with a letter. Change it and try again.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/ChildrenView.qml" line="48"/>
+        <source>Only levels 1 and 2 can be given for now. Levels 3 and 4 have no session yet.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/ChildrenView.qml" line="50"/>
+        <source>Another account on this computer has that short name. Press Add again to use a different one.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/ChildrenView.qml" line="52"/>
+        <source>%1 is not a child&apos;s account on this computer. The list shows the children there are now.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/ChildrenView.qml" line="54"/>
+        <source>This account may not change the family. A grown-up&apos;s account can.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/ChildrenView.qml" line="57"/>
+        <source>Nothing changed. It needs your password: the box was closed, or the password was not accepted.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/ChildrenView.qml" line="59"/>
+        <source>The change did not finish. Trying again is safe. If it fails again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/ChildrenView.qml" line="61"/>
+        <source>Cairn&apos;s family command did not answer as expected. The list shows what is in place now. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/ChildrenView.qml" line="68"/>
+        <source>Children</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/ChildrenView.qml" line="81"/>
+        <source>Each child has their own login and their own level. A level can go up or down at any time, whatever fits now. Every change asks for your password.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/ChildrenView.qml" line="95"/>
+        <source>No children yet. Add one below.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>FamilyWindow</name>
+    <message>
+        <location filename="../qml/FamilyWindow.qml" line="16"/>
+        <source>Family</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>LevelChoice</name>
+    <message>
+        <location filename="../qml/LevelChoice.qml" line="24"/>
+        <location filename="../qml/LevelChoice.qml" line="79"/>
+        <source>Level %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>Main</name>
     <message>
         <location filename="../qml/Main.qml" line="19"/>
