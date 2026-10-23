@@ -20,7 +20,8 @@ public:
 
     bool running() const;
     // Starts the command with these arguments. False, and nothing starts,
-    // while a change is still running.
+    // while a change is still running. When the command is not there, it
+    // answers "unknown" without running pkexec.
     bool start(const QStringList& arguments);
 
 signals:
@@ -37,4 +38,6 @@ private:
     QString m_pkexec;
     QString m_command;
     QProcess* m_process = nullptr;
+    // The command was not there; its answer is on the way.
+    bool m_commandMissing = false;
 };

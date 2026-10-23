@@ -14,9 +14,14 @@ QString pkexec() {
     return QStringLiteral(FIXTURES "/pkexec-family");
 }
 
-// The one answer a scenario of the stand-in gives.
+QString command() {
+    return QStringLiteral(FIXTURES "/cairn-family");
+}
+
+// The one answer a scenario of the stand-ins gives.
 QString answerTo(const QString& scenario) {
-    FamilyChange change(pkexec(), scenario);
+    qputenv("CAIRN_TEST_SCENARIO", scenario.toLocal8Bit());
+    FamilyChange change(pkexec(), command());
     QSignalSpy finished(&change, &FamilyChange::finished);
     if (!change.start({QStringLiteral("set-level"), QStringLiteral("ada"), QStringLiteral("2")})) {
         return QStringLiteral("not started");
@@ -61,7 +66,8 @@ private slots:
     }
 
     void pkexecMissing() {
-        FamilyChange change(QStringLiteral(FIXTURES "/no-such-pkexec"), QStringLiteral("done"));
+        qputenv("CAIRN_TEST_SCENARIO", "done");
+        FamilyChange change(QStringLiteral(FIXTURES "/no-such-pkexec"), command());
         QSignalSpy finished(&change, &FamilyChange::finished);
         QVERIFY(change.start(
             {QStringLiteral("set-level"), QStringLiteral("ada"), QStringLiteral("2")}));
@@ -71,13 +77,39 @@ private slots:
         QVERIFY(!change.running());
     }
 
+    // pkexec would say 127, as for a refused password, without asking for
+    // one. The window does not run it, and says it cannot read an answer.
+    void commandMissing() {
+        const QTemporaryDir folder;
+        const QString record = folder.filePath(QStringLiteral("arguments"));
+        qputenv("CAIRN_TEST_ARGUMENTS", record.toLocal8Bit());
+        qputenv("CAIRN_TEST_SCENARIO", "not-authorized");
+        FamilyChange change(pkexec(), QStringLiteral(FIXTURES "/no-such-cairn-family"));
+        QSignalSpy finished(&change, &FamilyChange::finished);
+        QVERIFY(change.start(
+            {QStringLiteral("set-level"), QStringLiteral("ada"), QStringLiteral("2")}));
+        // The answer comes after start() returns, and nothing else starts
+        // before it.
+        QVERIFY(finished.isEmpty());
+        QVERIFY(change.running());
+        QVERIFY(!change.start(
+            {QStringLiteral("set-level"), QStringLiteral("ben"), QStringLiteral("1")}));
+        QVERIFY(finished.wait(kAnswerMilliseconds));
+        qunsetenv("CAIRN_TEST_ARGUMENTS");
+        QCOMPARE(finished.size(), 1);
+        QCOMPARE(finished.constFirst().constFirst().toString(), QStringLiteral("unknown"));
+        QVERIFY(!change.running());
+        QVERIFY(!QFile::exists(record));
+    }
+
     // pkexec gets the command's path, then the arguments as they are, one
     // each, with no shell to split or expand them.
     void theArgumentsGoAsTheyAre() {
         const QTemporaryDir folder;
         const QString record = folder.filePath(QStringLiteral("arguments"));
         qputenv("CAIRN_TEST_ARGUMENTS", record.toLocal8Bit());
-        FamilyChange change(pkexec(), QStringLiteral("done"));
+        qputenv("CAIRN_TEST_SCENARIO", "done");
+        FamilyChange change(pkexec(), command());
         QSignalSpy finished(&change, &FamilyChange::finished);
         QVERIFY(change.start({QStringLiteral("create-child"), QStringLiteral("ada"),
                               QStringLiteral("1"), QStringLiteral("--full-name"),
@@ -96,7 +128,8 @@ private slots:
         const QTemporaryDir folder;
         const QString record = folder.filePath(QStringLiteral("arguments"));
         qputenv("CAIRN_TEST_ARGUMENTS", record.toLocal8Bit());
-        FamilyChange change(pkexec(), QStringLiteral("asking"));
+        qputenv("CAIRN_TEST_SCENARIO", "asking");
+        FamilyChange change(pkexec(), command());
         const QSignalSpy finished(&change, &FamilyChange::finished);
         QVERIFY(change.start(
             {QStringLiteral("set-level"), QStringLiteral("ada"), QStringLiteral("2")}));
@@ -114,7 +147,8 @@ private slots:
     // Once the answer is in, the next change may start, from the very
     // slot that hears the answer.
     void theNextChangeAfterTheAnswer() {
-        FamilyChange change(pkexec(), QStringLiteral("done"));
+        qputenv("CAIRN_TEST_SCENARIO", "done");
+        FamilyChange change(pkexec(), command());
         const QSignalSpy finished(&change, &FamilyChange::finished);
         bool startedAgain = false;
         connect(&change, &FamilyChange::finished, this, [&change, &startedAgain] {

@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "FamilyChange.h"
 
+#include <QFileInfo>
 #include <QRegularExpression>
+#include <QTimer>
 
 #include <utility>
 
@@ -43,12 +45,27 @@ FamilyChange::FamilyChange(QString pkexec, QString command, QObject* parent)
     : QObject(parent), m_pkexec(std::move(pkexec)), m_command(std::move(command)) {}
 
 bool FamilyChange::running() const {
-    return m_process != nullptr;
+    return m_process != nullptr || m_commandMissing;
 }
 
 bool FamilyChange::start(const QStringList& arguments) {
     if (running()) {
         return false;
+    }
+    // pkexec checks the command's path before it asks for a password, and
+    // gives the same 127 as a refused password when it is not there. The
+    // window checks first, so a missing command is never told to the
+    // parent as their password. The answer still comes after start()
+    // returns, as every other answer does.
+    if (!QFileInfo(m_command).isExecutable()) {
+        qWarning("cairn-guardian: %s is not there to run, so nothing changed.",
+                 qUtf8Printable(m_command));
+        m_commandMissing = true;
+        QTimer::singleShot(0, this, [this] {
+            m_commandMissing = false;
+            emit finished(unknown());
+        });
+        return true;
     }
     m_process = new QProcess(this);
     // What the command and the tools it runs say on their error output goes
