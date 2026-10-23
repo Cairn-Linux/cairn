@@ -61,6 +61,17 @@ target_compile_definitions(cairn-family PRIVATE
 )
 install(TARGETS cairn-family RUNTIME DESTINATION "${CAIRN_LIBEXECDIR}")
 
+# The Guardian tool's logic. It checks what it asks for with cairn-family's
+# own rule before it asks for a password.
+set(family_window_sources
+    src/Refusal.h src/Refusal.cpp
+    src/FamilyRequest.h src/FamilyRequest.cpp
+    src/LoginName.h src/LoginName.cpp
+    src/ChildList.h src/ChildList.cpp
+    src/FamilyChange.h src/FamilyChange.cpp
+    src/ChildrenPage.h src/ChildrenPage.cpp
+)
+
 qt_add_lupdate(
     SOURCE_TARGETS cairn-steam-for cairn-family
     TS_FILES i18n/guardian_en.ts
@@ -131,7 +142,32 @@ target_compile_definitions(tst_steamentry PRIVATE
 )
 add_test(NAME steamentry COMMAND tst_steamentry)
 
+# The Guardian tool's pieces, each with its own test, cairn-family behind a
+# stand-in for pkexec, and a table of accounts in place of the system's.
+qt_add_executable(tst_loginname tests/tst_loginname.cpp src/LoginName.h src/LoginName.cpp)
+target_include_directories(tst_loginname PRIVATE src)
+target_link_libraries(tst_loginname PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME loginname COMMAND tst_loginname)
+
+qt_add_executable(tst_childlist tests/tst_childlist.cpp src/ChildList.h src/ChildList.cpp)
+target_include_directories(tst_childlist PRIVATE src)
+target_link_libraries(tst_childlist PRIVATE Qt6::Core Qt6::Test cairn-accounts)
+add_test(NAME childlist COMMAND tst_childlist)
+
+qt_add_executable(tst_familychange tests/tst_familychange.cpp
+    src/FamilyChange.h src/FamilyChange.cpp)
+target_include_directories(tst_familychange PRIVATE src)
+target_link_libraries(tst_familychange PRIVATE Qt6::Core Qt6::Test)
+target_compile_definitions(tst_familychange PRIVATE FIXTURES="${guardian_fixtures}")
+add_test(NAME familychange COMMAND tst_familychange)
+
+qt_add_executable(tst_childrenpage tests/tst_childrenpage.cpp ${family_window_sources})
+target_include_directories(tst_childrenpage PRIVATE src)
+target_link_libraries(tst_childrenpage PRIVATE Qt6::Qml Qt6::Test cairn-accounts)
+target_compile_definitions(tst_childrenpage PRIVATE FIXTURES="${guardian_fixtures}")
+add_test(NAME childrenpage COMMAND tst_childrenpage)
+
 set_tests_properties(steamvisit ownsteam screenlockwatch steamforchild steamwindow familycommand
-    steamentry PROPERTIES
+    steamentry loginname childlist familychange childrenpage PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QML_IMPORT_PATH=${QT_QML_OUTPUT_DIRECTORY}"
 )
