@@ -57,7 +57,14 @@ void SteamVisit::close() {
         // pkexec still runs as the Guardian until the password is given, so
         // it can be stopped. Once it runs the helper as root it cannot, and
         // the end of the helper's input below closes the visit as it opens.
-        m_process->terminate();
+        // Until started(), the child may still be a copy of this program
+        // that has not become pkexec, and would run this program's signal
+        // handlers instead, so the signal waits for it.
+        if (m_process->state() == QProcess::Starting) {
+            connect(m_process, &QProcess::started, m_process, &QProcess::terminate);
+        } else {
+            m_process->terminate();
+        }
     } else {
         m_process->write("done\n");
     }
