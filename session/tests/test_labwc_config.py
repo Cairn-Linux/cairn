@@ -75,6 +75,18 @@ class LabwcConfigTest(unittest.TestCase):
             # The catch-all comes first, so these must come after it.
             self.assertGreater(rules.index(rule), rules.index(by_id["*"]))
 
+    def test_scummvm_windows_are_maximized_not_toggled(self):
+        # A ScummVM game whose launch entry loses its config opened as a
+        # small window over the launcher (2026-10-27). ToggleFullscreen
+        # would undo the games that asked for fullscreen themselves.
+        rules = self.root.findall("./windowRules/windowRule")
+        by_id = {rule.get("identifier"): rule for rule in rules}
+        rule = by_id.get("scummvm")
+        self.assertIsNotNone(rule, "a rule for scummvm")
+        actions = [(a.get("name"), a.get("direction")) for a in rule.findall("action")]
+        self.assertEqual(actions, [("Maximize", "both")])
+        self.assertGreater(rules.index(rule), rules.index(by_id["*"]))
+
     def test_the_grown_up_combination_runs_the_give_up_helper(self):
         # ADR-0018: Ctrl-Alt-Home runs cairn-give-up, which ends a stuck app.
         keybinds = {k.get("key"): k for k in self.root.findall("./keyboard/keybind")}

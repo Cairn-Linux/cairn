@@ -11,7 +11,9 @@ What is here:
   the grown-up's way out of a stuck one (ADR-0018), and a laptop's volume
   keys through PipeWire's `wpctl`, up to 100% and no louder (#43); no window gets focus
   by asking for it; a window rule that makes the launcher
-  fullscreen on sight; and rules that iconify Steam's own windows on
+  fullscreen on sight; one that maximizes any ScummVM window, so a game
+  whose Steam entry loses its config still fills the screen; and rules
+  that iconify Steam's own windows on
   sight while leaving the launcher able to hear about them
   (`docs/research/steam-containment.md`). `environment`: the XKB option
   that takes the Ctrl-Alt-Fn VT-switch keysyms out of the keymap, because
