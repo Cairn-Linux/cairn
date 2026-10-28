@@ -3,12 +3,26 @@
 
 #include "ChildGameList.h"
 
+ChildSave::Before ChildSave::takeOff(const Shared& shared, const Account& child,
+                                     const QStringList& ticked) {
+    Before before{.old = shared.file.read(child.login), .removed = std::nullopt};
+    const ChildGameList::NewList list =
+        ChildGameList::result(before.old, ticked, {}, shared.catalogue.value_or(GameCatalogue()));
+    if (shared.file.write(child.login, list.entries)) {
+        before.removed = list.removed;
+    }
+    return before;
+}
+
 QString ChildSave::run(const Shared& shared, const Account& child, const QStringList& ticked,
-                       const CopyJob::Say& say) {
-    const QList<QJsonObject> old = shared.file.read(child.login);
-    const ChildGameList::Plan plan = ChildGameList::plan(old, ticked, shared.catalogue);
+                       const Before& before, const CopyJob::Say& say) {
+    const GameCatalogue catalogue = shared.catalogue.value_or(GameCatalogue());
+    const ChildGameList::Plan plan = ChildGameList::plan(before.old, ticked, catalogue);
+    // Without a full games list, whether a game is shared is not known.
+    const QString notListed =
+        shared.catalogue ? QStringLiteral("not-shared") : QStringLiteral("no-catalogue");
     for (const QString& appId : plan.notShared) {
-        say(QStringLiteral("skipped %1 %2 not-shared").arg(child.login, appId));
+        say(QStringLiteral("skipped %1 %2 %3").arg(child.login, appId, notListed));
     }
 
     CopyJob::Result copy;
@@ -17,12 +31,12 @@ QString ChildSave::run(const Shared& shared, const Account& child, const QString
         copy = CopyJob::run(shared.copy, child.login, child.uid, plan.toCopy, say);
     }
 
-    ChildGameList::NewList list = ChildGameList::result(old, ticked, copy.copied, shared.catalogue);
+    ChildGameList::NewList list = ChildGameList::result(before.old, ticked, copy.copied, catalogue);
     std::optional<QString> held = copy.held;
     if (!shared.file.write(child.login, list.entries)) {
-        // The file stays as it was, so the child's tiles do too.
+        // The file holds what takeOff wrote, or what it held before.
         list.added = 0;
-        list.removed = 0;
+        list.removed = before.removed.value_or(0);
         held = QStringLiteral("not-written");
     }
 

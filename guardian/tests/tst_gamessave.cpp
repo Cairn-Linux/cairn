@@ -259,6 +259,40 @@ private slots:
         QCOMPARE(m_said.mid(2), QStringList({"child ada added 0 removed 0"}));
     }
 
+    // Every child's games taken off are gone before the first copy starts,
+    // so a Save cut off mid-copy leaves no child a game taken off.
+    void gamesTakenOffGoBeforeAnyCopy() {
+        give("games/ada.json", adaHasPortal);
+        give("games/ben.json", adaHasPortal);
+        run({"save-games", "ada=12", "ben=504230"});
+        QVERIFY(!read("games-seen-ada/ada.json").contains("\"620\""));
+        QVERIFY(!read("games-seen-ada/ben.json").contains("\"620\""));
+        QVERIFY(!read("games-seen-ada/ada.json").contains("\"12\""));
+        QVERIFY(m_said.contains("child ada added 1 removed 1"));
+        QVERIFY(m_said.contains("child ben added 1 removed 1"));
+    }
+
+    // A list that cannot be written after the copy holds what was written
+    // before it, and the counts say so.
+    void aWriteAfterTheCopyFailsWithTheGamesTakenOffGone() {
+        give("games/ada.json", adaHasPortal);
+        give("break-ada", "");
+        run({"save-games", "ada=12"});
+        QVERIFY(m_said.contains("child ada added 0 removed 1 held not-written"));
+    }
+
+    // Without a full games list no new game can be given, and the reason
+    // says the list is missing, not that the game is not shared.
+    void noCatalogueIsNotNotShared() {
+        give("fail-kidscan", "");
+        give("games/ada.json", adaHasPortal);
+        run({"save-games", "ada=620,12"});
+        QCOMPARE(m_said.mid(1), QStringList({"catalogue kept", "skipped ada 12 no-catalogue",
+                                             "child ada added 0 removed 0"}));
+        QVERIFY(!QFile::exists(path("systemd-run-calls")));
+        QVERIFY(read("games/ada.json").contains("\"620\""));
+    }
+
     // One child's file that cannot be written does not stop the others.
     void aFailedWriteHoldsOnlyThatChild() {
         QVERIFY(QDir().mkpath(path("games/ada.json")));

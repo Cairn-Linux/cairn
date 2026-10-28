@@ -83,10 +83,11 @@ cairn-family save-games LOGIN=APPID,APPID... [LOGIN=...]
 
 It is installed as `/usr/libexec/cairn/cairn-family` and runs as root:
 through `pkexec`, behind a polkit action for each subcommand
-(`com.cairnlinux.family.create-child`, `.set-level`, `.save-games`), each
-of which asks for an administrator's password for every change, or with `sudo` from
-`../provision/cairn-family-setup.sh`. Started by `pkexec`, it checks
-again that the account that started it is an administrator.
+(`com.cairnlinux.family.create-child`, `.set-level`, `.save-games`),
+each of which asks for an administrator's password for every change, or
+with `sudo` from `../provision/cairn-family-setup.sh`. Started by
+`pkexec`, it checks again that the account that started it is an
+administrator.
 
 - LEVEL is 1 or 2. L3 and L4 have no child session yet.
 - `create-child` makes a new account with its level group and a locked
@@ -117,15 +118,18 @@ games, and a child not named is left alone.
   there is no Guardian, and the pictures stay.
 - It remakes `/var/lib/cairn/games.json` with kidscan, as provisioning
   does, and keeps the old one when kidscan fails.
+- Before any copy starts, it writes every child's
+  `/var/lib/cairn/games/<login>.json` with the games taken off gone, so
+  a Save cut off mid-copy leaves no child a game the parent took off.
 - For each child it copies the games newly ticked with
   `cairn-steam-visit --copy-games CHILD APPID...`, run as a system job
   with `systemd-run`, outside the Guardian's session, and waited for with
   no time limit. A Guardian who logs out mid-copy ends this command and
   not the copy.
-- It then writes `/var/lib/cairn/games/<login>.json`, the launcher's
-  games file, with the games still ticked that the child had and the ones
-  the copy gave them. A game taken off goes even when the copy is held,
-  for instance because the child is logged in.
+- It then writes that child's file again, the launcher's games file,
+  with the games still ticked that the child had and the ones the copy
+  gave them. A game taken off goes even when the copy is held, for
+  instance because the child is logged in.
 
 It answers line by line as it goes, with fixed words, checked logins and
 appids: `pictures made|kept`, `catalogue made|kept`, `copying LOGIN`,
@@ -169,7 +173,7 @@ QML draws, C++ decides (ADR-0002):
 | `src/ChildGamesFile` | A child's own games file: reading it, and writing it into place in a folder only root may change. |
 | `src/ReadableFile` | Writes a file every account may read, renamed into place. |
 | `src/CopyJob` | Runs a child's copy as a system job with `systemd-run`, waits for it, and passes on only the helper's own lines. |
-| `src/ChildSave` | One child's part of a Save: the copy, then their file, then their line. |
+| `src/ChildSave` | One child's part of a Save: their file without the games taken off, then the copy, their file again and their line. |
 | `src/FamilyRequest` | The subcommand and its values, read from the arguments and checked before anything looks at an account. |
 | `src/Refusal` | Why the command made no change, and the word for each. |
 | `src/SystemTool` | Runs `useradd`, `passwd`, `gpasswd`, `usermod`, `restorecon`, the picture step or kidscan by absolute path, without a shell, with a small environment of its own and a two-minute limit. |

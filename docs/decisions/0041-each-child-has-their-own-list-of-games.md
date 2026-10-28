@@ -85,6 +85,11 @@ games on their list.**
   copied or already there.
   It is written at every Save, so a game taken off goes at once, even
   when the child's copy is held.
+  Before any child's copy starts, every child's list is written with the
+  games taken off gone and nothing added, and each is written again after
+  that child's copy with the games it gave.
+  So a Save cut off mid-copy, by a logout or a reboot, still leaves no
+  child a game the parent took off.
 - The copy itself runs as before: as the child, through
   `cairn-steam-visit --copy-games CHILD APPID...`, under the visit lock,
   which keeps the child from logging in while it runs.
@@ -123,15 +128,19 @@ a Steam name or a path:
 | `copying LOGIN` | The child's copy starts |
 | `waiting LOGIN` | The child's last login is still ending |
 | `copied LOGIN APPID`, `have LOGIN APPID` | The child has the game now |
-| `skipped LOGIN APPID REASON` | The game is left out, for REASON, such as `not-shared` |
-| `child LOGIN added N removed N [held WORD]` | The child's list is written; `held` says why their new games are not all given |
+| `skipped LOGIN APPID REASON` | The game is left out, for REASON: `not-shared`, or `no-catalogue` when no full games list could be read, so whether it is shared is not known |
+| `child LOGIN added N removed N [held WORD]` | The child's list is written, and the counts say what it holds now; `held` says why their new games are not all given |
 | `done` | The last line of a Save |
 | `refused WORD` | Nothing changed |
 
 `held` is one of `logged-in`, `busy` (a visit), `copying`, `still-running`,
 `stopped`, `not-set-up`, `no-library`, `no-shared`, `lists-shared`,
 `unreadable-config`, `no-reflink`, `failed`, `not-started` (the job could
-not start) or `not-written` (the child's list stays as it was).
+not start) or `not-written` (the child's list could not be written
+after the copy, so it holds none of the new games: only the games taken
+off are gone, when that first write worked, and the counts say so).
+A list that is in place but could not be labelled again for SELinux
+counts as written.
 A child's problem is never a refusal of the whole Save; the next child
 goes ahead.
 

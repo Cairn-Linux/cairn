@@ -15,8 +15,9 @@
 
 // cairn-family save-games: the root side of the Guardian tool's Save on its
 // Games page (ADR-0041). It checks the caller and every value, then makes
-// the pictures and the full games list again, then copies each child's
-// newly ticked games and writes their own games file.
+// the pictures and the full games list again, then takes the games taken
+// off out of every child's own games file, then copies each child's newly
+// ticked games and writes their file again with them.
 //
 // It answers in lines of fixed words, checked login names and appids, as it
 // goes, and ends with `done` or `refused WORD`. A refusal means nothing

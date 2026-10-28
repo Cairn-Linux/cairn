@@ -9,6 +9,14 @@
 #include <utility>
 #include <vector>
 
+namespace {
+
+const QStringList& tickedFor(const GamesRequest& request, std::size_t child) {
+    return request.children.at(static_cast<qsizetype>(child)).appIds;
+}
+
+} // namespace
+
 GamesSave::GamesSave(Setup setup) : m_setup(std::move(setup)) {}
 
 GamesSave::Outcome GamesSave::run(const QStringList& arguments, const Say& say) const {
@@ -49,12 +57,19 @@ GamesSave::Outcome GamesSave::run(const QStringList& arguments, const Say& say) 
         .copy = m_setup.copy,
         .file = ChildGamesFile(m_setup.gamesFolder, m_setup.gamesFolderOwner,
                                m_setup.catalogue.restorecon),
-        .catalogue = made.catalogue.value_or(GameCatalogue()),
+        .catalogue = made.catalogue,
     };
+    // Every child loses the games taken off before any copy starts, so a
+    // Save cut off mid-copy still leaves no child a game the parent took off.
+    std::vector<ChildSave::Before> before;
+    before.reserve(children.size());
+    for (std::size_t i = 0; i < children.size(); ++i) {
+        before.push_back(ChildSave::takeOff(shared, children[i], tickedFor(request, i)));
+    }
     Outcome outcome{.refusal = std::nullopt, .asked = asked, .children = {}};
     for (std::size_t i = 0; i < children.size(); ++i) {
-        outcome.children.append(ChildSave::run(
-            shared, children[i], request.children.at(static_cast<qsizetype>(i)).appIds, say));
+        outcome.children.append(
+            ChildSave::run(shared, children[i], tickedFor(request, i), before[i], say));
     }
     return outcome;
 }

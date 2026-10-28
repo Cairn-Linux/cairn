@@ -85,6 +85,18 @@ private slots:
         QVERIFY(file.read("ada").isEmpty());
     }
 
+    // A list already in place is written, even when labelling it fails.
+    void aFailedLabelIsStillWritten() {
+        const ChildGamesFile file(m_folder, getuid(), m_restorecon);
+        QVERIFY(file.write("ada", {game("620", "Portal 2")}));
+        QFile fail(QDir(m_temporary.path()).filePath("fail-restorecon"));
+        QVERIFY(fail.open(QIODevice::WriteOnly));
+        fail.close();
+        QVERIFY(file.write("ada", {game("12", "Zoo Tycoon")}));
+        QCOMPARE(file.read("ada"), QList<QJsonObject>({game("12", "Zoo Tycoon")}));
+        QCOMPARE(calls().size(), 3);
+    }
+
     // A folder that is not root's own plain folder is never written in.
     void refusesAFolderItCannotTrust() {
         QVERIFY(QDir().mkpath(QDir(m_temporary.path()).filePath("elsewhere")));

@@ -50,8 +50,12 @@ bool ChildGamesFile::write(const QString& login, const QList<QJsonObject>& entri
     }
     // A file renamed into place keeps the label of the file it was written
     // as, so it is labelled again for the folder, as the menu entries are.
-    return written == ReadableFile::Written::Unchanged || !QFileInfo(m_restorecon).isExecutable() ||
-           SystemTool::run(m_restorecon, {target});
+    // The new list is in place by now, so a relabel that fails still counts
+    // as written: the child's tiles follow the new list either way.
+    if (written == ReadableFile::Written::Changed && QFileInfo(m_restorecon).isExecutable()) {
+        SystemTool::run(m_restorecon, {target});
+    }
+    return true;
 }
 
 // lstat, not stat, so a link put in the folder's place is seen as a link.

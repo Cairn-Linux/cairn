@@ -24,7 +24,8 @@ public:
 
     // Makes the folder when it is missing. False, with nothing written, when
     // the folder is a link, not a folder, not the owner's, or open to others
-    // for writing.
+    // for writing, or the file cannot be put in place. True once the new
+    // list is in place, even when labelling it fails.
     bool write(const QString& login, const QList<QJsonObject>& entries) const;
 
 private:
