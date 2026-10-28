@@ -6,6 +6,8 @@ bullet of the Decision.
 **Date:** 2026-10-12; rewritten 2026-10-13
 **Closes:** (none) — addresses #130 and #24's question of where game tiles
 live; once accepted, amends ADR-0024
+**Amended by:** ADR-0041, proposed (on the image a child gets copies of
+the games on their own list, not of every game)
 
 ## Context
 

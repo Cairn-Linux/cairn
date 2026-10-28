@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
 """Copies each game in the shared Steam library into this account's own
-Steam library, by reflink (ADR-0033).
+Steam library, by reflink (ADR-0033), or only the games a list names
+(ADR-0041).
 
 Provisioning runs it as each child, never as root, through the visit
-helper's copy mode (`cairn-steam-visit --copy-games CHILD`), with the child
-logged out and listed so that they cannot log in meanwhile. It is installed
+helper's copy mode (`cairn-steam-visit --copy-games CHILD --all`), with
+the child logged out and listed so that they cannot log in meanwhile. It is installed
 as /usr/local/libexec/cairn/cairn-copy-games beside kidscan.py and run with
 `python3 -I`, which keeps the child's files off Python's path, so it finds
 kidscan's VDF parser by its own folder.
+
+With `--only APPID...` it copies only those games: one child's own list.
+Without it, it copies every game in the shared library, which provisioning
+on the kids' laptop still relies on. An appid that is not a plain number
+stops it before anything changes.
 
 It prints only these lines, one per game or condition, made of fixed words
 and appids, so nothing from the child's home reaches the Guardian's
@@ -16,7 +22,9 @@ terminal. Provisioning turns them into sentences of its own.
 
     copied APPID           the game is now in the child's library
     have APPID             the child has it already, and nothing changed
-    skipped APPID REASON   left out, for one of the reasons below
+    skipped APPID REASON   left out; REASON is one word, such as
+                           not-installed or downloading, or not-shared
+                           when a listed game is not in the shared library
     unnumbered             a manifest whose file name has no appid
     no-library             the child's Steam has not run yet
     no-shared              there is no shared library
@@ -25,6 +33,8 @@ terminal. Provisioning turns them into sentences of its own.
                            file of a sensible size, so nothing is copied
     no-reflink             the disk cannot reflink, so nothing is copied
     refused root           it was run as root, and did nothing
+    refused appid          a listed appid was not a plain number, and it
+                           did nothing
 
 It exits 0 when it did what it could; a game left out is not a failure.
 """
@@ -290,14 +300,28 @@ def copy_game(appid, data, manifest, installdir, shared, library):
     return None
 
 
-def copy_games(shared, library):
+def manifests(shared, only):
+    """Each game to look at, as (appid, manifest path), in appid order for a
+    list and file name order for the whole shared library. A listed game
+    whose manifest is missing still comes, so that it can be reported."""
+    if only is not None:
+        return [(appid, shared / f"appmanifest_{appid}.acf") for appid in sorted(only, key=int)]
+    found = []
+    for manifest in sorted(shared.glob("appmanifest_*.acf")):
+        found.append((manifest.name.removeprefix("appmanifest_").removesuffix(".acf"), manifest))
+    return found
+
+
+def copy_games(shared, library, only=None):
     (library / "common").mkdir(mode=0o755, exist_ok=True)
     remove_leftovers(library)
     reflink = None
-    for manifest in sorted(shared.glob("appmanifest_*.acf")):
-        appid = manifest.name.removeprefix("appmanifest_").removesuffix(".acf")
+    for appid, manifest in manifests(shared, only):
         if not kidscan.APPID.fullmatch(appid):
             say("unnumbered")
+            continue
+        if only is not None and not os.path.lexists(manifest):
+            say("skipped", appid, "not-shared")
             continue
         try:
             data = read_manifest(manifest)
@@ -329,7 +353,16 @@ def main(argv=None):
     # Only the tests move these; provisioning passes nothing.
     parser.add_argument("--shared", type=Path, default=SHARED, help=argparse.SUPPRESS)
     parser.add_argument("--library", type=Path, default=None, help=argparse.SUPPRESS)
+    parser.add_argument("--only", nargs="+", metavar="APPID", help="copy only these games")
     args = parser.parse_args(argv)
+
+    # Checked first, so that a list with one bad appid changes nothing.
+    only = None
+    if args.only is not None:
+        if not all(kidscan.APPID.fullmatch(appid) for appid in args.only):
+            say("refused", "appid")
+            return 2
+        only = set(args.only)
 
     # As root a link planted in a child's home could send a write anywhere.
     if os.geteuid() == 0 or os.getuid() == 0:
@@ -348,7 +381,7 @@ def main(argv=None):
     if listed is not None:
         say(listed)
         return 0
-    copy_games(args.shared, library)
+    copy_games(args.shared, library, only)
     return 0
 
 

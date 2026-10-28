@@ -22,7 +22,14 @@
 # Provisioning, as root and never through pkexec, uses the same list to copy
 # the shared games into a child's own Steam library (ADR-0033):
 #
-#   /usr/local/libexec/cairn/cairn-steam-visit --copy-games CHILD
+#   /usr/local/libexec/cairn/cairn-steam-visit --copy-games CHILD --all
+#   /usr/local/libexec/cairn/cairn-steam-visit --copy-games CHILD [APPID...]
+#
+# "--all" copies every game in the shared library, as the kids' laptop still
+# does. Appids copy only those games, the child's own list (ADR-0041), and
+# no appids copy nothing, so an empty list never means every game. An appid
+# that is not a plain number, "--all" among them, is refused with
+# "refused appid".
 #
 # It says "waiting" as a visit does, then passes on only the copy program's
 # own lines ("copied APPID", "skipped APPID REASON", ...; see
@@ -77,6 +84,11 @@ say() {
 # One line in the journal for a grown-up to read later (#85).
 note() {
     logger --tag cairn-steam-visit -- "$1" || true
+}
+
+# Steam's appids, in the one form kidscan accepts: no sign, no leading 0.
+is_appid() {
+    [[ "$1" =~ ^[1-9][0-9]{0,9}$ ]]
 }
 
 refuse() {
@@ -312,7 +324,8 @@ is_copy_line() {
 # so it goes nowhere. The trace is off while its lines are read, because it
 # would print each line before it is checked.
 run_copy() {
-    local home line status=0
+    local home line status=0 only=()
+    [ "$#" -eq 0 ] || only=(--only "$@")
     home="$(getent passwd "$child" | cut -d: -f6)"
     # Provisioning runs from a checkout in the Guardian's own home, which
     # the child cannot open.
@@ -320,7 +333,7 @@ run_copy() {
     { set +x; } 2> /dev/null
     setpriv --reuid="$child_uid" --regid="$(id -g -- "$child")" --init-groups \
         env -i HOME="$home" USER="$child" LOGNAME="$child" PATH=/usr/bin:/bin \
-        "$PYTHON" -I "$COPY_GAMES" < /dev/null 2> /dev/null |
+        "$PYTHON" -I "$COPY_GAMES" "${only[@]}" < /dev/null 2> /dev/null |
         while IFS= read -r line; do
             is_copy_line "$line" || continue
             say "$line"
@@ -331,15 +344,33 @@ run_copy() {
 }
 
 # Provisioning's copy of the shared games into one child's library
-# (ADR-0033). It takes the list a visit takes, so the child cannot log in
-# and no visit opens until it ends.
+# (ADR-0033), or of the games on their own list (ADR-0041). It takes the
+# list a visit takes, so the child cannot log in and no visit opens until it
+# ends.
 copy_games() {
     copying=yes
-    [ "$#" -eq 1 ] || refuse usage
+    [ "$#" -ge 1 ] || refuse usage
     # A visit's polkit action must not become a way to start copies.
     [ -z "${PKEXEC_UID:-}" ] || refuse not-for-pkexec
     [ "$(id -u)" = 0 ] || refuse not-root
     take_child "$1"
+    shift
+    # Every game only when asked for by name, so that an empty list can
+    # never become every game.
+    local every=no appid
+    if [ "$#" -eq 1 ] && [ "$1" = --all ]; then
+        every=yes
+        shift
+    fi
+    # Every appid before anything changes, so one bad one copies nothing.
+    for appid in "$@"; do
+        is_appid "$appid" || refuse appid
+    done
+    if [ "$every" = no ] && [ "$#" -eq 0 ]; then
+        note "nothing to copy for $child: their list is empty"
+        say finished
+        exit 0
+    fi
     make_run_dir
     # The marker first, so that a visit refused by the list says why.
     (set -o noclobber && echo "$child" > "$COPYING") 2> /dev/null || refuse busy
@@ -349,7 +380,7 @@ copy_games() {
     check_list
     wait_for_logout
     note "copying $child's games"
-    if run_copy; then
+    if run_copy "$@"; then
         note "finished copying $child's games"
         say finished
     else

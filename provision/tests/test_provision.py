@@ -549,7 +549,7 @@ class SharedLibraryTest(unittest.TestCase):
 # A stand-in for the visit helper's copy mode: each child's lines come from
 # the scenario, and so does how it ends.
 COPY_HELPER = r"""#!/bin/bash
-[ "$1" = --copy-games ] || exit 2
+[ "$1" = --copy-games ] && [ "$3" = --all ] && [ "$#" -eq 3 ] || exit 2
 touch "$STATE/$2-ran"
 cat "$STATE/$2-says" 2> /dev/null
 exit "$(cat "$STATE/$2-status" 2> /dev/null || echo 0)"

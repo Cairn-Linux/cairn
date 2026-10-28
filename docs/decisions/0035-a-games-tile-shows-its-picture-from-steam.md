@@ -7,6 +7,8 @@ which game it is.
 **Date:** 2026-10-19
 **Closes:** DESIGN §14 Q3, for games only — addresses #138; once
 accepted, amends ADR-0024 (how a games tile looks)
+**Amended by:** ADR-0041, proposed (pictures are also remade when a
+Guardian saves a child's games)
 
 ## Context
 
