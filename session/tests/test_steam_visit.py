@@ -182,14 +182,16 @@ class Scenario:
     def unflag(self, name):
         (self.state / name).unlink(missing_ok=True)
 
-    def run(self, child="ada", stdin="done\n", keep_stdin_open=False, signal_after_open=None, copy=False):
+    def run(self, child="ada", stdin="done\n", keep_stdin_open=False, signal_after_open=None, copy=False,
+            appids=()):
         """Run the helper once. With keep_stdin_open, nothing is written and
         stdin stays open until the helper ends by itself. With
         signal_after_open, that signal is sent once it says "open". With
-        copy, it runs as provisioning's copy of the games."""
+        copy, it runs as provisioning's copy of the games, of only `appids`
+        when there are any."""
         for name in ("calls", "terminated"):
             self.unflag(name)
-        arguments = ["--copy-games", child] if copy else [child]
+        arguments = ["--copy-games", child, *appids] if copy else [child]
         with open(self.state / "trace", "w") as trace:
             process = subprocess.Popen(
                 ["bash", "-c", RUN, "cairn-steam-visit", *arguments],
@@ -498,6 +500,48 @@ class SteamVisitTest(unittest.TestCase):
         )
         self.assertFalse(run.called("systemd-run"), "no visit")
         self.assertFalse(run.called("loginctl terminate-user"), "nobody is logged out")
+
+    def test_a_copy_of_a_childs_list_passes_the_appids_on(self):
+        run = self.copy(appids=("620", "294690"))
+        self.assertEqual(run.said, ["finished"])
+        [call] = run.called("setpriv")
+        self.assertTrue(
+            call.endswith(" /usr/bin/python3 -I /usr/local/libexec/cairn/cairn-copy-games --only 620 294690"),
+            call)
+        self.assertFalse(self.scenario.visits.exists())
+        self.assertFalse(self.scenario.marker.exists())
+
+    def test_a_copy_without_appids_copies_every_game(self):
+        [call] = self.copy().called("setpriv")
+        self.assertTrue(call.endswith("/usr/local/libexec/cairn/cairn-copy-games"), call)
+
+    def test_an_appid_that_is_not_a_plain_number_copies_nothing(self):
+        for bad in ("10a", "0620", "-5", "", "620/..", "--only", "12345678901", "620 621"):
+            with self.subTest(appid=bad):
+                run = self.copy(appids=("620", bad))
+                self.assertCopyRefused(run, "appid")
+                self.assertFalse(self.scenario.visits.exists(), "the child was never listed")
+
+    def test_a_list_is_never_copied_through_pkexec(self):
+        run = self.scenario.run(copy=True, appids=("620",))
+        self.assertCopyRefused(run, "not-for-pkexec")
+        self.assertFalse(self.scenario.visits.exists())
+
+    def test_a_list_is_refused_while_the_child_is_logged_in(self):
+        self.scenario.set("child-sessions", "c2")
+        self.scenario.set("session-class", "user")
+        self.scenario.set("session-service", "sddm")
+        self.assertCopyRefused(self.copy(appids=("620",)), "logged-in")
+        self.assertFalse(self.scenario.visits.exists())
+
+    def test_a_list_is_refused_during_a_visit(self):
+        self.scenario.visits.write_text("ben\n")
+        self.assertCopyRefused(self.copy(appids=("620",)), "busy")
+
+    def test_a_copy_needs_a_child(self):
+        run = self.copy(child="")
+        self.assertEqual(run.code, 1)
+        self.assertFalse(run.called("setpriv"))
 
     def test_only_the_copy_programs_own_lines_are_passed_on(self):
         self.scenario.set("copy-says", "\n".join([

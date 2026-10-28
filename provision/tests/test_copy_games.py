@@ -122,11 +122,11 @@ class Machine:
             path.chmod(mode)
         return folder
 
-    def run(self):
+    def run(self, *arguments):
         # A run that blocks fails the test rather than hanging it.
         done = subprocess.run(
             [sys.executable, "-I", str(self.libexec / "cairn-copy-games"),
-             "--shared", str(self.shared), "--library", str(self.library)],
+             "--shared", str(self.shared), "--library", str(self.library), *arguments],
             stdin=subprocess.DEVNULL,
             capture_output=True,
             text=True,
@@ -407,6 +407,14 @@ class CopyTest(CopyTestCase):
         self.assertEqual(self.machine.run(), ["have 100"])
 
     @needs_reflink
+    def test_a_list_copies_only_its_games(self):
+        self.machine.add_game(100, "First")
+        self.machine.add_game(200, "Second")
+        self.assertEqual(self.machine.run("--only", "200"), ["copied 200"], self.machine.stderr)
+        self.assertEqual(sorted(p.name for p in (self.machine.library / "common").iterdir()), ["Second"])
+        self.assertEqual(self.machine.run("--only", "100", "200"), ["copied 100", "have 200"])
+
+    @needs_reflink
     def test_not_the_shared_folders_setgid_or_acl(self):
         source = self.machine.add_game(100)
         source.chmod(0o2775)
@@ -579,6 +587,100 @@ class CopyTest(CopyTestCase):
         for line in lines:
             for word in ("Pajama", "Spy", "Freddi", "ada", str(self.machine.root)):
                 self.assertNotIn(word, line)
+
+
+class OneChildsListTest(CopyTestCase):
+    """--only: the games on one child's own list (ADR-0041). Copies use a
+    stand-in for cp, so these run on any filesystem."""
+
+    def run_listed(self, *appids):
+        module = self.machine.load()
+        with mock.patch.object(module, "reflink_copy", CopyTest.copy_tree):
+            return module, self.machine.run_in_process(module, "--only", *appids)
+
+    def games(self):
+        return sorted(p.name for p in (self.machine.library / "common").iterdir())
+
+    def test_only_the_listed_games_are_copied(self):
+        self.machine.add_game(100, "First")
+        self.machine.add_game(200, "Second")
+        self.machine.add_game(300, "Third")
+        _, (code, lines) = self.run_listed("300", "100")
+        self.assertEqual((code, lines), (0, ["copied 100", "copied 300"]))
+        self.assertEqual(self.games(), ["First", "Third"])
+        self.assertFalse((self.machine.library / "appmanifest_200.acf").exists())
+
+    def test_a_listed_game_twice_is_one_game(self):
+        self.machine.add_game(100)
+        _, (code, lines) = self.run_listed("100", "100")
+        self.assertEqual((code, lines), (0, ["copied 100"]))
+
+    def test_a_listed_game_not_in_the_shared_library_is_reported(self):
+        self.machine.add_game(100)
+        _, (code, lines) = self.run_listed("100", "555")
+        self.assertEqual((code, lines), (0, ["copied 100", "skipped 555 not-shared"]))
+        self.assertOnlyGrammar(lines)
+
+    def test_a_listed_game_is_left_out_for_the_same_reasons(self):
+        self.machine.add_game(100, data=manifest(100, flags="6"))
+        self.machine.add_game(200, "Second", data=manifest(999, "Second"))
+        _, (code, lines) = self.run_listed("100", "200")
+        self.assertEqual((code, lines), (0, ["skipped 100 not-installed", "skipped 200 appid"]))
+        self.assertEqual(self.games(), [])
+
+    def test_a_listed_game_the_child_has_is_never_touched(self):
+        self.machine.add_game(100)
+        own = self.machine.library / "appmanifest_100.acf"
+        own.write_bytes(b"the child's own\n")
+        _, (code, lines) = self.run_listed("100")
+        self.assertEqual((code, lines), (0, ["have 100"]))
+        self.assertEqual(own.read_bytes(), b"the child's own\n")
+
+    def test_a_game_off_the_list_is_never_deleted(self):
+        # Taking a game off a child's list keeps their copy and saves.
+        self.machine.add_game(100, "First")
+        self.machine.add_game(200, "Second")
+        kept = self.machine.library / "common" / "Second" / "Saves" / "save1"
+        kept.parent.mkdir(parents=True)
+        kept.write_bytes(b"mine")
+        (self.machine.library / "appmanifest_200.acf").write_bytes(manifest(200, "Second"))
+        _, (code, lines) = self.run_listed("100")
+        self.assertEqual((code, lines), (0, ["copied 100"]))
+        self.assertEqual(kept.read_bytes(), b"mine")
+        self.assertTrue((self.machine.library / "appmanifest_200.acf").exists())
+
+    def test_an_appid_that_is_not_a_plain_number_changes_nothing(self):
+        self.machine.add_game(100)
+        leftover = self.machine.library / "common" / ".cairn-copy-100"
+        leftover.mkdir()
+        for bad in ("10a", "0100", "-5", "", " 100", "100/..", "../100", "12345678901", "١٢"):
+            with self.subTest(appid=bad):
+                lines = self.machine.run("--only", "100", bad)
+                self.assertEqual((self.machine.code, lines), (2, ["refused appid"]))
+                self.assertEqual(self.games(), [".cairn-copy-100"], "not even its leftovers go")
+
+    def test_an_empty_list_is_a_mistake_not_every_game(self):
+        self.machine.add_game(100)
+        lines = self.machine.run("--only")
+        self.assertEqual(lines, [])
+        self.assertEqual(self.machine.code, 2)
+        self.assertEqual(self.games(), [])
+
+    def test_no_list_still_copies_every_game(self):
+        self.machine.add_game(100, "First")
+        self.machine.add_game(200, "Second")
+        module = self.machine.load()
+        with mock.patch.object(module, "reflink_copy", CopyTest.copy_tree):
+            code, lines = self.machine.run_in_process(module)
+        self.assertEqual((code, lines), (0, ["copied 100", "copied 200"]))
+
+    def test_a_list_still_refuses_root(self):
+        self.machine.add_game(100)
+        module = self.machine.load()
+        with mock.patch.object(module.os, "geteuid", return_value=0):
+            code, lines = self.machine.run_in_process(module, "--only", "100")
+        self.assertEqual((code, lines), (2, ["refused root"]))
+        self.assertEqual(self.games(), [])
 
 
 class NoReflinkTest(unittest.TestCase):
