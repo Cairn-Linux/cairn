@@ -5,8 +5,8 @@ Steam library, by reflink (ADR-0033), or only the games a list names
 (ADR-0041).
 
 Provisioning runs it as each child, never as root, through the visit
-helper's copy mode (`cairn-steam-visit --copy-games CHILD`), with the child
-logged out and listed so that they cannot log in meanwhile. It is installed
+helper's copy mode (`cairn-steam-visit --copy-games CHILD --all`), with
+the child logged out and listed so that they cannot log in meanwhile. It is installed
 as /usr/local/libexec/cairn/cairn-copy-games beside kidscan.py and run with
 `python3 -I`, which keeps the child's files off Python's path, so it finds
 kidscan's VDF parser by its own folder.

@@ -65,7 +65,7 @@ What is here:
   Guardian can also run it from a terminal in their own session:
   `pkexec /usr/local/libexec/cairn/cairn-steam-visit CHILD`, then type
   `done`. Provisioning, as root and never through `pkexec`, runs its
-  second mode, `--copy-games CHILD`, which takes the same list, runs
+  second mode, `--copy-games CHILD --all`, which takes the same list, runs
   `../provision/cairn-copy-games.py` as the child, and passes on only that
   program's fixed lines (ADR-0033). It notes each line but `have`, and why
   a copy was refused or failed, in the journal. A visit tried meanwhile is

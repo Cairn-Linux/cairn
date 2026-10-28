@@ -371,7 +371,8 @@ done, and what could sink it. Decisions that change the design get an ADR in
   reinstalled from the image. Before levels 3 and 4 ship (#107), a child
   must be kept from games off their list in the shared folder. Step 1 is
   in: `cairn-copy-games --only` and `cairn-steam-visit --copy-games
-  CHILD [APPID...]` copy only the listed games.
+  CHILD [APPID...]` copy only the listed games, an empty list copies
+  nothing, and provisioning asks for every game with `--all`.
 - **Give-up spares Steam's interface again (2026-10-01, #117).** A Steam
   update moved Steam's own interface into a sandbox called `srt-bwrap`,
   which the give-up key's `bwrap` match caught. Flatpak's sandbox is now

@@ -22,11 +22,14 @@
 # Provisioning, as root and never through pkexec, uses the same list to copy
 # the shared games into a child's own Steam library (ADR-0033):
 #
+#   /usr/local/libexec/cairn/cairn-steam-visit --copy-games CHILD --all
 #   /usr/local/libexec/cairn/cairn-steam-visit --copy-games CHILD [APPID...]
 #
-# With appids it copies only those games, the child's own list (ADR-0041);
-# without, every game in the shared library, as the kids' laptop still does.
-# An appid that is not a plain number is refused with "refused appid".
+# "--all" copies every game in the shared library, as the kids' laptop still
+# does. Appids copy only those games, the child's own list (ADR-0041), and
+# no appids copy nothing, so an empty list never means every game. An appid
+# that is not a plain number, "--all" among them, is refused with
+# "refused appid".
 #
 # It says "waiting" as a visit does, then passes on only the copy program's
 # own lines ("copied APPID", "skipped APPID REASON", ...; see
@@ -352,11 +355,22 @@ copy_games() {
     [ "$(id -u)" = 0 ] || refuse not-root
     take_child "$1"
     shift
+    # Every game only when asked for by name, so that an empty list can
+    # never become every game.
+    local every=no appid
+    if [ "$#" -eq 1 ] && [ "$1" = --all ]; then
+        every=yes
+        shift
+    fi
     # Every appid before anything changes, so one bad one copies nothing.
-    local appid
     for appid in "$@"; do
         is_appid "$appid" || refuse appid
     done
+    if [ "$every" = no ] && [ "$#" -eq 0 ]; then
+        note "nothing to copy for $child: their list is empty"
+        say finished
+        exit 0
+    fi
     make_run_dir
     # The marker first, so that a visit refused by the list says why.
     (set -o noclobber && echo "$child" > "$COPYING") 2> /dev/null || refuse busy

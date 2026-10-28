@@ -7,7 +7,9 @@ the checks under Consequences in the VM.
 step-in to #88; once accepted, amends ADR-0017 (cage is used for a visit's
 window)
 **Amended by:** ADR-0041, proposed (the parent's list of each child's
-games replaces "no separate tick")
+games replaces "no separate tick", and the planned amendment of ADR-0004
+under "What comes later" is withdrawn: the Guardian's per-child game
+allowlist stays)
 
 ## Context
 

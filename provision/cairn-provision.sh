@@ -853,7 +853,7 @@ copy_games() {
             if [[ "$line" =~ ^(finished|failed|refused\ [a-z-]{1,32})$ ]]; then
                 ended=yes
             fi
-        done < <("$PREFIX/libexec/cairn/cairn-steam-visit" --copy-games "$child" < /dev/null 2> /dev/null || true)
+        done < <("$PREFIX/libexec/cairn/cairn-steam-visit" --copy-games "$child" --all < /dev/null 2> /dev/null || true)
         if [ "$ended" = no ]; then
             echo "note: copying $child's games stopped without saying why; it is tried again at the next run, and journalctl -t cairn-steam-visit may have a record"
         fi

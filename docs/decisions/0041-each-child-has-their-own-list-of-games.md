@@ -63,7 +63,11 @@ games on their list.**
   `cairn-steam-visit --copy-games CHILD APPID...`, under the visit lock,
   which keeps the child from logging in while it runs.
   `cairn-copy-games --only APPID...` copies only the listed games.
-  Without a list both still copy every shared game.
+  Every shared game takes its own word,
+  `cairn-steam-visit --copy-games CHILD --all`, which provisioning
+  passes.
+  An empty list copies nothing, so a child with no games never gets
+  every game by a caller passing an empty list.
 - A listed game that is not in the shared folder is reported as
   `skipped APPID not-shared`, and the rest go ahead.
   An appid that is not a plain number is refused before anything
@@ -97,7 +101,8 @@ It moves to per-child lists when it is reinstalled from the image.
 
 1. **Copies follow a list.**
    `cairn-copy-games --only` and `cairn-steam-visit --copy-games CHILD
-   [APPID...]`, with tests.
+   [APPID...]`, where no appids copy nothing and `--all` copies every
+   game, with tests.
    The change at the trust boundary lands alone.
 2. **`cairn-family save-games`, the root side.**
    The visit helper's pkexec guard changes openly to admit
@@ -126,6 +131,9 @@ It moves to per-child lists when it is reinstalled from the image.
   is dropped on the image.
 - **ADR-0032** is amended: its "no separate tick" is replaced by the
   parent's list.
+  Its planned ADR that would let Steam Family's allow-list take the
+  place of ADR-0004's per-child game allowlist is withdrawn: the
+  parent's list is that allowlist, and ADR-0004 and DESIGN §3.2 stand.
   Steam Family's allow-list still applies on top when each child has
   their own Steam account.
   A listed game the child's Steam account cannot play ends on the
@@ -136,7 +144,7 @@ It moves to per-child lists when it is reinstalled from the image.
   own answer lines and refusal words.
 - **ADR-0040** is amended: the Games page goes beside Children, with a
   way to move between them.
-- **Known limit at L1 and L2 only.** The shared folder is readable by
+- **Known limit: the list holds only at L1 and L2.** The shared folder is readable by
   every account, and children keep copies of games taken off their list.
   At L1 and L2 a child reaches games only through their tiles, so the
   list holds.
