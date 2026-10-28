@@ -6,6 +6,8 @@ the checks under Consequences in the VM.
 **Closes:** (none) — addresses issue #131 and leaves the in-session
 step-in to #88; once accepted, amends ADR-0017 (cage is used for a visit's
 window)
+**Amended by:** ADR-0041, proposed (the parent's list of each child's
+games replaces "no separate tick")
 
 ## Context
 

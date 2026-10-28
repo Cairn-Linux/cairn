@@ -182,7 +182,7 @@ locked icon, nothing to probe.
 | Permissions | Per-child app allowlist, game allowlist, browser access |
 | Time | Schedules and daily limits |
 | System | OS updates and rollback (§10), Wi-Fi, printers |
-| Games | Run the scanner, assign categories, manage tiles (§8.7) |
+| Games | Run the scanner, choose each child's own games (ADR-0041), assign categories, manage tiles (§8.7) |
 | Data | Reset a child account; export creations (§11) |
 
 #### Two access paths

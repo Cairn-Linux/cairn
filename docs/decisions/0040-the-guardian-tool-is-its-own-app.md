@@ -7,6 +7,7 @@ run the program, so `TryExec` keeps "Family" out of any menu of theirs.
 The names `cairn-guardian` and "Family" are now the program's names.
 **Date:** 2026-10-23
 **Closes:** (none) — the second slice of issue #167; part of ROADMAP P1-5
+**Amended by:** ADR-0041, proposed (a Games page beside Children)
 
 ## Context
 

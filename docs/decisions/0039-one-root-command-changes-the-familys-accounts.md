@@ -7,6 +7,8 @@ desktop: a cancelled prompt changed nothing, then the password moved a
 child to level 1 and added another at level 1.
 **Date:** 2026-10-22
 **Closes:** (none) — the first slice of issue #167; part of ROADMAP P1-5
+**Amended by:** ADR-0041, proposed (a `save-games` subcommand, with
+answer lines of its own)
 
 ## Context
 
