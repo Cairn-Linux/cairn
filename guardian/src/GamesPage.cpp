@@ -41,6 +41,7 @@ QVariantList GamesPage::games() const {
             {QStringLiteral("title"), game.title},
             {QStringLiteral("picture"), game.picture},
             {QStringLiteral("onList"), game.onList},
+            {QStringLiteral("shared"), game.shared},
         });
     }
     return games;
@@ -60,6 +61,14 @@ GamesPage::List GamesPage::list() const {
 
 int GamesPage::onListCount() const {
     return m_shelf.onListCount();
+}
+
+int GamesPage::sharedCount() const {
+    return m_shelf.sharedCount();
+}
+
+int GamesPage::goneCount() const {
+    return static_cast<int>(m_shelf.games().size()) - m_shelf.sharedCount();
 }
 
 QString GamesPage::steamNotOpened() const {
@@ -82,6 +91,12 @@ void GamesPage::openSteam(const QString& login) {
         return;
     }
     const bool started = m_setup.start(m_setup.steamFor, {login});
+    if (!started) {
+        // The page sends the parent to this line in the system log.
+        qWarning("cairn-guardian: %s could not be started for %s, so its Steam window did not "
+                 "open.",
+                 qUtf8Printable(m_setup.steamFor), qUtf8Printable(login));
+    }
     m_steamNotOpened = started ? QString() : picked->name;
     emit changed();
 }

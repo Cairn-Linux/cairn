@@ -8,12 +8,14 @@ import Cairn.Brand
 Rectangle {
     id: card
 
-    // appId, title, picture and onList, from GamesPage.games.
+    // appId, title, picture, onList and shared, from GamesPage.games.
     required property var game
     // The name of the child whose list this is.
     required property string childName
 
     readonly property bool onList: card.game.onList === true
+    // False for a game on the list that the shared folder no longer has.
+    readonly property bool shared: card.game.shared !== false
 
     height: picture.height + words.implicitHeight + Tokens.bodySize * 2
     radius: Tokens.radiusSm
@@ -23,7 +25,7 @@ Rectangle {
 
     Accessible.role: Accessible.ListItem
     Accessible.name: card.game.title
-    Accessible.description: card.onList ? qsTr("On %1's list").arg(card.childName) : qsTr("Not on %1's list").arg(card.childName)
+    Accessible.description: !card.shared ? qsTr("On %1's list, no longer in the shared folder").arg(card.childName) : card.onList ? qsTr("On %1's list").arg(card.childName) : qsTr("Not on %1's list").arg(card.childName)
 
     // A Steam header is about twice as wide as it is tall. A game without a
     // picture, or one that cannot be drawn, shows a plain pebble instead,
@@ -80,8 +82,8 @@ Rectangle {
         Text {
             objectName: "onListLabel"
             width: parent.width
-            elide: Text.ElideRight
-            text: card.onList ? qsTr("On the list") : qsTr("Not on the list")
+            wrapMode: Text.WordWrap
+            text: !card.shared ? qsTr("On the list, no longer shared") : card.onList ? qsTr("On the list") : qsTr("Not on the list")
             font.family: Tokens.fontFamily
             font.pixelSize: Tokens.minGuardian
             color: Tokens.paperLabel

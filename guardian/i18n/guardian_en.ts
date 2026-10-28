@@ -87,7 +87,7 @@
     </message>
     <message>
         <location filename="../qml/ChildrenView.qml" line="35"/>
-        <source>%1 can log in now, at level %2. The Games page shows the games on %1&apos;s list.</source>
+        <source>%1 can log in now, at level %2. The Games page shows %1&apos;s list. For now, the family set-up script gives %1 their games.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -202,85 +202,100 @@
 <context>
     <name>GameCard</name>
     <message>
-        <location filename="../qml/GameCard.qml" line="26"/>
+        <location filename="../qml/GameCard.qml" line="28"/>
         <source>On %1&apos;s list</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GameCard.qml" line="26"/>
+        <location filename="../qml/GameCard.qml" line="28"/>
         <source>Not on %1&apos;s list</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GameCard.qml" line="84"/>
+        <location filename="../qml/GameCard.qml" line="28"/>
+        <source>On %1&apos;s list, no longer in the shared folder</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/GameCard.qml" line="86"/>
         <source>On the list</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GameCard.qml" line="84"/>
+        <location filename="../qml/GameCard.qml" line="86"/>
         <source>Not on the list</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/GameCard.qml" line="86"/>
+        <source>On the list, no longer shared</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
     <name>GamesView</name>
     <message>
-        <location filename="../qml/GamesView.qml" line="37"/>
-        <source>%1&apos;s list of games could not be read, so it counts as a list with no games.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/GamesView.qml" line="39"/>
+        <location filename="../qml/GamesView.qml" line="40"/>
         <source>%1 has no games on their list yet.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="40"/>
-        <source>Games on %1&apos;s list: %2 of %3. They are highlighted.</source>
+        <location filename="../qml/GamesView.qml" line="38"/>
+        <source>%1&apos;s list of games could not be read, so it counts as a list with no games. The file is /var/lib/cairn/games/%2.json. Saving %1&apos;s games on this page, in a later version of Cairn, writes it again. Until then this changes nothing for %1.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="47"/>
+        <location filename="../qml/GamesView.qml" line="41"/>
+        <source>Games on %1&apos;s list: %2. They are highlighted.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/GamesView.qml" line="44"/>
+        <source>The ones no longer in the shared folder come last. %1&apos;s own copy may still play them.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/GamesView.qml" line="51"/>
         <source>Games</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="58"/>
+        <location filename="../qml/GamesView.qml" line="62"/>
         <source>Each child has their own list of the games in the shared folder. A new child starts with none.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="63"/>
+        <location filename="../qml/GamesView.qml" line="67"/>
         <source>This page only shows each child&apos;s list for now. Changing it here comes in a later version of Cairn. Until then, every child still gets a tile for every game the family set-up script copies to them.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="69"/>
+        <location filename="../qml/GamesView.qml" line="73"/>
         <source>No children yet. Add one on the Children page, then come back here for their games.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="75"/>
+        <location filename="../qml/GamesView.qml" line="79"/>
         <source>No games in the shared folder yet. To add one, install it from your own Steam into the folder /var/lib/cairn/steam-library. If Steam&apos;s install dialog does not offer that folder, add it first in Steam&apos;s Settings, under Storage. A game shows here after the family set-up script has run again.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="85"/>
+        <location filename="../qml/GamesView.qml" line="89"/>
         <source>Whose games to show</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="106"/>
+        <location filename="../qml/GamesView.qml" line="110"/>
         <source>Open Steam for %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="113"/>
-        <source>The Steam window for %1 did not open. The reason is in the system log. In a terminal: journalctl -t cairn-guardian</source>
+        <location filename="../qml/GamesView.qml" line="117"/>
+        <source>The Steam window for %1 did not open. The reason is in the system log. In a terminal: journalctl -t cairn-guardian -t cairn-steam-for</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="136"/>
+        <location filename="../qml/GamesView.qml" line="140"/>
         <source>Games in the shared folder</source>
         <translation type="unfinished"></translation>
     </message>

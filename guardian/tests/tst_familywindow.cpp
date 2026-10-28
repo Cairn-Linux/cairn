@@ -89,8 +89,9 @@ public:
 
     // The window's GamesPage over files of its own: eight shared games,
     // each with a picture but the last, Ada with three on her list, Ben
-    // with none and Cy with one. Its Steam window start answers as
-    // `steamStarts` says, and is written down in startedSteam().
+    // with none and Cy with two, one of them no longer shared. Its Steam
+    // window start answers as `steamStarts` says, and is written down in
+    // startedSteam().
     Q_INVOKABLE GamesPage* gamesPage(bool withChildren, bool withGames, bool steamStarts = true) {
         const QDir files(m_files.path());
         QJsonArray shared;
@@ -120,7 +121,11 @@ public:
         QJsonArray cy;
         if (!shared.isEmpty()) {
             ada = {shared.at(0), shared.at(2), shared.at(3)};
-            cy = {shared.at(5)};
+            // One game on Cy's list that the shared folder no longer has.
+            cy = {shared.at(5), QJsonObject{{"id", "steam-2001"},
+                                            {"title", "Humongous Bowling"},
+                                            {"category", "games"},
+                                            {"exec", QJsonArray{"steam", "-applaunch", "2001"}}}};
         }
         writeFile(files.filePath("games/ada.json"), gamesFile(ada));
         writeFile(files.filePath("games/cy.json"), gamesFile(cy));

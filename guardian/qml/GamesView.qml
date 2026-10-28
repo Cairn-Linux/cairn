@@ -14,6 +14,7 @@ Column {
     required property GamesPage page
 
     readonly property bool hasChildren: view.page.listedChildren.length > 0
+    // Games to show: the shared folder's, and any left on the child's list.
     readonly property bool hasGames: view.page.games.length > 0
     readonly property string name: view.page.chosenName
 
@@ -34,10 +35,13 @@ Column {
     // What the picked child's list holds, or why it holds nothing.
     function listSentence() {
         if (view.page.list === GamesPage.Unreadable)
-            return qsTr("%1's list of games could not be read, so it counts as a list with no games.").arg(view.name);
+            return qsTr("%1's list of games could not be read, so it counts as a list with no games. The file is /var/lib/cairn/games/%2.json. Saving %1's games on this page, in a later version of Cairn, writes it again. Until then this changes nothing for %1.").arg(view.name).arg(view.page.chosen);
         if (view.page.onListCount === 0)
             return qsTr("%1 has no games on their list yet.").arg(view.name);
-        return qsTr("Games on %1's list: %2 of %3. They are highlighted.").arg(view.name).arg(view.page.onListCount).arg(view.page.games.length);
+        const listed = qsTr("Games on %1's list: %2. They are highlighted.").arg(view.name).arg(view.page.onListCount);
+        if (view.page.goneCount === 0)
+            return listed;
+        return listed + " " + qsTr("The ones no longer in the shared folder come last. %1's own copy may still play them.").arg(view.name);
     }
 
     Text {
@@ -71,7 +75,7 @@ Column {
 
     Words {
         objectName: "noGames"
-        visible: !view.hasGames
+        visible: view.page.sharedCount === 0
         text: qsTr("No games in the shared folder yet. To add one, install it from your own Steam into the folder /var/lib/cairn/steam-library. If Steam's install dialog does not offer that folder, add it first in Steam's Settings, under Storage. A game shows here after the family set-up script has run again.")
     }
 
@@ -110,7 +114,7 @@ Column {
     Words {
         objectName: "steamNotOpened"
         visible: text !== ""
-        text: view.page.steamNotOpened === "" ? "" : qsTr("The Steam window for %1 did not open. The reason is in the system log. In a terminal: journalctl -t cairn-guardian").arg(view.page.steamNotOpened)
+        text: view.page.steamNotOpened === "" ? "" : qsTr("The Steam window for %1 did not open. The reason is in the system log. In a terminal: journalctl -t cairn-guardian -t cairn-steam-for").arg(view.page.steamNotOpened)
         Accessible.role: Accessible.AlertMessage
     }
 

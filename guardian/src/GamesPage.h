@@ -32,11 +32,16 @@ class GamesPage : public QObject {
     // The login of the child picked, or "" when there are no children.
     Q_PROPERTY(QString chosen READ chosen NOTIFY changed)
     Q_PROPERTY(QString chosenName READ chosenName NOTIFY changed)
-    // Each game in the shared folder as a map: appId, title, picture (a
-    // file:// URL, or empty) and onList, for the child picked.
+    // Each game as a map: appId, title, picture (a file:// URL, or empty),
+    // onList and shared, for the child picked. The games on their list
+    // that the shared folder no longer has come last, with shared false.
     Q_PROPERTY(QVariantList games READ games NOTIFY changed)
     Q_PROPERTY(List list READ list NOTIFY changed)
     Q_PROPERTY(int onListCount READ onListCount NOTIFY changed)
+    // How many games are in the shared folder.
+    Q_PROPERTY(int sharedCount READ sharedCount NOTIFY changed)
+    // How many games on the child's list the shared folder no longer has.
+    Q_PROPERTY(int goneCount READ goneCount NOTIFY changed)
     // The name of the child whose Steam window did not start, or "".
     Q_PROPERTY(QString steamNotOpened READ steamNotOpened NOTIFY changed)
 
@@ -63,6 +68,8 @@ public:
     QVariantList games() const;
     List list() const;
     int onListCount() const;
+    int sharedCount() const;
+    int goneCount() const;
     QString steamNotOpened() const;
 
     // Picks the child whose games show. A login that is not a listed child

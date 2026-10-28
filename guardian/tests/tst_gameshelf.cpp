@@ -130,12 +130,19 @@ private slots:
         QCOMPARE(titles(shelf), QStringList({"Game one"}));
     }
 
-    // A game on the list that is no longer shared has nothing to show.
-    void aListedGameNoLongerSharedIsNotShown() {
-        write(path("ada.json"), gamesFile({game("2001", "Gone")}));
+    // A game on the list that the shared folder no longer has still gets
+    // a tile from the child's copy, so it shows, last, in the list's order.
+    void aListedGameNoLongerSharedStillShows() {
+        write(path("ada.json"), gamesFile({game("2002", "Gone two"), game("1002", "Game two"),
+                                           game("2001", "Gone one")}));
         const GameShelf shelf = GameShelf::read(m_catalogue, path("ada.json"));
-        QCOMPARE(shelf.games().size(), 3);
-        QCOMPARE(shelf.onListCount(), 0);
+        QCOMPARE(titles(shelf), QStringList({"Game one", "Game two (listed)", "Game three",
+                                             "Gone two (listed)", "Gone one (listed)"}));
+        QCOMPARE(shelf.onListCount(), 3);
+        QCOMPARE(shelf.sharedCount(), 3);
+        QVERIFY(shelf.games().at(2).shared);
+        QVERIFY(!shelf.games().at(3).shared);
+        QCOMPARE(shelf.games().at(3).appId, "2002");
     }
 
     // A title is carried as written; the page shows it as plain text.
@@ -158,8 +165,8 @@ private slots:
         QVERIFY(shelf.games().at(1).picture.isEmpty());
     }
 
-    // No shared folder list yet: no games, and the child's list is still
-    // read.
+    // No shared folder list yet: no shared games, and the child's list is
+    // still read and shown.
     void noFullListIsNoGames_data() {
         QTest::addColumn<QByteArray>("text");
         QTest::addColumn<bool>("present");
@@ -176,7 +183,9 @@ private slots:
         }
         write(path("ada.json"), gamesFile({game("1001", "Game one")}));
         const GameShelf shelf = GameShelf::read(m_catalogue, path("ada.json"));
-        QVERIFY(shelf.games().isEmpty());
+        QCOMPARE(titles(shelf), QStringList({"Game one (listed)"}));
+        QCOMPARE(shelf.sharedCount(), 0);
+        QVERIFY(!shelf.games().at(0).shared);
         QCOMPARE(shelf.list(), GameShelf::List::Read);
     }
 };

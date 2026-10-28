@@ -190,7 +190,8 @@ It moves to per-child lists when it is reinstalled from the image.
    Landed 2026-10-28: Children and Games above the page, and a Games
    page that shows, for the child picked, every game in the full games
    list with the games on the child's own list highlighted, read with
-   the launcher's rules, and "Open Steam for <child>", which starts
+   the launcher's rules, then any game on that list the shared folder
+   no longer has, and "Open Steam for <child>", which starts
    `cairn-steam-for` as the menu entries do.
    It reads both files when it is shown and changes nothing.
 4. **Highlight and Save.**

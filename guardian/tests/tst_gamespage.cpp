@@ -178,11 +178,16 @@ private slots:
         QCOMPARE(page->onListCount(), 0);
     }
 
+    // No shared games: only the games left on the child's own list show.
     void noSharedGames() {
         QVERIFY(QFile::remove(path("games.json")));
         const auto page = makePage();
+        QCOMPARE(listed(*page), QStringList({"Game two"}));
+        QCOMPARE(page->sharedCount(), 0);
+        QCOMPARE(page->goneCount(), 1);
+        page->choose("ben");
         QVERIFY(page->games().isEmpty());
-        QCOMPARE(page->chosen(), "ada");
+        QCOMPARE(page->chosen(), "ben");
     }
 
     // Reading again finds a new child and a changed list, and the child
@@ -231,11 +236,27 @@ private slots:
 
     void aSteamWindowThatDoesNotStartSaysWhose() {
         const auto page = makePage(false);
+        // The page sends the parent to this line in the system log.
+        QTest::ignoreMessage(QtWarningMsg, "cairn-guardian: /usr/bin/cairn-steam-for could not be "
+                                           "started for ben, so its Steam window did not open.");
         page->openSteam("ben");
         QCOMPARE(page->steamNotOpened(), "Ben");
         // Picking another child clears it.
         page->choose("cy");
         QCOMPARE(page->steamNotOpened(), QString());
+    }
+
+    // A game on the child's list that the shared folder no longer has is
+    // counted apart from the shared ones.
+    void aGameNoLongerSharedIsCountedApart() {
+        write(path("games/ada.json"), gamesFile({game("1002", "Game two"), game("2001", "Gone")}));
+        const auto page = makePage();
+        QCOMPARE(listed(*page), QStringList({"Game two", "Gone"}));
+        QCOMPARE(page->onListCount(), 2);
+        QCOMPARE(page->sharedCount(), 3);
+        QCOMPARE(page->goneCount(), 1);
+        QCOMPARE(page->games().last().toMap().value("shared").toBool(), false);
+        QCOMPARE(page->games().first().toMap().value("shared").toBool(), true);
     }
 
     void openSteamOnlyForAChild() {

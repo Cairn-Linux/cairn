@@ -48,10 +48,15 @@ The Games page (ADR-0041, step 3) only shows for now:
    `/var/lib/cairn/games.json`, with its picture from
    `/var/lib/cairn/game-pictures` and its title as plain text. The games
    on that child's own list, `/var/lib/cairn/games/<login>.json`, are
-   highlighted and marked "On the list". A child with no file has no
-   games, as a new child does.
+   highlighted and marked "On the list". A game on the child's list
+   that the shared folder no longer has still shows, last, marked "On
+   the list, no longer shared". A child with no file has no games, as a
+   new child does. Until step 4 the launcher still reads the full list,
+   so a child's tiles do not follow this list yet.
 3. **Open Steam for <child>** opens the same window as the "Steam for
-   <child>" menu entry, as a program of its own.
+   <child>" menu entry, as a program of its own. If it cannot be
+   started, the reason is under `-t cairn-guardian`; if it started and
+   then stopped, under `-t cairn-steam-for`.
 4. With no children, or no games in the shared folder yet, it says what
    to do instead. It reads everything again each time it is shown.
 
@@ -127,8 +132,9 @@ It answers in one line: `done`, or `refused` and one of `not-root`,
 `taken`, `not-a-child` or `failed`.
 
 `save-games` gives children their games (ADR-0041); no window runs it
-yet, though the Games page shows what it writes. Each argument is one child's whole new list, so `ben=` means no
-games, and a child not named is left alone.
+yet, though the Games page shows what it writes. Each argument is one
+child's whole new list, so `ben=` means no games, and a child not named
+is left alone.
 
 - It checks the caller, every value and that every name is a child
   Cairn made before anything changes, and holds a lock for the whole
@@ -268,5 +274,5 @@ What the stand-ins cannot show was run in the VM (`docs/research/steam-visit.md`
 - Neither `cairn-family` nor the Guardian tool has run in the VM yet.
 - The Guardian tool cannot copy Steam games to a new child yet: its
   Games page only shows each child's list, and the family set-up script
-  still copies every game (ADR-0033) until ADR-0041's step 4. Nor can it reset a child, set a
-  PIN, or make an existing account a child (#113).
+  still copies every game (ADR-0033) until ADR-0041's step 4. Nor can it
+  reset a child, set a PIN, or make an existing account a child (#113).

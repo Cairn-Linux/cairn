@@ -126,7 +126,7 @@ TestCase {
         tryCompare(findChild(window, "addButton"), "activeFocus", true);
         keyClick(Qt.Key_Return);
         tryCompare(window.page, "step", ChildrenPage.Added);
-        compare(outcome(window), "Cy can log in now, at level 2. The Games page shows the games on Cy's list.");
+        compare(outcome(window), "Cy can log in now, at level 2. The Games page shows Cy's list. For now, the family set-up script gives Cy their games.");
         // Done, so the form is empty for the next child.
         compare(nameField(window).text, "");
         compare(findChild(window, "addChildForm").level, 1);
@@ -346,7 +346,7 @@ TestCase {
         verify(choice(window, "ada").checked);
         verify(!choice(window, "ben").checked);
         compare(highlighted(window), ["Putt-Putt Joins the Parade", "Pajama Sam", "Spy Fox"]);
-        compare(findChild(window, "listSentence").text, "Games on Ada's list: 3 of 8. They are highlighted.");
+        compare(findChild(window, "listSentence").text, "Games on Ada's list: 3. They are highlighted.");
         const first = findChild(window, "gameCards").itemAt(0);
         compare(findChild(first, "onListLabel").text, "On the list");
         compare(first.Accessible.description, "On Ada's list");
@@ -371,6 +371,25 @@ TestCase {
         if (standIns.screenshotPath() !== "") {
             wait(300);
             grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-games-none.png"));
+        }
+    }
+
+    // A game on the child's list that the shared folder no longer has
+    // still shows, last, and says so.
+    function test_aGameNoLongerSharedStillShows() {
+        const window = makeWindow("done");
+        showGames(window);
+        mouseClick(choice(window, "cy"));
+        compare(findChild(window, "gameCards").count, 9);
+        compare(highlighted(window), ["Tux Racer", "Humongous Bowling"]);
+        compare(findChild(window, "listSentence").text, "Games on Cy's list: 2. They are highlighted. The ones no longer in the shared folder come last. Cy's own copy may still play them.");
+        const last = findChild(window, "gameCards").itemAt(8);
+        compare(findChild(last, "onListLabel").text, "On the list, no longer shared");
+        compare(last.Accessible.description, "On Cy's list, no longer in the shared folder");
+        verify(!findChild(window, "noGames").visible);
+        if (standIns.screenshotPath() !== "") {
+            wait(300);
+            grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-games-gone.png"));
         }
     }
 
@@ -421,6 +440,7 @@ TestCase {
         mouseClick(findChild(window, "openSteam"));
         verify(findChild(window, "steamNotOpened").visible);
         verify(findChild(window, "steamNotOpened").text.startsWith("The Steam window for Ada did not open."));
+        verify(findChild(window, "steamNotOpened").text.endsWith("journalctl -t cairn-guardian -t cairn-steam-for"));
     }
 
     function test_noGamesInTheSharedFolder() {
