@@ -1,0 +1,21 @@
+#!/bin/sh
+# SPDX-License-Identifier: Apache-2.0
+#
+# A stand-in for python3 running the picture step or kidscan, for
+# cairn-family save-games' tests. A test links it as "python" in a folder of
+# its own. It writes its arguments, one call to a line, to "python-calls"
+# there, and the environment it was given to "python-environment". The
+# picture step fails with "fail-pictures" in the folder. kidscan prints
+# "kidscan-output", and fails with status 2 with "fail-kidscan".
+here="${0%/*}"
+echo "$*" >> "$here/python-calls"
+env > "$here/python-environment"
+case "$3" in
+*/kidscan.py)
+    [ ! -e "$here/fail-kidscan" ] || exit 2
+    cat "$here/kidscan-output"
+    ;;
+*)
+    [ ! -e "$here/fail-pictures" ]
+    ;;
+esac

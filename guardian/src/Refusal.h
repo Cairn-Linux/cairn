@@ -28,6 +28,10 @@ enum class Refusal : std::uint8_t {
     NotAChild,
     // A system tool, or writing the menu entry, failed.
     Failed,
+    // save-games: an appid that is not a plain number (ADR-0041).
+    BadAppId,
+    // save-games: another Save is still running.
+    Busy,
 };
 
 QString refusalWord(Refusal refusal);

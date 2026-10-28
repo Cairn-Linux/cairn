@@ -19,11 +19,17 @@
 # /run/cairn/steam-visits, which PAM reads for the login screen and the
 # consoles (session/sddm/pam.d/sddm, session/pam.d/login).
 #
-# Provisioning, as root and never through pkexec, uses the same list to copy
-# the shared games into a child's own Steam library (ADR-0033):
+# A copy uses the same list to copy the shared games into a child's own
+# Steam library (ADR-0033), as root and never through pkexec:
 #
 #   /usr/local/libexec/cairn/cairn-steam-visit --copy-games CHILD --all
 #   /usr/local/libexec/cairn/cairn-steam-visit --copy-games CHILD [APPID...]
+#
+# Two programs start one. Provisioning runs it as root from a terminal. On
+# the image, the Guardian tool's Save runs `cairn-family save-games` through
+# pkexec, and cairn-family starts this as a system job with systemd-run
+# (ADR-0041), so it runs with the service manager's environment, not the
+# Guardian's, and a Guardian who logs out cannot end it halfway.
 #
 # "--all" copies every game in the shared library, as the kids' laptop still
 # does. Appids copy only those games, the child's own list (ADR-0041), and
@@ -350,7 +356,13 @@ run_copy() {
 copy_games() {
     copying=yes
     [ "$#" -ge 1 ] || refuse usage
-    # A visit's polkit action must not become a way to start copies.
+    # A visit's polkit action must not become a way to start copies: pkexec
+    # always sets PKEXEC_UID, and no caller can take it away. The one route
+    # from a password box is cairn-family save-games, whose own polkit
+    # action asks for it, and which starts this as a system job that
+    # pkexec's environment never reaches (ADR-0041). Nothing here admits
+    # cairn-family by name: only a root program could set or fake whatever
+    # would.
     [ -z "${PKEXEC_UID:-}" ] || refuse not-for-pkexec
     [ "$(id -u)" = 0 ] || refuse not-root
     take_child "$1"

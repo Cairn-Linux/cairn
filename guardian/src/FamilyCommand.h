@@ -2,6 +2,7 @@
 #pragma once
 
 #include "Account.h"
+#include "Caller.h"
 #include "FamilyRequest.h"
 #include "PasswordLock.h"
 #include "Refusal.h"
@@ -35,9 +36,9 @@ public:
         // name; main() gives where this build puts them.
         QString applications;
         QString steamFor;
-        unsigned int euid = effectiveUid();
+        unsigned int euid = Caller::effectiveUid();
         // PKEXEC_UID, when pkexec started the command.
-        std::optional<QString> pkexecUid = pkexecUidFromEnvironment();
+        std::optional<QString> pkexecUid = Caller::pkexecUidFromEnvironment();
         LookUp lookUp = lookUpAccount;
         LookUpUid lookUpUid = lookUpAccountByUid;
         PasswordLocked passwordLocked = PasswordLock::isLocked;
@@ -55,10 +56,6 @@ public:
     Outcome run(const QStringList& arguments) const;
 
 private:
-    static unsigned int effectiveUid();
-    static std::optional<QString> pkexecUidFromEnvironment();
-
-    bool callerIsAGrownUp() const;
     std::optional<Refusal> makeChild(const FamilyRequest& request) const;
     std::optional<Refusal> changeChild(const Account& child, const FamilyRequest& request) const;
     std::optional<Refusal> setLevel(const Account& child, int level) const;

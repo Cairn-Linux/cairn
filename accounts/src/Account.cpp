@@ -88,6 +88,17 @@ std::optional<Account> lookUpAccountByUid(unsigned int uid) {
     return fromEntry(*found);
 }
 
+std::optional<QString> lookUpHome(unsigned int uid) {
+    passwd entry{};
+    passwd* found = nullptr;
+    std::vector<char> buffer(lookUpBufferSize);
+    if (getpwuid_r(uid, &entry, buffer.data(), buffer.size(), &found) != 0 || found == nullptr ||
+        found->pw_dir == nullptr || found->pw_dir[0] != '/') {
+        return std::nullopt;
+    }
+    return QString::fromLocal8Bit(found->pw_dir);
+}
+
 // getpwent_r says ERANGE when an entry does not fit the buffer, and then the
 // same entry comes again with a bigger one, up to a size no real entry needs.
 std::vector<Account> listAccounts() {

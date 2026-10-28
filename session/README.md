@@ -66,8 +66,10 @@ What is here:
   window, "Steam for <child>" in their menu, runs it (`../guardian/`); a
   Guardian can also run it from a terminal in their own session:
   `pkexec /usr/local/libexec/cairn/cairn-steam-visit CHILD`, then type
-  `done`. Provisioning, as root and never through `pkexec`, runs its
-  second mode, `--copy-games CHILD --all`, which takes the same list, runs
+  `done`. Its second mode, `--copy-games CHILD --all` or `--copy-games
+  CHILD APPID...`, runs as root and never through `pkexec`: provisioning
+  runs it from a terminal, and on the image `cairn-family save-games`
+  runs it as a system job with `systemd-run` (ADR-0041). It takes the same list, runs
   `../provision/cairn-copy-games.py` as the child, and passes on only that
   program's fixed lines (ADR-0033). It notes each line but `have`, and why
   a copy was refused or failed, in the journal. A visit tried meanwhile is
@@ -107,8 +109,11 @@ What is here:
   finds by the helper's path, which asks an administrator for a password
   every time, and only at the machine (ADR-0032).
 - `polkit/actions/com.cairnlinux.family.policy`: the same for
-  `cairn-family`, the command that makes children and sets their levels
-  (`../guardian/`, ADR-0039). It asks for every change.
+  `cairn-family`, the command that makes children, sets their levels and
+  saves their games (`../guardian/`, ADR-0039, ADR-0041). It has one
+  action for each subcommand, found by the command's path and its first
+  argument, so a Save asks "to change which games a child has". It asks
+  for every change.
 
 `tests/` checks that the labwc and logind files, the greeter's PAM file,
 the polkit rule and `cairn-give-up` say what this README promises, runs the dispatcher with

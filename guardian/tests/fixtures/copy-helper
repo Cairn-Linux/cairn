@@ -1,0 +1,32 @@
+#!/bin/sh
+# SPDX-License-Identifier: Apache-2.0
+#
+# A stand-in for cairn-steam-visit --copy-games CHILD APPID..., for
+# cairn-family save-games' tests. A test links it in a folder of its own.
+# It writes its arguments to "helper-calls" there. It prints the lines in
+# "lines-CHILD" when that file is there, and otherwise "copied APPID" for
+# each appid and then "finished". It waits the seconds in "sleep-CHILD" first
+# and ends with the status in "status-CHILD", or 0. It copies the folder's
+# "games" to "games-seen-CHILD" as it starts, so a test sees each list as
+# the copy found it, and with "break-CHILD" it then puts a folder in place
+# of "games/CHILD.json", so the list cannot be written after the copy.
+here="${0%/*}"
+echo "$*" >> "$here/helper-calls"
+child="$2"
+shift 2
+rm -rf "$here/games-seen-$child"
+cp -R "$here/games" "$here/games-seen-$child"
+if [ -e "$here/break-$child" ]; then
+    rm -f "$here/games/$child.json"
+    mkdir "$here/games/$child.json"
+fi
+[ ! -e "$here/sleep-$child" ] || sleep "$(cat "$here/sleep-$child")"
+if [ -e "$here/lines-$child" ]; then
+    cat "$here/lines-$child"
+else
+    for appid in "$@"; do
+        echo "copied $appid"
+    done
+    echo finished
+fi
+exit "$(cat "$here/status-$child" 2> /dev/null || echo 0)"

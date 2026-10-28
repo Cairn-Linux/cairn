@@ -6,9 +6,7 @@
 #include "SystemTool.h"
 
 #include <QFileInfo>
-#include <QRegularExpression>
 
-#include <unistd.h>
 #include <utility>
 
 namespace {
@@ -24,23 +22,12 @@ QString askedFor(const FamilyRequest& request) {
 
 FamilyCommand::FamilyCommand(Setup setup) : m_setup(std::move(setup)) {}
 
-unsigned int FamilyCommand::effectiveUid() {
-    return geteuid();
-}
-
-std::optional<QString> FamilyCommand::pkexecUidFromEnvironment() {
-    if (!qEnvironmentVariableIsSet("PKEXEC_UID")) {
-        return std::nullopt;
-    }
-    return qEnvironmentVariable("PKEXEC_UID");
-}
-
 FamilyCommand::Outcome FamilyCommand::run(const QStringList& arguments) const {
-    if (m_setup.euid != 0) {
-        return {.refusal = Refusal::NotRoot, .asked = {}};
-    }
-    if (!callerIsAGrownUp()) {
-        return {.refusal = Refusal::NotAGrownUp, .asked = {}};
+    // This command reads no home, so only the check matters.
+    const Caller caller = Caller::check(m_setup.euid, m_setup.pkexecUid, m_setup.lookUpUid,
+                                        [](unsigned int) { return std::nullopt; });
+    if (caller.refusal) {
+        return {.refusal = caller.refusal, .asked = {}};
     }
     const FamilyRequest request = FamilyRequest::fromArguments(arguments);
     if (request.refusal) {
@@ -64,24 +51,6 @@ FamilyCommand::Outcome FamilyCommand::run(const QStringList& arguments) const {
         return {.refusal = Refusal::Taken, .asked = asked};
     }
     return {.refusal = changeChild(*account, request), .asked = asked};
-}
-
-// polkit has already asked for an administrator's password, but the command
-// checks again, as the visit helper does (ADR-0032), so a mistake in a
-// polkit rule cannot make it a child's. Root without pkexec is the family's
-// setup, run with sudo.
-bool FamilyCommand::callerIsAGrownUp() const {
-    if (!m_setup.pkexecUid) {
-        return true;
-    }
-    static const QRegularExpression number(QStringLiteral("^[0-9]{1,10}$"));
-    bool converted = false;
-    const unsigned int uid = m_setup.pkexecUid->toUInt(&converted);
-    if (!number.match(*m_setup.pkexecUid).hasMatch() || !converted) {
-        return false;
-    }
-    const std::optional<Account> caller = m_setup.lookUpUid(uid);
-    return caller && FamilyRole::fromGroups(caller->groups).isAdministrator();
 }
 
 // The level group comes with the account, so a run cut off after useradd

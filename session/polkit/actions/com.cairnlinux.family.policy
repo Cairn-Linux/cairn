@@ -1,20 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!--
-  Making a child's account and changing a child's level (ADR-0039). The
-  Guardian's tool runs cairn-family through pkexec, which finds this action
-  by the command's path and asks for an administrator's password, or a
-  fingerprint, for every change. polkit's levels rule answers no to it,
-  before any prompt, for every account that is not an administrator. The
-  image installs it in /usr/share/polkit-1/actions with the path the image
-  puts the command at.
+  cairn-family's subcommands (ADR-0039, ADR-0041): making a child's account,
+  changing a child's level, and saving a child's games. The Guardian's tool
+  runs cairn-family through pkexec, which finds the action by the command's
+  path and its first argument, and asks for an administrator's password, or
+  a fingerprint, for every change, with the message of that subcommand.
+
+  Every action names its first argument, so pkexec never picks one by the
+  path alone, whatever order polkit lists them in. Any other first argument
+  falls back to pkexec's own action, which also asks for an administrator,
+  and cairn-family refuses it with `usage`. polkit's levels rule answers no
+  to all of them, before any prompt, for every account that is not an
+  administrator. The image installs this file in /usr/share/polkit-1/actions
+  with the path the image puts the command at.
 -->
 <!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
  "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
 <policyconfig>
   <vendor>Cairn Linux</vendor>
   <vendor_url>https://cairnlinux.com</vendor_url>
-  <action id="com.cairnlinux.family">
+  <action id="com.cairnlinux.family.create-child">
     <description>Change a child's account</description>
     <message>A grown-up's password is needed to change a child's account.</message>
     <defaults>
@@ -23,5 +29,28 @@
       <allow_active>auth_admin</allow_active>
     </defaults>
     <annotate key="org.freedesktop.policykit.exec.path">/usr/local/libexec/cairn/cairn-family</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">create-child</annotate>
+  </action>
+  <action id="com.cairnlinux.family.set-level">
+    <description>Change a child's account</description>
+    <message>A grown-up's password is needed to change a child's account.</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/local/libexec/cairn/cairn-family</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">set-level</annotate>
+  </action>
+  <action id="com.cairnlinux.family.save-games">
+    <description>Change which games a child has</description>
+    <message>A grown-up's password is needed to change which games a child has.</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/local/libexec/cairn/cairn-family</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">save-games</annotate>
   </action>
 </policyconfig>

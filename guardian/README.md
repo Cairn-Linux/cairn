@@ -78,13 +78,16 @@ the Guardian has read it.
 ```sh
 cairn-family create-child LOGIN LEVEL [--full-name NAME]
 cairn-family set-level LOGIN LEVEL
+cairn-family save-games LOGIN=APPID,APPID... [LOGIN=...]
 ```
 
 It is installed as `/usr/libexec/cairn/cairn-family` and runs as root:
-through `pkexec`, behind the polkit action `com.cairnlinux.family`, which
-asks for an administrator's password for every change, or with `sudo` from
-`../provision/cairn-family-setup.sh`. Started by `pkexec`, it checks
-again that the account that started it is an administrator.
+through `pkexec`, behind a polkit action for each subcommand
+(`com.cairnlinux.family.create-child`, `.set-level`, `.save-games`),
+each of which asks for an administrator's password for every change, or
+with `sudo` from `../provision/cairn-family-setup.sh`. Started by
+`pkexec`, it checks again that the account that started it is an
+administrator.
 
 - LEVEL is 1 or 2. L3 and L4 have no child session yet.
 - `create-child` makes a new account with its level group and a locked
@@ -101,7 +104,42 @@ again that the account that started it is an administrator.
 
 It answers in one line: `done`, or `refused` and one of `not-root`,
 `not-a-grown-up`, `usage`, `bad-name`, `bad-full-name`, `bad-level`,
-`taken`, `not-a-child` or `failed`. It writes one line to the journal:
+`taken`, `not-a-child` or `failed`.
+
+`save-games` gives children their games (ADR-0041); no window runs it
+yet. Each argument is one child's whole new list, so `ben=` means no
+games, and a child not named is left alone.
+
+- It checks the caller, every value and that every name is a child
+  Cairn made before anything changes, and holds a lock for the whole
+  Save, so a second Save at once is refused with `busy`.
+- It remakes the pictures from the Guardian's own Steam, reading the home
+  of the account pkexec names from the account database. Under `sudo`
+  there is no Guardian, and the pictures stay.
+- It remakes `/var/lib/cairn/games.json` with kidscan, as provisioning
+  does, and keeps the old one when kidscan fails.
+- Before any copy starts, it writes every child's
+  `/var/lib/cairn/games/<login>.json` with the games taken off gone, so
+  a Save cut off mid-copy leaves no child a game the parent took off.
+- For each child it copies the games newly ticked with
+  `cairn-steam-visit --copy-games CHILD APPID...`, run as a system job
+  with `systemd-run`, outside the Guardian's session, and waited for with
+  no time limit. A Guardian who logs out mid-copy ends this command and
+  not the copy.
+- It then writes that child's file again, the launcher's games file,
+  with the games still ticked that the child had and the ones the copy
+  gave them. A game taken off goes even when the copy is held, for
+  instance because the child is logged in.
+
+It answers line by line as it goes, with fixed words, checked logins and
+appids: `pictures made|kept`, `catalogue made|kept`, `copying LOGIN`,
+`waiting LOGIN`, `copied|have LOGIN APPID`, `skipped LOGIN APPID REASON`,
+then `child LOGIN added N removed N`, with `held WORD` when the child's
+new games could not all be given. It ends with `done`, or `refused` and a
+word, which means nothing changed: the words above, `bad-appid` or `busy`.
+ADR-0041 lists every word.
+
+It writes to the journal:
 
 ```sh
 journalctl -t cairn-family --since today
@@ -125,10 +163,20 @@ QML draws, C++ decides (ADR-0002):
 | `qml/FamilyWindow.qml`, `qml/ChildrenView.qml` | The Guardian tool's window and its Children page, with the sentence for every answer. |
 | `qml/ChildRow.qml`, `qml/AddChildForm.qml`, `qml/LabelledField.qml`, `qml/LevelChoice.qml` | A child on the list, the Add form, a text field with its label, and one level to pick. |
 | `qml/TextButton.qml` | The button both windows use. |
-| `src/FamilyCommand` | `cairn-family`: who may run it, which accounts it may change, and the steps for each subcommand. Everything it reads from or does to the machine is in its `Setup`, so a test can replace it. |
+| `src/FamilyCommand` | `cairn-family create-child` and `set-level`: which accounts it may change, and the steps for each. Everything it reads from or does to the machine is in its `Setup`, so a test can replace it. |
+| `src/Caller` | Who started `cairn-family`: root, and through pkexec an administrator, with their home from the account database. |
+| `src/GamesSave` | `cairn-family save-games`: the checks, the lock, the pictures and full list, then each child in turn. Its `Setup` holds everything it reads from or does to the machine. |
+| `src/GamesRequest` | Each child's new list, read from the arguments and checked before anything looks at an account. |
+| `src/CatalogueRefresh` | Runs the picture step and kidscan, and writes kidscan's list into `/var/lib/cairn/games.json`. |
+| `src/GameCatalogue` | A games file: reading it, each game by its appid with the launcher's rule, and writing one. |
+| `src/ChildGameList` | The rule for a child's new list, with nothing read or written. |
+| `src/ChildGamesFile` | A child's own games file: reading it, and writing it into place in a folder only root may change. |
+| `src/ReadableFile` | Writes a file every account may read, renamed into place. |
+| `src/CopyJob` | Runs a child's copy as a system job with `systemd-run`, waits for it, and passes on only the helper's own lines. |
+| `src/ChildSave` | One child's part of a Save: their file without the games taken off, then the copy, their file again and their line. |
 | `src/FamilyRequest` | The subcommand and its values, read from the arguments and checked before anything looks at an account. |
 | `src/Refusal` | Why the command made no change, and the word for each. |
-| `src/SystemTool` | Runs `useradd`, `passwd`, `gpasswd`, `usermod` or `restorecon` by absolute path, without a shell, with a small environment of its own. |
+| `src/SystemTool` | Runs `useradd`, `passwd`, `gpasswd`, `usermod`, `restorecon`, the picture step or kidscan by absolute path, without a shell, with a small environment of its own and a two-minute limit. |
 | `src/PasswordLock` | Whether a child's password is locked, from the shadow database. |
 | `src/SteamEntry` | A child's "Steam for <child>" menu entry: its text, the same as provisioning's, and writing it into place. |
 

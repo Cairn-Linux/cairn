@@ -41,15 +41,29 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/bin/cairn-steam-for" DESTINATION "${C
     PERMISSIONS ${guardian_only})
 
 # cairn-family: no window, only Qt Core, run as root by pkexec or sudo.
+# create-child and set-level change accounts (ADR-0039); save-games gives
+# children their games (ADR-0041).
 set(family_sources
     src/Refusal.h src/Refusal.cpp
+    src/Caller.h src/Caller.cpp
     src/FamilyRequest.h src/FamilyRequest.cpp
     src/SystemTool.h src/SystemTool.cpp
     src/PasswordLock.h src/PasswordLock.cpp
     src/SteamEntry.h src/SteamEntry.cpp
     src/FamilyCommand.h src/FamilyCommand.cpp
 )
-qt_add_executable(cairn-family src/familymain.cpp ${family_sources})
+set(games_save_sources
+    src/GamesRequest.h src/GamesRequest.cpp
+    src/GameCatalogue.h src/GameCatalogue.cpp
+    src/ReadableFile.h src/ReadableFile.cpp
+    src/CatalogueRefresh.h src/CatalogueRefresh.cpp
+    src/ChildGameList.h src/ChildGameList.cpp
+    src/ChildGamesFile.h src/ChildGamesFile.cpp
+    src/CopyJob.h src/CopyJob.cpp
+    src/ChildSave.h src/ChildSave.cpp
+    src/GamesSave.h src/GamesSave.cpp
+)
+qt_add_executable(cairn-family src/familymain.cpp ${family_sources} ${games_save_sources})
 target_include_directories(cairn-family PRIVATE src)
 target_link_libraries(cairn-family PRIVATE Qt6::Core cairn-accounts)
 # The window each child's menu entry names, where this build installs it,
@@ -59,6 +73,14 @@ target_link_libraries(cairn-family PRIVATE Qt6::Core cairn-accounts)
 target_compile_definitions(cairn-family PRIVATE
     CAIRN_STEAM_FOR="${CMAKE_INSTALL_FULL_BINDIR}/cairn-steam-for"
     CAIRN_APPLICATIONS="/usr/local/share/applications"
+)
+# save-games runs the visit helper's copy, the picture step and kidscan,
+# where this build installs them. systemd-run and python3 are the system's
+# own, at their fixed paths.
+target_compile_definitions(cairn-family PRIVATE
+    CAIRN_STEAM_VISIT="${CAIRN_FULL_LIBEXECDIR}/cairn-steam-visit"
+    CAIRN_GAME_PICTURES="${CAIRN_FULL_LIBEXECDIR}/cairn-game-pictures"
+    CAIRN_KIDSCAN="${CAIRN_FULL_LIBEXECDIR}/kidscan.py"
 )
 install(TARGETS cairn-family RUNTIME DESTINATION "${CAIRN_LIBEXECDIR}")
 
@@ -173,6 +195,54 @@ target_link_libraries(tst_familycommand PRIVATE Qt6::Core Qt6::Test cairn-accoun
 target_compile_definitions(tst_familycommand PRIVATE FIXTURES="${guardian_fixtures}")
 add_test(NAME familycommand COMMAND tst_familycommand)
 
+# save-games, piece by piece, then whole, with stand-ins for systemd-run,
+# the visit helper and Python, so no test needs root or starts a service.
+qt_add_executable(tst_caller tests/tst_caller.cpp src/Caller.h src/Caller.cpp
+    src/Refusal.h src/Refusal.cpp)
+target_include_directories(tst_caller PRIVATE src)
+target_link_libraries(tst_caller PRIVATE Qt6::Core Qt6::Test cairn-accounts)
+add_test(NAME caller COMMAND tst_caller)
+
+qt_add_executable(tst_gamesrequest tests/tst_gamesrequest.cpp src/GamesRequest.h
+    src/GamesRequest.cpp src/Refusal.h src/Refusal.cpp)
+target_include_directories(tst_gamesrequest PRIVATE src)
+target_link_libraries(tst_gamesrequest PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME gamesrequest COMMAND tst_gamesrequest)
+
+qt_add_executable(tst_childgamelist tests/tst_childgamelist.cpp src/ChildGameList.h
+    src/ChildGameList.cpp src/GameCatalogue.h src/GameCatalogue.cpp)
+target_include_directories(tst_childgamelist PRIVATE src)
+target_link_libraries(tst_childgamelist PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME childgamelist COMMAND tst_childgamelist)
+
+qt_add_executable(tst_childgamesfile tests/tst_childgamesfile.cpp src/ChildGamesFile.h
+    src/ChildGamesFile.cpp src/GameCatalogue.h src/GameCatalogue.cpp src/ReadableFile.h
+    src/ReadableFile.cpp src/SystemTool.h src/SystemTool.cpp)
+target_include_directories(tst_childgamesfile PRIVATE src)
+target_link_libraries(tst_childgamesfile PRIVATE Qt6::Core Qt6::Test)
+target_compile_definitions(tst_childgamesfile PRIVATE FIXTURES="${guardian_fixtures}")
+add_test(NAME childgamesfile COMMAND tst_childgamesfile)
+
+qt_add_executable(tst_cataloguerefresh tests/tst_cataloguerefresh.cpp src/CatalogueRefresh.h
+    src/CatalogueRefresh.cpp src/GameCatalogue.h src/GameCatalogue.cpp src/ReadableFile.h
+    src/ReadableFile.cpp src/SystemTool.h src/SystemTool.cpp)
+target_include_directories(tst_cataloguerefresh PRIVATE src)
+target_link_libraries(tst_cataloguerefresh PRIVATE Qt6::Core Qt6::Test)
+target_compile_definitions(tst_cataloguerefresh PRIVATE FIXTURES="${guardian_fixtures}")
+add_test(NAME cataloguerefresh COMMAND tst_cataloguerefresh)
+
+qt_add_executable(tst_copyjob tests/tst_copyjob.cpp src/CopyJob.h src/CopyJob.cpp)
+target_include_directories(tst_copyjob PRIVATE src)
+target_link_libraries(tst_copyjob PRIVATE Qt6::Core Qt6::Test)
+target_compile_definitions(tst_copyjob PRIVATE FIXTURES="${guardian_fixtures}")
+add_test(NAME copyjob COMMAND tst_copyjob)
+
+qt_add_executable(tst_gamessave tests/tst_gamessave.cpp ${family_sources} ${games_save_sources})
+target_include_directories(tst_gamessave PRIVATE src)
+target_link_libraries(tst_gamessave PRIVATE Qt6::Core Qt6::Test cairn-accounts)
+target_compile_definitions(tst_gamessave PRIVATE FIXTURES="${guardian_fixtures}")
+add_test(NAME gamessave COMMAND tst_gamessave)
+
 qt_add_executable(tst_steamentry tests/tst_steamentry.cpp src/SteamEntry.h src/SteamEntry.cpp)
 target_include_directories(tst_steamentry PRIVATE src)
 target_link_libraries(tst_steamentry PRIVATE Qt6::Core Qt6::Test)
@@ -224,6 +294,7 @@ add_test(NAME familywindow COMMAND tst_familywindow
     -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/tst_familywindow.qml")
 
 set_tests_properties(steamvisit ownsteam screenlockwatch steamforchild steamwindow familycommand
+    caller gamesrequest childgamelist childgamesfile cataloguerefresh copyjob gamessave
     steamentry loginname childlist familychange childrenpage familywindow PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QML_IMPORT_PATH=${QT_QML_OUTPUT_DIRECTORY}"
 )

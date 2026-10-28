@@ -469,11 +469,27 @@ class SteamVisitTest(unittest.TestCase):
         self.assertFalse(run.called("setpriv"), "nothing is copied")
         self.assertFalse(self.scenario.marker.exists(), "the marker goes")
 
-    def test_a_copy_is_never_started_through_pkexec(self):
-        # The visit's polkit action must not become a way to start copies.
+    def test_the_visits_polkit_action_cannot_start_copies(self):
+        # pkexec always sets PKEXEC_UID; cairn-family starts copies as a
+        # system job, which pkexec's environment never reaches (ADR-0041).
         run = self.scenario.run(copy=True, appids=("--all",))
         self.assertCopyRefused(run, "not-for-pkexec")
         self.assertFalse(self.scenario.visits.exists())
+
+    def test_nothing_in_the_environment_gets_a_copy_past_pkexec(self):
+        # A service's own variables, or a path that names cairn-family, are
+        # no way past the guard: anything set there a caller could set too.
+        self.scenario.env.update({
+            "INVOCATION_ID": "0123456789abcdef0123456789abcdef",
+            "SYSTEMD_EXEC_PID": "1",
+            "JOURNAL_STREAM": "8:12345",
+            "_": "/usr/libexec/cairn/cairn-family",
+        })
+        for appids in (("--all",), ("620",)):
+            with self.subTest(appids=appids):
+                run = self.scenario.run(copy=True, appids=appids)
+                self.assertCopyRefused(run, "not-for-pkexec")
+                self.assertFalse(self.scenario.visits.exists())
 
     def test_a_copy_holds_the_list_and_the_marker_while_it_runs(self):
         run = self.copy()
@@ -541,7 +557,7 @@ class SteamVisitTest(unittest.TestCase):
                 self.assertCopyRefused(run, "appid")
                 self.assertFalse(self.scenario.visits.exists(), "the child was never listed")
 
-    def test_a_list_is_never_copied_through_pkexec(self):
+    def test_the_visits_polkit_action_cannot_copy_a_list(self):
         run = self.scenario.run(copy=True, appids=("620",))
         self.assertCopyRefused(run, "not-for-pkexec")
         self.assertFalse(self.scenario.visits.exists())

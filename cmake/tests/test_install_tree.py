@@ -162,16 +162,17 @@ class InstallTree(unittest.TestCase):
 
     def test_polkit_actions_name_their_programs(self):
         # pkexec matches the program's real path; /usr/libexec is one.
+        # cairn-family's file has one action for each subcommand.
         actions = {
-            "com.cairnlinux.steam-visit": "/usr/libexec/cairn/cairn-steam-visit",
-            "com.cairnlinux.family": "/usr/libexec/cairn/cairn-family",
+            "com.cairnlinux.steam-visit": ["/usr/libexec/cairn/cairn-steam-visit"],
+            "com.cairnlinux.family": ["/usr/libexec/cairn/cairn-family"] * 3,
         }
-        for action, program in actions.items():
+        for action, programs in actions.items():
             with self.subTest(action=action):
                 tree = ElementTree.parse(self.root / f"usr/share/polkit-1/actions/{action}.policy")
                 paths = [note.text for note in tree.iter("annotate")
                          if note.get("key") == "org.freedesktop.policykit.exec.path"]
-                self.assertEqual(paths, [program])
+                self.assertEqual(paths, programs)
 
     def test_family_command_names_the_image_paths(self):
         # QStringLiterals are stored as UTF-16. The menu entries' folder is
@@ -179,7 +180,11 @@ class InstallTree(unittest.TestCase):
         # /usr/local is a link to /var/usrlocal there (ADR-0038).
         program = (self.root / "usr/libexec/cairn/cairn-family").read_bytes()
         for path in ("/usr/bin/cairn-steam-for\0", "/usr/local/share/applications\0",
-                     "/usr/sbin/useradd\0", "/usr/bin/passwd\0", "/usr/bin/gpasswd\0"):
+                     "/usr/sbin/useradd\0", "/usr/bin/passwd\0", "/usr/bin/gpasswd\0",
+                     "/usr/libexec/cairn/cairn-steam-visit\0",
+                     "/usr/libexec/cairn/cairn-game-pictures\0",
+                     "/usr/libexec/cairn/kidscan.py\0", "/usr/bin/systemd-run\0",
+                     "/usr/bin/python3\0"):
             with self.subTest(path=path):
                 self.assertTrue(path.encode("utf-16-le") in program)
 

@@ -131,6 +131,10 @@ password, or uses a fingerprint, for every change. `allow_any` and
 administrator through first and refuses every `com.cairnlinux.` action
 to everyone else, before any prompt.
 
+ADR-0041 (proposed) gives each subcommand an action of its own, by the
+command's first argument, so a Save of a child's games has its own
+message.
+
 ### The window
 
 The Guardian tool runs the command (ADR-0040). It starts `pkexec`
