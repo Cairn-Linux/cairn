@@ -187,6 +187,13 @@ It moves to per-child lists when it is reinstalled from the image.
    cannot kill it and leave the child locked out by the visit lock.
    Landed 2026-10-27, with no window yet.
 3. **A switch between pages, and a read-only Games page.**
+   Landed 2026-10-28: Children and Games above the page, and a Games
+   page that shows, for the child picked, every game in the full games
+   list with the games on the child's own list highlighted, read with
+   the launcher's rules, then any game on that list the shared folder
+   no longer has, and "Open Steam for <child>", which starts
+   `cairn-steam-for` as the menu entries do.
+   It reads both files when it is shown and changes nothing.
 4. **Highlight and Save.**
    In the same change: the launcher's wrapper reads
    `/var/lib/cairn/games/<login>.json`, and the family's setup stops

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "ChildrenPage.h"
+#include "GamesPage.h"
 
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
@@ -17,8 +18,15 @@ int main(int argc, char* argv[]) {
     setup.command = QStringLiteral(CAIRN_FAMILY);
     ChildrenPage page(setup);
 
+    GamesPage::Setup gamesSetup;
+    gamesSetup.steamFor = QStringLiteral(CAIRN_STEAM_FOR);
+    GamesPage gamesPage(gamesSetup);
+
     QQmlApplicationEngine engine;
-    engine.setInitialProperties({{QStringLiteral("page"), QVariant::fromValue(&page)}});
+    engine.setInitialProperties({
+        {QStringLiteral("page"), QVariant::fromValue(&page)},
+        {QStringLiteral("gamesPage"), QVariant::fromValue(&gamesPage)},
+    });
     engine.loadFromModule("Cairn.Family", "FamilyWindow");
     if (engine.rootObjects().isEmpty()) {
         return EXIT_FAILURE;

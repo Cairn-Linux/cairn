@@ -32,7 +32,7 @@ Column {
         case ChildrenPage.Asking:
             return qsTr("Confirm with your password, or your fingerprint, in the box that opened.");
         case ChildrenPage.Added:
-            return qsTr("%1 can log in now, at level %2. This window does not copy Steam games to %1 yet; the family set-up script does.").arg(name).arg(level);
+            return qsTr("%1 can log in now, at level %2. The Games page shows %1's list. For now, the family set-up script gives %1 their games.").arg(name).arg(level);
         case ChildrenPage.LevelChanged:
             return qsTr("%1 is at level %2 now. It starts the next time %1 logs in.").arg(name).arg(level);
         case ChildrenPage.NotChanged:

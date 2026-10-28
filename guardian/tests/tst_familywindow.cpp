@@ -1,13 +1,47 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "ChildrenPage.h"
+#include "GamesPage.h"
 
+#include <QColor>
+#include <QDir>
+#include <QFile>
+#include <QImage>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QPainter>
 #include <QQmlContext>
 #include <QQmlEngine>
+#include <QTemporaryDir>
 #include <QtQuickTest/quicktest.h>
 
 #include <algorithm>
 
 namespace {
+
+// A stand-in for a game's Steam header: a plain colour, different for each
+// game, with the game's title on it.
+bool makePicture(const QString& path, const QString& title, int index) {
+    QImage image(460, 215, QImage::Format_RGB32);
+    image.fill(QColor::fromHsv((index * 47) % 360, 90, 200));
+    QPainter painter(&image);
+    QFont font = painter.font();
+    font.setPixelSize(28);
+    font.setBold(true);
+    painter.setFont(font);
+    painter.drawText(image.rect(), Qt::AlignCenter, title);
+    painter.end();
+    return image.save(path, "PNG");
+}
+
+bool writeFile(const QString& path, const QByteArray& bytes) {
+    QFile file(path);
+    return file.open(QIODevice::WriteOnly) && file.write(bytes) == bytes.size();
+}
+
+QByteArray gamesFile(const QJsonArray& entries) {
+    return QJsonDocument(QJsonObject{{"version", 1}, {"entries", entries}}).toJson();
+}
 
 // Makes the window's ChildrenPage for each test, over a family of two
 // children and a Guardian, with the stand-ins for pkexec and cairn-family.
@@ -53,10 +87,92 @@ public:
         return page;
     }
 
-    // Where to save a picture of the window, when one is wanted.
+    // The window's GamesPage over files of its own: eight shared games,
+    // each with a picture but the last, Ada with three on her list, Ben
+    // with none and Cy with two, one of them no longer shared. Its Steam
+    // window start answers as `steamStarts` says, and is written down in
+    // startedSteam().
+    Q_INVOKABLE GamesPage* gamesPage(bool withChildren, bool withGames, bool steamStarts = true) {
+        const QDir files(m_files.path());
+        QJsonArray shared;
+        const QStringList titles{"Putt-Putt Joins the Parade",
+                                 "Freddi Fish",
+                                 "Pajama Sam",
+                                 "Spy Fox",
+                                 "<b>Backyard</b> Football",
+                                 "Tux Racer",
+                                 "Mini Golf",
+                                 "A game with a long name that will not fit on one line"};
+        for (int i = 0; withGames && i < titles.size(); ++i) {
+            const QString appId = QString::number(1001 + i);
+            QJsonObject entry{{"id", "steam-" + appId},
+                              {"title", titles.at(i)},
+                              {"category", "games"},
+                              {"exec", QJsonArray{"steam", "-applaunch", appId}}};
+            const QString picture = files.filePath(appId + ".png");
+            if (i < titles.size() - 1 && makePicture(picture, titles.at(i), i)) {
+                entry.insert("picture", picture);
+            }
+            shared.append(entry);
+        }
+        files.mkpath("games");
+        writeFile(files.filePath("games.json"), gamesFile(shared));
+        QJsonArray ada;
+        QJsonArray cy;
+        if (!shared.isEmpty()) {
+            ada = {shared.at(0), shared.at(2), shared.at(3)};
+            // One game on Cy's list that the shared folder no longer has.
+            cy = {shared.at(5), QJsonObject{{"id", "steam-2001"},
+                                            {"title", "Humongous Bowling"},
+                                            {"category", "games"},
+                                            {"exec", QJsonArray{"steam", "-applaunch", "2001"}}}};
+        }
+        writeFile(files.filePath("games/ada.json"), gamesFile(ada));
+        writeFile(files.filePath("games/cy.json"), gamesFile(cy));
+        QFile::remove(files.filePath("games/ben.json"));
+
+        std::vector<Account> accounts{
+            {.uid = 1000,
+             .groups = {"guardian", "wheel", "cairn-guardian"},
+             .login = "guardian",
+             .fullName = "Guardian"},
+        };
+        if (withChildren) {
+            accounts.push_back(
+                {.uid = 1001, .groups = {"ada", "cairn-l1"}, .login = "ada", .fullName = "Ada"});
+            accounts.push_back(
+                {.uid = 1002, .groups = {"ben", "cairn-l2"}, .login = "ben", .fullName = "Ben"});
+            accounts.push_back(
+                {.uid = 1003, .groups = {"cy", "cairn-l1"}, .login = "cy", .fullName = "Cy"});
+        }
+        m_startedSteam.clear();
+        GamesPage::Setup setup;
+        setup.catalogue = files.filePath("games.json");
+        setup.childLists = files.filePath("games");
+        setup.steamFor = "/usr/bin/cairn-steam-for";
+        setup.accounts = [accounts] { return accounts; };
+        setup.start = [this, steamStarts](const QString& program, const QStringList& arguments) {
+            m_startedSteam.append(program + " " + arguments.join(' '));
+            return steamStarts;
+        };
+        auto* page = new GamesPage(setup);
+        QQmlEngine::setObjectOwnership(page, QQmlEngine::JavaScriptOwnership);
+        return page;
+    }
+
+    Q_INVOKABLE QStringList startedSteam() const {
+        return m_startedSteam;
+    }
+
+    // Where to save a picture of the window, when one is wanted: the
+    // Children page at this path, and the Games page beside it.
     Q_INVOKABLE QString screenshotPath() const {
         return qEnvironmentVariable("CAIRN_SCREENSHOT");
     }
+
+private:
+    QTemporaryDir m_files;
+    QStringList m_startedSteam;
 };
 
 class Setup : public QObject {

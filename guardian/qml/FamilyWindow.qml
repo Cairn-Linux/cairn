@@ -3,13 +3,18 @@ import QtQuick
 import Cairn.Brand
 import Cairn.Family
 
-// The Guardian tool, "Family" in the menu (ADR-0040). So far it has one
-// page, Children. Later pages, such as Games, go beside it, with a way to
-// move between them above the page.
+// The Guardian tool, "Family" in the menu (ADR-0040). Two pages, Children
+// and Games, with a switch between them above the page, which stays in
+// place while the page scrolls.
 Window {
     id: window
 
     required property ChildrenPage page
+    required property GamesPage gamesPage
+
+    // The page that shows: "children" or "games".
+    property string showing: "children"
+    readonly property Item shownView: window.showing === "games" ? gamesView : childrenView
 
     readonly property int margin: Tokens.headingSize
 
@@ -21,11 +26,23 @@ Window {
     color: Tokens.ground
     visible: true
 
+    // Shows a page from its top. The Games page reads its files again, so
+    // a child just added or a game just listed is there.
+    function show(name) {
+        if (window.showing === name)
+            return;
+        if (name === "games")
+            window.gamesPage.reload();
+        window.showing = name;
+        flickable.contentY = 0;
+    }
+
     // Scrolls just enough that the item shows whole, with a little room
-    // around it; its top wins when it is taller than the window.
+    // around it; its top wins when it is taller than the window. Only an
+    // item on the page scrolls; the switch above it is always in sight.
     function showItem(item) {
         let inPage = item;
-        while (inPage && inPage !== childrenView)
+        while (inPage && inPage !== flickable.contentItem)
             inPage = inPage.parent;
         if (!inPage || !item.visible)
             return;
@@ -44,14 +61,79 @@ Window {
     // The keyboard never lands on something out of sight.
     onActiveFocusItemChanged: window.showItem(window.activeFocusItem)
 
-    // The page scrolls when there are more children than fit.
+    // A child added on the Children page is on the Games page too.
+    Connections {
+        target: window.page
+
+        function onListedChildrenChanged() {
+            window.gamesPage.reload();
+        }
+    }
+
+    Rectangle {
+        id: switchBar
+
+        width: window.width
+        height: tabs.height + window.margin
+        color: Tokens.ground
+
+        Row {
+            id: tabs
+
+            objectName: "pageSwitch"
+            x: window.margin
+            y: window.margin / 2
+            spacing: Tokens.bodySize / 2
+
+            Accessible.role: Accessible.PageTabList
+            Accessible.name: qsTr("Pages")
+
+            TextButton {
+                id: childrenTab
+
+                objectName: "childrenTab"
+                text: qsTr("Children")
+                quiet: window.showing !== "children"
+                Accessible.role: Accessible.PageTab
+                Accessible.checkable: true
+                Accessible.checked: window.showing === "children"
+                KeyNavigation.right: gamesTab
+                onActivated: window.show("children")
+            }
+
+            TextButton {
+                id: gamesTab
+
+                objectName: "gamesTab"
+                text: qsTr("Games")
+                quiet: window.showing !== "games"
+                Accessible.role: Accessible.PageTab
+                Accessible.checkable: true
+                Accessible.checked: window.showing === "games"
+                KeyNavigation.left: childrenTab
+                onActivated: window.show("games")
+            }
+        }
+
+        Rectangle {
+            anchors.bottom: parent.bottom
+            width: parent.width
+            height: Tokens.strokeHairline
+            color: Tokens.line
+            Accessible.ignored: true
+        }
+    }
+
+    // The page scrolls when there is more on it than fits.
     Flickable {
         id: flickable
 
         objectName: "scroller"
-        anchors.fill: parent
+        y: switchBar.height
+        width: window.width
+        height: window.height - switchBar.height
         contentWidth: width
-        contentHeight: childrenView.implicitHeight + window.margin * 2
+        contentHeight: window.shownView.implicitHeight + window.margin * 2
         boundsBehavior: Flickable.StopAtBounds
         clip: true
 
@@ -62,6 +144,7 @@ Window {
             x: window.margin
             y: window.margin
             width: window.width - window.margin * 2
+            visible: window.showing === "children"
             page: window.page
 
             // Where focus went, and what the change did, which wins when
@@ -72,6 +155,17 @@ Window {
                 window.showItem(childrenView.outcomeBox);
             }
         }
+
+        GamesView {
+            id: gamesView
+
+            objectName: "gamesView"
+            x: window.margin
+            y: window.margin
+            width: window.width - window.margin * 2
+            visible: window.showing === "games"
+            page: window.gamesPage
+        }
     }
 
     // Where the window is on the page, when the page is longer than it.
@@ -79,9 +173,9 @@ Window {
         objectName: "scrollIndicator"
         visible: flickable.visibleArea.heightRatio < 1
         x: window.width - width - Tokens.focusOffset
-        y: flickable.visibleArea.yPosition * window.height
+        y: flickable.y + flickable.visibleArea.yPosition * flickable.height
         width: Tokens.focusWidth * 2
-        height: flickable.visibleArea.heightRatio * window.height
+        height: flickable.visibleArea.heightRatio * flickable.height
         radius: Tokens.radiusPill
         color: Tokens.machine
         Accessible.ignored: true
