@@ -117,6 +117,13 @@ class SteamVisitActionTest(unittest.TestCase):
         self.assertIn("PREFIX=/usr/local\n", provision)
         self.assertIn("/etc/polkit-1/actions/com.cairnlinux.steam-visit.policy", provision)
 
+    def test_is_found_by_the_path_alone(self):
+        # No first argument: every visit is one action, and it never names
+        # cairn-family, whose copies the visit's action must not start.
+        keys = [a.get("key") for a in self.action.findall("annotate")]
+        self.assertNotIn("org.freedesktop.policykit.exec.argv1", keys)
+        self.assertNotIn("cairn-family", self.text)
+
     def test_has_the_licence_line(self):
         self.assertEqual(self.text.splitlines()[1], "<!-- SPDX-License-Identifier: Apache-2.0 -->")
 
@@ -137,19 +144,50 @@ process.stdout.write(rules[0]({id: input.action}, subject));
 
 
 class FamilyActionTest(unittest.TestCase):
-    """cairn-family's action (ADR-0039): the levels rule refuses it to a
-    child and lets an administrator through to the password prompt, with no
-    change of its own."""
+    """cairn-family's actions, one per subcommand (ADR-0039, ADR-0041): the
+    levels rule refuses each to a child and lets an administrator through
+    to the password prompt, with no change of its own."""
+
+    SUBCOMMANDS = {"create-child", "set-level", "save-games"}
 
     def setUp(self):
         self.text = FAMILY_ACTION.read_text()
-        self.action = ElementTree.fromstring(self.text.encode()).find("action")
+        self.actions = ElementTree.fromstring(self.text.encode()).findall("action")
         self.rules = RULES.read_text()
 
-    def test_is_one_of_cairns_own_actions(self):
+    @staticmethod
+    def annotation(action, key):
+        return [a.text for a in action.findall("annotate")
+                if a.get("key") == "org.freedesktop.policykit.exec." + key]
+
+    def by_subcommand(self):
+        return {self.annotation(action, "argv1")[0]: action for action in self.actions}
+
+    def test_one_action_for_each_subcommand(self):
+        # pkexec picks the first action whose path matches, and one without
+        # a first argument matches any; with one on every action the order
+        # polkit lists them in cannot matter.
+        for action in self.actions:
+            with self.subTest(action=action.get("id")):
+                self.assertEqual(len(self.annotation(action, "argv1")), 1)
+        self.assertEqual(set(self.by_subcommand()), self.SUBCOMMANDS)
+        self.assertEqual(len(self.actions), len(self.SUBCOMMANDS))
+
+    def test_each_is_one_of_cairns_own_actions(self):
         [prefix] = re.findall(r'var cairnActions = "([^"]+)";', self.rules)
-        self.assertEqual(self.action.get("id"), "com.cairnlinux.family")
-        self.assertTrue(self.action.get("id").startswith(prefix))
+        for subcommand, action in self.by_subcommand().items():
+            with self.subTest(subcommand=subcommand):
+                self.assertEqual(action.get("id"), "com.cairnlinux.family." + subcommand)
+                self.assertTrue(action.get("id").startswith(prefix))
+
+    def test_saving_games_says_so(self):
+        messages = {subcommand: action.findtext("message")
+                    for subcommand, action in self.by_subcommand().items()}
+        self.assertEqual(messages["save-games"],
+                         "A grown-up's password is needed to change which games a child has.")
+        for subcommand in ("create-child", "set-level"):
+            self.assertEqual(messages[subcommand],
+                             "A grown-up's password is needed to change a child's account.")
 
     def test_a_child_is_refused_and_a_guardian_falls_through(self):
         # The rule steps aside for an administrator first and then refuses
@@ -176,23 +214,29 @@ class FamilyActionTest(unittest.TestCase):
             ("dad", "cairn-guardian", "cairn-l1"): "not-handled",
             ("bazzite", "wheel"): "not-handled",
         }
-        for groups, answer in cases.items():
-            with self.subTest(groups=groups):
-                given = json.dumps({"rules": str(RULES), "action": self.action.get("id"),
-                                    "groups": list(groups)})
-                result = subprocess.run([node, "-e", RULE_RUNNER, given], capture_output=True,
-                                        text=True, check=True)
-                self.assertEqual(result.stdout, answer)
+        for action in self.actions:
+            for groups, answer in cases.items():
+                with self.subTest(action=action.get("id"), groups=groups):
+                    given = json.dumps({"rules": str(RULES), "action": action.get("id"),
+                                        "groups": list(groups)})
+                    result = subprocess.run([node, "-e", RULE_RUNNER, given], capture_output=True,
+                                            text=True, check=True)
+                    self.assertEqual(result.stdout, answer)
 
     def test_asks_an_administrator_for_every_change_and_only_at_the_machine(self):
         # auth_admin, never auth_admin_keep: each change asks again.
-        defaults = {child.tag: child.text for child in self.action.find("defaults")}
-        self.assertEqual(defaults, {"allow_any": "no", "allow_inactive": "no", "allow_active": "auth_admin"})
+        for action in self.actions:
+            with self.subTest(action=action.get("id")):
+                defaults = {child.tag: child.text for child in action.find("defaults")}
+                self.assertEqual(defaults, {"allow_any": "no", "allow_inactive": "no",
+                                            "allow_active": "auth_admin"})
 
-    def test_pkexec_finds_it_by_the_commands_path(self):
+    def test_pkexec_finds_them_by_the_commands_path(self):
         # The build changes /usr/local to its own prefix (cmake/CairnInstall.cmake).
-        [path] = [a.text for a in self.action.findall("annotate") if a.get("key") == "org.freedesktop.policykit.exec.path"]
-        self.assertEqual(path, "/usr/local/libexec/cairn/cairn-family")
+        for action in self.actions:
+            with self.subTest(action=action.get("id")):
+                self.assertEqual(self.annotation(action, "path"),
+                                 ["/usr/local/libexec/cairn/cairn-family"])
 
     def test_has_the_licence_line(self):
         self.assertEqual(self.text.splitlines()[1], "<!-- SPDX-License-Identifier: Apache-2.0 -->")

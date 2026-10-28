@@ -610,5 +610,16 @@ class RenumberNumbersTest(Renumber):
         self.assertIn("chgrp -h", text)
 
 
+class ImageFoldersTest(unittest.TestCase):
+    """The folders the image makes in /var at every boot (ADR-0038)."""
+
+    def test_the_childrens_lists_have_a_root_folder(self):
+        # cairn-family save-games writes each child's list there and
+        # refuses a folder that is not root's own (ADR-0041).
+        tmpfiles = (HERE.parent / "system_files/usr/lib/tmpfiles.d/cairn.conf").read_text()
+        lines = [line.split() for line in tmpfiles.splitlines() if line and not line.startswith("#")]
+        self.assertIn(["d", "/var/lib/cairn/games", "0755", "root", "root", "-"], lines)
+
+
 if __name__ == "__main__":
     unittest.main()
