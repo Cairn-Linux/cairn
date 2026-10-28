@@ -34,6 +34,19 @@ private slots:
         QVERIFY(!lookUpAccountByUid(4000000000U).has_value());
     }
 
+    // A home comes from the account database, whatever $HOME says.
+    void theSystemLookUpOfAHome() {
+        QCOMPARE(lookUpHome(0), std::optional<QString>(QStringLiteral("/root")));
+        const QByteArray saved = qgetenv("HOME");
+        qputenv("HOME", "/somewhere/else");
+        const std::optional<QString> own = lookUpHome(getuid());
+        qputenv("HOME", saved);
+        QVERIFY(own.has_value());
+        QVERIFY(own.value_or(QString()).startsWith('/'));
+        QVERIFY(own != std::optional<QString>(QStringLiteral("/somewhere/else")));
+        QVERIFY(!lookUpHome(4000000000U).has_value());
+    }
+
     // The whole list holds root and the account running the test, each
     // once, with the same values a lookup by name gives.
     void theSystemList() {

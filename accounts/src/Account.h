@@ -40,6 +40,11 @@ std::optional<Account> lookUpAccount(const QString& name);
 // The same, by the account's number.
 std::optional<Account> lookUpAccountByUid(unsigned int uid);
 
+// The home folder of the account with this number, from the account
+// database, never from an environment someone else set. Nothing if there is
+// no such account, or its home is not a full path.
+std::optional<QString> lookUpHome(unsigned int uid);
+
 // Every account the system's account database knows, through NSS, in the
 // order it gives them.
 std::vector<Account> listAccounts();
