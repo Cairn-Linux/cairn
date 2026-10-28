@@ -1,0 +1,19 @@
+#!/bin/sh
+# SPDX-License-Identifier: Apache-2.0
+#
+# A stand-in for systemd-run, for cairn-family save-games' tests. A test
+# links it as "systemd-run" in a folder of its own. It writes its arguments,
+# one call to a line, to "systemd-run-calls" in that folder, and the
+# environment it was given to "systemd-run-environment". With "fail-start"
+# in the folder it says nothing and fails, as systemd-run does when the
+# unit's name is taken; otherwise it runs what follows "--", as the real one
+# runs the service, with this program's standard output.
+here="${0%/*}"
+echo "$*" >> "$here/systemd-run-calls"
+env > "$here/systemd-run-environment"
+[ ! -e "$here/fail-start" ] || exit 1
+while [ "$#" -gt 0 ] && [ "$1" != -- ]; do
+    shift
+done
+shift
+exec "$@"

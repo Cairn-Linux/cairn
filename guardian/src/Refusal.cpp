@@ -21,6 +21,10 @@ QString refusalWord(Refusal refusal) {
         return QStringLiteral("not-a-child");
     case Refusal::Failed:
         return QStringLiteral("failed");
+    case Refusal::BadAppId:
+        return QStringLiteral("bad-appid");
+    case Refusal::Busy:
+        return QStringLiteral("busy");
     }
     return QStringLiteral("failed");
 }

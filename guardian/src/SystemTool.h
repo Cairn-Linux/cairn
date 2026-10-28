@@ -1,20 +1,30 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+#include <QByteArray>
 #include <QString>
 #include <QStringList>
 
-// Runs one of the system's account tools as root, and says whether it
-// succeeded.
+#include <optional>
+
+// Runs one of the system's tools as root, and says whether it succeeded.
 //
 // The program is named by its absolute path and started directly, never
 // through a shell, so no argument is ever read as shell syntax. It gets a
 // small environment of its own rather than its caller's: under sudo or
-// pkexec that environment came from another account. What the tool prints
-// on its standard output is dropped, so it cannot mix with cairn-family's
-// own one line; what it prints as an error goes on to the journal.
+// pkexec that environment came from another account. A tool gets at most
+// two minutes, then it is killed.
 namespace SystemTool {
 
+// What the tool prints on its standard output is dropped, so it cannot mix
+// with cairn-family's own lines; what it prints as an error goes on to the
+// journal.
 bool run(const QString& program, const QStringList& arguments);
+
+// What the tool printed on its standard output, when it succeeded and
+// printed at most `maxBytes`; nothing otherwise. Its error output is
+// dropped, because it can name files in someone's home.
+std::optional<QByteArray> output(const QString& program, const QStringList& arguments,
+                                 qint64 maxBytes);
 
 } // namespace SystemTool
