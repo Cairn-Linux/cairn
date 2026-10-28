@@ -111,6 +111,24 @@
     </windowRule>
 
     <!--
+      A ScummVM game fills the screen even when it never asks to. Some
+      Steam launch entries name a config one folder up, "../game.ini",
+      without setting a working folder, so ScummVM finds no config, makes
+      an empty one and opens a small window over the launcher (Harry and
+      the Haunted House, 2026-10-27). Maximize, not ToggleFullscreen: labwc
+      runs a rule after an X11 window's own fullscreen request, so a toggle
+      put the games that did ask back in a window, while Maximize leaves a
+      fullscreen window as it is. With no titlebar a maximized window
+      covers the screen and ScummVM scales the game to fit. These builds
+      have no Wayland support, so the window is X11 and its WM_CLASS
+      instance is "scummvm". Only ScummVM: a rule for every window would
+      stretch dialogs too.
+    -->
+    <windowRule identifier="scummvm">
+      <action name="Maximize" direction="both" />
+    </windowRule>
+
+    <!--
       Steam's own windows never reach the child: the sign-in prompt, the
       main client, an update. They are X11 windows under XWayland, and
       labwc matches `identifier` against the first half of WM_CLASS, the
