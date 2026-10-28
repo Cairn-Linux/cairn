@@ -22,6 +22,7 @@ TestCase {
         const given = options === undefined ? {} : options;
         const properties = {
             "page": standIns.page(scenario, given.withChildren !== false, given.withOlderChild === true),
+            "gamesPage": standIns.gamesPage(given.withChildren !== false, given.withGames !== false, given.steamStarts !== false),
             "height": 1400
         };
         const window = createTemporaryObject(windowComponent, testCase, properties);
@@ -67,7 +68,7 @@ TestCase {
         verify(!findChild(window, "noChildren").visible);
         compare(outcome(window), "");
         if (standIns.screenshotPath() !== "") {
-            wait(100);
+            wait(200);
             grabImage(window.contentItem).save(standIns.screenshotPath());
         }
     }
@@ -125,7 +126,7 @@ TestCase {
         tryCompare(findChild(window, "addButton"), "activeFocus", true);
         keyClick(Qt.Key_Return);
         tryCompare(window.page, "step", ChildrenPage.Added);
-        compare(outcome(window), "Cy can log in now, at level 2. This window does not copy Steam games to Cy yet; the family set-up script does.");
+        compare(outcome(window), "Cy can log in now, at level 2. The Games page shows the games on Cy's list.");
         // Done, so the form is empty for the next child.
         compare(nameField(window).text, "");
         compare(findChild(window, "addChildForm").level, 1);
@@ -283,5 +284,197 @@ TestCase {
         verify(buttons.x + buttons.width <= row.width);
         // The other rows fit side by side.
         verify(findChild(window, "childRows").itemAt(0).sideBySide);
+    }
+
+    // ---- the switch between pages, and the Games page ----
+
+    function showGames(window) {
+        mouseClick(findChild(window, "gamesTab"));
+        compare(window.showing, "games");
+    }
+
+    // The Games page's choice for the child with this login.
+    function choice(window, login) {
+        const repeater = findChild(window, "childChoiceRepeater");
+        for (let i = 0; i < repeater.count; ++i) {
+            if (repeater.itemAt(i).objectName === "choose_" + login)
+                return repeater.itemAt(i);
+        }
+        return null;
+    }
+
+    // The names of the cards that are highlighted.
+    function highlighted(window) {
+        const names = [];
+        const repeater = findChild(window, "gameCards");
+        for (let i = 0; i < repeater.count; ++i) {
+            const card = repeater.itemAt(i);
+            if (card.onList)
+                names.push(findChild(card, "gameTitle").text);
+        }
+        return names;
+    }
+
+    function test_theWindowOpensOnChildren() {
+        const window = makeWindow("done");
+        compare(window.showing, "children");
+        verify(findChild(window, "childrenView").visible);
+        verify(!findChild(window, "gamesView").visible);
+        compare(findChild(window, "childrenTab").Accessible.role, Accessible.PageTab);
+        compare(findChild(window, "childrenTab").Accessible.checked, true);
+        compare(findChild(window, "gamesTab").Accessible.checked, false);
+    }
+
+    function test_switchToGamesAndBack() {
+        const window = makeWindow("done");
+        showGames(window);
+        verify(!findChild(window, "childrenView").visible);
+        verify(findChild(window, "gamesView").visible);
+        compare(findChild(window, "gamesHeading").text, "Games");
+        compare(findChild(window, "gamesTab").Accessible.checked, true);
+        mouseClick(findChild(window, "childrenTab"));
+        compare(window.showing, "children");
+        verify(findChild(window, "childrenView").visible);
+    }
+
+    // The first child is picked, every shared game shows, and the games on
+    // their list are highlighted, with a word as well as a colour.
+    function test_theGamesPageShowsTheChildsList() {
+        const window = makeWindow("done");
+        showGames(window);
+        compare(findChild(window, "gameCards").count, 8);
+        verify(choice(window, "ada").checked);
+        verify(!choice(window, "ben").checked);
+        compare(highlighted(window), ["Putt-Putt Joins the Parade", "Pajama Sam", "Spy Fox"]);
+        compare(findChild(window, "listSentence").text, "Games on Ada's list: 3 of 8. They are highlighted.");
+        const first = findChild(window, "gameCards").itemAt(0);
+        compare(findChild(first, "onListLabel").text, "On the list");
+        compare(first.Accessible.description, "On Ada's list");
+        compare(findChild(findChild(window, "gameCards").itemAt(1), "onListLabel").text, "Not on the list");
+        verify(!findChild(window, "noGames").visible);
+        verify(!findChild(window, "noChildrenForGames").visible);
+        compare(findChild(window, "openSteam").text, "Open Steam for Ada");
+        if (standIns.screenshotPath() !== "") {
+            wait(300);
+            grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-games.png"));
+        }
+    }
+
+    function test_aChildWithNoGames() {
+        const window = makeWindow("done");
+        showGames(window);
+        mouseClick(choice(window, "ben"));
+        verify(choice(window, "ben").checked);
+        compare(highlighted(window), []);
+        compare(findChild(window, "listSentence").text, "Ben has no games on their list yet.");
+        compare(findChild(window, "openSteam").text, "Open Steam for Ben");
+        if (standIns.screenshotPath() !== "") {
+            wait(300);
+            grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-games-none.png"));
+        }
+    }
+
+    // A title is shown as written, never as markup.
+    function test_aTitleIsPlainText() {
+        const window = makeWindow("done");
+        showGames(window);
+        const title = findChild(findChild(window, "gameCards").itemAt(4), "gameTitle");
+        compare(title.text, "<b>Backyard</b> Football");
+        compare(title.textFormat, Text.PlainText);
+    }
+
+    // The keyboard alone: Tab from the switch to the children, Space picks.
+    function test_pickAChildWithTheKeyboard() {
+        const window = makeWindow("done");
+        findChild(window, "childrenTab").forceActiveFocus();
+        keyClick(Qt.Key_Right);
+        tryCompare(findChild(window, "gamesTab"), "activeFocus", true);
+        keyClick(Qt.Key_Space);
+        compare(window.showing, "games");
+        keyClick(Qt.Key_Tab);
+        tryCompare(choice(window, "ada"), "activeFocus", true);
+        keyClick(Qt.Key_Tab);
+        tryCompare(choice(window, "ben"), "activeFocus", true);
+        keyClick(Qt.Key_Space);
+        compare(window.gamesPage.chosen, "ben");
+        keyClick(Qt.Key_Tab);
+        keyClick(Qt.Key_Tab);
+        tryCompare(findChild(window, "openSteam"), "activeFocus", true);
+        keyClick(Qt.Key_Return);
+        compare(standIns.startedSteam(), ["/usr/bin/cairn-steam-for ben"]);
+    }
+
+    function test_openSteamForAChild() {
+        const window = makeWindow("done");
+        showGames(window);
+        mouseClick(choice(window, "cy"));
+        mouseClick(findChild(window, "openSteam"));
+        compare(standIns.startedSteam(), ["/usr/bin/cairn-steam-for cy"]);
+        verify(!findChild(window, "steamNotOpened").visible);
+    }
+
+    function test_aSteamWindowThatDoesNotOpenSaysSo() {
+        const window = makeWindow("done", {
+            "steamStarts": false
+        });
+        showGames(window);
+        mouseClick(findChild(window, "openSteam"));
+        verify(findChild(window, "steamNotOpened").visible);
+        verify(findChild(window, "steamNotOpened").text.startsWith("The Steam window for Ada did not open."));
+    }
+
+    function test_noGamesInTheSharedFolder() {
+        const window = makeWindow("done", {
+            "withGames": false
+        });
+        showGames(window);
+        verify(findChild(window, "noGames").visible);
+        verify(findChild(window, "noGames").text.startsWith("No games in the shared folder yet."));
+        verify(!findChild(window, "gameGrid").visible);
+        verify(!findChild(window, "listSentence").visible);
+        verify(findChild(window, "openSteam").visible);
+    }
+
+    function test_noChildrenForGames() {
+        const window = makeWindow("done", {
+            "withChildren": false
+        });
+        showGames(window);
+        verify(findChild(window, "noChildrenForGames").visible);
+        verify(!findChild(window, "childChoices").visible);
+        verify(!findChild(window, "openSteam").visible);
+        verify(!findChild(window, "gameGrid").visible);
+    }
+
+    // A child added on the Children page is there to pick on the Games page.
+    function test_aChildAddedIsOnTheGamesPage() {
+        const window = makeWindow("done");
+        let reloaded = 0;
+        window.gamesPage.changed.connect(() => reloaded++);
+        nameField(window).text = "Dot";
+        mouseClick(findChild(window, "addButton"));
+        tryCompare(window.page, "step", ChildrenPage.Added);
+        verify(reloaded > 0);
+    }
+
+    // On a short window the Games page scrolls, the switch stays in place,
+    // and Tab keeps focus in sight.
+    function test_theGamesPageScrolls() {
+        const window = makeWindow("done", {
+            "smallest": true
+        });
+        showGames(window);
+        const scroller = findChild(window, "scroller");
+        verify(scroller.contentHeight > scroller.height);
+        verify(findChild(window, "scrollIndicator").visible);
+        scroller.contentY = scroller.contentHeight - scroller.height;
+        verify(inSight(window, findChild(window, "gamesTab")));
+        findChild(window, "gamesTab").forceActiveFocus();
+        keyClick(Qt.Key_Tab);
+        tryCompare(choice(window, "ada"), "activeFocus", true);
+        verify(inSight(window, choice(window, "ada")));
+        // Back to Children starts at the top of that page.
+        mouseClick(findChild(window, "childrenTab"));
+        compare(scroller.contentY, 0);
     }
 }

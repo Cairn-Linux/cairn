@@ -94,10 +94,17 @@ set(family_window_sources
     src/ChildList.h src/ChildList.cpp
     src/FamilyChange.h src/FamilyChange.cpp
     src/ChildrenPage.h src/ChildrenPage.cpp
+    src/GameCatalogue.h src/GameCatalogue.cpp
+    src/GamePicture.h src/GamePicture.cpp
+    src/GameShelf.h src/GameShelf.cpp
+    src/GamesPage.h src/GamesPage.cpp
 )
 set(family_window_qml_files
     qml/FamilyWindow.qml
     qml/ChildrenView.qml
+    qml/GamesView.qml
+    qml/ChildChoice.qml
+    qml/GameCard.qml
     qml/ChildRow.qml
     qml/AddChildForm.qml
     qml/LabelledField.qml
@@ -117,8 +124,10 @@ qt_add_qml_module(cairn-guardian
 )
 target_include_directories(cairn-guardian PRIVATE src)
 target_link_libraries(cairn-guardian PRIVATE Qt6::Quick CairnBrand cairn-accounts)
+# cairn-family, and the Steam window the Games page opens for a child.
 target_compile_definitions(cairn-guardian PRIVATE
     CAIRN_FAMILY="${CAIRN_FULL_LIBEXECDIR}/cairn-family"
+    CAIRN_STEAM_FOR="${CMAKE_INSTALL_FULL_BINDIR}/cairn-steam-for"
 )
 # Only a Guardian may run it, as the Steam window.
 set_target_properties(cairn-guardian PROPERTIES INSTALL_RPATH "${CAIRN_FULL_LIBDIR}")
@@ -276,6 +285,23 @@ target_link_libraries(tst_childrenpage PRIVATE Qt6::Qml Qt6::Test cairn-accounts
 target_compile_definitions(tst_childrenpage PRIVATE FIXTURES="${guardian_fixtures}")
 add_test(NAME childrenpage COMMAND tst_childrenpage)
 
+qt_add_executable(tst_gamepicture tests/tst_gamepicture.cpp src/GamePicture.h
+    src/GamePicture.cpp)
+target_include_directories(tst_gamepicture PRIVATE src)
+target_link_libraries(tst_gamepicture PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME gamepicture COMMAND tst_gamepicture)
+
+qt_add_executable(tst_gameshelf tests/tst_gameshelf.cpp src/GameShelf.h src/GameShelf.cpp
+    src/GameCatalogue.h src/GameCatalogue.cpp src/GamePicture.h src/GamePicture.cpp)
+target_include_directories(tst_gameshelf PRIVATE src)
+target_link_libraries(tst_gameshelf PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME gameshelf COMMAND tst_gameshelf)
+
+qt_add_executable(tst_gamespage tests/tst_gamespage.cpp ${family_window_sources})
+target_include_directories(tst_gamespage PRIVATE src)
+target_link_libraries(tst_gamespage PRIVATE Qt6::Qml Qt6::Test cairn-accounts)
+add_test(NAME gamespage COMMAND tst_gamespage)
+
 # The real window in the Quick Test host, as for the Steam window.
 qt_add_executable(tst_familywindow tests/tst_familywindow.cpp)
 qt_add_qml_module(tst_familywindow
@@ -295,6 +321,7 @@ add_test(NAME familywindow COMMAND tst_familywindow
 
 set_tests_properties(steamvisit ownsteam screenlockwatch steamforchild steamwindow familycommand
     caller gamesrequest childgamelist childgamesfile cataloguerefresh copyjob gamessave
-    steamentry loginname childlist familychange childrenpage familywindow PROPERTIES
+    steamentry loginname childlist familychange childrenpage gamepicture gameshelf gamespage
+    familywindow PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QML_IMPORT_PATH=${QT_QML_OUTPUT_DIRECTORY}"
 )
