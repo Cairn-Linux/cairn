@@ -901,27 +901,72 @@
 <context>
     <name>WaitingNote</name>
     <message>
-        <location filename="../qml/WaitingNote.qml" line="41"/>
-        <source>%1&apos;s new games were copied when %1 logged out on %2.</source>
+        <location filename="../qml/WaitingNote.qml" line="44"/>
+        <source>Steam for a child was open from a grown-up&apos;s login, so %1&apos;s new games could not be copied. If that window is still open, press Done in it first.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/WaitingNote.qml" line="43"/>
-        <source>When %1 logged out on %2:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/WaitingNote.qml" line="45"/>
-        <source>Games added to %1&apos;s list: %2.</source>
+        <location filename="../qml/WaitingNote.qml" line="46"/>
+        <source>Another copy of games was still running, so %1&apos;s new games could not be copied.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/WaitingNote.qml" line="51"/>
+        <source>%1&apos;s Steam has not run yet, so it has no place for games. Open Steam for %1 and sign in first.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/WaitingNote.qml" line="53"/>
+        <source>There is no shared game folder, /var/lib/cairn/steam-library, so no games were copied for %1. Restarting the computer makes the folder again. If it happens again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-steam-visit</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/WaitingNote.qml" line="55"/>
+        <source>%1&apos;s Steam lists the shared game folder as its own, so no games were copied for %1. Open Steam for %1 and remove that folder in Steam&apos;s Settings, under Storage, first.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/WaitingNote.qml" line="57"/>
+        <source>No games were copied for %1: their Steam&apos;s list of game folders is not a plain file, so Cairn does not read it. It is libraryfolders.vdf, in .local/share/Steam/config or .local/share/Steam/steamapps in %1&apos;s home. Make it a plain file again first. The record is in the system log. In a terminal: journalctl -t cairn-family -t cairn-steam-visit</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/WaitingNote.qml" line="59"/>
+        <source>Copying %1&apos;s games stopped early. Trying again is safe. If it fails again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-steam-visit</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/WaitingNote.qml" line="61"/>
+        <source>%1&apos;s list could not be written after the copy, so it holds none of the new games. Trying again is safe. If it fails again, the reason is in the system log. In a terminal: journalctl -t cairn-family</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/WaitingNote.qml" line="63"/>
+        <source>Not all of %1&apos;s new games could be given. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-steam-visit</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/WaitingNote.qml" line="73"/>
+        <source>%1&apos;s new games were copied when %1 logged out on %2.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/WaitingNote.qml" line="75"/>
+        <source>When %1 logged out on %2:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/WaitingNote.qml" line="77"/>
+        <source>Added to %1&apos;s list: %2.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/WaitingNote.qml" line="83"/>
         <source>The games that were not given are not on %1&apos;s list now. To try them again, put them back on the list and press Save.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/WaitingNote.qml" line="58"/>
+        <location filename="../qml/WaitingNote.qml" line="90"/>
         <source>%1&apos;s new games are copied the next time %1 logs out.</source>
         <translation type="unfinished"></translation>
     </message>

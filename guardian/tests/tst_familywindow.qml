@@ -723,7 +723,36 @@ TestCase {
         verify(standIns.leave("games-finished/ada", "child ada added 0 removed 0 held no-library\n", when));
         window.gamesPage.reload();
         showGames(window);
-        compare(findChild(window, "finishedNote").text, "When Ada logged out on " + when.toLocaleDateString(Qt.locale(), Locale.LongFormat) + ": Games added to Ada's list: 0. Ada's Steam has not run yet, so it has no place for games. Open Steam for Ada and sign in, then press Save again. The games that were not given are not on Ada's list now. To try them again, put them back on the list and press Save.");
+        compare(findChild(window, "finishedNote").text, "When Ada logged out on " + when.toLocaleDateString(Qt.locale(), Locale.LongFormat) + ": Ada's Steam has not run yet, so it has no place for games. Open Steam for Ada and sign in first. The games that were not given are not on Ada's list now. To try them again, put them back on the list and press Save.");
+    }
+
+    // The copy has ended and its games are off the list, so Save has
+    // nothing to save: no held word may say to press it again, and the
+    // closing sentence is the one way to try again.
+    function test_aFinishGivesOneNextStep() {
+        const words = ["busy", "copying", "not-set-up", "no-library", "no-shared", "lists-shared", "unreadable-config", "no-reflink", "failed", "not-written", "something-new"];
+        const window = makeWindow("done");
+        showGames(window);
+        for (let i = 0; i < words.length; ++i) {
+            verify(standIns.leave("games-finished/ada", "child ada added 0 removed 0 held " + words[i] + "\n", new Date(2026, 9, 21, 8, 0)));
+            window.gamesPage.reload();
+            const text = findChild(window, "finishedNote").text;
+            verify(text.indexOf("Save again") < 0, words[i] + ": " + text);
+            verify(text.indexOf("Added to") < 0, words[i] + ": " + text);
+            verify(text.endsWith("To try them again, put them back on the list and press Save."), words[i] + ": " + text);
+            verify(!findChild(window, "saveButton").enabled);
+        }
+    }
+
+    // A copy that gave some games and left one out counts what it added
+    // and names the one it left out, in the Save's words.
+    function test_aFinishThatGaveSomeCountsThem() {
+        const window = makeWindow("done");
+        const when = new Date(2026, 9, 22, 18, 15);
+        verify(standIns.leave("games-finished/ada", "copied ada 1002\nskipped ada 1004 downloading\nchild ada added 1 removed 0\n", when));
+        window.gamesPage.reload();
+        showGames(window);
+        compare(findChild(window, "finishedNote").text, "When Ada logged out on " + when.toLocaleDateString(Qt.locale(), Locale.LongFormat) + ": Added to Ada's list: 1. Spy Fox was not given to Ada: Steam is still downloading it. The games that were not given are not on Ada's list now. To try them again, put them back on the list and press Save.");
     }
 
     function test_aSkippedGameIsNamed() {

@@ -332,7 +332,7 @@ It moves to per-child lists when it is reinstalled from the image.
    a login that follows `cairn-family`'s rule; a child with no file has
    no game tiles and no Steam at login, as the launcher already did for a
    missing games file.
-   A logged-in child's games wait for a second Save, as above.
+   Until 5a, a logged-in child's games waited for a second Save.
 5. **"Later" and "Log them out now"** for a child who is logged in, in
    three small steps.
    - **5a, "Later".** The waiting list written at every Save, `later
