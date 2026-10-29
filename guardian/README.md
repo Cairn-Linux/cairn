@@ -112,7 +112,11 @@ copying. If one of the child's programs will not close, the page says
 to restart the computer, and the games are copied at the child's next
 logout. A child whose change only takes games off is never asked about,
 and when logind cannot be asked, nobody counts as logged in, so the
-games wait as for **Later**.
+games wait as for **Later**. The question comes only before a Save: the
+waiting and finished notes have no **Log Ada out now** button. A child
+whose games already wait gets them at their next logout, or after the
+parent changes their list again and answers **Log Ada out now**. This is
+a deliberate cost of the one password, not a gap.
 
 The window's notes and the error output of `cairn-family`'s tools go to
 the journal:

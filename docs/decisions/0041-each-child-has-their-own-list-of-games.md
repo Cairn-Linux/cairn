@@ -399,6 +399,13 @@ It moves to per-child lists when it is reinstalled from the image.
      says so, and a logged-in child's games wait as for **Later**.
      The window can only ask; root checks every `--log-out` again, and
      the helper checks the login itself.
+     The question comes only before a Save, so the plan's **Log Ada out
+     now** button on the waiting and finished notes is dropped.
+     A child whose games are already waiting gets them at their next
+     logout, or after the parent changes their list again and answers
+     **Log Ada out now**.
+     This is a deliberate cost of the one password: a button on a note
+     would need a Save of its own, or a second action and password.
      Landed 2026-10-29, with tests.
 6. **Checks in the cairn-iso VM**, with two children at different
    levels: one password per Save, with the games message, while adding a
