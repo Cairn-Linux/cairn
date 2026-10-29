@@ -112,6 +112,16 @@ void GamesSaving::clearOutcome() {
     emit changed();
 }
 
+QStringList GamesSaving::laterLogins() const {
+    QStringList logins;
+    for (const SaveReport::Child& child : m_report.children()) {
+        if (child.later) {
+            logins.append(child.login);
+        }
+    }
+    return logins;
+}
+
 GamesSaving::Reason GamesSaving::reasonFor(const QString& answer) {
     static const QHash<QString, Reason> reasons = {
         {QStringLiteral("not-root"), Reason::NotRoot},

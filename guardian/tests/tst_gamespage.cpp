@@ -582,6 +582,53 @@ private slots:
         QVERIFY(waits(*page, "1001"));
     }
 
+    // The Save counts the games taken off a child whose games wait, so the
+    // page says they are gone only when there were some.
+    void aLaterSaveCountsTheGamesTakenOff() {
+        const auto page = makePage();
+        page->turn("1001");
+        page->turn("1002");
+        saveWith(*page, "save-held-later");
+        const QVariantMap ada = page->saving()->results().constFirst().toMap();
+        QCOMPARE(ada.value("later").toBool(), true);
+        QCOMPARE(ada.value("removed").toInt(), 1);
+    }
+
+    // Once the copy at the child's logout has run, the Save's outcome,
+    // which says their games are still to come, ends, and the note about
+    // that logout takes its place.
+    void aSettledWaitEndsTheOutcome() {
+        const auto page = makePage();
+        page->turn("1001");
+        saveWith(*page, "save-held-later");
+        QCOMPARE(page->saving()->step(), GamesSaving::Step::Saved);
+        QCOMPARE(page->saving()->laterLogins(), QStringList({"ada"}));
+        // Another child's file changing leaves Ada waiting, and the outcome.
+        QSignalSpy changed(page.get(), &GamesPage::changed);
+        finish("ben", "child ben added 1 removed 0\n", QDateTime::currentDateTime());
+        QTRY_VERIFY_WITH_TIMEOUT(!changed.isEmpty(), kAnswerMilliseconds);
+        QCOMPARE(page->saving()->step(), GamesSaving::Step::Saved);
+        QVERIFY(QFile::remove(path("games-waiting/ada")));
+        finish("ada", "copied ada 1001\nchild ada added 1 removed 0\n",
+               QDateTime::currentDateTime());
+        QTRY_COMPARE_WITH_TIMEOUT(page->saving()->step(), GamesSaving::Step::Ready,
+                                  kAnswerMilliseconds);
+        QVERIFY(page->saving()->laterLogins().isEmpty());
+        QTRY_VERIFY_WITH_TIMEOUT(!page->finished().isEmpty(), kAnswerMilliseconds);
+        QVERIFY(!page->chosenWaiting());
+    }
+
+    // A Save that left no child waiting is not ended by a logout.
+    void aSaveWithNoWaitIsKept() {
+        const auto page = makePage();
+        page->turn("1001");
+        saveWith(*page, "save-done");
+        QSignalSpy changed(page.get(), &GamesPage::changed);
+        finish("ada", "child ada added 1 removed 0\n", QDateTime::currentDateTime());
+        QTRY_VERIFY_WITH_TIMEOUT(!changed.isEmpty(), kAnswerMilliseconds);
+        QCOMPARE(page->saving()->step(), GamesSaving::Step::Saved);
+    }
+
     // A child who is logged in gets only the games taken off; with no
     // `later`, their new games stay chosen, so Save can give them later.
     void aLoggedInChildIsHeld() {

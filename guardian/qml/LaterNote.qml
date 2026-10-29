@@ -9,9 +9,11 @@ import Cairn.Family
 Text {
     id: note
 
-    // A GamesSaving.Held, and the child's name.
+    // A GamesSaving.Held, the child's name, and how many games the Save
+    // took off their list.
     required property int held
     required property string name
+    required property int removed
 
     // Why the games wait, for each held word a logout settles.
     function reason() {
@@ -33,9 +35,19 @@ Text {
     font.pixelSize: Tokens.bodySize
     lineHeight: Tokens.bodyLineHeight
     color: Tokens.paperLabel
-    // A log-out a program outlived needs a restart, so it is never
-    // "nothing else to do".
-    text: note.held === GamesSaving.Stuck ? qsTr("One of %1's programs would not close. Restart the computer. %1's new games are copied the next time %1 logs out.").arg(note.name) : note.reason() + " " + qsTr("%1's new games are copied the next time %1 logs out. You do not need to do anything else. The games taken off are already gone from %1's list.").arg(note.name)
+    // What comes next, and, only when the Save took a game off, that it
+    // has gone already. A log-out a program outlived needs a restart, so
+    // it is never "nothing else to do".
+    function nextSentence() {
+        if (note.held === GamesSaving.Stuck)
+            return qsTr("One of %1's programs would not close. Restart the computer. %1's new games are copied the next time %1 logs out.").arg(note.name);
+        const said = note.reason() + " " + qsTr("%1's new games are copied the next time %1 logs out. You do not need to do anything else.").arg(note.name);
+        if (note.removed <= 0)
+            return said;
+        return said + " " + qsTr("The games taken off are already gone from %1's list.").arg(note.name);
+    }
+
+    text: note.nextSentence()
     Accessible.role: Accessible.AlertMessage
     Accessible.name: text
 }

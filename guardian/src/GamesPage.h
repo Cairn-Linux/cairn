@@ -148,7 +148,10 @@ public:
     // Reads the children and the games files again. Changes not saved yet
     // stay, but for a child who is gone or a game that can no longer show.
     // A waiting or finished file that changes reads them again too, unless
-    // a Save is running, after which they are read anyway.
+    // a Save is running, after which they are read anyway. Once a child
+    // the last Save left for their next logout no longer waits, its
+    // outcome ends, so it never says games are still to come that have
+    // come, and the note about that logout shows instead.
     Q_INVOKABLE void reload();
 
 signals:

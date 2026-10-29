@@ -137,6 +137,9 @@ public:
     // The last Save's outcome stops showing, because the page has changed
     // since it ended. Nothing while a Save runs.
     void clearOutcome();
+    // The children whose new games the last Save left for their next
+    // logout, while its outcome shows.
+    QStringList laterLogins() const;
 
     static Reason reasonFor(const QString& answer);
     // NotHeld for no word.
