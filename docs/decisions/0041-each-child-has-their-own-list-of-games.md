@@ -347,6 +347,7 @@ It moves to per-child lists when it is reinstalled from the image.
      program of theirs will not close.
      It is shaped to be driven by `save-games`: CopyJob passes the flag
      for a child the Save names to log out, and never otherwise.
+     Landed 2026-10-28, with tests; nothing passes it yet.
    - **5c, "Log them out now".** One password, with the choice before
      Save.
      Before it runs `pkexec`, the window checks without root whether each
