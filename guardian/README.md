@@ -115,8 +115,9 @@ and when logind cannot be asked, nobody counts as logged in, so the
 games wait as for **Later**. The question comes only before a Save: the
 waiting and finished notes have no **Log Ada out now** button. A child
 whose games already wait gets them at their next logout, or after the
-parent changes their list again and answers **Log Ada out now**. This is
-a deliberate cost of the one password, not a gap.
+parent changes their list again and answers **Log Ada out now**. A child
+is only still logged in if they walked away and the computer slept, so
+this is rare; a button can come later if families ask for it.
 
 The window's notes and the error output of `cairn-family`'s tools go to
 the journal:
