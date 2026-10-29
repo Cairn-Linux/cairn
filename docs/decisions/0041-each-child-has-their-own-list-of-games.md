@@ -106,6 +106,27 @@ games on their list.**
   passes.
   An empty list copies nothing, so a child with no games never gets
   every game by a caller passing an empty list.
+- For "Log them out now" (step 5),
+  `cairn-steam-visit --copy-games --log-out CHILD APPID...` logs the
+  child out first, and only when they are logged in.
+  It does so only once the child is listed, so PAM refuses them from the
+  logout to the end of the copy.
+  It says `logging-out`, asks the child's Steam to save and quit when it
+  is running, ends the child's account with `loginctl terminate-user`,
+  kills what is left after 15 seconds, and gives a closing login 5
+  seconds to go.
+  Then it says `logged-out` and copies as above.
+  `refused stuck` means a program of the child's would not end, so
+  nothing was copied and the computer needs a restart; `refused
+  logged-in` means the ended login was still closing; and `refused
+  stopped` that a signal came mid-logout.
+  Every ending, `stuck` among them, lets the child log in again.
+  The pkexec guard comes first, so the visit's own action can never log
+  a child out.
+  `--log-out` goes straight after `--copy-games`, once, and never with
+  `--all`, or the helper refuses `usage`.
+  An empty list still copies nothing and logs nobody out.
+  A visit's close ends the child in the same way.
 - A listed game that is not in the shared folder is reported as
   `skipped APPID not-shared`, and the rest go ahead.
   An appid that is not a plain number is refused before anything
@@ -228,6 +249,8 @@ It moves to per-child lists when it is reinstalled from the image.
    A logged-in child's games wait for a second Save, as above.
 5. **"Log them out now" and "Later"** for a child who is logged in, in
    their own small step.
+   Its part 5b, the helper's `--log-out` above, landed 2026-10-28 on
+   its own, with tests; nothing passes it yet.
 6. **Checks in the cairn-iso VM**, with two children at different
    levels: one password per Save, with the games message, while adding a
    child still shows the account message, each child sees only their own
