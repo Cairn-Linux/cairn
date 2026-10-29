@@ -159,49 +159,6 @@ GamesSaving::Reason GamesSaving::reasonFor(const QString& answer) {
     return reasons.value(answer, Reason::Unknown);
 }
 
-GamesSaving::Held GamesSaving::heldFor(const QString& word) {
-    if (word.isEmpty()) {
-        return Held::NotHeld;
-    }
-    static const QHash<QString, Held> held = {
-        {QStringLiteral("logged-in"), Held::LoggedIn},
-        {QStringLiteral("busy"), Held::VisitOpen},
-        {QStringLiteral("copying"), Held::CopyStillRunning},
-        {QStringLiteral("still-running"), Held::StillRunning},
-        {QStringLiteral("stopped"), Held::Stopped},
-        {QStringLiteral("not-set-up"), Held::NotSetUp},
-        {QStringLiteral("no-library"), Held::NoLibrary},
-        {QStringLiteral("no-shared"), Held::NoShared},
-        {QStringLiteral("lists-shared"), Held::ListsShared},
-        {QStringLiteral("unreadable-config"), Held::UnreadableConfig},
-        {QStringLiteral("no-reflink"), Held::NoReflink},
-        {QStringLiteral("failed"), Held::CopyStopped},
-        {QStringLiteral("not-started"), Held::NotStarted},
-        {QStringLiteral("not-written"), Held::NotWritten},
-        {QStringLiteral("stuck"), Held::Stuck},
-    };
-    return held.value(word, Held::OtherHold);
-}
-
-GamesSaving::Skip GamesSaving::skipFor(const QString& word) {
-    static const QHash<QString, Skip> skips = {
-        {QStringLiteral("not-shared"), Skip::NotShared},
-        {QStringLiteral("no-catalogue"), Skip::NoCatalogue},
-        {QStringLiteral("unreadable"), Skip::UnreadableManifest},
-        {QStringLiteral("appid"), Skip::OtherGame},
-        {QStringLiteral("installdir"), Skip::OddFolder},
-        {QStringLiteral("beta-branch"), Skip::BetaBranch},
-        {QStringLiteral("not-installed"), Skip::NotInstalled},
-        {QStringLiteral("downloading"), Skip::Downloading},
-        {QStringLiteral("no-folder"), Skip::NoFolder},
-        {QStringLiteral("folder-without-manifest"), Skip::FolderThere},
-        {QStringLiteral("changed"), Skip::ChangedDuringCopy},
-        {QStringLiteral("copy-failed"), Skip::CopyDidNotWork},
-        {QStringLiteral("unreadable-files"), Skip::UnreadableFiles},
-    };
-    return skips.value(word, Skip::OtherSkip);
-}
-
 // The first line means the password was accepted and the command runs:
 // cairn-family says "looking" before its first slow step.
 void GamesSaving::lineRead(const QString& line) {

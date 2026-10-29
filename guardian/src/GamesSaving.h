@@ -149,9 +149,6 @@ public:
     bool settled(const QString& login) const;
 
     static Reason reasonFor(const QString& answer);
-    // NotHeld for no word.
-    static Held heldFor(const QString& word);
-    static Skip skipFor(const QString& word);
 
 signals:
     void changed();
