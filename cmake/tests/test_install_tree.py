@@ -167,7 +167,7 @@ class InstallTree(unittest.TestCase):
         # cairn-family's file has one action for each subcommand.
         actions = {
             "com.cairnlinux.steam-visit": ["/usr/libexec/cairn/cairn-steam-visit"],
-            "com.cairnlinux.family": ["/usr/libexec/cairn/cairn-family"] * 3,
+            "com.cairnlinux.family": ["/usr/libexec/cairn/cairn-family"] * 4,
         }
         for action, programs in actions.items():
             with self.subTest(action=action):
@@ -186,6 +186,7 @@ class InstallTree(unittest.TestCase):
                      "/usr/libexec/cairn/cairn-steam-visit\0",
                      "/usr/libexec/cairn/cairn-game-pictures\0",
                      "/usr/libexec/cairn/kidscan.py\0", "/usr/bin/systemd-run\0",
+                     "/usr/bin/systemd-inhibit\0",
                      "/usr/bin/python3\0"):
             with self.subTest(path=path):
                 self.assertTrue(path.encode("utf-16-le") in program)

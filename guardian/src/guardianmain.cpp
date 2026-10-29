@@ -2,6 +2,7 @@
 #include "ChildrenPage.h"
 #include "GamesPage.h"
 
+#include <QDBusConnection>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 
@@ -21,6 +22,7 @@ int main(int argc, char* argv[]) {
     GamesPage::Setup gamesSetup;
     gamesSetup.command = QStringLiteral(CAIRN_FAMILY);
     gamesSetup.steamFor = QStringLiteral(CAIRN_STEAM_FOR);
+    gamesSetup.loginBus = QDBusConnection::systemBus();
     GamesPage gamesPage(gamesSetup);
 
     QQmlApplicationEngine engine;

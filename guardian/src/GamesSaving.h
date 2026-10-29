@@ -32,6 +32,10 @@ class GamesSaving : public QObject {
     Q_PROPERTY(Progress progress READ progress NOTIFY changed)
     // The name of the child being copied or waited for, or "".
     Q_PROPERTY(QString progressName READ progressName NOTIFY changed)
+    // Each game copied so far, or found already there, as a map: login,
+    // name, appId, title (or "") and had, true for a game already there.
+    // For the progress window while the copies run.
+    Q_PROPERTY(QVariantList copiedSoFar READ copiedSoFar NOTIFY changed)
     // Each child the command answered for, as a map: login, name, added,
     // removed, held (a Held), and skipped, a list of maps with appId,
     // title and reason (a Skip). added and removed are -1 when the child's
@@ -119,6 +123,7 @@ public:
     Reason reason() const;
     Progress progress() const;
     QString progressName() const;
+    QVariantList copiedSoFar() const;
     QVariantList results() const;
     bool allGiven() const;
     bool catalogueKept() const;
@@ -134,6 +139,8 @@ public:
     // The last Save's outcome stops showing, because the page has changed
     // since it ended. Nothing while a Save runs.
     void clearOutcome();
+    // The progress window's Close: the same, once the Save has ended.
+    Q_INVOKABLE void close();
 
     static Reason reasonFor(const QString& answer);
 

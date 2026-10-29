@@ -5,11 +5,20 @@
 
 GamesPage::GamesPage(Setup setup, QObject* parent)
     : QObject(parent), m_setup(std::move(setup)),
-      m_saving(new GamesSaving(m_setup.pkexec, m_setup.command, this)) {
+      m_saving(new GamesSaving(m_setup.pkexec, m_setup.command, this)),
+      m_logOut(new ChildLogOut(m_setup.pkexec, m_setup.command, this)),
+      m_logins(new LoginWatch(m_setup.loggedIn, this)) {
+    if (m_setup.loginBus) {
+        m_logins->listen(*m_setup.loginBus);
+    }
     connect(m_saving, &GamesSaving::changed, this, &GamesPage::changed);
+    connect(m_logOut, &ChildLogOut::changed, this, &GamesPage::changed);
+    connect(m_logins, &LoginWatch::changed, this, &GamesPage::changed);
     // Whatever the answer, the lists are read again: a Save that stopped
-    // part way may still have written some.
+    // part way may still have written some. After a logout, logind is
+    // asked again, in case its signal came before the end.
     connect(m_saving, &GamesSaving::ended, this, &GamesPage::reload);
+    connect(m_logOut, &ChildLogOut::ended, this, &GamesPage::reload);
     reload();
 }
 
@@ -24,6 +33,14 @@ QString GamesPage::chosen() const {
 QString GamesPage::chosenName() const {
     const ListedChild* picked = childWithLogin(m_children, m_chosen);
     return picked != nullptr ? picked->name : QString();
+}
+
+bool GamesPage::chosenLoggedIn() const {
+    return m_logins->isLoggedIn(m_chosen);
+}
+
+bool GamesPage::chosenCovered() const {
+    return chosenLoggedIn() || m_logOut->isAbout(m_chosen);
 }
 
 QVariantList GamesPage::games() const {
@@ -70,20 +87,30 @@ QString GamesPage::unsavedNames() const {
     return namesInWords(m_children, unsavedLogins());
 }
 
+QString GamesPage::loggedInUnsavedNames() const {
+    QStringList logins = unsavedLogins();
+    logins.removeIf([this](const QString& login) { return !m_logins->isLoggedIn(login); });
+    return namesInWords(m_children, logins);
+}
+
 bool GamesPage::canSave() const {
-    return m_choices.anyChanged() && !busy();
+    return m_choices.anyChanged() && !busy() && loggedInUnsavedNames().isEmpty();
 }
 
 bool GamesPage::canPutBack() const {
-    return m_choices.changed(m_chosen) && !busy();
+    return m_choices.changed(m_chosen) && !busy() && !chosenCovered();
 }
 
 bool GamesPage::busy() const {
-    return m_saving->busy();
+    return m_saving->busy() || m_logOut->busy();
 }
 
 GamesSaving* GamesPage::saving() const {
     return m_saving;
+}
+
+ChildLogOut* GamesPage::loggingOut() const {
+    return m_logOut;
 }
 
 void GamesPage::choose(const QString& login) {
@@ -93,12 +120,15 @@ void GamesPage::choose(const QString& login) {
     m_chosen = login;
     m_steamNotOpened.clear();
     m_saving->clearOutcome();
+    m_logOut->notNow();
+    m_logOut->close();
     readShelf();
     emit changed();
 }
 
 void GamesPage::turn(const QString& appId) {
-    if (busy() || !m_shelf.shows(appId) || childWithLogin(m_children, m_chosen) == nullptr) {
+    if (busy() || chosenCovered() || !m_shelf.shows(appId) ||
+        childWithLogin(m_children, m_chosen) == nullptr) {
         return;
     }
     m_choices.turn(m_chosen, appId);
@@ -133,14 +163,21 @@ void GamesPage::lookForGames() {
 
 void GamesPage::openSteam(const QString& login) {
     const ListedChild* picked = childWithLogin(m_children, login);
-    if (picked != nullptr && !busy()) {
+    if (picked != nullptr && !busy() && !m_logins->isLoggedIn(login)) {
         const bool opened = SteamWindowStart::open(m_setup.steamFor, login, m_setup.start);
         m_steamNotOpened = opened ? QString() : picked->name;
         emit changed();
     }
 }
 
+void GamesPage::logOut() {
+    if (chosenLoggedIn() && !busy()) {
+        m_logOut->ask(m_chosen, chosenName());
+    }
+}
+
 void GamesPage::reload() {
+    m_logins->refresh();
     std::vector<ListedChild> children = childrenAmong(m_setup.accounts());
     const bool sameChildren = sameLoginsAndNames(children, m_children);
     m_children = std::move(children);

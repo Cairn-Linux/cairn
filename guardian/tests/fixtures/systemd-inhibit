@@ -1,0 +1,19 @@
+#!/bin/sh
+# SPDX-License-Identifier: Apache-2.0
+#
+# A stand-in for systemd-inhibit, for cairn-family save-games' tests. A test
+# links it as "systemd-inhibit" in a folder of its own. It writes its
+# arguments, one call to a line, to "systemd-inhibit-calls" in that folder.
+# With "fail-inhibit" there it says nothing and fails, as systemd-inhibit
+# does when logind cannot be reached; otherwise it runs what follows its
+# options, as the real one runs its command while it holds the lock.
+here="${0%/*}"
+echo "$*" >> "$here/systemd-inhibit-calls"
+[ ! -e "$here/fail-inhibit" ] || exit 1
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --*) shift ;;
+        *) break ;;
+    esac
+done
+exec "$@"

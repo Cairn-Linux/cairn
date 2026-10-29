@@ -196,6 +196,11 @@ def render_css(tokens):
   /* a games tile is a quiet card, so it carries a hairline edge */
   --cairn-games-edge:  var(--cairn-{semantic['edge']['games']});
   --cairn-stroke-hairline: {tokens['stroke']['hairline']}px;
+  /* overlay: a box to answer first, and what waits under it */
+  --cairn-scrim: var(--cairn-{tokens['overlay']['scrim']});
+  --cairn-scrim-opacity: {tokens['overlay']['scrim-opacity']};
+  --cairn-covered-opacity: {tokens['overlay']['covered-opacity']};
+  --cairn-blur-max: {tokens['overlay']['blur-max']}px;
   /* label colour pairs and their measured contrast ratios */
   --cairn-on-make:     var(--cairn-{semantic['on']['make']});   /* {label_ratio_comment(tokens, 'make')} */
   --cairn-on-practice: var(--cairn-{semantic['on']['practice']});   /* {label_ratio_comment(tokens, 'practice')} */
@@ -291,6 +296,20 @@ def render_qml(tokens):
             "a games tile is a quiet card, so it carries a hairline edge",
         ),
         qml_property("int", "strokeHairline", str(tokens["stroke"]["hairline"])),
+        qml_property(
+            "color",
+            "scrim",
+            camel(tokens["overlay"]["scrim"]),
+            "behind a box that must be answered first, at scrimOpacity",
+        ),
+        qml_property("real", "scrimOpacity", str(tokens["overlay"]["scrim-opacity"])),
+        qml_property(
+            "real",
+            "coveredOpacity",
+            str(tokens["overlay"]["covered-opacity"]),
+            "what waits under a cover, also where blur cannot be drawn",
+        ),
+        qml_property("int", "blurMax", str(tokens["overlay"]["blur-max"])),
         "    // Label pair comments are measured contrast ratios against each ground.",
     ]
     for label_name, color_name in semantic["on"].items():

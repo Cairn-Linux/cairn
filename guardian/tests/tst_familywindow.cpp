@@ -12,6 +12,7 @@
 #include <QPainter>
 #include <QQmlContext>
 #include <QQmlEngine>
+#include <QSet>
 #include <QTemporaryDir>
 #include <QtQuickTest/quicktest.h>
 
@@ -93,10 +94,13 @@ public:
     // window start answers as `steamStarts` says, and is written down in
     // startedSteam(). Its Save runs the stand-ins, which answer as
     // `scenario` says, when one is given, and write the children's lists
-    // into its folder.
+    // into its folder. The children in `loggedIn` are logged in, until a
+    // logout the stand-ins run, or setLoggedIn(), says otherwise.
     Q_INVOKABLE GamesPage* gamesPage(bool withChildren, bool withGames, bool steamStarts = true,
-                                     const QString& scenario = QString()) {
+                                     const QString& scenario = QString(),
+                                     const QStringList& loggedIn = QStringList()) {
         const QDir files(m_files.path());
+        setLoggedIn(loggedIn);
         QJsonArray shared;
         const QStringList titles{"Putt-Putt Joins the Parade",
                                  "Freddi Fish",
@@ -153,6 +157,7 @@ public:
             qputenv("CAIRN_TEST_SCENARIO", scenario.toLocal8Bit());
         }
         qputenv("CAIRN_TEST_GAMES", files.filePath("games").toLocal8Bit());
+        qputenv("CAIRN_TEST_LOGGED_IN", loggedInFile().toLocal8Bit());
         GamesPage::Setup setup;
         setup.pkexec = QStringLiteral(FIXTURES "/pkexec-family");
         setup.command = QStringLiteral(FIXTURES "/cairn-family");
@@ -160,6 +165,15 @@ public:
         setup.childLists = files.filePath("games");
         setup.steamFor = "/usr/bin/cairn-steam-for";
         setup.accounts = [accounts] { return accounts; };
+        setup.loggedIn = [this] {
+            QFile file(loggedInFile());
+            if (!file.open(QIODevice::ReadOnly)) {
+                return QSet<QString>();
+            }
+            const QStringList logins =
+                QString::fromUtf8(file.readAll()).split('\n', Qt::SkipEmptyParts);
+            return QSet<QString>(logins.begin(), logins.end());
+        };
         setup.start = [this, steamStarts](const QString& program, const QStringList& arguments) {
             m_startedSteam.append(program + " " + arguments.join(' '));
             return steamStarts;
@@ -167,6 +181,11 @@ public:
         auto* page = new GamesPage(setup);
         QQmlEngine::setObjectOwnership(page, QQmlEngine::JavaScriptOwnership);
         return page;
+    }
+
+    // Who logind says is logged in; the page reads it at its next reload.
+    Q_INVOKABLE void setLoggedIn(const QStringList& logins) const {
+        writeFile(loggedInFile(), logins.join('\n').toUtf8());
     }
 
     Q_INVOKABLE QStringList startedSteam() const {
@@ -180,6 +199,10 @@ public:
     }
 
 private:
+    QString loggedInFile() const {
+        return QDir(m_files.path()).filePath("logged-in");
+    }
+
     QTemporaryDir m_files;
     QStringList m_startedSteam;
 };

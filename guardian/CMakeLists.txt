@@ -42,7 +42,7 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/bin/cairn-steam-for" DESTINATION "${C
 
 # cairn-family: no window, only Qt Core, run as root by pkexec or sudo.
 # create-child and set-level change accounts (ADR-0039); save-games gives
-# children their games (ADR-0041).
+# children their games, and log-out logs a child out first (ADR-0041).
 set(family_sources
     src/Refusal.h src/Refusal.cpp
     src/Caller.h src/Caller.cpp
@@ -60,9 +60,11 @@ set(games_save_sources
     src/CatalogueRefresh.h src/CatalogueRefresh.cpp
     src/ChildGameList.h src/ChildGameList.cpp
     src/ChildGamesFile.h src/ChildGamesFile.cpp
+    src/SystemJob.h src/SystemJob.cpp
     src/CopyJob.h src/CopyJob.cpp
     src/ChildSave.h src/ChildSave.cpp
     src/GamesSave.h src/GamesSave.cpp
+    src/LogOutCommand.h src/LogOutCommand.cpp
 )
 qt_add_executable(cairn-family src/familymain.cpp ${family_sources} ${games_save_sources})
 target_include_directories(cairn-family PRIVATE src)
@@ -76,8 +78,9 @@ target_compile_definitions(cairn-family PRIVATE
     CAIRN_APPLICATIONS="/usr/local/share/applications"
 )
 # save-games runs the visit helper's copy, the picture step and kidscan,
-# where this build installs them. systemd-run and python3 are the system's
-# own, at their fixed paths.
+# where this build installs them, and log-out the helper's logout.
+# systemd-run, systemd-inhibit and python3 are the system's own, at their
+# fixed paths.
 target_compile_definitions(cairn-family PRIVATE
     CAIRN_STEAM_VISIT="${CAIRN_FULL_LIBEXECDIR}/cairn-steam-visit"
     CAIRN_GAME_PICTURES="${CAIRN_FULL_LIBEXECDIR}/cairn-game-pictures"
@@ -89,7 +92,7 @@ install(TARGETS cairn-family RUNTIME DESTINATION "${CAIRN_LIBEXECDIR}")
 # stays as it is. It shares the Steam window's button, and checks what it
 # asks for with cairn-family's own rule before it asks for a password.
 # Qt's D-Bus module asks logind, without root, which children are logged
-# in (ADR-0041).
+# in, and listens for logins coming and going (ADR-0041).
 set(family_window_sources
     src/Refusal.h src/Refusal.cpp
     src/FamilyRequest.h src/FamilyRequest.cpp
@@ -112,15 +115,20 @@ set(family_window_sources
     src/SaveResults.h src/SaveResults.cpp
     src/GamesSaving.h src/GamesSaving.cpp
     src/LoginSessions.h src/LoginSessions.cpp
+    src/LoginWatch.h src/LoginWatch.cpp
+    src/ChildLogOut.h src/ChildLogOut.cpp
     src/GamesPage.h src/GamesPage.cpp
 )
 set(family_window_qml_files
     qml/FamilyWindow.qml
     qml/ChildrenView.qml
     qml/GamesView.qml
+    qml/ChildGames.qml
     qml/ChildChoice.qml
     qml/GameCard.qml
     qml/SaveOutcome.qml
+    qml/SaveProgress.qml
+    qml/LoggedInCover.qml
     qml/ChildRow.qml
     qml/AddChildForm.qml
     qml/LabelledField.qml
@@ -256,11 +264,20 @@ target_link_libraries(tst_cataloguerefresh PRIVATE Qt6::Core Qt6::Test)
 target_compile_definitions(tst_cataloguerefresh PRIVATE FIXTURES="${guardian_fixtures}")
 add_test(NAME cataloguerefresh COMMAND tst_cataloguerefresh)
 
-qt_add_executable(tst_copyjob tests/tst_copyjob.cpp src/CopyJob.h src/CopyJob.cpp)
+qt_add_executable(tst_copyjob tests/tst_copyjob.cpp src/CopyJob.h src/CopyJob.cpp
+    src/SystemJob.h src/SystemJob.cpp)
 target_include_directories(tst_copyjob PRIVATE src)
 target_link_libraries(tst_copyjob PRIVATE Qt6::Core Qt6::Test)
 target_compile_definitions(tst_copyjob PRIVATE FIXTURES="${guardian_fixtures}")
 add_test(NAME copyjob COMMAND tst_copyjob)
+
+qt_add_executable(tst_logoutcommand tests/tst_logoutcommand.cpp src/LogOutCommand.h
+    src/LogOutCommand.cpp src/SystemJob.h src/SystemJob.cpp src/Caller.h src/Caller.cpp
+    src/Refusal.h src/Refusal.cpp)
+target_include_directories(tst_logoutcommand PRIVATE src)
+target_link_libraries(tst_logoutcommand PRIVATE Qt6::Core Qt6::Test cairn-accounts)
+target_compile_definitions(tst_logoutcommand PRIVATE FIXTURES="${guardian_fixtures}")
+add_test(NAME logoutcommand COMMAND tst_logoutcommand)
 
 qt_add_executable(tst_gamessave tests/tst_gamessave.cpp ${family_sources} ${games_save_sources})
 target_include_directories(tst_gamessave PRIVATE src)
@@ -315,6 +332,19 @@ target_include_directories(tst_loginsessions PRIVATE src)
 target_link_libraries(tst_loginsessions PRIVATE Qt6::Core Qt6::DBus Qt6::Test)
 add_test(NAME loginsessions COMMAND tst_loginsessions)
 
+# On a session bus of its own, with a stand-in for logind's signals.
+qt_add_executable(tst_loginwatch tests/tst_loginwatch.cpp src/LoginWatch.h src/LoginWatch.cpp)
+target_include_directories(tst_loginwatch PRIVATE src)
+target_link_libraries(tst_loginwatch PRIVATE Qt6::Core Qt6::DBus Qt6::Test)
+add_test(NAME loginwatch COMMAND "${DBUS_RUN_SESSION}" -- $<TARGET_FILE:tst_loginwatch>)
+
+qt_add_executable(tst_childlogout tests/tst_childlogout.cpp src/ChildLogOut.h
+    src/ChildLogOut.cpp src/SaveRun.h src/SaveRun.cpp src/PkexecAnswer.h src/PkexecAnswer.cpp)
+target_include_directories(tst_childlogout PRIVATE src)
+target_link_libraries(tst_childlogout PRIVATE Qt6::Qml Qt6::Test)
+target_compile_definitions(tst_childlogout PRIVATE FIXTURES="${guardian_fixtures}")
+add_test(NAME childlogout COMMAND tst_childlogout)
+
 qt_add_executable(tst_gamechoices tests/tst_gamechoices.cpp src/GameChoices.h
     src/GameChoices.cpp)
 target_include_directories(tst_gamechoices PRIVATE src)
@@ -364,8 +394,10 @@ add_test(NAME familywindow COMMAND tst_familywindow
     -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/tst_familywindow.qml")
 
 set_tests_properties(steamvisit ownsteam screenlockwatch steamforchild steamwindow familycommand
-    caller gamesrequest childgamelist childgamesfile cataloguerefresh copyjob gamessave steamentry
-    loginname childlist familychange saverun savereport loginsessions gamechoices childrenpage
+    caller gamesrequest childgamelist childgamesfile cataloguerefresh copyjob logoutcommand gamessave
+    steamentry
+    loginname childlist familychange saverun savereport loginsessions loginwatch childlogout
+    gamechoices childrenpage
     gamepicture gameshelf gamespage familywindow PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QML_IMPORT_PATH=${QT_QML_OUTPUT_DIRECTORY}"
 )

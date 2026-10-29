@@ -5,6 +5,8 @@
 #include "SaveResults.h"
 #include "SaveRun.h"
 
+#include <QVariantMap>
+
 GamesSaving::GamesSaving(const QString& pkexec, const QString& command, QObject* parent)
     : QObject(parent), m_run(new SaveRun(pkexec, command, this)) {
     connect(m_run, &SaveRun::lineRead, this, &GamesSaving::lineRead);
@@ -41,6 +43,20 @@ GamesSaving::Progress GamesSaving::progress() const {
 
 QString GamesSaving::progressName() const {
     return m_report.current().isEmpty() ? QString() : nameOf(m_report.current());
+}
+
+QVariantList GamesSaving::copiedSoFar() const {
+    QVariantList games;
+    for (const SaveReport::Copied& game : m_report.copied()) {
+        games.append(QVariantMap{
+            {QStringLiteral("login"), game.login},
+            {QStringLiteral("name"), nameOf(game.login)},
+            {QStringLiteral("appId"), game.appId},
+            {QStringLiteral("title"), m_titles.value(game.appId)},
+            {QStringLiteral("had"), game.had},
+        });
+    }
+    return games;
 }
 
 QVariantList GamesSaving::results() const {
@@ -108,6 +124,10 @@ void GamesSaving::clearOutcome() {
     m_reason = Reason::NoReason;
     m_report = SaveReport();
     emit changed();
+}
+
+void GamesSaving::close() {
+    clearOutcome();
 }
 
 GamesSaving::Reason GamesSaving::reasonFor(const QString& answer) {

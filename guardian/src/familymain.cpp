@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "FamilyCommand.h"
 #include "GamesSave.h"
+#include "LogOutCommand.h"
 
 #include <QCoreApplication>
 
@@ -45,6 +46,24 @@ int saveGames(const QStringList& arguments) {
     return outcome.refusal ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
+// A grown-up logs a child out before choosing their games. The logout runs
+// as a system job, so it goes on to its end even if this program does not.
+int logOutChild(const QStringList& arguments) {
+    std::signal(SIGPIPE, SIG_IGN);
+    LogOutCommand::Setup setup;
+    setup.visitHelper = QStringLiteral(CAIRN_STEAM_VISIT);
+    const LogOutCommand::Outcome outcome = LogOutCommand(setup).run(arguments, sayLine);
+
+    const QString answer = answerFor(outcome.refusal);
+    sayLine(answer);
+    note(outcome.refusal.has_value(),
+         outcome.asked.isEmpty() ? answer : outcome.asked + QStringLiteral(": ") + answer);
+    if (!outcome.ended.isEmpty()) {
+        note(false, outcome.ended);
+    }
+    return outcome.refusal ? EXIT_FAILURE : EXIT_SUCCESS;
+}
+
 int changeAccount(const QStringList& arguments) {
     FamilyCommand::Setup setup;
     setup.applications = QStringLiteral(CAIRN_APPLICATIONS);
@@ -74,6 +93,8 @@ int main(int argc, char* argv[]) {
     int status = EXIT_FAILURE;
     if (subcommand == QStringLiteral("save-games")) {
         status = saveGames(arguments);
+    } else if (subcommand == QStringLiteral("log-out")) {
+        status = logOutChild(arguments);
     } else {
         status = changeAccount(arguments);
     }

@@ -81,6 +81,24 @@ private slots:
         QCOMPARE(ada.added, std::optional<int>(0));
     }
 
+    // Each game copied, or found already there, in order, for the progress
+    // window; neither is a child's result.
+    void copiedGames() {
+        const SaveReport report =
+            reportOf({"copying ada", "copied ada 620", "have ada 12", "copied ben 504230",
+                      "copied cy 620", "copied ada 0620", "copied ada 620 /home/ada"});
+        const QList<SaveReport::Copied> copied = report.copied();
+        QCOMPARE(copied.size(), 3);
+        QCOMPARE(copied.at(0).login, QStringLiteral("ada"));
+        QCOMPARE(copied.at(0).appId, QStringLiteral("620"));
+        QVERIFY(!copied.at(0).had);
+        QCOMPARE(copied.at(1).appId, QStringLiteral("12"));
+        QVERIFY(copied.at(1).had);
+        QCOMPARE(copied.at(2).login, QStringLiteral("ben"));
+        QVERIFY(report.children().isEmpty());
+        QCOMPARE(report.stage(), SaveReport::Stage::Copying);
+    }
+
     // A Save cut off after a skip still names the child, with no counts.
     void aChildWithoutTheirLine() {
         const SaveReport report = reportOf({"skipped ben 1001 downloading"});
@@ -94,6 +112,8 @@ private slots:
         QTest::newRow("another child") << "child cy added 1 removed 0";
         QTest::newRow("another child copied") << "copying cy";
         QTest::newRow("another child skipped") << "skipped cy 1001 not-shared";
+        QTest::newRow("another child's game") << "copied cy 620";
+        QTest::newRow("a game with no child") << "copied 620";
         QTest::newRow("a count too long") << "child ada added 12345 removed 0";
         QTest::newRow("a negative count") << "child ada added -1 removed 0";
         QTest::newRow("a held word in capitals") << "child ada added 0 removed 0 held LOGGED-IN";
@@ -114,6 +134,7 @@ private slots:
         const SaveReport report = reportOf({line});
         QCOMPARE(report.stage(), SaveReport::Stage::Starting);
         QVERIFY(report.children().isEmpty());
+        QVERIFY(report.copied().isEmpty());
         QVERIFY(!report.picturesKept().has_value());
     }
 };

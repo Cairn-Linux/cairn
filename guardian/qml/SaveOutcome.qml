@@ -5,22 +5,18 @@ import Cairn.Brand
 import Cairn.Family
 
 // What a Save on the Games page is doing, then what it did for each child,
-// or why nothing was saved, in the house's plain sentences (ADR-0041).
-// GamesSaving decides every value; this only picks the words for it.
-Rectangle {
+// or why nothing was saved, in the house's plain sentences (ADR-0041). The
+// Save's progress window shows it. GamesSaving decides every value; this
+// only picks the words for it.
+Column {
     id: box
 
     required property GamesSaving saving
 
-    height: column.implicitHeight + Tokens.bodySize * 2
-    visible: box.saving.step !== GamesSaving.Ready
-    radius: Tokens.radiusSm
-    color: Tokens.card
-    border.color: Tokens.machine
-    border.width: Tokens.strokeHairline
+    spacing: Tokens.bodySize / 2
 
     component Sentence: Text {
-        width: column.width
+        width: box.width
         wrapMode: Text.WordWrap
         font.family: Tokens.fontFamily
         font.pixelSize: Tokens.bodySize
@@ -61,7 +57,7 @@ Rectangle {
     function savedSentence() {
         let said = qsTr("Saved. Each child sees their games the next time they log in.");
         if (box.saving.kind === GamesSaving.Look)
-            said = qsTr("The shared folder was read again. Every game in it shows below.");
+            said = qsTr("The shared folder was read again. Every game in it shows on the page.");
         else if (!box.saving.allGiven)
             said = qsTr("Saved, but not every new game could be given. The sentences below say what each child has now, and what comes next.");
         if (!box.saving.catalogueKept)
@@ -208,38 +204,21 @@ Rectangle {
         return said.join(" ");
     }
 
-    Column {
-        id: column
+    Sentence {
+        objectName: "saveOutcome"
+        text: box.stepSentence()
+    }
 
-        x: Tokens.bodySize
-        y: Tokens.bodySize
-        width: box.width - Tokens.bodySize * 2
-        spacing: Tokens.bodySize / 2
+    Repeater {
+        objectName: "saveResults"
+        model: box.saving.step === GamesSaving.Saved || box.saving.step === GamesSaving.NotSaved ? box.saving.results : []
 
         Sentence {
-            objectName: "saveOutcome"
-            text: box.stepSentence()
-        }
+            required property var modelData
 
-        Repeater {
-            objectName: "saveResults"
-            model: box.saving.step === GamesSaving.Saved || box.saving.step === GamesSaving.NotSaved ? box.saving.results : []
-
-            Column {
-                id: result
-
-                required property var modelData
-
-                objectName: "result_" + modelData.login
-                width: column.width
-                spacing: Tokens.bodySize / 2
-
-                Sentence {
-                    objectName: "resultSentence"
-                    text: box.resultSentence(result.modelData)
-                    visible: text !== ""
-                }
-            }
+            objectName: "result_" + modelData.login
+            text: box.resultSentence(modelData)
+            visible: text !== ""
         }
     }
 }

@@ -74,7 +74,13 @@ What is here:
   program's fixed lines (ADR-0033). It notes each line but `have`, and why
   a copy was refused or failed, in the journal. A visit tried meanwhile is
   refused with `copying`, and the Guardian's window says games are being
-  copied.
+  copied. Its third mode, `--log-out CHILD`, also root's alone, only logs
+  a child out for a grown-up who will choose their games next: under the
+  same list it asks the child's Steam to save and quit, ends their
+  sessions and kills what is left after 15 seconds, saying `logging-out`,
+  `logged-out` and `finished`, or `refused stuck` when a program would not
+  end. On the image `cairn-family log-out` runs it as a system job
+  (ADR-0041).
 - `pam.d/`: `cairn-steam-visit`, the session a visit runs in, which no one
   logs in through; and `login`, Fedora's console login with the line that
   refuses a child on a visit, as the greeter's file has.
@@ -112,8 +118,8 @@ What is here:
   `cairn-family`, the command that makes children, sets their levels and
   saves their games (`../guardian/`, ADR-0039, ADR-0041). It has one
   action for each subcommand, found by the command's path and its first
-  argument, so a Save asks "to change which games a child has". It asks
-  for every change.
+  argument, so a Save asks "to change which games a child has" and a
+  logout "to log a child out". It asks for every change.
 
 `tests/` checks that the labwc and logind files, the greeter's PAM file,
 the polkit rule and `cairn-give-up` say what this README promises, runs the dispatcher with

@@ -85,6 +85,7 @@ class GamesSaveTest : public QObject {
         setup.catalogue.gamesFile = path("games.json");
         setup.catalogue.restorecon = path("restorecon");
         setup.copy.systemdRun = path("systemd-run");
+        setup.copy.systemdInhibit = path("systemd-inhibit");
         setup.copy.visitHelper = path("cairn-steam-visit");
         setup.gamesFolder = path("games");
         setup.gamesFolderOwner = getuid();
@@ -131,6 +132,7 @@ private slots:
         const QHash<QString, QString> links{{"python", "python"},
                                             {"restorecon", "system-tool"},
                                             {"systemd-run", "systemd-run"},
+                                            {"systemd-inhibit", "systemd-inhibit"},
                                             {"cairn-steam-visit", "copy-helper"}};
         for (auto link = links.cbegin(); link != links.cend(); ++link) {
             QVERIFY(QFile::link(QStringLiteral(FIXTURES "/") + link.value(), path(link.key())));

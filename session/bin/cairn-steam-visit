@@ -44,6 +44,22 @@
 # copied. A visit tried meanwhile is refused with "copying". Provisioning
 # prints only sentences of its own, so a copy also leaves a record of each of
 # these lines but "have" in the journal, and of why it was refused or failed.
+#
+# The same list lets a grown-up log a child out before choosing their games
+# (ADR-0041), as root and never through pkexec:
+#
+#   /usr/local/libexec/cairn/cairn-steam-visit --log-out CHILD
+#
+# The Games page runs `cairn-family log-out CHILD` through pkexec, and
+# cairn-family starts this as a system job, as it does a copy. It asks the
+# child's Steam to save and quit, ends the child's sessions, and kills what
+# is left after 15 seconds. It says "logging-out" when it starts, then
+# "logged-out" and "finished". A child who was not logged in is simply
+# "logged-out". "refused stuck" means a program of the child's would not
+# end, and the computer needs a restart; "refused logged-in" means their
+# login still showed after it ended. The child is listed meanwhile, so they
+# cannot log in again halfway, and a visit or a copy refuses it with "busy"
+# or "copying".
 set -ouex pipefail
 
 # The copy of cage that the child may run but not read. Linux will not let
@@ -80,6 +96,8 @@ opened=no
 # wrote the marker that a copy holds the list.
 copying=no
 marked=no
+# Whether this run only logs a child out for a grown-up.
+logging_out=no
 # A signal only sets this, and the visit ends at the next check. Leaving
 # from inside the trap would end `read -t` before its timer, and bash
 # crashed when that timer went off later, halfway through the close.
@@ -102,6 +120,7 @@ is_appid() {
 refuse() {
     say "refused $1"
     [ "$copying" = no ] || note "no games were copied for ${child:-a child}: refused $1"
+    [ "$logging_out" = no ] || note "${child:-a child} was not logged out: refused $1"
     exit 1
 }
 
@@ -336,7 +355,7 @@ wait_for_no_login() {
 log_out_child() {
     [ "$stopping" = no ] || refuse stopped
     say logging-out
-    note "logging $child out to copy their games"
+    note "logging $child out for a grown-up"
     shut_down_steam
     [ "$stopping" = no ] || refuse stopped
     if ! end_child; then
@@ -348,6 +367,29 @@ log_out_child() {
         refuse logged-in
     fi
     say logged-out
+}
+
+# Only logs a child out, for a grown-up who will choose their games next
+# (ADR-0041). Never through pkexec, for the reasons a copy gives below.
+log_out_only() {
+    logging_out=yes
+    [ "$#" -eq 1 ] || refuse usage
+    [ -z "${PKEXEC_UID:-}" ] || refuse not-for-pkexec
+    [ "$(id -u)" = 0 ] || refuse not-root
+    take_child "$1"
+    make_run_dir
+    list_child || refuse "$(busy_reason)"
+    trap release_copy EXIT
+    check_list
+    if child_logged_in; then
+        log_out_child
+        note "logged $child out for a grown-up"
+    else
+        note "$child was not logged in"
+        say logged-out
+    fi
+    say finished
+    exit 0
 }
 
 # A copy ends here, however it ends, and lets the child log in again.
@@ -450,6 +492,10 @@ main() {
     if [ "${1:-}" = --copy-games ]; then
         shift
         copy_games "$@"
+    fi
+    if [ "${1:-}" = --log-out ]; then
+        shift
+        log_out_only "$@"
     fi
     [ "$#" -eq 1 ] || refuse usage
     [ "$(id -u)" = 0 ] || refuse not-root
