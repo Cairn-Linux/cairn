@@ -523,7 +523,11 @@ TestCase {
     // The sentence for the result of one child, in the order the Save
     // answered.
     function result(window, index) {
-        return findChild(window, "saveResults").itemAt(index);
+        return findChild(findChild(window, "saveResults").itemAt(index), "resultSentence");
+    }
+
+    function laterNote(window, index) {
+        return findChild(findChild(window, "saveResults").itemAt(index), "laterNote");
     }
 
     function saveOutcome(window) {
@@ -608,6 +612,7 @@ TestCase {
         tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
         compare(saveOutcome(window), "Saved. Each child sees their games the next time they log in.");
         compare(result(window, 0).text, "Ada's list is saved. Added: 4. Taken off: 0.");
+        verify(!laterNote(window, 0).visible);
         verify(!findChild(window, "saveButton").enabled);
         verify(!findChild(choice(window, "ada"), "unsavedLabel").visible);
         compare(findChild(card(window, 1), "onListLabel").text, "On the list");
@@ -628,7 +633,10 @@ TestCase {
         mouseClick(card(window, 1));
         mouseClick(findChild(window, "saveButton"));
         tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
+        // Not every child sees their games at their next login.
+        compare(saveOutcome(window), "Saved, but not every new game could be given. The sentences below say what each child has now, and what comes next.");
         compare(result(window, 0).text, "Ada's list is saved, with no change. Ada is logged in, so their new games could not be copied. They come after Ada logs out and you press Save again. The games taken off are already gone from Ada's list.");
+        verify(!laterNote(window, 0).visible);
         // The game stays chosen, so Save gives it later.
         verify(findChild(window, "saveButton").enabled);
         tryCompare(findChild(window, "saveButton"), "activeFocus", true);
@@ -636,6 +644,86 @@ TestCase {
             wait(300);
             grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-games-held.png"));
         }
+    }
+
+    // A logged-in child's new games are written down for their next
+    // logout: the page says they come by themselves, and starts from them.
+    function test_aChildWhoseGamesWaitForTheirLogout() {
+        const window = makeWindow("done", {
+            "gamesScenario": "save-held-later"
+        });
+        showGames(window);
+        mouseClick(card(window, 1));
+        mouseClick(findChild(window, "saveButton"));
+        tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
+        compare(saveOutcome(window), "Saved, but not every new game could be given. The sentences below say what each child has now, and what comes next.");
+        compare(result(window, 0).text, "Ada's list is saved, with no change.");
+        const note = laterNote(window, 0);
+        verify(note.visible);
+        compare(note.text, "Ada is logged in, so Ada's new games could not be copied yet. Ada's new games are copied the next time Ada logs out. You do not need to do anything else. The games taken off are already gone from Ada's list.");
+        compare(note.Accessible.name, note.text);
+        // Nothing is left to save, and the game says it waits.
+        verify(!findChild(window, "saveButton").enabled);
+        compare(findChild(card(window, 1), "onListLabel").text, "Waits for Ada to log out");
+        compare(card(window, 1).Accessible.description, "On Ada's list, copied the next time Ada logs out");
+        // The Save's own outcome says it, so the page's note waits.
+        verify(!findChild(window, "waitingNotes").visible);
+        if (standIns.screenshotPath() !== "") {
+            wait(300);
+            grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-games-later.png"));
+        }
+    }
+
+    // Coming back to a child whose games wait: the note, the marks, and
+    // Save off until something changes.
+    function test_aWaitingListShowsOnTheGamesPage() {
+        const window = makeWindow("done");
+        verify(standIns.leave("games-waiting/ada", "ada=1001,1002,1003,1004\n"));
+        window.gamesPage.reload();
+        showGames(window);
+        const notes = findChild(window, "waitingNotes");
+        verify(notes.visible);
+        const waiting = findChild(window, "waitingNote");
+        verify(waiting.visible);
+        compare(waiting.text, "Ada's new games are copied the next time Ada logs out.");
+        compare(waiting.Accessible.name, waiting.text);
+        compare(findChild(card(window, 1), "onListLabel").text, "Waits for Ada to log out");
+        compare(findChild(card(window, 0), "onListLabel").text, "On the list");
+        verify(!findChild(window, "saveButton").enabled);
+        // Taking a waiting game off is a change to save, and Put back
+        // returns to the waiting list.
+        mouseClick(card(window, 1));
+        compare(findChild(card(window, 1), "onListLabel").text, "Taken off, not saved yet");
+        verify(findChild(window, "saveButton").enabled);
+        mouseClick(findChild(window, "putBack"));
+        compare(findChild(card(window, 1), "onListLabel").text, "Waits for Ada to log out");
+        chooseChild(window, "ben");
+        verify(!findChild(window, "waitingNotes").visible);
+    }
+
+    // A clean copy at a logout is dated, until the next Save for the child.
+    function test_aCleanFinishIsDated() {
+        const window = makeWindow("done");
+        const when = new Date(2026, 9, 20, 17, 30);
+        verify(standIns.leave("games-finished/ada", "copied ada 1002\nchild ada added 1 removed 0\n", when));
+        window.gamesPage.reload();
+        showGames(window);
+        const finished = findChild(window, "finishedNote");
+        verify(finished.visible);
+        compare(finished.text, "Ada's new games were copied when Ada logged out on " + when.toLocaleDateString(Qt.locale(), Locale.LongFormat) + ".");
+        compare(finished.Accessible.name, finished.text);
+        verify(!findChild(window, "waitingNote").visible);
+    }
+
+    // A copy at a logout that could not give everything says what stopped
+    // it, in the Save's own words, and that the games are not on the list.
+    function test_aFinishThatHeldSaysWhy() {
+        const window = makeWindow("done");
+        const when = new Date(2026, 9, 21, 8, 0);
+        verify(standIns.leave("games-finished/ada", "child ada added 0 removed 0 held no-library\n", when));
+        window.gamesPage.reload();
+        showGames(window);
+        compare(findChild(window, "finishedNote").text, "When Ada logged out on " + when.toLocaleDateString(Qt.locale(), Locale.LongFormat) + ": Games added to Ada's list: 0. Ada's Steam has not run yet, so it has no place for games. Open Steam for Ada and sign in, then press Save again. The games that were not given are not on Ada's list now. To try them again, put them back on the list and press Save.");
     }
 
     function test_aSkippedGameIsNamed() {

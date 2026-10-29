@@ -135,6 +135,13 @@ ADR-0041 (proposed) gives each subcommand an action of its own, by the
 command's first argument, so a Save of a child's games has its own
 message.
 
+ADR-0041's `finish-games`, which copies a child's waiting games at
+their logout, is a subcommand with no polkit action: only a systemd unit
+starts it, as root. It is guarded as the visit helper's copy is: it
+refuses `not-for-pkexec` whenever `PKEXEC_UID` is set, so no password box
+can start it, and `not-root` without root. pkexec's own fallback action
+asks for an administrator first anyway.
+
 ### The window
 
 The Guardian tool runs the command (ADR-0040). It starts `pkexec`

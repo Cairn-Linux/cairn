@@ -43,6 +43,9 @@ public:
         std::optional<int> removed;
         // Why their new games are not all given, such as logged-in.
         std::optional<QString> held;
+        // Their new games are written down, and are copied the next time
+        // they log out.
+        bool later = false;
         QList<Skip> skipped;
     };
 

@@ -21,6 +21,8 @@ set(CAIRN_SDDM_CONFDIR "lib/sddm/sddm.conf.d" CACHE STRING
     "SDDM's directory for packaged settings")
 set(CAIRN_LOGIND_CONFDIR "lib/systemd/logind.conf.d" CACHE STRING
     "logind's directory for packaged settings")
+set(CAIRN_SYSTEMD_UNITDIR "lib/systemd/system" CACHE STRING
+    "systemd's directory for packaged units and their drop-ins")
 set(CAIRN_POLKITDIR "${CMAKE_INSTALL_DATADIR}/polkit-1" CACHE STRING
     "polkit's directory for packaged rules and actions")
 

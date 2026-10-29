@@ -14,8 +14,9 @@ ChildSave::Before ChildSave::takeOff(const Shared& shared, const Account& child,
     return before;
 }
 
-QString ChildSave::run(const Shared& shared, const Account& child, const QStringList& ticked,
-                       const Before& before, const CopyJob::Say& say) {
+ChildSave::Ended ChildSave::run(const Shared& shared, const Account& child,
+                                const QStringList& ticked, const Before& before,
+                                const CopyJob::Say& say) {
     const GameCatalogue catalogue = shared.catalogue.value_or(GameCatalogue());
     const ChildGameList::Plan plan = ChildGameList::plan(before.old, ticked, catalogue);
     // Without a full games list, whether a game is shared is not known.
@@ -48,5 +49,5 @@ QString ChildSave::run(const Shared& shared, const Account& child, const QString
         line += QStringLiteral(" held ") + *held;
     }
     say(line);
-    return line;
+    return {.line = line, .held = held};
 }

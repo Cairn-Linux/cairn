@@ -84,6 +84,15 @@ What is here:
   refuses a child on a visit, as the greeter's file has.
 - `logind.conf.d/10-cairn-power.conf`: the power button (ADR-0018). A tap
   is ignored, a five-second hold powers off in order.
+- `systemd/`: the copy of a child's waiting games at their logout
+  (ADR-0041). `user-runtime-dir@.service.d/50-cairn-games.conf` adds one
+  line to systemd's own unit, which stops about ten seconds after an
+  account's last session ends: `systemctl start --no-block
+  cairn-finish-games@UID.service`, with `-` so a failure never breaks a
+  logout. `cairn-finish-games@.service` runs `cairn-family finish-games
+  UID` once, as root, only while `/var/lib/cairn/games-waiting` holds a
+  file; for any account but a child with games waiting it does nothing.
+  Both are on the image only, in `/usr/lib/systemd/system`.
 - `sessions/cairn.desktop`: the one session entry the greeter offers.
 - `sddm/`: the display manager's configuration (ADR-0016). `SessionDir`
   names only Cairn's session directory; `pam.d/sddm` is Fedora's stock file
@@ -124,10 +133,12 @@ the polkit rule and `cairn-give-up` say what this README promises, runs the disp
 stand-ins for `id`, `labwc` and `startplasma-wayland`, and runs
 `cairn-log-out` with stand-ins for `id`, `pgrep`, `steam` and `loginctl`,
 and `cairn-steam-visit` with stand-ins for `id`, `getent`, `loginctl`,
-`pgrep`, `systemd-run` and the rest.
+`pgrep`, `systemd-run` and the rest. It checks the systemd unit and
+drop-in line by line, against the tmpfiles folders, and with
+`systemd-analyze verify` where systemd is installed.
 Where a systemd user manager is running, it also runs `cairn-give-up` for
 real against a frozen stand-in in a scope of its own, with `pkill` stubbed
-out so no real app is touched; CTest runs all eight.
+out so no real app is touched; CTest runs all nine.
 What the configuration was tested against, and what is left for the VM, is in
 `docs/research/kiosk-containment.md` (P0-4). Phase 0 task **P0-3** wires
 this into the VM.

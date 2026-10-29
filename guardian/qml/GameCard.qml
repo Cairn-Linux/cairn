@@ -10,15 +10,18 @@ import Cairn.Brand
 Rectangle {
     id: card
 
-    // appId, title, picture, saved and shared, from GamesPage.games.
+    // appId, title, picture, saved, waiting and shared, from
+    // GamesPage.games.
     required property var game
     // The name of the child whose list this is.
     required property string childName
     // Whether the game is on the list as the parent wants it now.
     required property bool onList
 
-    // Whether the child's saved list has it.
+    // Whether the child's list as last saved has it.
     readonly property bool saved: card.game.saved === true
+    // Saved, and copied the next time the child logs out.
+    readonly property bool waiting: card.game.waiting === true
     // False for a game on the saved list that the shared folder no longer
     // has.
     readonly property bool shared: card.game.shared !== false
@@ -29,6 +32,8 @@ Rectangle {
     function stateWords() {
         if (!card.shared)
             return card.onList ? qsTr("On the list, no longer shared") : qsTr("Taken off, not saved yet");
+        if (card.onList && card.saved && card.waiting)
+            return qsTr("Waits for %1 to log out").arg(card.childName);
         if (card.onList)
             return card.saved ? qsTr("On the list") : qsTr("Added, not saved yet");
         return card.saved ? qsTr("Taken off, not saved yet") : qsTr("Not on the list");
@@ -37,6 +42,8 @@ Rectangle {
     function stateDescription() {
         if (!card.shared && card.onList)
             return qsTr("On %1's list, no longer in the shared folder").arg(card.childName);
+        if (card.onList && card.saved && card.waiting)
+            return qsTr("On %1's list, copied the next time %1 logs out").arg(card.childName);
         if (card.onList)
             return card.saved ? qsTr("On %1's list").arg(card.childName) : qsTr("Added to %1's list, not saved yet").arg(card.childName);
         return card.saved ? qsTr("Taken off %1's list, not saved yet").arg(card.childName) : qsTr("Not on %1's list").arg(card.childName);

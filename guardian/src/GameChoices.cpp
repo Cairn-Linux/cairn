@@ -35,6 +35,16 @@ bool GameChoices::anyChanged() const {
     return !m_wanted.isEmpty();
 }
 
+QStringList GameChoices::changedAmong(const QStringList& logins) const {
+    QStringList changedOnes;
+    for (const QString& login : logins) {
+        if (changed(login)) {
+            changedOnes.append(login);
+        }
+    }
+    return changedOnes;
+}
+
 // A game turned on goes at the end, so the order a parent chose them in is
 // kept; the command sorts the list by title.
 void GameChoices::turn(const QString& login, const QString& appId) {

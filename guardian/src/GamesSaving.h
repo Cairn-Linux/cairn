@@ -33,10 +33,13 @@ class GamesSaving : public QObject {
     // The name of the child being copied or waited for, or "".
     Q_PROPERTY(QString progressName READ progressName NOTIFY changed)
     // Each child the command answered for, as a map: login, name, added,
-    // removed, held (a Held), and skipped, a list of maps with appId,
-    // title and reason (a Skip). added and removed are -1 when the child's
-    // list was not written.
+    // removed, held (a Held), later, when their new games are copied at
+    // their next logout, and skipped, a list of maps with appId, title and
+    // reason (a Skip). added and removed are -1 when the child's list was
+    // not written.
     Q_PROPERTY(QVariantList results READ results NOTIFY changed)
+    // No child the command answered for was held or had a game left out.
+    Q_PROPERTY(bool allGiven READ allGiven NOTIFY changed)
     // The full games list stays as it was before the Save.
     Q_PROPERTY(bool catalogueKept READ catalogueKept NOTIFY changed)
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
@@ -118,6 +121,7 @@ public:
     Progress progress() const;
     QString progressName() const;
     QVariantList results() const;
+    bool allGiven() const;
     bool catalogueKept() const;
     bool busy() const;
 

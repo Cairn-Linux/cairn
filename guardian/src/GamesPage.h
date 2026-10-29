@@ -6,6 +6,8 @@
 #include "GameChoices.h"
 #include "GameShelf.h"
 #include "GamesSaving.h"
+#include "SteamWindowStart.h"
+#include "WaitingGames.h"
 
 #include <QObject>
 #include <QQmlEngine>
@@ -37,8 +39,9 @@ class GamesPage : public QObject {
     Q_PROPERTY(QString chosen READ chosen NOTIFY changed)
     Q_PROPERTY(QString chosenName READ chosenName NOTIFY changed)
     // Each game as a map: appId, title, picture (a file:// URL, or empty),
-    // saved, when the child's file has it, and shared, for the child
-    // picked. The games on their saved list that the shared folder no
+    // saved, when it is on the child's list as last saved, waiting, when
+    // it waits for the child's next logout to be copied, and shared, for
+    // the child picked. The games on their saved list that the shared folder no
     // longer has come last, with shared false. Like listedChildren, it
     // changes only when one of those does, so turning a game keeps the
     // page's controls, and keyboard focus.
@@ -52,6 +55,11 @@ class GamesPage : public QObject {
     Q_PROPERTY(int sharedCount READ sharedCount NOTIFY changed)
     // How many games on the child's list the shared folder no longer has.
     Q_PROPERTY(int goneCount READ goneCount NOTIFY changed)
+    // The child picked has games waiting for their next logout.
+    Q_PROPERTY(bool chosenWaiting READ chosenWaiting NOTIFY changed)
+    // The copy at the picked child's last logout, as WaitingGames gives
+    // it, until the next Save for them; empty when there is none.
+    Q_PROPERTY(QVariantMap finished READ finished NOTIFY changed)
     // The name of the child whose Steam window did not start, or "".
     Q_PROPERTY(QString steamNotOpened READ steamNotOpened NOTIFY changed)
     // The logins of the children with changes not saved yet, in the
@@ -77,12 +85,13 @@ public:
         // cairn-family; main() names the one this build installs.
         QString command;
         QString catalogue = QStringLiteral("/var/lib/cairn/games.json");
-        QString childLists = QStringLiteral("/var/lib/cairn/games");
+        // Each child's own games list, waiting list and last finish.
+        WaitingGames::Folders lists;
         // cairn-steam-for; main() names the one this build installs.
         QString steamFor;
         std::function<std::vector<Account>()> accounts = listAccounts;
         // Starts a program on its own, so it outlives this window.
-        std::function<bool(const QString&, const QStringList&)> start = startOnItsOwn;
+        SteamWindowStart::Start start = SteamWindowStart::startOnItsOwn;
     };
 
     explicit GamesPage(Setup setup, QObject* parent = nullptr);
@@ -96,6 +105,8 @@ public:
     int onListCount() const;
     int sharedCount() const;
     int goneCount() const;
+    bool chosenWaiting() const;
+    QVariantMap finished() const;
     QString steamNotOpened() const;
     QStringList unsavedLogins() const;
     QString unsavedNames() const;
@@ -126,9 +137,9 @@ public:
     Q_INVOKABLE void openSteam(const QString& login);
     // Reads the children and the games files again. Changes not saved yet
     // stay, but for a child who is gone or a game that can no longer show.
+    // A waiting or finished file that changes reads them again too, unless
+    // a Save is running, after which they are read anyway.
     Q_INVOKABLE void reload();
-
-    static bool startOnItsOwn(const QString& program, const QStringList& arguments);
 
 signals:
     void listedChildrenChanged();
@@ -141,6 +152,7 @@ private:
 
     Setup m_setup;
     GamesSaving* m_saving;
+    WaitingGames* m_lists;
     std::vector<ListedChild> m_children;
     QString m_chosen;
     GameShelf m_shelf;

@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copies the games a Save left waiting for a child, once the child has
+# logged out (ADR-0041). The instance is the child's uid. Nothing but the
+# drop-in on user-runtime-dir@.service starts it, at the end of every
+# account's last session; cairn-family finish-games does nothing for an
+# account that is not a child with games waiting.
+[Unit]
+Description=Copy a child's waiting games after they log out
+# The Guardian's logouts start nothing while no child is waiting.
+ConditionDirectoryNotEmpty=/var/lib/cairn/games-waiting
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/libexec/cairn/cairn-family finish-games %i
+# Its notes go to the journal itself, as cairn-family; its one answer line
+# is for a person who runs it by hand.
+StandardOutput=null

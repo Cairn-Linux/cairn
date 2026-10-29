@@ -3,6 +3,7 @@
 #include "GamesPage.h"
 
 #include <QColor>
+#include <QDateTime>
 #include <QDir>
 #include <QFile>
 #include <QImage>
@@ -16,6 +17,7 @@
 #include <QtQuickTest/quicktest.h>
 
 #include <algorithm>
+#include <unistd.h>
 
 namespace {
 
@@ -119,6 +121,12 @@ public:
             shared.append(entry);
         }
         files.mkpath("games");
+        // No child waits for a logout, and none has a finished copy, until
+        // a test leaves one.
+        for (const char* folder : {"games-waiting", "games-finished"}) {
+            QDir(files.filePath(folder)).removeRecursively();
+            files.mkpath(folder);
+        }
         writeFile(files.filePath("games.json"), gamesFile(shared));
         QJsonArray ada;
         QJsonArray cy;
@@ -153,11 +161,15 @@ public:
             qputenv("CAIRN_TEST_SCENARIO", scenario.toLocal8Bit());
         }
         qputenv("CAIRN_TEST_GAMES", files.filePath("games").toLocal8Bit());
+        qputenv("CAIRN_TEST_WAITING", files.filePath("games-waiting").toLocal8Bit());
         GamesPage::Setup setup;
         setup.pkexec = QStringLiteral(FIXTURES "/pkexec-family");
         setup.command = QStringLiteral(FIXTURES "/cairn-family");
         setup.catalogue = files.filePath("games.json");
-        setup.childLists = files.filePath("games");
+        setup.lists = {.childLists = files.filePath("games"),
+                       .waiting = files.filePath("games-waiting"),
+                       .finished = files.filePath("games-finished"),
+                       .owner = getuid()};
         setup.steamFor = "/usr/bin/cairn-steam-for";
         setup.accounts = [accounts] { return accounts; };
         setup.start = [this, steamStarts](const QString& program, const QStringList& arguments) {
@@ -167,6 +179,20 @@ public:
         auto* page = new GamesPage(setup);
         QQmlEngine::setObjectOwnership(page, QQmlEngine::JavaScriptOwnership);
         return page;
+    }
+
+    // A file in the Games page's folder, as root leaves it: a waiting list
+    // or a finished copy, with `modified` as its time when one is given.
+    Q_INVOKABLE bool leave(const QString& name, const QString& text,
+                           const QDateTime& modified = QDateTime()) const {
+        const QString path = QDir(m_files.path()).filePath(name);
+        if (!writeFile(path, text.toUtf8())) {
+            return false;
+        }
+        QFile file(path);
+        return !modified.isValid() ||
+               (file.open(QIODevice::ReadWrite) &&
+                file.setFileTime(modified, QFileDevice::FileModificationTime));
     }
 
     Q_INVOKABLE QStringList startedSteam() const {

@@ -5,6 +5,7 @@
 
 #include <QString>
 #include <QStringList>
+#include <QVariantList>
 
 #include <vector>
 
@@ -26,3 +27,13 @@ std::vector<ListedChild> childrenAmong(std::vector<Account> accounts);
 
 // Their logins, in the same order.
 QStringList loginsOf(const std::vector<ListedChild>& children);
+
+// Each child as a map, login and name, in the same order, for a page's QML.
+QVariantList loginsAndNames(const std::vector<ListedChild>& children);
+
+// Whether both lists hold the same children, by login and name, in order.
+bool sameLoginsAndNames(const std::vector<ListedChild>& one, const std::vector<ListedChild>& other);
+
+// The names of the children among `logins`, in that order, as one list in
+// words, such as "Ada and Ben".
+QString namesInWords(const std::vector<ListedChild>& children, const QStringList& logins);

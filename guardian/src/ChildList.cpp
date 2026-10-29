@@ -3,6 +3,9 @@
 
 #include "FamilyRole.h"
 
+#include <QLocale>
+#include <QVariantMap>
+
 #include <algorithm>
 
 std::vector<ListedChild> childrenAmong(std::vector<Account> accounts) {
@@ -25,4 +28,32 @@ QStringList loginsOf(const std::vector<ListedChild>& children) {
         logins.append(child.login);
     }
     return logins;
+}
+
+QVariantList loginsAndNames(const std::vector<ListedChild>& children) {
+    QVariantList maps;
+    for (const ListedChild& child : children) {
+        maps.append(QVariantMap{
+            {QStringLiteral("login"), child.login},
+            {QStringLiteral("name"), child.name},
+        });
+    }
+    return maps;
+}
+
+bool sameLoginsAndNames(const std::vector<ListedChild>& one,
+                        const std::vector<ListedChild>& other) {
+    return std::ranges::equal(one, other, [](const ListedChild& first, const ListedChild& second) {
+        return first.login == second.login && first.name == second.name;
+    });
+}
+
+QString namesInWords(const std::vector<ListedChild>& children, const QStringList& logins) {
+    QStringList names;
+    for (const ListedChild& child : children) {
+        if (logins.contains(child.login)) {
+            names.append(child.name);
+        }
+    }
+    return QLocale().createSeparatedList(names);
 }

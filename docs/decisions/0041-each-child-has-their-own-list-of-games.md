@@ -161,6 +161,7 @@ a Steam name or a path:
 | `copied LOGIN APPID`, `have LOGIN APPID` | The child has the game now |
 | `skipped LOGIN APPID REASON` | The game is left out, for REASON: `not-shared`, or `no-catalogue` when no full games list could be read, so whether it is shared is not known, or one of the copy step's own reasons, passed on as it says them: `unreadable`, `appid`, `installdir`, `beta-branch`, `not-installed`, `downloading`, `no-folder`, `folder-without-manifest`, `changed`, `copy-failed` or `unreadable-files` (`provision/cairn-copy-games.py` says what each means) |
 | `child LOGIN added N removed N [held WORD]` | The child's list is written, and the counts say what it holds now; `held` says why their new games are not all given |
+| `later LOGIN` | After the child's line: their new games are written down, and are copied the next time they log out |
 | `done` | The last line of a Save |
 | `refused WORD` | Nothing changed |
 
@@ -179,17 +180,100 @@ goes ahead.
 `bad-name` and `not-a-child`, or one of two new words: `bad-appid`, an
 appid that is not a plain number, and `busy`, another Save still
 running.
+`cairn-family finish-games`, below, answers `done`, or `refused` with
+`not-root`, `usage` or a third new word, `not-for-pkexec`.
 
 ### A child who is logged in
 
 The copy cannot run while the child is logged in, as today.
-The parent is told that the child is logged in, so their new games come
-after they log out and the parent presses Save again, and that the games
-taken off are already gone.
-The new games stay highlighted and Save stays ready, so that second Save
-needs no new choices.
-In step 5 the parent also chooses "Log them out now" or "Later"; how
-"Later" finishes the save is decided there.
+The games taken off go at once, and the new games are copied by
+themselves after the child's next logout, with nothing more for the
+parent to do.
+The maintainer settled how on 2026-10-28.
+
+- **The waiting list.** Before anything changes for a child with games
+  to copy, a Save writes their whole new list to
+  `/var/lib/cairn/games-waiting/<login>`, one line, exactly that child's
+  argument, such as `ada=570,620`.
+  It is root's, mode 0644, in a folder systemd-tmpfiles makes, root's and
+  0755.
+  It is written first so that nothing the parent asked for is lost if
+  the window closes, the parent logs out or the power goes mid-Save.
+  A child with nothing to copy has no file, and an older one goes.
+  A Save that names no child, a refused Save, and a Save that does not
+  name the child leave it alone.
+- **Which endings keep it.** A child held as `logged-in`,
+  `still-running`, `stopped` or `not-started` keeps waiting, because a
+  logout settles each; the Save says `later LOGIN` after their line.
+  Any other ending, a clean one included, removes it, and `busy`,
+  `copying`, `failed`, `not-set-up` and `not-written` keep their "press
+  Save again" sentences.
+  When the waiting list could not be written, there is no `later`, and
+  the page says to press Save again, as before.
+- **The copy at the logout.** A drop-in on systemd's own
+  `user-runtime-dir@.service` starts `cairn-finish-games@UID.service`
+  when it stops, about ten seconds after the account's last session ends,
+  closing ones included:
+  `ExecStopPost=-/usr/bin/systemctl start --no-block
+  cairn-finish-games@%i.service`.
+  The `-` means a failure never breaks a logout, and `--no-block` means
+  the copy never holds up the stop.
+  At shutdown that start conflicts with `shutdown.target` and is dropped.
+  The unit has `ConditionDirectoryNotEmpty=/var/lib/cairn/games-waiting`,
+  so no logout starts anything while no child is waiting, and no
+  `Restart=`.
+  There is no boot unit: a copy at boot would surprise a child at their
+  first login.
+- **`cairn-family finish-games UID`.** The unit runs it as root.
+  It has no polkit action, and refuses `not-for-pkexec` when `PKEXEC_UID`
+  is set, `not-root`, and `usage` for a uid that is not digits.
+  An account that is not a Cairn child, or a child with no waiting list,
+  is nothing to do, and it exits silently.
+  It takes the Save lock, waiting for a Save that is running, then reads
+  the waiting list again: one that is gone was settled meanwhile.
+  The file must be a regular file of root's under 16 KiB in a folder only
+  root may write, opened without following a link; its one line must be
+  a list `save-games` takes, naming this child; and the account must be a
+  child Cairn made.
+  A file that fails a check is removed, noted in the journal and never
+  copied.
+  The copy is a Save's for one child, from `games.json` as it is, with no
+  pictures made, through the same system job and visit lock: the games
+  not on the list go, the new ones are copied, and the child's list is
+  written.
+  An ending in the keep set leaves the waiting list for the next logout.
+  Any other writes the child's lines to
+  `/var/lib/cairn/games-finished/<login>` and removes the waiting list.
+  Its notes go to the journal as `cairn-family`, such as "at ada's
+  logout: child ada added 2 removed 0".
+- **The child.** A child who logs in during that copy is refused by the
+  visit lock, and the login screen says "A grown-up is setting something
+  up for you. Try again soon.", as for any copy.
+  The child sees no new text.
+- **The Games page.** After a Save with `later`, the child's sentence
+  says why their games wait, then "Ada's new games are copied the next
+  time Ada logs out. You do not need to do anything else. The games taken
+  off are already gone from Ada's list."
+  The Save's first sentence no longer says that each child sees their
+  games at their next login whenever a child was held or had a game left
+  out.
+  A child's waiting list is the page's starting point for them: their
+  waiting games are marked "Waits for Ada to log out", Save stays off
+  until the parent changes something, and "Put back as saved" returns to
+  it.
+  A note says "Ada's new games are copied the next time Ada logs out."
+  Once the copy at the logout has run, a clean one reads "Ada's new games
+  were copied when Ada logged out on" its date; any other says what
+  stopped it in the Save's own sentences, and that those games are not on
+  the list now.
+  That note stays until the next Save for that child, which removes the
+  finished file.
+  The page reads both folders without root, with the same checks, and
+  watches them, so an open page follows a copy at a logout.
+- **A new child.** `cairn-family create-child` removes any
+  `games/<login>.json`, waiting list and finished file before it makes a
+  new account, and refuses `failed` if one stays, so a new child never
+  inherits an old account's games.
 
 ### Starting, adding and taking away
 
@@ -249,16 +333,43 @@ It moves to per-child lists when it is reinstalled from the image.
    no game tiles and no Steam at login, as the launcher already did for a
    missing games file.
    A logged-in child's games wait for a second Save, as above.
-5. **"Log them out now" and "Later"** for a child who is logged in, in
-   their own small step.
-   The helper's part, `--log-out` above, landed 2026-10-28 on its own,
-   with tests; nothing passes it yet.
+5. **"Later" and "Log them out now"** for a child who is logged in, in
+   three small steps.
+   - **5a, "Later".** The waiting list written at every Save, `later
+     LOGIN`, `cairn-family finish-games`, the unit and its drop-in on
+     `user-runtime-dir@.service`, the tmpfiles lines, create-child's
+     clean-up, and the page's waiting and finished notes, all as above.
+     Landed 2026-10-28.
+   - **5b, the visit helper's `--log-out`.** The change at the trust
+     boundary lands alone: `cairn-steam-visit --copy-games --log-out
+     CHILD APPID...` asks Steam to save, logs the child out, waits until
+     their sessions have gone, then copies, refusing `stuck` when a
+     program of theirs will not close.
+     It is shaped to be driven by `save-games`: CopyJob passes the flag
+     for a child the Save names to log out, and never otherwise.
+   - **5c, "Log them out now".** One password, with the choice before
+     Save.
+     Before it runs `pkexec`, the window checks without root whether each
+     changed child is logged in, and asks "Log Ada out now" or "Later"
+     first.
+     It then runs one `cairn-family save-games` through `pkexec`, which
+     also says which children to log out, so one password box, with the
+     games message, covers the whole Save.
+     Its form, the window's confirmation that unsaved progress in a game
+     may be lost, and the `stuck` sentence are settled there.
 6. **Checks in the cairn-iso VM**, with two children at different
    levels: one password per Save, with the games message, while adding a
    child still shows the account message, each child sees only their own
    tiles,
    a Save while a child is logged in, a Guardian logout mid-copy, and a
    game taken off and put back with its saves.
+   For 5a: the drop-in fires on Bazzite's systemd under SELinux;
+   `finish-games` can write `/var/lib/cairn` and run `restorecon` from a
+   system unit; a shutdown with a child waiting does not hang; a logout
+   leads to the new tiles at the next login; a child who logs back in
+   within ten seconds keeps waiting; `virsh destroy` mid-finish, then the
+   child can log in and the next logout finishes; and whether
+   `user-runtime-dir@` stops while a closing session is stuck.
 
 ## Consequences
 
@@ -282,9 +393,14 @@ It moves to per-child lists when it is reinstalled from the image.
   the window.
 - **ADR-0038** is amended: the family's setup on the image makes no
   child's copy of the games; a Guardian's Save on the Games page does.
+  The image gains its first systemd unit and a drop-in on an upstream
+  unit, installed under `/usr/lib/systemd/system` with the build's path
+  in them.
 - **ADR-0039** is amended: `cairn-family` gains a subcommand, with its
   own answer lines and refusal words, and its one polkit action becomes
   one for each subcommand.
+  `finish-games` is a subcommand with no polkit action, guarded like the
+  visit helper's copy.
 - **ADR-0040** is amended: the Games page goes beside Children, with a
   way to move between them.
 - **Known limit: the list holds only at L1 and L2.** The shared folder is readable by
@@ -299,8 +415,19 @@ It moves to per-child lists when it is reinstalled from the image.
   list, and their copies stay.
 - If `cairn-family` itself is ended after a copy starts, by a Guardian
   logging out, the copy finishes but the child's list is not written.
-  The child then has the copy and no tile, and the next Save finds it as
-  `have` and adds the tile.
+  The waiting list is already written, so the child's next logout finds
+  the copy as `have` and writes the list, and the tile comes at the login
+  after.
+- A restart while a child is waiting means one more session on their old
+  list: the copy runs at the first logout after it.
+- A child who logs back in within about ten seconds of logging out keeps
+  waiting, until a logout that stays a logout.
+- A closing session that is stuck keeps `user-runtime-dir@` up, so the
+  child keeps waiting until a restart.
+- An account removed and made again with the same login outside
+  `cairn-family`, as a child, inherits a waiting list.
+  `create-child` clears the files; a uid in the file would bring back a
+  second format, so the risk is accepted.
 - If the copy is killed outright, by a power cut or the kernel running
   out of memory, the child cannot log in until a restart empties `/run`.
   Visits already carry this risk.
