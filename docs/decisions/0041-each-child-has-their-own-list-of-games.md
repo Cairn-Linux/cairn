@@ -1,6 +1,6 @@
 # ADR-0041: Each child has their own list of games
 
-**Status:** proposed. It becomes accepted when the checks in step 5
+**Status:** proposed. It becomes accepted when the checks in step 6
 below have run in the cairn-iso VM and none of them overturns a bullet
 of the Decision.
 **Date:** 2026-10-27
@@ -48,6 +48,10 @@ games on their list.**
   the pictures from the Guardian's own Steam, as provisioning does now.
   So a game the Guardian has just installed shows without a separate
   step.
+- With no change to save, **Look for new games** runs the same Save
+  with the picked child's list as it is saved, which changes no list
+  and only rescans. A family whose shared folder had no games yet has
+  nothing to highlight, so without it no Save could run.
 
 ### The root side
 
@@ -152,8 +156,13 @@ running.
 ### A child who is logged in
 
 The copy cannot run while the child is logged in, as today.
-The parent is told, and chooses "Log them out now" or "Later".
-How "Later" finishes the save is decided in a later step.
+The parent is told that the child is logged in, so their new games come
+after they log out and the parent presses Save again, and that the games
+taken off are already gone.
+The new games stay highlighted and Save stays ready, so that second Save
+needs no new choices.
+In step 5 the parent also chooses "Log them out now" or "Later"; how
+"Later" finishes the save is decided there.
 
 ### Starting, adding and taking away
 
@@ -199,7 +208,23 @@ It moves to per-child lists when it is reinstalled from the image.
    `/var/lib/cairn/games/<login>.json`, and the family's setup stops
    copying every game on the image.
    Per-child tiles and the only way to fill them ship together.
-5. **Checks in the cairn-iso VM**, with two children at different
+   Landed 2026-10-28: a tap, or Space or Enter, puts a game on the
+   picked child's list or takes it off, for as many children as the
+   parent likes, with each change marked until Save, and "Put back as
+   saved" for the child picked.
+   Save runs `cairn-family save-games` through pkexec once, with each
+   changed child's whole new list, and reads its lines as they come, so
+   the page says whose games are being copied, then one plain sentence
+   for each child's result, held word and game left out, or why nothing
+   was saved.
+   The wrapper takes the login from `id -un` and names the file only for
+   a login that follows `cairn-family`'s rule; a child with no file has
+   no game tiles and no Steam at login, as the launcher already did for a
+   missing games file.
+   A logged-in child's games wait for a second Save, as above.
+5. **"Log them out now" and "Later"** for a child who is logged in, in
+   their own small step.
+6. **Checks in the cairn-iso VM**, with two children at different
    levels: one password per Save, with the games message, while adding a
    child still shows the account message, each child sees only their own
    tiles,

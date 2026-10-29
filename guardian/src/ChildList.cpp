@@ -18,3 +18,11 @@ std::vector<ListedChild> childrenAmong(std::vector<Account> accounts) {
     }
     return children;
 }
+
+QStringList loginsOf(const std::vector<ListedChild>& children) {
+    QStringList logins;
+    for (const ListedChild& child : children) {
+        logins.append(child.login);
+    }
+    return logins;
+}

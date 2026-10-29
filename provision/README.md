@@ -117,7 +117,8 @@ too (ADR-0039). It runs only its own list of steps:
 
 1. The checks: the names, the computer runs the image, and the checkout
    matches it. The image's copy step, picture step, visit helper and
-   kidscan must be the checkout's files, with `/usr/local` changed to
+   kidscan must be the checkout's files, though it runs only the picture
+   step and kidscan itself, with `/usr/local` changed to
    `/usr` as the build changes it. On any difference it refuses and says
    to check out the commit the image was built from. `cairn-family` is
    compiled, so it cannot be compared; it must be there, and an image
@@ -138,7 +139,11 @@ too (ADR-0039). It runs only its own list of steps:
    A child left off the run, or set up by hand, gets the image's entry.
    An entry whose account is no longer a child is removed.
 6. The shared game folder, put right now rather than at the next boot.
-7. The game tiles and pictures, and each child's copy of the games.
+7. The full list of shared games and their pictures, so the Guardian
+   tool's Games page shows every game. It copies no game to any child:
+   each child has their own list, chosen on that page, whose Save copies
+   the games (ADR-0041). A new child has no games until then, and the
+   run's last `note:` line says where to choose them.
 8. The Flatpaks, last, because they need the internet. Offline, the run
    gets everything above and then stops with flatpak's own message; run
    it again once online.
@@ -157,8 +162,7 @@ What it leaves on the computer:
 | each child's account | In `cairn-l1` or `cairn-l2`, password locked |
 | Tux Paint and GCompris | System Flatpaks from Flathub, which the image has as a remote |
 | `/usr/local/share/applications/cairn-steam-for-CHILD.desktop` | "Steam for <child>" in a Guardian's menu, running `/usr/bin/cairn-steam-for`. On Bazzite `/usr/local` is a link to `/var/usrlocal`, which belongs to the computer, and a Guardian's Plasma reads it. The image's `tmpfiles.d` makes the folder at boot. The image's window is `root:cairn-guardian`, mode 0750, so only a Guardian sees the entries |
-| `/var/lib/cairn/games.json`, `/var/lib/cairn/game-pictures/` | The game tiles and their pictures, as above, made by the image's kidscan and picture step in `/usr/libexec/cairn` |
-| each child's `~/.local/share/Steam/steamapps/` | Their own copy of each shared game, as above, through the image's `/usr/libexec/cairn/cairn-steam-visit` |
+| `/var/lib/cairn/games.json`, `/var/lib/cairn/game-pictures/` | The full list of shared games and their pictures, as above, made by the image's kidscan and picture step in `/usr/libexec/cairn`. On the image the launcher does not read it: each child's launcher reads their own list, `/var/lib/cairn/games/<login>.json`, which the Games page's Save writes |
 
 ### Renumbering cairn-guardian
 

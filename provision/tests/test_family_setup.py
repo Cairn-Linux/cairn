@@ -77,8 +77,19 @@ class FamilyStepsTest(unittest.TestCase):
         steps = set(main_steps(FAMILY))
         self.assertEqual(steps & MACHINE_STEPS, set())
         for step in ("ensure_guardian", "make_children", "make_steam_entries",
-                     "make_shared_library", "make_game_tiles", "copy_games", "install_flatpaks"):
+                     "make_shared_library", "make_game_tiles", "install_flatpaks"):
             self.assertIn(step, steps)
+
+    def test_copies_no_games_to_any_child(self):
+        # Each child gets the games on their own list, from the Guardian
+        # tool's Save (ADR-0041); the kids' laptop keeps copy_games.
+        self.assertNotIn("copy_games", main_steps(FAMILY))
+        self.assertIn("copy_games", main_steps(HERE / "cairn-provision.sh"))
+        self.assertNotIn("--all", FAMILY.read_text())
+
+    def test_says_where_the_games_are_chosen(self):
+        text = FAMILY.read_text()
+        self.assertIn("open Family from the menu, then its Games page, and press Save", text)
 
     def test_children_come_from_the_images_command(self):
         # cairn-family makes the children and their entries (ADR-0039), not
@@ -100,10 +111,9 @@ class FamilyStepsTest(unittest.TestCase):
                       "check_children_are_cairns", "check_checkout", "check_guardian_number"):
             self.assertLess(steps.index(check), first_change, check)
 
-    def test_the_tiles_come_before_the_copies_and_the_flatpaks_last(self):
+    def test_the_full_list_comes_after_the_folder_and_the_flatpaks_last(self):
         steps = main_steps(FAMILY)
         self.assertLess(steps.index("make_shared_library"), steps.index("make_game_tiles"))
-        self.assertLess(steps.index("make_game_tiles"), steps.index("copy_games"))
         changes = [s for s in steps if not s.startswith(("set ", "echo ", "parse_", "check_", "["))]
         self.assertEqual(changes[-1], "install_flatpaks")
 

@@ -4,6 +4,7 @@
 #include "Account.h"
 
 #include <QString>
+#include <QStringList>
 
 #include <vector>
 
@@ -22,3 +23,6 @@ struct ListedChild {
 // cairn-family would change count: administrators, system accounts and
 // accounts in no level group are left out.
 std::vector<ListedChild> childrenAmong(std::vector<Account> accounts);
+
+// Their logins, in the same order.
+QStringList loginsOf(const std::vector<ListedChild>& children);

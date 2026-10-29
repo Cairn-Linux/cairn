@@ -19,6 +19,7 @@ int main(int argc, char* argv[]) {
     ChildrenPage page(setup);
 
     GamesPage::Setup gamesSetup;
+    gamesSetup.command = QStringLiteral(CAIRN_FAMILY);
     gamesSetup.steamFor = QStringLiteral(CAIRN_STEAM_FOR);
     GamesPage gamesPage(gamesSetup);
 

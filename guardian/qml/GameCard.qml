@@ -3,29 +3,74 @@ import QtQuick
 import Cairn.Brand
 
 // One game on the Games page: its picture, its title, and whether it is on
-// the picked child's list. A game on the list is highlighted and says so
-// in words, so the colour is never the only sign.
+// the picked child's list. Tapping it, or Space or Enter, puts it on the
+// list or takes it off until Save. A game on the list is highlighted and
+// says so in words, so the colour is never the only sign, and a change not
+// saved yet says that too.
 Rectangle {
     id: card
 
-    // appId, title, picture, onList and shared, from GamesPage.games.
+    // appId, title, picture, saved and shared, from GamesPage.games.
     required property var game
     // The name of the child whose list this is.
     required property string childName
+    // Whether the game is on the list as the parent wants it now.
+    required property bool onList
 
-    readonly property bool onList: card.game.onList === true
-    // False for a game on the list that the shared folder no longer has.
+    // Whether the child's saved list has it.
+    readonly property bool saved: card.game.saved === true
+    // False for a game on the saved list that the shared folder no longer
+    // has.
     readonly property bool shared: card.game.shared !== false
+
+    signal turned
+
+    // The words under the title, and the screen reader's, for each state.
+    function stateWords() {
+        if (!card.shared)
+            return card.onList ? qsTr("On the list, no longer shared") : qsTr("Taken off, not saved yet");
+        if (card.onList)
+            return card.saved ? qsTr("On the list") : qsTr("Added, not saved yet");
+        return card.saved ? qsTr("Taken off, not saved yet") : qsTr("Not on the list");
+    }
+
+    function stateDescription() {
+        if (!card.shared && card.onList)
+            return qsTr("On %1's list, no longer in the shared folder").arg(card.childName);
+        if (card.onList)
+            return card.saved ? qsTr("On %1's list").arg(card.childName) : qsTr("Added to %1's list, not saved yet").arg(card.childName);
+        return card.saved ? qsTr("Taken off %1's list, not saved yet").arg(card.childName) : qsTr("Not on %1's list").arg(card.childName);
+    }
 
     height: picture.height + words.implicitHeight + Tokens.bodySize * 2
     radius: Tokens.radiusSm
     color: card.onList ? Tokens.selection : Tokens.card
     border.color: card.onList ? Tokens.machine : Tokens.line
     border.width: card.onList ? Tokens.focusWidth : Tokens.strokeHairline
+    activeFocusOnTab: true
 
-    Accessible.role: Accessible.ListItem
+    Accessible.role: Accessible.CheckBox
     Accessible.name: card.game.title
-    Accessible.description: !card.shared ? qsTr("On %1's list, no longer in the shared folder").arg(card.childName) : card.onList ? qsTr("On %1's list").arg(card.childName) : qsTr("Not on %1's list").arg(card.childName)
+    Accessible.description: card.stateDescription()
+    Accessible.checkable: true
+    Accessible.checked: card.onList
+    Accessible.focusable: true
+    Accessible.onPressAction: card.turned()
+    Accessible.onToggleAction: card.turned()
+
+    Keys.onReturnPressed: card.turned()
+    Keys.onEnterPressed: card.turned()
+    Keys.onSpacePressed: card.turned()
+
+    Rectangle {
+        anchors.fill: parent
+        anchors.margins: -Tokens.focusOffset - Tokens.focusWidth
+        radius: card.radius + Tokens.focusOffset + Tokens.focusWidth
+        color: Qt.alpha(Tokens.focus, 0)
+        border.width: Tokens.focusWidth
+        border.color: Tokens.focus
+        visible: card.activeFocus
+    }
 
     // A Steam header is about twice as wide as it is tall. A game without a
     // picture, or one that cannot be drawn, shows a plain pebble instead,
@@ -83,11 +128,19 @@ Rectangle {
             objectName: "onListLabel"
             width: parent.width
             wrapMode: Text.WordWrap
-            text: !card.shared ? qsTr("On the list, no longer shared") : card.onList ? qsTr("On the list") : qsTr("Not on the list")
+            text: card.stateWords()
             font.family: Tokens.fontFamily
             font.pixelSize: Tokens.minGuardian
+            font.weight: card.onList === card.saved ? Tokens.weightRegular : Tokens.weightBold
             color: Tokens.paperLabel
             Accessible.ignored: true
+        }
+    }
+
+    TapHandler {
+        onTapped: {
+            card.forceActiveFocus(Qt.MouseFocusReason);
+            card.turned();
         }
     }
 }

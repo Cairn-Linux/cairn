@@ -207,6 +207,12 @@ qt_add_executable(tst_kidscanmanifest tests/tst_kidscanmanifest.cpp ${launcher_m
 target_include_directories(tst_kidscanmanifest PRIVATE src)
 target_link_libraries(tst_kidscanmanifest PRIVATE Qt6::Qml Qt6::Test)
 add_test(NAME launcher_reads_kidscan COMMAND tst_kidscanmanifest)
+# The wrapper the kiosk session starts, as CMake made it, with stand-ins
+# for the launcher and the system's commands (ADR-0041).
+add_test(NAME launcher_wrapper
+    COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_wrapper.py"
+        "${CMAKE_CURRENT_BINARY_DIR}/bin/cairn-launcher"
+)
 set_tests_properties(launcher_reads_kidscan PROPERTIES
     FIXTURES_REQUIRED kidscan_manifest
     ENVIRONMENT "KIDSCAN_MANIFEST=${kidscan_manifest};KIDSCAN_GAMES=${kidscan_games}"

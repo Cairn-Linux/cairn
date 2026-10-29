@@ -22,7 +22,7 @@ TestCase {
         const given = options === undefined ? {} : options;
         const properties = {
             "page": standIns.page(scenario, given.withChildren !== false, given.withOlderChild === true),
-            "gamesPage": standIns.gamesPage(given.withChildren !== false, given.withGames !== false, given.steamStarts !== false),
+            "gamesPage": standIns.gamesPage(given.withChildren !== false, given.withGames !== false, given.steamStarts !== false, given.gamesScenario === undefined ? "" : given.gamesScenario),
             "height": 1400
         };
         const window = createTemporaryObject(windowComponent, testCase, properties);
@@ -126,7 +126,7 @@ TestCase {
         tryCompare(findChild(window, "addButton"), "activeFocus", true);
         keyClick(Qt.Key_Return);
         tryCompare(window.page, "step", ChildrenPage.Added);
-        compare(outcome(window), "Cy can log in now, at level 2. The Games page shows Cy's list. For now, the family set-up script gives Cy their games.");
+        compare(outcome(window), "Cy can log in now, at level 2. Cy starts with no games: choose them on the Games page.");
         // Done, so the form is empty for the next child.
         compare(nameField(window).text, "");
         compare(findChild(window, "addChildForm").level, 1);
@@ -450,6 +450,11 @@ TestCase {
         showGames(window);
         verify(findChild(window, "noGames").visible);
         verify(findChild(window, "noGames").text.startsWith("No games in the shared folder yet."));
+        verify(findChild(window, "noGames").text.indexOf("after the next Save") >= 0);
+        verify(findChild(window, "noGames").text.indexOf("family set-up") < 0);
+        // With nothing to save, a look for new games is the way to find one.
+        verify(!findChild(window, "saveButton").enabled);
+        verify(findChild(window, "lookForGames").enabled);
         verify(!findChild(window, "gameGrid").visible);
         verify(!findChild(window, "listSentence").visible);
         verify(findChild(window, "openSteam").visible);
@@ -496,5 +501,230 @@ TestCase {
         // Back to Children starts at the top of that page.
         mouseClick(findChild(window, "childrenTab"));
         compare(scroller.contentY, 0);
+    }
+
+    // ---- choosing games and Save ----
+
+    function card(window, index) {
+        return findChild(window, "gameCards").itemAt(index);
+    }
+
+    // Picks a child, and waits until the grid has placed their cards. A
+    // child's "not saved" mark widens their choice, so the choices are
+    // placed again first.
+    function chooseChild(window, login) {
+        waitForPolish(findChild(window, "childChoices"));
+        mouseClick(choice(window, login));
+        compare(window.gamesPage.chosen, login);
+        tryVerify(() => card(window, 1).x > 0 || card(window, 1).y > 0);
+        waitForPolish(window);
+    }
+
+    // The sentence for the result of one child, in the order the Save
+    // answered.
+    function result(window, index) {
+        return findChild(window, "saveResults").itemAt(index);
+    }
+
+    function saveOutcome(window) {
+        return findChild(window, "saveOutcome").text;
+    }
+
+    // The page no longer says that choosing comes later.
+    function test_noWordOfALaterVersion() {
+        const window = makeWindow("done");
+        showGames(window);
+        compare(findChild(window, "notYet"), null);
+        verify(!findChild(window, "saveOutcomeBox").visible);
+        verify(!findChild(window, "unsavedSentence").visible);
+    }
+
+    // A tap puts a game on the list, says it is not saved yet, and
+    // offers Save.
+    function test_tapAGameToPutItOnTheList() {
+        const window = makeWindow("done");
+        showGames(window);
+        verify(!findChild(window, "saveButton").enabled);
+        verify(!findChild(window, "putBack").enabled);
+        mouseClick(card(window, 1));
+        compare(highlighted(window), ["Putt-Putt Joins the Parade", "Freddi Fish", "Pajama Sam", "Spy Fox"]);
+        compare(findChild(card(window, 1), "onListLabel").text, "Added, not saved yet");
+        compare(card(window, 1).Accessible.description, "Added to Ada's list, not saved yet");
+        compare(card(window, 1).Accessible.checked, true);
+        verify(findChild(window, "saveButton").enabled);
+        verify(findChild(window, "putBack").enabled);
+        verify(findChild(choice(window, "ada"), "unsavedLabel").visible);
+        compare(choice(window, "ada").Accessible.description, "Changes not saved yet");
+        verify(!findChild(choice(window, "ben"), "unsavedLabel").visible);
+        compare(findChild(window, "unsavedSentence").text, "Not saved yet: the changes for Ada. Save gives each child their new list, with one password.");
+        // And a tap on a game on the list takes it off.
+        mouseClick(card(window, 0));
+        compare(findChild(card(window, 0), "onListLabel").text, "Taken off, not saved yet");
+        compare(card(window, 0).Accessible.checked, false);
+        if (standIns.screenshotPath() !== "") {
+            wait(300);
+            grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-games-changed.png"));
+        }
+    }
+
+    // The keyboard alone: a card takes focus, and Space turns it.
+    function test_turnAGameWithTheKeyboard() {
+        const window = makeWindow("done");
+        showGames(window);
+        const second = card(window, 1);
+        compare(second.Accessible.role, Accessible.CheckBox);
+        second.forceActiveFocus();
+        keyClick(Qt.Key_Space);
+        compare(second.onList, true);
+        // The same card, still with focus.
+        verify(second.activeFocus);
+        keyClick(Qt.Key_Return);
+        compare(second.onList, false);
+        keyClick(Qt.Key_Tab);
+        tryCompare(card(window, 2), "activeFocus", true);
+    }
+
+    function test_putBackAsSaved() {
+        const window = makeWindow("done");
+        showGames(window);
+        mouseClick(card(window, 1));
+        chooseChild(window, "ben");
+        mouseClick(card(window, 0));
+        compare(findChild(window, "unsavedSentence").text, "Not saved yet: the changes for Ada and Ben. Save gives each child their new list, with one password.");
+        mouseClick(findChild(window, "putBack"));
+        compare(highlighted(window), []);
+        verify(!findChild(choice(window, "ben"), "unsavedLabel").visible);
+        verify(findChild(choice(window, "ada"), "unsavedLabel").visible);
+    }
+
+    // Save gives the list, says so, and leaves nothing to save.
+    function test_saveGivesTheGames() {
+        const window = makeWindow("done", {
+            "gamesScenario": "save-done"
+        });
+        showGames(window);
+        mouseClick(card(window, 1));
+        mouseClick(findChild(window, "saveButton"));
+        tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
+        compare(saveOutcome(window), "Saved. Each child sees their games the next time they log in.");
+        compare(result(window, 0).text, "Ada's list is saved. Added: 4. Taken off: 0.");
+        verify(!findChild(window, "saveButton").enabled);
+        verify(!findChild(choice(window, "ada"), "unsavedLabel").visible);
+        compare(findChild(card(window, 1), "onListLabel").text, "On the list");
+        // Focus goes back to the child picked, as Save has nothing to do.
+        tryCompare(choice(window, "ada"), "activeFocus", true);
+        if (standIns.screenshotPath() !== "") {
+            wait(300);
+            grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-games-saved.png"));
+        }
+    }
+
+    // A logged-in child's new games wait; the page says what to do.
+    function test_aLoggedInChildIsToldWhatComesNext() {
+        const window = makeWindow("done", {
+            "gamesScenario": "save-held-logged-in"
+        });
+        showGames(window);
+        mouseClick(card(window, 1));
+        mouseClick(findChild(window, "saveButton"));
+        tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
+        compare(result(window, 0).text, "Ada's list is saved, with no change. Ada is logged in, so their new games could not be copied. They come after Ada logs out and you press Save again. The games taken off are already gone from Ada's list.");
+        // The game stays chosen, so Save gives it later.
+        verify(findChild(window, "saveButton").enabled);
+        tryCompare(findChild(window, "saveButton"), "activeFocus", true);
+        if (standIns.screenshotPath() !== "") {
+            wait(300);
+            grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-games-held.png"));
+        }
+    }
+
+    function test_aSkippedGameIsNamed() {
+        const window = makeWindow("done", {
+            "gamesScenario": "save-skipped"
+        });
+        showGames(window);
+        chooseChild(window, "ben");
+        mouseClick(card(window, 3));
+        mouseClick(findChild(window, "saveButton"));
+        tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
+        verify(result(window, 0).text.indexOf("Spy Fox was not given to Ben: Steam is still downloading it.") >= 0);
+    }
+
+    // While the password box is open, every control on the page waits.
+    function test_everythingWaitsWhileASaveRuns() {
+        const window = makeWindow("done", {
+            "gamesScenario": "asking"
+        });
+        showGames(window);
+        mouseClick(card(window, 1));
+        mouseClick(findChild(window, "saveButton"));
+        compare(window.gamesPage.busy, true);
+        compare(saveOutcome(window), "Confirm with your password, or your fingerprint, in the box that opened.");
+        verify(!findChild(window, "saveButton").enabled);
+        verify(!findChild(window, "putBack").enabled);
+        verify(!findChild(window, "lookForGames").enabled);
+        verify(!findChild(window, "openSteam").enabled);
+        verify(!choice(window, "ben").enabled);
+        verify(!card(window, 2).enabled);
+        verify(!findChild(window, "unsavedSentence").visible);
+        mouseClick(card(window, 2));
+        compare(card(window, 2).onList, true);
+        compare(highlighted(window), ["Putt-Putt Joins the Parade", "Freddi Fish", "Pajama Sam", "Spy Fox"]);
+    }
+
+    // A copy in progress names the child, and says they cannot log in.
+    function test_aCopyInProgressSaysWhose() {
+        const window = makeWindow("done", {
+            "gamesScenario": "save-copying"
+        });
+        showGames(window);
+        mouseClick(card(window, 1));
+        mouseClick(findChild(window, "saveButton"));
+        tryCompare(window.gamesPage.saving, "progress", GamesSaving.CopyingGames);
+        compare(saveOutcome(window), "Copying games for Ada. This can take a few minutes, and Ada cannot log in until it ends.");
+    }
+
+    function test_aClosedPasswordBoxKeepsTheChanges() {
+        const window = makeWindow("done", {
+            "gamesScenario": "not-authorized"
+        });
+        showGames(window);
+        mouseClick(card(window, 1));
+        mouseClick(findChild(window, "saveButton"));
+        tryCompare(window.gamesPage.saving, "step", GamesSaving.NotSaved);
+        compare(saveOutcome(window), "Nothing was saved. It needs your password: the box was closed, or the password was not accepted. Your changes are still here.");
+        verify(findChild(window, "saveButton").enabled);
+        compare(findChild(card(window, 1), "onListLabel").text, "Added, not saved yet");
+    }
+
+    function test_anotherSaveRunning() {
+        const window = makeWindow("done", {
+            "gamesScenario": "refused-busy"
+        });
+        showGames(window);
+        mouseClick(card(window, 1));
+        mouseClick(findChild(window, "saveButton"));
+        tryCompare(window.gamesPage.saving, "step", GamesSaving.NotSaved);
+        verify(saveOutcome(window).startsWith("Another Save is still running"));
+    }
+
+    // Looking for new games needs no change, and says what it did.
+    function test_lookForNewGames() {
+        const window = makeWindow("done", {
+            "gamesScenario": "save-done"
+        });
+        showGames(window);
+        mouseClick(findChild(window, "lookForGames"));
+        tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
+        compare(saveOutcome(window), "The shared folder was read again. Every game in it shows below.");
+        verify(!result(window, 0).visible);
+        compare(result(window, 0).text, "");
+    }
+
+    // A list that cannot be read says that Saving writes it again.
+    function test_anUnreadableListSaysSavingWritesItAgain() {
+        const window = makeWindow("done");
+        showGames(window);
+        verify(findChild(window, "listSentence").text.indexOf("later version") < 0);
     }
 }

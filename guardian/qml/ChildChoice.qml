@@ -2,17 +2,19 @@
 import QtQuick
 import Cairn.Brand
 
-// One child to pick on the Games page, with their name. The children's
-// choices work as a set of radio buttons.
+// One child to pick on the Games page, with their name, and "not saved"
+// after it while their list has changes that are not saved yet. The
+// children's choices work as a set of radio buttons.
 Rectangle {
     id: choice
 
     required property string name
     property bool checked: false
+    property bool unsaved: false
 
     signal chosen
 
-    width: ring.width + label.implicitWidth + Tokens.bodySize * 3
+    width: ring.width + label.implicitWidth + Tokens.bodySize * 3 + (choice.unsaved ? unsavedLabel.implicitWidth + Tokens.bodySize / 2 : 0)
     height: Tokens.headingSize * 2
     radius: Tokens.radiusSm
     color: Tokens.card
@@ -22,6 +24,7 @@ Rectangle {
 
     Accessible.role: Accessible.RadioButton
     Accessible.name: choice.name
+    Accessible.description: choice.unsaved ? qsTr("Changes not saved yet") : ""
     Accessible.checkable: true
     Accessible.checked: choice.checked
     Accessible.focusable: true
@@ -76,6 +79,21 @@ Rectangle {
         font.family: Tokens.fontFamily
         font.pixelSize: Tokens.bodySize
         font.weight: Tokens.weightBold
+        color: Tokens.paperLabel
+        Accessible.ignored: true
+    }
+
+    Text {
+        id: unsavedLabel
+
+        objectName: "unsavedLabel"
+        visible: choice.unsaved
+        anchors.left: label.right
+        anchors.leftMargin: Tokens.bodySize / 2
+        anchors.verticalCenter: parent.verticalCenter
+        text: qsTr("not saved")
+        font.family: Tokens.fontFamily
+        font.pixelSize: Tokens.minGuardian
         color: Tokens.paperLabel
         Accessible.ignored: true
     }

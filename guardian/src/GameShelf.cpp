@@ -4,9 +4,12 @@
 #include "GameCatalogue.h"
 #include "GamePicture.h"
 
+#include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QRegularExpression>
 #include <QSet>
+#include <QVariantMap>
 
 #include <algorithm>
 #include <optional>
@@ -19,6 +22,9 @@ constexpr qint64 largestFile = qint64{4} * 1024 * 1024;
 
 // Nothing when the file is too big or not a games file.
 std::optional<GameCatalogue> readGamesFile(const QString& path) {
+    if (path.isEmpty()) {
+        return std::nullopt;
+    }
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly) || file.size() > largestFile) {
         return std::nullopt;
@@ -71,6 +77,20 @@ GameShelf GameShelf::read(const QString& catalogue, const QString& childList) {
     return shelf;
 }
 
+QString GameShelf::childListPath(const QString& folder, const QString& login) {
+    static const QRegularExpression plain(QStringLiteral("^[a-z_][a-z0-9_-]{0,31}$"));
+    return plain.match(login).hasMatch() ? QDir(folder).filePath(login + QStringLiteral(".json"))
+                                         : QString();
+}
+
+QStringList GameShelf::listedIds(const QString& childList) {
+    QStringList appIds;
+    for (const Game& game : read(QString(), childList).games()) {
+        appIds.append(game.appId);
+    }
+    return appIds;
+}
+
 QList<GameShelf::Game> GameShelf::games() const {
     return m_games;
 }
@@ -87,4 +107,32 @@ int GameShelf::onListCount() const {
 int GameShelf::sharedCount() const {
     return static_cast<int>(
         std::ranges::count_if(m_games, [](const Game& game) { return game.shared; }));
+}
+
+QSet<QString> GameShelf::sharedIds() const {
+    QSet<QString> appIds;
+    for (const Game& game : m_games) {
+        if (game.shared) {
+            appIds.insert(game.appId);
+        }
+    }
+    return appIds;
+}
+
+bool GameShelf::shows(const QString& appId) const {
+    return std::ranges::any_of(m_games, [&appId](const Game& game) { return game.appId == appId; });
+}
+
+QVariantList GameShelf::toVariantList() const {
+    QVariantList games;
+    for (const Game& game : m_games) {
+        games.append(QVariantMap{
+            {QStringLiteral("appId"), game.appId},
+            {QStringLiteral("title"), game.title},
+            {QStringLiteral("picture"), game.picture},
+            {QStringLiteral("saved"), game.onList},
+            {QStringLiteral("shared"), game.shared},
+        });
+    }
+    return games;
 }

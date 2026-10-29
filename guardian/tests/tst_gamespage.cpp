@@ -6,6 +6,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QRegularExpression>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTest>
@@ -14,6 +15,8 @@
 #include <memory>
 
 namespace {
+
+constexpr int kAnswerMilliseconds = 10000;
 
 QJsonObject game(const QString& appId, const QString& title) {
     return {{"id", "steam-" + appId},
@@ -58,6 +61,8 @@ class GamesPageTest : public QObject {
     // start is written down and answers as `starts` says.
     std::unique_ptr<GamesPage> makePage(bool starts = true) {
         GamesPage::Setup setup;
+        setup.pkexec = FIXTURES "/pkexec-family";
+        setup.command = FIXTURES "/cairn-family";
         setup.catalogue = path("games.json");
         setup.childLists = path("games");
         setup.steamFor = "/usr/bin/cairn-steam-for";
@@ -73,11 +78,47 @@ class GamesPageTest : public QObject {
         QStringList titles;
         for (const QVariant& value : page.games()) {
             const QVariantMap game = value.toMap();
-            if (game.value("onList").toBool()) {
+            if (page.wanted().contains(game.value("appId").toString())) {
                 titles.append(game.value("title").toString());
             }
         }
         return titles;
+    }
+
+    // The games the page shows for the child picked, each as appId=state:
+    // on, off, added or taken.
+    static QStringList states(const GamesPage& page) {
+        QStringList states;
+        for (const QVariant& value : page.games()) {
+            const QVariantMap game = value.toMap();
+            const bool onList = page.wanted().contains(game.value("appId").toString());
+            const bool saved = game.value("saved").toBool();
+            QString state = onList ? QStringLiteral("added") : QStringLiteral("taken");
+            if (onList == saved) {
+                state = onList ? QStringLiteral("on") : QStringLiteral("off");
+            }
+            states.append(game.value("appId").toString() + "=" + state);
+        }
+        return states;
+    }
+
+    // Runs a Save, or a look for new games, with the stand-ins answering as
+    // the scenario says, and returns the arguments cairn-family was given.
+    QString saveWith(GamesPage& page, const QString& scenario, bool look = false) {
+        QFile::remove(path("arguments"));
+        qputenv("CAIRN_TEST_SCENARIO", scenario.toLocal8Bit());
+        qputenv("CAIRN_TEST_ARGUMENTS", path("arguments").toLocal8Bit());
+        qputenv("CAIRN_TEST_GAMES", path("games").toLocal8Bit());
+        QSignalSpy ended(page.saving(), &GamesSaving::ended);
+        look ? page.lookForGames() : page.save();
+        const bool answered = !ended.isEmpty() || ended.wait(kAnswerMilliseconds);
+        qunsetenv("CAIRN_TEST_ARGUMENTS");
+        qunsetenv("CAIRN_TEST_GAMES");
+        if (!answered) {
+            return QStringLiteral("no answer");
+        }
+        QFile file(path("arguments"));
+        return file.open(QIODevice::ReadOnly) ? QString::fromUtf8(file.readAll()) : QString();
     }
 
     QTemporaryDir m_temporary;
@@ -165,7 +206,8 @@ private slots:
         QCOMPARE(second.value("appId").toString(), "1002");
         QCOMPARE(second.value("title").toString(), "Game two");
         QVERIFY(second.value("picture").toUrl().isEmpty());
-        QCOMPARE(second.value("onList").toBool(), true);
+        QCOMPARE(second.value("saved").toBool(), true);
+        QVERIFY(page->wanted().contains("1002"));
     }
 
     void noChildrenPicksNoOne() {
@@ -265,6 +307,249 @@ private slots:
         page->openSteam("guest");
         page->openSteam("");
         QVERIFY(m_started.isEmpty());
+    }
+
+    // ---- choosing games, and Save ----
+
+    void turningAGameMarksItUntilSave() {
+        const auto page = makePage();
+        QVERIFY(!page->canSave());
+        page->turn("1001");
+        page->turn("1002");
+        QCOMPARE(states(*page), QStringList({"1001=added", "1002=taken", "1003=off"}));
+        QCOMPARE(listed(*page), QStringList({"Game one"}));
+        QCOMPARE(page->onListCount(), 1);
+        QCOMPARE(page->unsavedLogins(), QStringList({"ada"}));
+        QCOMPARE(page->unsavedNames(), QStringLiteral("Ada"));
+        QVERIFY(page->canSave());
+        // Turning both back leaves nothing to save.
+        page->turn("1001");
+        page->turn("1002");
+        QCOMPARE(states(*page), QStringList({"1001=off", "1002=on", "1003=off"}));
+        QVERIFY(!page->canSave());
+    }
+
+    // Turning a game changes only the list as wanted, never the games, so
+    // the page keeps its cards and keyboard focus.
+    void turningKeepsTheGames() {
+        const auto page = makePage();
+        const QSignalSpy games(page.get(), &GamesPage::gamesChanged);
+        const QSignalSpy changed(page.get(), &GamesPage::changed);
+        page->turn("1001");
+        page->reload();
+        QCOMPARE(games.count(), 0);
+        QCOMPARE(changed.count(), 2);
+        page->choose("ben");
+        QCOMPARE(games.count(), 1);
+    }
+
+    // Picking another child keeps the first child's changes.
+    void switchingChildKeepsTheChanges() {
+        const auto page = makePage();
+        page->turn("1001");
+        page->choose("ben");
+        QCOMPARE(states(*page), QStringList({"1001=off", "1002=off", "1003=off"}));
+        page->turn("1003");
+        page->choose("ada");
+        QCOMPARE(states(*page), QStringList({"1001=added", "1002=on", "1003=off"}));
+        QCOMPARE(page->unsavedLogins(), QStringList({"ada", "ben"}));
+        QCOMPARE(page->unsavedNames(), QStringLiteral("Ada and Ben"));
+        // Showing the page again reads the files again and keeps them too.
+        page->reload();
+        QCOMPARE(page->unsavedLogins(), QStringList({"ada", "ben"}));
+    }
+
+    void putBackUndoesOnlyThePickedChild() {
+        const auto page = makePage();
+        page->turn("1001");
+        page->choose("ben");
+        page->turn("1003");
+        page->putBack();
+        QCOMPARE(page->unsavedLogins(), QStringList({"ada"}));
+        QCOMPARE(states(*page), QStringList({"1001=off", "1002=off", "1003=off"}));
+    }
+
+    // Only a game the page shows can be turned.
+    void aGameNotShownCannotBeTurned() {
+        const auto page = makePage();
+        page->turn("4242");
+        page->turn("");
+        QVERIFY(!page->canSave());
+    }
+
+    // A game on the list that the shared folder no longer has can be taken
+    // off, and stays shown, taken off, until Save.
+    void aGameNoLongerSharedCanBeTakenOff() {
+        write(path("games/ada.json"), gamesFile({game("1002", "Game two"), game("2001", "Gone")}));
+        const auto page = makePage();
+        page->turn("2001");
+        QCOMPARE(states(*page), QStringList({"1001=off", "1002=on", "1003=off", "2001=taken"}));
+        QCOMPARE(saveWith(*page, "done"), QStringLiteral("run\nsave-games\nada=1002\n"));
+    }
+
+    // One run for every changed child, each with their whole new list, in
+    // the children's order; an empty list is nothing after the =.
+    void saveGivesEachChangedChildTheirWholeList() {
+        const auto page = makePage();
+        page->choose("cy");
+        page->turn("1003");
+        page->choose("ada");
+        page->turn("1001");
+        page->turn("1002");
+        page->choose("ben");
+        QCOMPARE(saveWith(*page, "done"), QStringLiteral("run\nsave-games\nada=1001\ncy=1003\n"));
+        // The stand-in wrote no list, so both changes are still there.
+        page->choose("ada");
+        page->turn("1001");
+        QCOMPARE(saveWith(*page, "done"), QStringLiteral("run\nsave-games\nada=\ncy=1003\n"));
+    }
+
+    // After a Save the lists are read again, so the page shows what is
+    // saved and there is nothing left to save.
+    void aSaveThatGaveEverything() {
+        const auto page = makePage();
+        page->turn("1001");
+        page->choose("ben");
+        page->turn("1003");
+        saveWith(*page, "save-done");
+        QCOMPARE(page->saving()->step(), GamesSaving::Step::Saved);
+        QVERIFY(!page->canSave());
+        QVERIFY(page->unsavedLogins().isEmpty());
+        QCOMPARE(page->chosen(), "ben");
+        QCOMPARE(states(*page), QStringList({"1001=off", "1002=off", "1003=on"}));
+        const QVariantList results = page->saving()->results();
+        QCOMPARE(results.size(), 2);
+        const QVariantMap ada = results.at(0).toMap();
+        QCOMPARE(ada.value("name").toString(), "Ada");
+        QCOMPARE(ada.value("added").toInt(), 2);
+        QCOMPARE(ada.value("removed").toInt(), 0);
+        QCOMPARE(ada.value("held").toInt(), static_cast<int>(GamesSaving::Held::NotHeld));
+    }
+
+    // A child who is logged in gets only the games taken off; their new
+    // games stay chosen, so Save can give them later.
+    void aLoggedInChildIsHeld() {
+        const auto page = makePage();
+        page->turn("1001");
+        saveWith(*page, "save-held-logged-in");
+        QCOMPARE(page->saving()->step(), GamesSaving::Step::Saved);
+        const QVariantMap ada = page->saving()->results().constFirst().toMap();
+        QCOMPARE(ada.value("held").toInt(), static_cast<int>(GamesSaving::Held::LoggedIn));
+        QCOMPARE(page->unsavedLogins(), QStringList({"ada"}));
+        QVERIFY(page->canSave());
+        QCOMPARE(states(*page), QStringList({"1001=added", "1002=on", "1003=off"}));
+    }
+
+    void skippedGamesAreNamed() {
+        const auto page = makePage();
+        page->turn("1001");
+        saveWith(*page, "save-skipped");
+        const QVariantList skipped =
+            page->saving()->results().constFirst().toMap().value("skipped").toList();
+        QCOMPARE(skipped.size(), 2);
+        const QVariantMap first = skipped.at(0).toMap();
+        QCOMPARE(first.value("appId").toString(), "1002");
+        QCOMPARE(first.value("title").toString(), "Game two");
+        QCOMPARE(first.value("reason").toInt(), static_cast<int>(GamesSaving::Skip::Downloading));
+    }
+
+    // A refusal, or a closed password box, keeps every change to try again.
+    void aRefusalKeepsTheChanges_data() {
+        QTest::addColumn<QString>("scenario");
+        QTest::addColumn<GamesSaving::Reason>("reason");
+        QTest::newRow("busy") << "refused-busy" << GamesSaving::Reason::AnotherSave;
+        QTest::newRow("not a child") << "refused-not-a-child" << GamesSaving::Reason::NotAChild;
+        QTest::newRow("not a grown-up")
+            << "refused-not-a-grown-up" << GamesSaving::Reason::NotAGrownUp;
+        QTest::newRow("bad appid") << "refused-bad-appid" << GamesSaving::Reason::Usage;
+        QTest::newRow("dismissed") << "dismissed" << GamesSaving::Reason::Dismissed;
+        QTest::newRow("not authorized") << "not-authorized" << GamesSaving::Reason::NotAuthorized;
+        QTest::newRow("cut off") << "save-cut-off" << GamesSaving::Reason::Unknown;
+        QTest::newRow("crashed") << "crashes" << GamesSaving::Reason::Unknown;
+    }
+
+    void aRefusalKeepsTheChanges() {
+        QFETCH(const QString, scenario);
+        QFETCH(const GamesSaving::Reason, reason);
+        const auto page = makePage();
+        page->turn("1001");
+        saveWith(*page, scenario);
+        QCOMPARE(page->saving()->step(), GamesSaving::Step::NotSaved);
+        QCOMPARE(page->saving()->reason(), reason);
+        QCOMPARE(page->unsavedLogins(), QStringList({"ada"}));
+        QVERIFY(page->canSave());
+    }
+
+    // While the password box is open, nothing on the page changes.
+    void everythingWaitsWhileASaveRuns() {
+        const auto page = makePage();
+        page->turn("1001");
+        qputenv("CAIRN_TEST_SCENARIO", "asking");
+        page->save();
+        QVERIFY(page->busy());
+        QCOMPARE(page->saving()->step(), GamesSaving::Step::Asking);
+        QVERIFY(!page->canSave());
+        page->turn("1003");
+        page->putBack();
+        page->openSteam("ada");
+        QCOMPARE(states(*page), QStringList({"1001=added", "1002=on", "1003=off"}));
+        QVERIFY(m_started.isEmpty());
+        qputenv("CAIRN_TEST_ARGUMENTS", path("arguments").toLocal8Bit());
+        page->save();
+        page->lookForGames();
+        qunsetenv("CAIRN_TEST_ARGUMENTS");
+        QVERIFY(!QFile::exists(path("arguments")));
+    }
+
+    // Progress comes from the lines as they arrive, with the child's name.
+    void aCopyInProgressNamesTheChild() {
+        const auto page = makePage();
+        page->turn("1001");
+        qputenv("CAIRN_TEST_SCENARIO", "save-copying");
+        page->save();
+        QTRY_COMPARE_WITH_TIMEOUT(page->saving()->progress(), GamesSaving::Progress::CopyingGames,
+                                  kAnswerMilliseconds);
+        QCOMPARE(page->saving()->step(), GamesSaving::Step::Saving);
+        QCOMPARE(page->saving()->progressName(), "Ada");
+        QVERIFY(page->busy());
+    }
+
+    // Looking for new games saves the picked child's list as it is.
+    void lookForGamesChangesNoList() {
+        const auto page = makePage();
+        page->choose("ben");
+        page->turn("1003");
+        page->choose("ada");
+        QCOMPARE(saveWith(*page, "done", true), QStringLiteral("run\nsave-games\nada=1002\n"));
+        QCOMPARE(page->saving()->kind(), GamesSaving::Kind::Look);
+        QCOMPARE(page->unsavedLogins(), QStringList({"ben"}));
+    }
+
+    // A login cairn-family would refuse is refused before any password.
+    void aLoginOutsideTheRuleIsRefusedWithoutAPassword() {
+        m_accounts.push_back(
+            {.uid = 1005, .groups = {"Dee", "cairn-l1"}, .login = "Dee", .fullName = {}});
+        const auto page = makePage();
+        page->choose("Dee");
+        page->turn("1001");
+        QCOMPARE(saveWith(*page, "done"), QString());
+        QCOMPARE(page->saving()->step(), GamesSaving::Step::NotSaved);
+        QCOMPARE(page->saving()->reason(), GamesSaving::Reason::Usage);
+    }
+
+    void aMissingCommandSaysItCouldNotRead() {
+        GamesPage::Setup setup;
+        setup.pkexec = FIXTURES "/pkexec-family";
+        setup.command = FIXTURES "/no-such-cairn-family";
+        setup.catalogue = path("games.json");
+        setup.childLists = path("games");
+        setup.accounts = [this] { return m_accounts; };
+        GamesPage page(setup);
+        page.turn("1001");
+        QTest::ignoreMessage(QtWarningMsg, QRegularExpression("is not there to run"));
+        QCOMPARE(saveWith(page, "done"), QString());
+        QCOMPARE(page.saving()->reason(), GamesSaving::Reason::Unknown);
+        QVERIFY(page.canSave());
     }
 };
 

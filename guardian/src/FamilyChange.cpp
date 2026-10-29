@@ -1,18 +1,16 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "FamilyChange.h"
 
+#include "PkexecAnswer.h"
+
 #include <QFileInfo>
 #include <QRegularExpression>
 #include <QTimer>
 
+#include <optional>
 #include <utility>
 
 namespace {
-
-// pkexec's own exit codes, when it never ran the command. Plasma's polkit
-// agent gives the second for its Cancel button too (VM, 2026-10-12).
-constexpr int kDismissed = 126;
-constexpr int kNotAuthorized = 127;
 
 // cairn-family's exit codes with its answer.
 constexpr int kDone = 0;
@@ -86,13 +84,8 @@ void FamilyChange::ended(int exitCode, QProcess::ExitStatus status) {
         return;
     }
     const QByteArray output = m_process->readAllStandardOutput();
-    if (output.isEmpty() && exitCode == kDismissed) {
-        finish(QStringLiteral("dismissed"));
-    } else if (output.isEmpty() && exitCode == kNotAuthorized) {
-        finish(QStringLiteral("not-authorized"));
-    } else {
-        finish(answerFrom(output, exitCode));
-    }
+    const std::optional<QString> pkexecOwn = PkexecAnswer::fromExitCode(exitCode);
+    finish(output.isEmpty() && pkexecOwn ? *pkexecOwn : answerFrom(output, exitCode));
 }
 
 void FamilyChange::notStarted(QProcess::ProcessError error) {

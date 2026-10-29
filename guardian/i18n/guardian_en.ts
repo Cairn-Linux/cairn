@@ -56,6 +56,19 @@
     </message>
 </context>
 <context>
+    <name>ChildChoice</name>
+    <message>
+        <location filename="../qml/ChildChoice.qml" line="27"/>
+        <source>Changes not saved yet</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/ChildChoice.qml" line="94"/>
+        <source>not saved</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>ChildRow</name>
     <message>
         <location filename="../qml/ChildRow.qml" line="35"/>
@@ -87,7 +100,7 @@
     </message>
     <message>
         <location filename="../qml/ChildrenView.qml" line="35"/>
-        <source>%1 can log in now, at level %2. The Games page shows %1&apos;s list. For now, the family set-up script gives %1 their games.</source>
+        <source>%1 can log in now, at level %2. %1 starts with no games: choose them on the Games page.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -202,32 +215,53 @@
 <context>
     <name>GameCard</name>
     <message>
-        <location filename="../qml/GameCard.qml" line="28"/>
+        <location filename="../qml/GameCard.qml" line="41"/>
         <source>On %1&apos;s list</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GameCard.qml" line="28"/>
+        <location filename="../qml/GameCard.qml" line="41"/>
+        <source>Added to %1&apos;s list, not saved yet</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/GameCard.qml" line="42"/>
         <source>Not on %1&apos;s list</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GameCard.qml" line="28"/>
+        <location filename="../qml/GameCard.qml" line="39"/>
         <source>On %1&apos;s list, no longer in the shared folder</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GameCard.qml" line="86"/>
+        <location filename="../qml/GameCard.qml" line="31"/>
+        <location filename="../qml/GameCard.qml" line="34"/>
+        <source>Taken off, not saved yet</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/GameCard.qml" line="33"/>
         <source>On the list</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GameCard.qml" line="86"/>
+        <location filename="../qml/GameCard.qml" line="33"/>
+        <source>Added, not saved yet</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/GameCard.qml" line="34"/>
         <source>Not on the list</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GameCard.qml" line="86"/>
+        <location filename="../qml/GameCard.qml" line="42"/>
+        <source>Taken off %1&apos;s list, not saved yet</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/GameCard.qml" line="31"/>
         <source>On the list, no longer shared</source>
         <translation type="unfinished"></translation>
     </message>
@@ -235,67 +269,82 @@
 <context>
     <name>GamesView</name>
     <message>
-        <location filename="../qml/GamesView.qml" line="40"/>
+        <location filename="../qml/GamesView.qml" line="48"/>
         <source>%1 has no games on their list yet.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="38"/>
-        <source>%1&apos;s list of games could not be read, so it counts as a list with no games. The file is /var/lib/cairn/games/%2.json. Saving %1&apos;s games on this page, in a later version of Cairn, writes it again. Until then this changes nothing for %1.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/GamesView.qml" line="41"/>
+        <location filename="../qml/GamesView.qml" line="49"/>
         <source>Games on %1&apos;s list: %2. They are highlighted.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="44"/>
+        <location filename="../qml/GamesView.qml" line="52"/>
         <source>The ones no longer in the shared folder come last. %1&apos;s own copy may still play them.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="51"/>
+        <location filename="../qml/GamesView.qml" line="59"/>
         <source>Games</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="62"/>
-        <source>Each child has their own list of the games in the shared folder. A new child starts with none.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/GamesView.qml" line="67"/>
-        <source>This page only shows each child&apos;s list for now. Changing it here comes in a later version of Cairn. Until then, every child still gets a tile for every game the family set-up script copies to them.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/GamesView.qml" line="73"/>
+        <location filename="../qml/GamesView.qml" line="76"/>
         <source>No children yet. Add one on the Children page, then come back here for their games.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="79"/>
-        <source>No games in the shared folder yet. To add one, install it from your own Steam into the folder /var/lib/cairn/steam-library. If Steam&apos;s install dialog does not offer that folder, add it first in Steam&apos;s Settings, under Storage. A game shows here after the family set-up script has run again.</source>
+        <location filename="../qml/GamesView.qml" line="46"/>
+        <source>%1&apos;s list of games could not be read, so it counts as a list with no games, and %1 has no game tiles. The file is /var/lib/cairn/games/%2.json. Saving %1&apos;s games on this page writes it again.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="89"/>
+        <location filename="../qml/GamesView.qml" line="70"/>
+        <source>Each child has their own list of the games in the shared folder. A new child starts with none. Tap a game to put it on the list or take it off, then press Save. A child sees their games the next time they log in.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/GamesView.qml" line="82"/>
+        <source>No games in the shared folder yet. To add one, install it from your own Steam into the folder /var/lib/cairn/steam-library. If Steam&apos;s install dialog does not offer that folder, add it first in Steam&apos;s Settings, under Storage. A game shows here after the next Save, which looks at the shared folder again. With nothing to save, Look for new games does the same.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/GamesView.qml" line="92"/>
         <source>Whose games to show</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="110"/>
+        <location filename="../qml/GamesView.qml" line="118"/>
         <source>Open Steam for %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="117"/>
+        <location filename="../qml/GamesView.qml" line="125"/>
         <source>The Steam window for %1 did not open. The reason is in the system log. In a terminal: journalctl -t cairn-guardian -t cairn-steam-for</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="140"/>
+        <location filename="../qml/GamesView.qml" line="145"/>
+        <source>Save</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/GamesView.qml" line="153"/>
+        <source>Put back as saved</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/GamesView.qml" line="161"/>
+        <source>Look for new games</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/GamesView.qml" line="170"/>
+        <source>Not saved yet: the changes for %1. Save gives each child their new list, with one password.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/GamesView.qml" line="194"/>
         <source>Games in the shared folder</source>
         <translation type="unfinished"></translation>
     </message>
@@ -501,6 +550,249 @@
     <message>
         <location filename="../qml/Main.qml" line="205"/>
         <source>Cancel</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>SaveOutcome</name>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="37"/>
+        <source>Confirm with your password, or your fingerprint, in the box that opened.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="41"/>
+        <source>Saving the children&apos;s lists.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="43"/>
+        <source>Copying games for %1. This can take a few minutes, and %1 cannot log in until it ends.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="45"/>
+        <source>Waiting for %1&apos;s last login to end.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="47"/>
+        <source>Looking at the shared folder for games and their pictures.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="57"/>
+        <source>The shared folder was read again. Every game in it shows below.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="57"/>
+        <source>Saved. Each child sees their games the next time they log in.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="60"/>
+        <source>The list of shared games could not be made again, so the page shows the one from before. The reason is in the system log. In a terminal: journalctl -t cairn-family</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="67"/>
+        <source>Nothing was saved. It needs your password: the box was closed, or the password was not accepted. Your changes are still here.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="69"/>
+        <source>This account may not change the children&apos;s games. A grown-up&apos;s account can.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="71"/>
+        <source>Cairn&apos;s family command did not get the rights it needs, so nothing was saved. Close Family and open it again. If it happens again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="73"/>
+        <source>This window asked Cairn&apos;s family command for something it does not do, so nothing was saved. The window and the command may come from different versions of Cairn. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="75"/>
+        <source>One of the children is not a child&apos;s account on this computer any more, so nothing was saved. The page shows the children there are now.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="77"/>
+        <source>Another Save is still running, perhaps from another login, so nothing was saved. Wait until it ends, then press Save again.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="79"/>
+        <source>Cairn&apos;s family command did not answer as expected. Some lists may have been saved, and the page shows what is saved now. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="88"/>
+        <source>%1 is logged in, so their new games could not be copied. They come after %1 logs out and you press Save again. The games taken off are already gone from %1&apos;s list.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="90"/>
+        <source>Steam for a child is open from a grown-up&apos;s login, so %1&apos;s new games could not be copied. Press Done in that window, then press Save again.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="92"/>
+        <source>Another copy of games is still running, so %1&apos;s new games could not be copied. Wait a few minutes, then press Save again.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="94"/>
+        <source>A program of %1&apos;s was still running from their last login, so their new games could not be copied. Wait a minute, then press Save again. If it happens again, restart the computer first.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="96"/>
+        <source>Copying %1&apos;s games was stopped before it began. Press Save again.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="98"/>
+        <source>No games were copied for %1: the list that keeps a child from logging in during a copy is not set up on this computer. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-steam-visit</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="100"/>
+        <source>%1&apos;s Steam has not run yet, so it has no place for games. Open Steam for %1 and sign in, then press Save again.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="102"/>
+        <source>There is no shared game folder, so no games were copied for %1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="104"/>
+        <source>%1&apos;s Steam lists the shared game folder as its own, so no games were copied for %1. Open Steam for %1, remove that folder in Steam&apos;s Settings, under Storage, then press Save again.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="106"/>
+        <source>No games were copied for %1: their Steam&apos;s list of game folders is not a plain file, so Cairn does not read it.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="108"/>
+        <source>No games were copied for %1: this computer&apos;s disk cannot make a copy that shares the original&apos;s space, and full copies would fill it.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="110"/>
+        <source>Copying %1&apos;s games stopped early. Pressing Save again is safe. If it fails again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-steam-visit</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="112"/>
+        <source>The copy for %1 could not start. Pressing Save again is safe. If it happens again, the reason is in the system log. In a terminal: journalctl -t cairn-family</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="114"/>
+        <source>%1&apos;s list could not be written after the copy, so it holds none of the new games, and the counts say what it holds. Pressing Save again is safe. If it fails again, the reason is in the system log. In a terminal: journalctl -t cairn-family</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="116"/>
+        <source>Not all of %1&apos;s new games could be given. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-steam-visit</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="121"/>
+        <source>Game %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="124"/>
+        <source>%1 was not given to %2: it is no longer in the shared folder.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="126"/>
+        <source>%1 was not given to %2: the list of shared games could not be read.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="128"/>
+        <source>%1 was not given to %2: Steam&apos;s file for it cannot be read.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="130"/>
+        <source>%1 was not given to %2: Steam&apos;s file for it names another game.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="132"/>
+        <source>%1 was not given to %2: Steam&apos;s file for it names its folder in a way Cairn does not copy.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="134"/>
+        <source>%1 was not given to %2: it is on a beta branch, which %2&apos;s Steam account may not have.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="136"/>
+        <source>%1 was not given to %2: it is not fully installed, or an update is waiting. Let your own Steam finish it.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="138"/>
+        <source>%1 was not given to %2: Steam is still downloading it.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="140"/>
+        <source>%1 was not given to %2: its folder is missing from the shared folder.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="142"/>
+        <source>%1 was not given to %2: %2&apos;s Steam already has a folder for it, which may hold %2&apos;s saves, so Cairn leaves it alone.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="144"/>
+        <source>%1 was not given to %2: Steam changed it during the copy.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="146"/>
+        <source>%1 was not given to %2: the copy did not work.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="148"/>
+        <source>%1 was not given to %2: some of its files can be read only by your own account, so they cannot be copied.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="150"/>
+        <source>%1 was not given to %2: Cairn does not copy it.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="159"/>
+        <source>%1&apos;s list is saved, with no change.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="161"/>
+        <source>%1&apos;s list is saved. Added: %2. Taken off: %3.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="169"/>
+        <source>The games not given that are still shared stay chosen, so pressing Save again tries them again.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

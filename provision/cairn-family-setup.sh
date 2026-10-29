@@ -10,8 +10,11 @@
 #   sudo provision/cairn-family-setup.sh --guardian NAME --child NAME [--child NAME:2]
 #
 # It makes the accounts, a "Steam for <child>" menu entry for each child,
-# the children's game tiles and their own copies of the games, then
-# installs the Flatpaks. The children's accounts and entries are made by
+# the shared game folder and the full list of its games with their
+# pictures, then installs the Flatpaks. It copies no games to any child:
+# each child has their own list, which a Guardian chooses on the Games page
+# of the Guardian tool, "Family", whose Save copies them (ADR-0041). A new
+# child has no games until then. The children's accounts and entries are made by
 # the image's own cairn-family, the command the Guardian's tool runs too
 # (ADR-0039). Then every child's entry is brought up to date, named on this
 # run or not. The other steps are cairn-provision.sh's own, loaded from
@@ -38,7 +41,9 @@ check_image() {
 
 # The steps below read what the image's helpers print, word by word. A
 # checkout of another commit may expect other words, and then drops lines
-# without a word, so each helper must be the checkout's own. The build
+# without a word, so each helper must be the checkout's own. This script no
+# longer runs the copy helpers, but cairn-family save-games does, so a
+# difference in them still means the checkout is not the image's. The build
 # changes /usr/local to /usr in each file it installs (cmake/CairnInstall.cmake).
 #
 # cairn-family is compiled, so it cannot be compared with the checkout. It
@@ -157,13 +162,16 @@ main() {
     make_steam_entries
     make_shared_library
     relabel_entries
+    # The full list of shared games and their pictures, so the Games page
+    # shows every game. No copy_games: each child gets the games on their
+    # own list when a Guardian saves it (ADR-0041).
     make_game_tiles
-    copy_games
     # Last, because it needs the internet: an offline computer still gets
     # everything above, and the run then stops with flatpak's own message.
     install_flatpaks
 
     set +x
+    echo "note: no child has games until a grown-up chooses them: open Family from the menu, then its Games page, and press Save."
     echo "done: $changes change(s)"
 }
 
