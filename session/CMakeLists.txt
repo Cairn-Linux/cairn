@@ -20,13 +20,6 @@ cairn_install_file(SOURCE polkit/actions/com.cairnlinux.steam-visit.policy
 cairn_install_file(SOURCE polkit/actions/com.cairnlinux.family.policy
     DESTINATION "${CAIRN_POLKITDIR}/actions" MODE 644)
 cairn_install_file(SOURCE logind.conf.d/10-cairn-power.conf DESTINATION "${CAIRN_LOGIND_CONFDIR}" MODE 644)
-# The copy of a child's waiting games at their logout (ADR-0041): Cairn's
-# own unit, and a drop-in on systemd's user-runtime-dir@.service that
-# starts it. Its ExecStart names cairn-family where this build puts it.
-cairn_install_file(SOURCE systemd/cairn-finish-games@.service DESTINATION "${CAIRN_SYSTEMD_UNITDIR}"
-    MODE 644)
-cairn_install_file(SOURCE systemd/user-runtime-dir@.service.d/50-cairn-games.conf
-    DESTINATION "${CAIRN_SYSTEMD_UNITDIR}/user-runtime-dir@.service.d" MODE 644)
 # Fedora's plasma-wayland.conf sits in the same folder and sets
 # GreeterEnvironment too; SDDM reads the folder in name order, so Cairn's
 # file sorts after it.
@@ -64,9 +57,6 @@ add_test(NAME log_out
 )
 add_test(NAME steam_visit
     COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_steam_visit.py"
-)
-add_test(NAME systemd_units
-    COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_systemd_units.py"
 )
 add_test(NAME pam_steam_visit
     COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_pam_steam_visit.py"

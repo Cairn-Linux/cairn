@@ -164,29 +164,10 @@ Column {
         }
     }
 
-    // Before a Save, for each child with new games who is logged in.
-    LogOutChoice {
-        id: logOutChoice
-
-        objectName: "logOutChoice"
-        width: view.width
-        question: view.page.question
-    }
-
     Words {
         objectName: "unsavedSentence"
         visible: view.hasChildren && view.page.unsavedNames !== "" && !view.busy
         text: qsTr("Not saved yet: the changes for %1. Save gives each child their new list, with one password.").arg(view.page.unsavedNames)
-    }
-
-    // Hidden while a Save's own outcome shows, which says the same, unless
-    // it no longer speaks for the child picked.
-    WaitingNote {
-        objectName: "waitingNotes"
-        width: view.width
-        visible: view.hasChildren && (!outcome.visible || view.page.chosenSettled) && (view.page.chosenWaiting || view.page.finished.result !== undefined)
-        page: view.page
-        sentences: outcome
     }
 
     SaveOutcome {
@@ -244,19 +225,6 @@ Column {
             }
         }
         view.outcomeShown();
-    }
-
-    // Focus follows the question's steps, and goes back to Save, which
-    // waits while the Save runs, once every child is answered.
-    Connections {
-        target: view.page.question
-
-        function onChanged() {
-            if (view.page.question.step === LogOutQuestion.NotAsking)
-                saveButton.forceActiveFocus();
-            else
-                Qt.callLater(logOutChoice.focusStep);
-        }
     }
 
     Connections {

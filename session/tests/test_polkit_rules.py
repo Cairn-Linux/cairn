@@ -184,8 +184,7 @@ class FamilyActionTest(unittest.TestCase):
         messages = {subcommand: action.findtext("message")
                     for subcommand, action in self.by_subcommand().items()}
         self.assertEqual(messages["save-games"],
-                         "A grown-up's password is needed to change which games a child has. "
-                         "It also logs out a child you chose to log out.")
+                         "A grown-up's password is needed to change which games a child has.")
         for subcommand in ("create-child", "set-level"):
             self.assertEqual(messages[subcommand],
                              "A grown-up's password is needed to change a child's account.")

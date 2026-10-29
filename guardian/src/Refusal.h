@@ -32,9 +32,6 @@ enum class Refusal : std::uint8_t {
     BadAppId,
     // save-games: another Save is still running.
     Busy,
-    // finish-games: started through pkexec. Only systemd starts it, at a
-    // child's logout (ADR-0041).
-    NotForPkexec,
 };
 
 QString refusalWord(Refusal refusal);

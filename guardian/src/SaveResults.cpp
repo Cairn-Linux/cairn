@@ -30,7 +30,6 @@ GamesSaving::Held heldFor(const QString& word) {
         {QStringLiteral("failed"), GamesSaving::Held::CopyStopped},
         {QStringLiteral("not-started"), GamesSaving::Held::NotStarted},
         {QStringLiteral("not-written"), GamesSaving::Held::NotWritten},
-        {QStringLiteral("stuck"), GamesSaving::Held::Stuck},
     };
     return held.value(word, GamesSaving::Held::OtherHold);
 }
@@ -81,7 +80,6 @@ QVariantMap SaveResults::forChild(const SaveReport::Child& child, const QString&
         {QStringLiteral("added"), child.added.value_or(-1)},
         {QStringLiteral("removed"), child.removed.value_or(-1)},
         {QStringLiteral("held"), static_cast<int>(heldFor(child.held.value_or(QString())))},
-        {QStringLiteral("later"), child.later},
         {QStringLiteral("skipped"), skipped},
     };
 }

@@ -8,11 +8,10 @@
 #include <optional>
 
 // Who is logged in now, as systemd-logind sees it, read without root
-// (ADR-0041). The Games page asks before a Save whether a child with games
-// to copy is logged in, so the parent can choose to log them out first.
+// (ADR-0041), for the Games page to tell which children are logged in.
 //
 // It counts a login by the visit helper's own rule (cairn-steam-visit's
-// child_logged_in), so the page asks exactly when the copy would be held:
+// child_logged_in), so a child counts exactly when their copy would be held:
 // every session of the account counts, a closing one too, but its service
 // manager's and a Steam visit's.
 namespace LoginSessions {
@@ -38,8 +37,7 @@ QSet<QString> loggedIn(const QList<Session>& sessions);
 std::optional<QList<Session>> fromLogind();
 
 // The accounts logged in now. When logind cannot be asked, nobody counts,
-// and the journal says so: a Save then holds a logged-in child's games
-// until their next logout, as "Later" does.
+// and the journal says so; a Save still holds a logged-in child's copy.
 QSet<QString> loggedInNow();
 
 } // namespace LoginSessions

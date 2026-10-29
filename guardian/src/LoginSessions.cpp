@@ -79,8 +79,8 @@ std::optional<QList<LoginSessions::Session>> LoginSessions::fromLogind() {
 QSet<QString> LoginSessions::loggedInNow() {
     const std::optional<QList<Session>> sessions = fromLogind();
     if (!sessions) {
-        qWarning("cairn-guardian: logind could not be asked who is logged in, so a Save holds a "
-                 "logged-in child's new games until they log out.");
+        qWarning("cairn-guardian: logind could not be asked who is logged in, so every child "
+                 "counts as logged out; a Save still holds a logged-in child's copy.");
         return {};
     }
     return loggedIn(*sessions);

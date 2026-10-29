@@ -14,9 +14,8 @@ ChildSave::Before ChildSave::takeOff(const Shared& shared, const Account& child,
     return before;
 }
 
-ChildSave::Ended ChildSave::run(const Shared& shared, const Account& child,
-                                const QStringList& ticked, const Before& before,
-                                const CopyJob::Say& say) {
+QString ChildSave::run(const Shared& shared, const Account& child, const QStringList& ticked,
+                       const Before& before, const CopyJob::Say& say) {
     const GameCatalogue catalogue = shared.catalogue.value_or(GameCatalogue());
     const ChildGameList::Plan plan = ChildGameList::plan(before.old, ticked, catalogue);
     // Without a full games list, whether a game is shared is not known.
@@ -29,10 +28,7 @@ ChildSave::Ended ChildSave::run(const Shared& shared, const Account& child,
     CopyJob::Result copy;
     if (!plan.toCopy.isEmpty()) {
         say(QStringLiteral("copying %1").arg(child.login));
-        const CopyJob::IfLoggedIn ifLoggedIn = shared.logOut.contains(child.login)
-                                                   ? CopyJob::IfLoggedIn::LogOut
-                                                   : CopyJob::IfLoggedIn::Hold;
-        copy = CopyJob::run(shared.copy, child.login, child.uid, plan.toCopy, ifLoggedIn, say);
+        copy = CopyJob::run(shared.copy, child.login, child.uid, plan.toCopy, say);
     }
 
     ChildGameList::NewList list = ChildGameList::result(before.old, ticked, copy.copied, catalogue);
@@ -52,5 +48,5 @@ ChildSave::Ended ChildSave::run(const Shared& shared, const Account& child,
         line += QStringLiteral(" held ") + *held;
     }
     say(line);
-    return {.line = line, .held = held};
+    return line;
 }

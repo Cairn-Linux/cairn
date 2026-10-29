@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "GamesPage.h"
 
-#include <QDateTime>
 #include <QDir>
 #include <QFile>
 #include <QJsonArray>
@@ -13,9 +12,7 @@
 #include <QTest>
 #include <QVariantMap>
 
-#include <functional>
 #include <memory>
-#include <unistd.h>
 
 namespace {
 
@@ -67,19 +64,12 @@ class GamesPageTest : public QObject {
         setup.pkexec = FIXTURES "/pkexec-family";
         setup.command = FIXTURES "/cairn-family";
         setup.catalogue = path("games.json");
-        setup.lists = {.childLists = path("games"),
-                       .waiting = path("games-waiting"),
-                       .finished = path("games-finished"),
-                       .owner = getuid()};
+        setup.childLists = path("games");
         setup.steamFor = "/usr/bin/cairn-steam-for";
         setup.accounts = [this] { return m_accounts; };
         setup.start = [this, starts](const QString& program, const QStringList& arguments) {
             m_started.append(program + " " + arguments.join(' '));
             return starts;
-        };
-        setup.loggedIn = [this] {
-            ++m_logindAsked;
-            return m_loggedIn;
         };
         return std::make_unique<GamesPage>(setup);
     }
@@ -114,24 +104,17 @@ class GamesPageTest : public QObject {
 
     // Runs a Save, or a look for new games, with the stand-ins answering as
     // the scenario says, and returns the arguments cairn-family was given,
-    // each run starting with a line "run". `answer` answers the question
-    // about a logged-in child, when one opens.
-    QString saveWith(GamesPage& page, const QString& scenario, bool look = false,
-                     const std::function<void(LogOutQuestion&)>& answer = {}) {
+    // each run starting with a line "run".
+    QString saveWith(GamesPage& page, const QString& scenario, bool look = false) {
         QFile::remove(path("arguments"));
         qputenv("CAIRN_TEST_SCENARIO", scenario.toLocal8Bit());
         qputenv("CAIRN_TEST_ARGUMENTS", path("arguments").toLocal8Bit());
         qputenv("CAIRN_TEST_GAMES", path("games").toLocal8Bit());
-        qputenv("CAIRN_TEST_WAITING", path("games-waiting").toLocal8Bit());
         QSignalSpy ended(page.saving(), &GamesSaving::ended);
         look ? page.lookForGames() : page.save();
-        if (answer && page.question()->asking()) {
-            answer(*page.question());
-        }
         const bool answered = !ended.isEmpty() || ended.wait(kAnswerMilliseconds);
         qunsetenv("CAIRN_TEST_ARGUMENTS");
         qunsetenv("CAIRN_TEST_GAMES");
-        qunsetenv("CAIRN_TEST_WAITING");
         if (!answered) {
             return QStringLiteral("no answer");
         }
@@ -142,41 +125,16 @@ class GamesPageTest : public QObject {
     QTemporaryDir m_temporary;
     std::vector<Account> m_accounts;
     QStringList m_started;
-    QSet<QString> m_loggedIn;
-    int m_logindAsked = 0;
 
 private slots:
     void init() {
         QVERIFY(m_temporary.isValid());
         m_accounts = family();
         m_started.clear();
-        m_loggedIn.clear();
-        m_logindAsked = 0;
         write(path("games.json"), gamesFile({game("1001", "Game one"), game("1002", "Game two"),
                                              game("1003", "Game three")}));
-        for (const char* folder : {"games", "games-waiting", "games-finished"}) {
-            QVERIFY(QDir().mkpath(path(folder)));
-        }
+        QVERIFY(QDir().mkpath(path("games")));
         write(path("games/ada.json"), gamesFile({game("1002", "Game two")}));
-    }
-
-    // Whether the card for a game says it waits for the child's logout.
-    static bool waits(const GamesPage& page, const QString& appId) {
-        for (const QVariant& value : page.games()) {
-            const QVariantMap game = value.toMap();
-            if (game.value("appId").toString() == appId) {
-                return game.value("waiting").toBool();
-            }
-        }
-        return false;
-    }
-
-    // How the copy at a child's last logout ended, dated.
-    void finish(const QString& login, const QByteArray& lines, const QDateTime& when) {
-        write(path("games-finished/" + login), lines);
-        QFile file(path("games-finished/" + login));
-        QVERIFY(file.open(QIODevice::ReadWrite));
-        QVERIFY(file.setFileTime(when, QFileDevice::FileModificationTime));
     }
 
     void cleanup() {
@@ -470,212 +428,11 @@ private slots:
         QCOMPARE(ada.value("added").toInt(), 2);
         QCOMPARE(ada.value("removed").toInt(), 0);
         QCOMPARE(ada.value("held").toInt(), static_cast<int>(GamesSaving::Held::NotHeld));
-        QCOMPARE(ada.value("later").toBool(), false);
         QVERIFY(page->saving()->allGiven());
     }
 
-    // ---- games waiting for a child's next logout ----
-
-    // A child's waiting list is the page's starting point for them: Save
-    // stays off until the parent changes something, and the games not
-    // copied yet are marked as waiting.
-    void aWaitingListIsTheBaseline() {
-        write(path("games-waiting/ada"), "ada=1002,1003\n");
-        const auto page = makePage();
-        QVERIFY(page->chosenWaiting());
-        QCOMPARE(page->wanted(), QStringList({"1002", "1003"}));
-        QCOMPARE(states(*page), QStringList({"1001=off", "1002=on", "1003=on"}));
-        QVERIFY(waits(*page, "1003"));
-        QVERIFY(!waits(*page, "1002"));
-        QVERIFY(!waits(*page, "1001"));
-        QVERIFY(!page->canSave());
-        QVERIFY(page->unsavedLogins().isEmpty());
-        page->choose("ben");
-        QVERIFY(!page->chosenWaiting());
-    }
-
-    // Taking a waiting game off and saving sends the new whole list, and
-    // Put back as saved returns to the waiting list.
-    void aWaitingGameCanBeTakenOff() {
-        write(path("games-waiting/ada"), "ada=1002,1003\n");
-        const auto page = makePage();
-        page->turn("1003");
-        QCOMPARE(states(*page), QStringList({"1001=off", "1002=on", "1003=taken"}));
-        QVERIFY(page->canSave());
-        page->putBack();
-        QCOMPARE(page->wanted(), QStringList({"1002", "1003"}));
-        QVERIFY(!page->canSave());
-        page->turn("1003");
-        QCOMPARE(saveWith(*page, "done"), QStringLiteral("run\nsave-games\nada=1002\n"));
-    }
-
-    // A waiting file that fails a check is no starting point.
-    void aWaitingFileThatFailsACheckIsLeftOut() {
-        write(path("games-waiting/ada"), "ben=1003\n");
-        const auto page = makePage();
-        QVERIFY(!page->chosenWaiting());
-        QCOMPARE(page->wanted(), QStringList({"1002"}));
-    }
-
-    // An open page follows the files root writes at a logout.
-    void anOpenPageFollowsTheFiles() {
-        const auto page = makePage();
-        QVERIFY(!page->chosenWaiting());
-        write(path("games-waiting/ada"), "ada=1002,1003\n");
-        QTRY_VERIFY_WITH_TIMEOUT(page->chosenWaiting(), kAnswerMilliseconds);
-        QVERIFY(QFile::remove(path("games-waiting/ada")));
-        finish("ada", "copied ada 1003\nchild ada added 1 removed 0\n",
-               QDateTime::currentDateTime());
-        QTRY_VERIFY_WITH_TIMEOUT(!page->finished().isEmpty(), kAnswerMilliseconds);
-        QVERIFY(!page->chosenWaiting());
-    }
-
-    // A clean finish, dated by the file, until the next Save for the child.
-    void aCleanFinishIsDated() {
-        const QDateTime when(QDate(2026, 10, 20), QTime(17, 30));
-        finish("ada", "copied ada 1003\nchild ada added 1 removed 0\n", when);
-        const auto page = makePage();
-        const QVariantMap finished = page->finished();
-        QCOMPARE(finished.value("when").toDateTime(), when);
-        QCOMPARE(finished.value("clean").toBool(), true);
-        const QVariantMap result = finished.value("result").toMap();
-        QCOMPARE(result.value("name").toString(), "Ada");
-        QCOMPARE(result.value("added").toInt(), 1);
-        QCOMPARE(result.value("held").toInt(), static_cast<int>(GamesSaving::Held::NotHeld));
-        page->choose("ben");
-        QVERIFY(page->finished().isEmpty());
-    }
-
-    void aFinishThatGaveNotEverything() {
-        finish("ada", "skipped ada 1003 downloading\nchild ada added 0 removed 0 held failed\n",
-               QDateTime::currentDateTime());
-        const auto page = makePage();
-        const QVariantMap finished = page->finished();
-        QCOMPARE(finished.value("clean").toBool(), false);
-        const QVariantMap result = finished.value("result").toMap();
-        QCOMPARE(result.value("held").toInt(), static_cast<int>(GamesSaving::Held::CopyStopped));
-        const QVariantMap skip = result.value("skipped").toList().constFirst().toMap();
-        QCOMPARE(skip.value("title").toString(), "Game three");
-    }
-
-    // Only the command's own lines about this child count.
-    void aFinishedFileWithoutTheChildsLineShowsNothing() {
-        finish("ada", "child ben added 1 removed 0\nit went fine\n", QDateTime::currentDateTime());
-        QVERIFY(makePage()->finished().isEmpty());
-    }
-
-    // The Save says `later`: the child's games are written down for their
-    // next logout, so the page starts from them, and nothing is left to
-    // save.
-    void aSaveWhoseGamesWaitForALogout() {
-        const auto page = makePage();
-        page->turn("1001");
-        saveWith(*page, "save-held-later");
-        QCOMPARE(page->saving()->step(), GamesSaving::Step::Saved);
-        QVERIFY(!page->saving()->allGiven());
-        const QVariantMap ada = page->saving()->results().constFirst().toMap();
-        QCOMPARE(ada.value("held").toInt(), static_cast<int>(GamesSaving::Held::LoggedIn));
-        QCOMPARE(ada.value("later").toBool(), true);
-        QVERIFY(page->chosenWaiting());
-        QVERIFY(!page->canSave());
-        QCOMPARE(states(*page), QStringList({"1001=on", "1002=on", "1003=off"}));
-        QVERIFY(waits(*page, "1001"));
-    }
-
-    // The Save counts the games taken off a child whose games wait, so the
-    // page says they are gone only when there were some.
-    void aLaterSaveCountsTheGamesTakenOff() {
-        const auto page = makePage();
-        page->turn("1001");
-        page->turn("1002");
-        saveWith(*page, "save-held-later");
-        const QVariantMap ada = page->saving()->results().constFirst().toMap();
-        QCOMPARE(ada.value("later").toBool(), true);
-        QCOMPARE(ada.value("removed").toInt(), 1);
-    }
-
-    // Once the copy at the child's logout has run, the Save's outcome,
-    // which says their games are still to come, ends, and the note about
-    // that logout takes its place.
-    void aSettledWaitEndsTheOutcome() {
-        const auto page = makePage();
-        page->turn("1001");
-        saveWith(*page, "save-held-later");
-        QCOMPARE(page->saving()->step(), GamesSaving::Step::Saved);
-        QCOMPARE(page->saving()->laterLogins(), QStringList({"ada"}));
-        // Another child's file changing leaves Ada waiting, and the outcome.
-        QSignalSpy changed(page.get(), &GamesPage::changed);
-        finish("ben", "child ben added 1 removed 0\n", QDateTime::currentDateTime());
-        QTRY_VERIFY_WITH_TIMEOUT(!changed.isEmpty(), kAnswerMilliseconds);
-        QCOMPARE(page->saving()->step(), GamesSaving::Step::Saved);
-        QVERIFY(QFile::remove(path("games-waiting/ada")));
-        finish("ada", "copied ada 1001\nchild ada added 1 removed 0\n",
-               QDateTime::currentDateTime());
-        QTRY_COMPARE_WITH_TIMEOUT(page->saving()->step(), GamesSaving::Step::Ready,
-                                  kAnswerMilliseconds);
-        QVERIFY(page->saving()->laterLogins().isEmpty());
-        QTRY_VERIFY_WITH_TIMEOUT(!page->finished().isEmpty(), kAnswerMilliseconds);
-        QVERIFY(!page->chosenWaiting());
-    }
-
-    // Two children wait; once Ada's wait has ended, the outcome leaves her
-    // out but still speaks for Ben, and ends once Ben's has too.
-    void aSettledChildLeavesTheOthersInTheOutcome() {
-        const auto page = makePage();
-        page->turn("1001");
-        page->choose("ben");
-        page->turn("1001");
-        page->choose("ada");
-        saveWith(*page, "save-held-later");
-        QCOMPARE(page->saving()->laterLogins(), QStringList({"ada", "ben"}));
-        QCOMPARE(page->saving()->results().size(), 2);
-        QVERIFY(!page->chosenSettled());
-        QVERIFY(QFile::remove(path("games-waiting/ada")));
-        finish("ada", "copied ada 1001\nchild ada added 1 removed 0\n",
-               QDateTime::currentDateTime());
-        QTRY_COMPARE_WITH_TIMEOUT(page->saving()->laterLogins(), QStringList({"ben"}),
-                                  kAnswerMilliseconds);
-        QCOMPARE(page->saving()->step(), GamesSaving::Step::Saved);
-        const QVariantList results = page->saving()->results();
-        QCOMPARE(results.size(), 1);
-        QCOMPARE(results.constFirst().toMap().value("login").toString(), "ben");
-        QVERIFY(page->chosenSettled());
-        QVERIFY(!page->finished().isEmpty());
-        QVERIFY(QFile::remove(path("games-waiting/ben")));
-        QTRY_COMPARE_WITH_TIMEOUT(page->saving()->step(), GamesSaving::Step::Ready,
-                                  kAnswerMilliseconds);
-        QVERIFY(!page->chosenSettled());
-    }
-
-    // A waiting file that fails the page's checks is not the end of the
-    // wait, so the outcome stays and still speaks for the child.
-    void aRefusedWaitingFileKeepsTheOutcome() {
-        const auto page = makePage();
-        page->turn("1001");
-        saveWith(*page, "save-held-later");
-        QCOMPARE(page->saving()->laterLogins(), QStringList({"ada"}));
-        write(path("games-waiting/ada"), "ben=1001\n");
-        page->reload();
-        QVERIFY(!page->chosenWaiting());
-        QCOMPARE(page->saving()->step(), GamesSaving::Step::Saved);
-        QCOMPARE(page->saving()->laterLogins(), QStringList({"ada"}));
-        QCOMPARE(page->saving()->results().size(), 1);
-        QVERIFY(!page->chosenSettled());
-    }
-
-    // A Save that left no child waiting is not ended by a logout.
-    void aSaveWithNoWaitIsKept() {
-        const auto page = makePage();
-        page->turn("1001");
-        saveWith(*page, "save-done");
-        QSignalSpy changed(page.get(), &GamesPage::changed);
-        finish("ada", "child ada added 1 removed 0\n", QDateTime::currentDateTime());
-        QTRY_VERIFY_WITH_TIMEOUT(!changed.isEmpty(), kAnswerMilliseconds);
-        QCOMPARE(page->saving()->step(), GamesSaving::Step::Saved);
-    }
-
-    // A child who is logged in gets only the games taken off; with no
-    // `later`, their new games stay chosen, so Save can give them later.
+    // A child who is logged in gets only the games taken off; their new
+    // games stay chosen, so Save can give them once they log out.
     void aLoggedInChildIsHeld() {
         const auto page = makePage();
         page->turn("1001");
@@ -838,128 +595,13 @@ private slots:
         QCOMPARE(page->saving()->reason(), GamesSaving::Reason::Usage);
     }
 
-    // ---- a child who is logged in when the parent saves ----
-
-    // Before any password, the page asks about a logged-in child with new
-    // games to copy, and nothing else on it changes meanwhile.
-    void aLoggedInChildIsAskedAboutFirst() {
-        m_loggedIn = {"ada", "guardian"};
-        const auto page = makePage();
-        page->turn("1001");
-        qputenv("CAIRN_TEST_ARGUMENTS", path("arguments").toLocal8Bit());
-        page->save();
-        QCOMPARE(m_logindAsked, 1);
-        QCOMPARE(page->question()->step(), LogOutQuestion::Step::Choosing);
-        QCOMPARE(page->question()->name(), "Ada");
-        QCOMPARE(page->saving()->step(), GamesSaving::Step::Ready);
-        QVERIFY(page->busy());
-        QVERIFY(!page->canSave());
-        page->turn("1003");
-        page->putBack();
-        page->openSteam("ada");
-        page->save();
-        page->lookForGames();
-        qunsetenv("CAIRN_TEST_ARGUMENTS");
-        QCOMPARE(m_logindAsked, 1);
-        QVERIFY(!QFile::exists(path("arguments")));
-        QVERIFY(m_started.isEmpty());
-        QCOMPARE(states(*page), QStringList({"1001=added", "1002=on", "1003=off"}));
-    }
-
-    // "Later" saves as before: nobody is logged out.
-    void laterLogsNobodyOut() {
-        m_loggedIn = {"ada"};
-        const auto page = makePage();
-        page->turn("1001");
-        QCOMPARE(saveWith(*page, "done", false, [](LogOutQuestion& question) { question.later(); }),
-                 QStringLiteral("run\nsave-games\nada=1002,1001\n"));
-        QVERIFY(!page->question()->asking());
-    }
-
-    // "Log Ada out now", then "Log Ada out": one run, with one password,
-    // that names her to log out.
-    void logOutNowIsOneSave() {
-        m_loggedIn = {"ada", "ben"};
-        const auto page = makePage();
-        page->turn("1001");
-        page->choose("ben");
-        page->turn("1003");
-        const QString arguments = saveWith(*page, "save-done", false, [](LogOutQuestion& question) {
-            question.logOutNow();
-            question.logOut();
-            QCOMPARE(question.name(), "Ben");
-            question.logOutNow();
-            question.notNow();
-            question.later();
-        });
-        QCOMPARE(arguments,
-                 QStringLiteral("run\nsave-games\n--log-out=ada\nada=1002,1001\nben=1003\n"));
-        QCOMPARE(page->saving()->step(), GamesSaving::Step::Saved);
-        QVERIFY(page->saving()->allGiven());
-        QCOMPARE(page->saving()->results().constFirst().toMap().value("added").toInt(), 2);
-    }
-
-    // A child who is not logged in is not asked about, and the Save starts
-    // at once.
-    void aChildNotLoggedInIsNotAskedAbout() {
-        m_loggedIn = {"ben", "guardian"};
-        const auto page = makePage();
-        page->turn("1001");
-        QCOMPARE(saveWith(*page, "done"), QStringLiteral("run\nsave-games\nada=1002,1001\n"));
-        QCOMPARE(m_logindAsked, 1);
-    }
-
-    // Taking a game off copies nothing, so nobody is asked about and logind
-    // is not asked.
-    void takingAGameOffAsksNothing() {
-        m_loggedIn = {"ada"};
-        const auto page = makePage();
-        page->turn("1002");
-        QCOMPARE(saveWith(*page, "done"), QStringLiteral("run\nsave-games\nada=\n"));
-        QCOMPARE(m_logindAsked, 0);
-    }
-
-    // While the child is logged out, the page says whose log-out it is.
-    void aLogOutInProgressNamesTheChild() {
-        m_loggedIn = {"ada"};
-        const auto page = makePage();
-        page->turn("1001");
-        qputenv("CAIRN_TEST_SCENARIO", "save-logging-out");
-        page->save();
-        page->question()->logOutNow();
-        page->question()->logOut();
-        QTRY_COMPARE_WITH_TIMEOUT(page->saving()->progress(), GamesSaving::Progress::LoggingOut,
-                                  kAnswerMilliseconds);
-        QCOMPARE(page->saving()->progressName(), "Ada");
-        QVERIFY(page->busy());
-    }
-
-    // A program of the child's would not close: held as stuck, and the new
-    // games wait for the child's next logout.
-    void aStuckLogOutWaits() {
-        m_loggedIn = {"ada"};
-        const auto page = makePage();
-        page->turn("1001");
-        saveWith(*page, "save-stuck", false, [](LogOutQuestion& question) {
-            question.logOutNow();
-            question.logOut();
-        });
-        QCOMPARE(page->saving()->step(), GamesSaving::Step::Saved);
-        const QVariantMap ada = page->saving()->results().constFirst().toMap();
-        QCOMPARE(ada.value("held").toInt(), static_cast<int>(GamesSaving::Held::Stuck));
-        QCOMPARE(ada.value("later").toBool(), true);
-        QVERIFY(page->chosenWaiting());
-        QVERIFY(!page->canSave());
-    }
-
     void aMissingCommandSaysItDidNotStart() {
         GamesPage::Setup setup;
         setup.pkexec = FIXTURES "/pkexec-family";
         setup.command = FIXTURES "/no-such-cairn-family";
         setup.catalogue = path("games.json");
-        setup.lists.childLists = path("games");
+        setup.childLists = path("games");
         setup.accounts = [this] { return m_accounts; };
-        setup.loggedIn = [] { return QSet<QString>(); };
         GamesPage page(setup);
         page.turn("1001");
         QTest::ignoreMessage(QtWarningMsg, QRegularExpression("is not there to run"));

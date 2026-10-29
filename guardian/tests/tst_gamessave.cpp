@@ -8,7 +8,6 @@
 #include <QTemporaryDir>
 #include <QTest>
 
-#include <sys/stat.h>
 #include <unistd.h>
 
 namespace {
@@ -89,8 +88,6 @@ class GamesSaveTest : public QObject {
         setup.copy.visitHelper = path("cairn-steam-visit");
         setup.gamesFolder = path("games");
         setup.gamesFolderOwner = getuid();
-        setup.waitingFolder = path("games-waiting");
-        setup.finishedFolder = path("games-finished");
         setup.lock = path("lock");
         return GamesSave(setup).run(arguments,
                                     [this](const QString& line) { m_said.append(line); });
@@ -101,15 +98,6 @@ class GamesSaveTest : public QObject {
         QVERIFY(!QFile::exists(path("systemd-run-calls")));
         QVERIFY(!QFile::exists(path("games.json")));
         QVERIFY(QDir(path("games")).isEmpty());
-        QVERIFY(!QFile::exists(path("games-waiting")));
-    }
-
-    // A waiting list and a finished copy from an earlier Save for ada.
-    void leaveEarlierFiles() const {
-        QVERIFY(QDir().mkpath(path("games-waiting")));
-        QVERIFY(QDir().mkpath(path("games-finished")));
-        give("games-waiting/ada", "ada=504230\n");
-        give("games-finished/ada", "child ada added 1 removed 0\n");
     }
 
     QString path(const QString& name) const {
@@ -175,47 +163,6 @@ private slots:
         QCOMPARE(read("games.json"), QByteArray(sharedGames));
     }
 
-    // Only a child the parent chose to log out gets --log-out, and the
-    // journal says whom the Save logs out.
-    void logsOutOnlyTheChildrenNamed() {
-        give("lines-ada", "logging-out\nlogged-out\ncopied 620\nfinished\n");
-        const GamesSave::Outcome outcome =
-            run({"save-games", "--log-out=ada", "ada=620", "ben=504230"});
-        QVERIFY(!outcome.refusal.has_value());
-        QCOMPARE(lines("helper-calls"),
-                 QStringList({"--copy-games --log-out ada 620", "--copy-games ben 504230"}));
-        QCOMPARE(m_said.mid(3),
-                 QStringList({"copying ada", "logging-out ada", "logged-out ada", "copied ada 620",
-                              "child ada added 1 removed 0", "copying ben", "copied ben 504230",
-                              "child ben added 1 removed 0"}));
-        QCOMPARE(outcome.asked, QStringLiteral("save-games ada ben, logging out ada if logged in"));
-        QVERIFY(!QFile::exists(path("games-waiting/ada")));
-    }
-
-    // A child named to log out with nothing new to copy is never logged
-    // out: the helper is not started.
-    void noCopyNoLogOut() {
-        give("games/ada.json", adaHasPortal);
-        run({"save-games", "--log-out=ada", "ada="});
-        QVERIFY(!QFile::exists(path("helper-calls")));
-        QVERIFY(!m_said.contains("logging-out ada"));
-    }
-
-    // A program of the child's outlived the log-out: the games taken off
-    // are gone, and the new ones wait for the child's next logout.
-    void aStuckLogOutWaitsForTheNextLogout() {
-        give("games/ada.json", adaHasPortal);
-        give("lines-ada", "logging-out\nrefused stuck\n");
-        give("status-ada", "1");
-        const GamesSave::Outcome outcome = run({"save-games", "--log-out=ada", "ada=12"});
-        QVERIFY(!outcome.refusal.has_value());
-        QCOMPARE(m_said.mid(3),
-                 QStringList({"copying ada", "logging-out ada",
-                              "child ada added 0 removed 1 held stuck", "later ada"}));
-        QCOMPARE(read("games-waiting/ada"), QByteArray("ada=12\n"));
-        QVERIFY(!read("games/ada.json").contains("\"620\""));
-    }
-
     // With no child named, only the pictures and the full list are made
     // again, and no child's file is touched, even one that cannot be read.
     void aLookChangesNoList() {
@@ -245,12 +192,6 @@ private slots:
         QTest::newRow("one child of two")
             << QStringList{"save-games", "ada=620", "gina=620"} << "not-a-child";
         QTest::newRow("usage") << QStringList{"save-games", "ada"} << "usage";
-        QTest::newRow("a log-out of a grown-up")
-            << QStringList{"save-games", "--log-out=gina", "gina=620"} << "not-a-child";
-        QTest::newRow("a log-out of a child with no list")
-            << QStringList{"save-games", "--log-out=ben", "ada=620"} << "usage";
-        QTest::newRow("a log-out after a list")
-            << QStringList{"save-games", "ada=620", "--log-out=ada"} << "usage";
         QTest::newRow("a bad name") << QStringList{"save-games", "Ada=620"} << "bad-name";
         QTest::newRow("a bad appid")
             << QStringList{"save-games", "ada=620", "ben=--all"} << "bad-appid";
@@ -295,17 +236,16 @@ private slots:
     }
 
     // A logged-in child loses the game taken off at once and gets the new
-    // one at their next logout; the next child still goes ahead.
+    // one later; the next child still goes ahead.
     void aLoggedInChildIsHeld() {
         give("games/ada.json", adaHasPortal);
         give("lines-ada", "refused logged-in\n");
         give("status-ada", "1");
         const GamesSave::Outcome outcome = run({"save-games", "ada=12", "ben=620"});
         QVERIFY(!outcome.refusal.has_value());
-        QCOMPARE(
-            m_said.mid(3),
-            QStringList({"copying ada", "child ada added 0 removed 1 held logged-in", "later ada",
-                         "copying ben", "copied ben 620", "child ben added 1 removed 0"}));
+        QCOMPARE(m_said.mid(3),
+                 QStringList({"copying ada", "child ada added 0 removed 1 held logged-in",
+                              "copying ben", "copied ben 620", "child ben added 1 removed 0"}));
         QVERIFY(!read("games/ada.json").contains("\"620\""));
         QVERIFY(!read("games/ada.json").contains("\"12\""));
     }

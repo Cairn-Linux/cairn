@@ -49,32 +49,6 @@ private slots:
         QCOMPARE(report.current(), QString());
     }
 
-    // A child the parent chose to log out: logging out, then copying as
-    // soon as they are logged out.
-    void aLogOutThenItsCopy() {
-        SaveReport report({QStringLiteral("ada")});
-        report.take(QStringLiteral("logging-out ada"));
-        QCOMPARE(report.stage(), SaveReport::Stage::LoggingOut);
-        QCOMPARE(report.current(), QStringLiteral("ada"));
-        report.take(QStringLiteral("logged-out ada"));
-        QCOMPARE(report.stage(), SaveReport::Stage::Copying);
-        QCOMPARE(report.current(), QStringLiteral("ada"));
-        report.take(QStringLiteral("logging-out ben"));
-        report.take(QStringLiteral("logging-out"));
-        report.take(QStringLiteral("logging-out ada ben"));
-        QCOMPARE(report.stage(), SaveReport::Stage::Copying);
-        QCOMPARE(report.current(), QStringLiteral("ada"));
-    }
-
-    // A log-out a program outlived.
-    void aStuckLogOut() {
-        const SaveReport report =
-            reportOf({"logging-out ada", "child ada added 0 removed 0 held stuck", "later ada"});
-        QCOMPARE(report.stage(), SaveReport::Stage::Writing);
-        QCOMPARE(report.children().constFirst().held, std::optional<QString>("stuck"));
-        QVERIFY(report.children().constFirst().later);
-    }
-
     void eachChildsCounts() {
         const SaveReport report =
             reportOf({"child ben added 0 removed 2", "child ada added 3 removed 1"});
@@ -92,17 +66,6 @@ private slots:
         const SaveReport report = reportOf({"child ada added 0 removed 1 held logged-in"});
         QCOMPARE(report.children().constFirst().held, std::optional<QString>("logged-in"));
         QCOMPARE(report.children().constFirst().removed, std::optional<int>(1));
-    }
-
-    // `later` after the child's line: their new games are copied at their
-    // next logout. Without it they are not.
-    void aChildWhoseGamesWaitForTheirLogout() {
-        const SaveReport report = reportOf({"child ada added 0 removed 1 held logged-in",
-                                            "later ada", "child ben added 0 removed 0 held busy"});
-        QCOMPARE(report.children().size(), 2);
-        QVERIFY(report.children().at(0).later);
-        QCOMPARE(report.children().at(0).held, std::optional<QString>("logged-in"));
-        QVERIFY(!report.children().at(1).later);
     }
 
     // A skipped game before the child's line is theirs, with its reason.
@@ -141,9 +104,6 @@ private slots:
         QTest::newRow("a login with a capital") << "copying Ada";
         QTest::newRow("spaces before") << " child ada added 1 removed 0";
         QTest::newRow("pictures, another word") << "pictures lost";
-        QTest::newRow("later for another child") << "later cy";
-        QTest::newRow("later with no child") << "later";
-        QTest::newRow("later with more") << "later ada now";
         QTest::newRow("done") << "done";
         QTest::newRow("refused") << "refused busy";
         QTest::newRow("empty") << "";

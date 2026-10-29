@@ -44,7 +44,7 @@
   </action>
   <action id="com.cairnlinux.family.save-games">
     <description>Change which games a child has</description>
-    <message>A grown-up's password is needed to change which games a child has. It also logs out a child you chose to log out.</message>
+    <message>A grown-up's password is needed to change which games a child has.</message>
     <defaults>
       <allow_any>no</allow_any>
       <allow_inactive>no</allow_inactive>

@@ -1,11 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "GamesSave.h"
 
-#include "ChildGameList.h"
 #include "ChildSave.h"
-#include "FinishedSave.h"
 #include "GamesRequest.h"
-#include "WaitingSave.h"
 
 #include <QLockFile>
 
@@ -16,21 +13,6 @@ namespace {
 
 const QStringList& tickedFor(const GamesRequest& request, std::size_t child) {
     return request.children.at(static_cast<qsizetype>(child)).appIds;
-}
-
-// Writes down the child's whole new list as waiting when it has a game to
-// copy, and says whether it did. The last copy at a logout no longer says
-// anything true, so it goes, and so does an older waiting list.
-bool writeDown(const ChildSave::Shared& shared, const WaitingSave& waiting,
-               const FinishedSave& finished, const Account& child, const QStringList& ticked) {
-    finished.remove(child.login);
-    const ChildGameList::Plan plan = ChildGameList::plan(
-        shared.file.read(child.login), ticked, shared.catalogue.value_or(GameCatalogue()));
-    if (!plan.toCopy.isEmpty() && waiting.write(child.login, ticked)) {
-        return true;
-    }
-    waiting.remove(child.login);
-    return false;
 }
 
 } // namespace
@@ -47,13 +29,8 @@ GamesSave::Outcome GamesSave::run(const QStringList& arguments, const Say& say) 
     if (request.refusal) {
         return {.refusal = request.refusal, .asked = {}, .children = {}};
     }
-    // A log-out the parent chose goes in the journal with the Save.
-    QString asked =
+    const QString asked =
         (QStringList{QStringLiteral("save-games")} + request.logins()).join(QLatin1Char(' '));
-    if (!request.logOut.isEmpty()) {
-        asked += QStringLiteral(", logging out ") + request.logOut.join(QLatin1Char(' ')) +
-                 QStringLiteral(" if logged in");
-    }
 
     // Every name is a child Cairn made, before anything changes.
     std::vector<Account> children;
@@ -85,20 +62,7 @@ GamesSave::Outcome GamesSave::run(const QStringList& arguments, const Say& say) 
         .file = ChildGamesFile(m_setup.gamesFolder, m_setup.gamesFolderOwner,
                                m_setup.catalogue.restorecon),
         .catalogue = made.catalogue,
-        .logOut = request.logOut,
     };
-    const WaitingSave waiting(m_setup.waitingFolder, m_setup.gamesFolderOwner,
-                              m_setup.catalogue.restorecon);
-    const FinishedSave finished(m_setup.finishedFolder, m_setup.gamesFolderOwner,
-                                m_setup.catalogue.restorecon);
-    // Every child's games to copy are written down before anything changes
-    // for them, so a Save cut off from here on, by a logout or the power,
-    // still copies them at the child's next logout.
-    QList<bool> writtenDown;
-    for (std::size_t i = 0; i < children.size(); ++i) {
-        writtenDown.append(
-            writeDown(shared, waiting, finished, children[i], tickedFor(request, i)));
-    }
     // Every child loses the games taken off before any copy starts, so a
     // Save cut off mid-copy still leaves no child a game the parent took off.
     std::vector<ChildSave::Before> before;
@@ -108,16 +72,8 @@ GamesSave::Outcome GamesSave::run(const QStringList& arguments, const Say& say) 
     }
     Outcome outcome{.refusal = std::nullopt, .asked = asked, .children = {}};
     for (std::size_t i = 0; i < children.size(); ++i) {
-        const ChildSave::Ended ended =
-            ChildSave::run(shared, children[i], tickedFor(request, i), before[i], say);
-        outcome.children.append(ended.line);
-        if (writtenDown.at(static_cast<qsizetype>(i)) && WaitingSave::keeps(ended.held)) {
-            const QString later = QStringLiteral("later ") + children[i].login;
-            say(later);
-            outcome.children.append(later);
-        } else {
-            waiting.remove(children[i].login);
-        }
+        outcome.children.append(
+            ChildSave::run(shared, children[i], tickedFor(request, i), before[i], say));
     }
     return outcome;
 }

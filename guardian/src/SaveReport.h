@@ -26,8 +26,6 @@ public:
         Writing,
         // Copying one child's new games.
         Copying,
-        // Logging one child out before their copy, as the parent chose.
-        LoggingOut,
         // Waiting for one child's last login to end.
         Waiting,
     };
@@ -45,9 +43,6 @@ public:
         std::optional<int> removed;
         // Why their new games are not all given, such as logged-in.
         std::optional<QString> held;
-        // Their new games are written down, and are copied the next time
-        // they log out.
-        bool later = false;
         QList<Skip> skipped;
     };
 
@@ -57,7 +52,7 @@ public:
     void take(const QString& line);
 
     Stage stage() const;
-    // The child being copied, logged out or waited for, or "".
+    // The child being copied or waited for, or "".
     QString current() const;
     // Whether the command said the pictures or the full games list stay as
     // they were. Nothing until it said either way.

@@ -37,8 +37,6 @@ EXPECTED = {
     "usr/bin/cairn-steam-for": 0o750,
     "usr/lib/sddm/sddm.conf.d/zz-cairn.conf": 0o644,
     "usr/lib/systemd/logind.conf.d/10-cairn-power.conf": 0o644,
-    "usr/lib/systemd/system/cairn-finish-games@.service": 0o644,
-    "usr/lib/systemd/system/user-runtime-dir@.service.d/50-cairn-games.conf": 0o644,
     "usr/lib64/cairn/libCairnBrand.so": 0o755,
     "usr/lib64/cairn/qml/Cairn/Brand/Tokens.qml": 0o644,
     "usr/lib64/cairn/qml/Cairn/Brand/qmldir": 0o644,
@@ -191,15 +189,6 @@ class InstallTree(unittest.TestCase):
                      "/usr/bin/python3\0"):
             with self.subTest(path=path):
                 self.assertTrue(path.encode("utf-16-le") in program)
-
-    def test_finish_games_unit_names_the_image_path(self):
-        # The image's first systemd unit, and its drop-in on systemd's own
-        # user-runtime-dir@.service (ADR-0041).
-        unit = self.text("usr/lib/systemd/system/cairn-finish-games@.service").splitlines()
-        self.assertIn("ExecStart=/usr/libexec/cairn/cairn-family finish-games %i", unit)
-        drop_in = self.text("usr/lib/systemd/system/user-runtime-dir@.service.d/50-cairn-games.conf")
-        self.assertIn("ExecStopPost=-/usr/bin/systemctl start --no-block "
-                      "cairn-finish-games@%i.service\n", drop_in)
 
     def test_sddm_settings_name_the_image_paths(self):
         settings = self.text("usr/lib/sddm/sddm.conf.d/zz-cairn.conf").splitlines()

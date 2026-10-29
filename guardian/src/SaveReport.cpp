@@ -18,17 +18,6 @@ QRegularExpression pattern(const QString& text) {
     return QRegularExpression(QRegularExpression::anchoredPattern(text));
 }
 
-// Once the child is logged out, their copy goes on at once.
-SaveReport::Stage stageFor(const QString& step) {
-    if (step == QLatin1String("waiting")) {
-        return SaveReport::Stage::Waiting;
-    }
-    if (step == QLatin1String("logging-out")) {
-        return SaveReport::Stage::LoggingOut;
-    }
-    return SaveReport::Stage::Copying;
-}
-
 } // namespace
 
 SaveReport::SaveReport(const QStringList& logins) : m_logins(logins.begin(), logins.end()) {}
@@ -36,11 +25,9 @@ SaveReport::SaveReport(const QStringList& logins) : m_logins(logins.begin(), log
 void SaveReport::take(const QString& line) {
     static const QRegularExpression made(
         pattern(QStringLiteral("(pictures|catalogue) (made|kept)")));
-    static const QRegularExpression step(
-        pattern(QStringLiteral("(copying|waiting|logging-out|logged-out) ") + loginWord));
+    static const QRegularExpression step(pattern(QStringLiteral("(copying|waiting) ") + loginWord));
     static const QRegularExpression skipped(
         pattern(QStringLiteral("skipped ") + loginWord + ' ' + appIdWord + ' ' + reasonWord));
-    static const QRegularExpression later(pattern(QStringLiteral("later ") + loginWord));
     static const QRegularExpression counted(
         pattern(QStringLiteral("child ") + loginWord +
                 QStringLiteral(" added ([0-9]{1,4}) removed ([0-9]{1,4})(?: held ") + reasonWord +
@@ -59,7 +46,7 @@ void SaveReport::take(const QString& line) {
         }
     } else if (const QRegularExpressionMatch match = step.match(line);
                match.hasMatch() && m_logins.contains(match.captured(2))) {
-        m_stage = stageFor(match.captured(1));
+        m_stage = match.captured(1) == QLatin1String("copying") ? Stage::Copying : Stage::Waiting;
         m_current = match.captured(2);
     } else if (const QRegularExpressionMatch match = skipped.match(line);
                match.hasMatch() && m_logins.contains(match.captured(1))) {
@@ -75,9 +62,6 @@ void SaveReport::take(const QString& line) {
         }
         m_stage = Stage::Writing;
         m_current.clear();
-    } else if (const QRegularExpressionMatch match = later.match(line);
-               match.hasMatch() && m_logins.contains(match.captured(1))) {
-        child(match.captured(1)).later = true;
     }
 }
 
@@ -106,7 +90,6 @@ SaveReport::Child& SaveReport::child(const QString& login) {
     if (found != m_children.end()) {
         return *found;
     }
-    m_children.append(Child{
-        .login = login, .added = {}, .removed = {}, .held = {}, .later = false, .skipped = {}});
+    m_children.append(Child{.login = login, .added = {}, .removed = {}, .held = {}, .skipped = {}});
     return m_children.last();
 }

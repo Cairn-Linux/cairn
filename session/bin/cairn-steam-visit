@@ -44,22 +44,6 @@
 # copied. A visit tried meanwhile is refused with "copying". Provisioning
 # prints only sentences of its own, so a copy also leaves a record of each of
 # these lines but "have" in the journal, and of why it was refused or failed.
-#
-# A grown-up who chose "Log them out now" for a child who is logged in has
-# the copy log the child out first (ADR-0041):
-#
-#   /usr/local/libexec/cairn/cairn-steam-visit --copy-games --log-out CHILD APPID...
-#
-# Only once the child is listed, so they cannot log in again, it says
-# "logging-out", asks Steam to save and quit, and ends the child's own
-# account as a visit's close does. Then it says "logged-out" and copies as
-# above. "refused stuck" means a program of the child would not end, so
-# nothing was copied and the computer needs a restart; "refused logged-in"
-# here means their ended login was still closing after a few seconds, and
-# "refused stopped" that a signal came mid-logout. A child who is not
-# logged in is copied for with no logout, and an empty list logs nobody
-# out. "--log-out" goes straight after "--copy-games", once, and never with
-# "--all"; anywhere else it is refused with "refused usage".
 set -ouex pipefail
 
 # The copy of cage that the child may run but not read. Linux will not let
@@ -346,9 +330,9 @@ wait_for_no_login() {
     ! child_logged_in
 }
 
-# A grown-up chose "Log them out now" (ADR-0041). Only once the child is
-# listed, so PAM refuses a new login of theirs from here until the copy
-# ends. Steam gets its moment to save first, as at a visit's close.
+# Logs the child out for a grown-up (ADR-0041). Only once the child is
+# listed, so PAM refuses a new login of theirs meanwhile. Steam gets its
+# moment to save first, as at a visit's close.
 log_out_child() {
     [ "$stopping" = no ] || refuse stopped
     say logging-out
@@ -413,20 +397,7 @@ run_copy() {
 # ends.
 copy_games() {
     copying=yes
-    # "Log them out now" (ADR-0041): straight after --copy-games, once, and
-    # for a list only, so it can never come with every game.
-    local log_out=no word
-    if [ "${1:-}" = --log-out ]; then
-        log_out=yes
-        shift
-    fi
     [ "$#" -ge 1 ] || refuse usage
-    for word in "$@"; do
-        [ "$word" != --log-out ] || refuse usage
-        if [ "$log_out" = yes ] && [ "$word" = --all ]; then
-            refuse usage
-        fi
-    done
     # A visit's polkit action must not become a way to start copies: pkexec
     # always sets PKEXEC_UID, and no caller can take it away. The one route
     # from a password box is cairn-family save-games, whose own polkit
@@ -461,9 +432,6 @@ copy_games() {
     trap release_copy EXIT
     list_child || refuse busy
     check_list
-    if [ "$log_out" = yes ] && child_logged_in; then
-        log_out_child
-    fi
     wait_for_logout
     note "copying $child's games"
     if run_copy "$@"; then

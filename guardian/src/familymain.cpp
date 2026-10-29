@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "FamilyCommand.h"
-#include "FinishGames.h"
 #include "GamesSave.h"
 
 #include <QCoreApplication>
@@ -46,25 +45,6 @@ int saveGames(const QStringList& arguments) {
     return outcome.refusal ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
-// Only systemd starts it, at a child's logout, so its notes are for the
-// journal, and nothing to do writes none.
-int finishGames(const QStringList& arguments) {
-    std::signal(SIGPIPE, SIG_IGN);
-    FinishGames::Setup setup;
-    setup.copy.visitHelper = QStringLiteral(CAIRN_STEAM_VISIT);
-    const FinishGames::Outcome outcome = FinishGames(setup).run(arguments);
-
-    const QString answer = answerFor(outcome.refusal);
-    sayLine(answer);
-    if (outcome.refusal) {
-        note(true, QStringLiteral("finish-games: ") + answer);
-    }
-    for (const QString& line : outcome.notes) {
-        note(false, line);
-    }
-    return outcome.refusal ? EXIT_FAILURE : EXIT_SUCCESS;
-}
-
 int changeAccount(const QStringList& arguments) {
     FamilyCommand::Setup setup;
     setup.applications = QStringLiteral(CAIRN_APPLICATIONS);
@@ -94,8 +74,6 @@ int main(int argc, char* argv[]) {
     int status = EXIT_FAILURE;
     if (subcommand == QStringLiteral("save-games")) {
         status = saveGames(arguments);
-    } else if (subcommand == QStringLiteral("finish-games")) {
-        status = finishGames(arguments);
     } else {
         status = changeAccount(arguments);
     }

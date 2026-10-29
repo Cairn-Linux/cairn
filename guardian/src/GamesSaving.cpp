@@ -33,8 +33,6 @@ GamesSaving::Progress GamesSaving::progress() const {
         return Progress::CopyingGames;
     case SaveReport::Stage::Waiting:
         return Progress::WaitingForLogout;
-    case SaveReport::Stage::LoggingOut:
-        return Progress::LoggingOut;
     case SaveReport::Stage::Starting:
         break;
     }
@@ -47,14 +45,14 @@ QString GamesSaving::progressName() const {
 
 QVariantList GamesSaving::results() const {
     QVariantList results;
-    for (const SaveReport::Child& child : shownChildren()) {
+    for (const SaveReport::Child& child : m_report.children()) {
         results.append(SaveResults::forChild(child, nameOf(child.login), m_titles));
     }
     return results;
 }
 
 bool GamesSaving::allGiven() const {
-    return SaveResults::allGiven(shownChildren());
+    return SaveResults::allGiven(m_report.children());
 }
 
 bool GamesSaving::catalogueKept() const {
@@ -82,7 +80,6 @@ bool GamesSaving::start(Kind kind, const QStringList& arguments,
     }
     m_titles = SaveResults::titlesOf(games);
     m_report = SaveReport(request.logins());
-    m_settled.clear();
     if (request.refusal) {
         m_step = Step::NotSaved;
         m_reason = reasonFor(refusalWord(*request.refusal));
@@ -110,36 +107,7 @@ void GamesSaving::clearOutcome() {
     m_step = Step::Ready;
     m_reason = Reason::NoReason;
     m_report = SaveReport();
-    m_settled.clear();
     emit changed();
-}
-
-QStringList GamesSaving::laterLogins() const {
-    QStringList logins;
-    for (const SaveReport::Child& child : shownChildren()) {
-        if (child.later) {
-            logins.append(child.login);
-        }
-    }
-    return logins;
-}
-
-// The list of shared games kept as it was is said in the first sentence,
-// which speaks for no child, so it keeps the outcome.
-void GamesSaving::settle(const QString& login) {
-    if ((m_step != Step::Saved && m_step != Step::NotSaved) || !laterLogins().contains(login)) {
-        return;
-    }
-    m_settled.insert(login);
-    if (shownChildren().isEmpty() && !catalogueKept()) {
-        clearOutcome();
-        return;
-    }
-    emit changed();
-}
-
-bool GamesSaving::settled(const QString& login) const {
-    return m_settled.contains(login);
 }
 
 GamesSaving::Reason GamesSaving::reasonFor(const QString& answer) {
@@ -176,10 +144,4 @@ void GamesSaving::finished(const QString& answer) {
 
 QString GamesSaving::nameOf(const QString& login) const {
     return m_names.value(login, login);
-}
-
-QList<SaveReport::Child> GamesSaving::shownChildren() const {
-    QList<SaveReport::Child> shown = m_report.children();
-    shown.removeIf([this](const SaveReport::Child& child) { return settled(child.login); });
-    return shown;
 }

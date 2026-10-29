@@ -9,7 +9,6 @@
 #include <QFileInfo>
 
 #include <cerrno>
-#include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -67,41 +66,6 @@ bool RootFolder::write(const QString& folder, unsigned int owner, const QString&
         label(restorecon, target);
     }
     return true;
-}
-
-// O_NOFOLLOW refuses a link in the file's place, and fstat checks the file
-// that was opened, so nothing can be swapped in between.
-std::optional<RootFolder::File> RootFolder::read(const QString& folder, unsigned int owner,
-                                                 const QString& name, qint64 largest) {
-    if (!isSafe(folder, owner)) {
-        return std::nullopt;
-    }
-    const int descriptor = open(QFile::encodeName(pathIn(folder, name)).constData(),
-                                O_RDONLY | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK);
-    if (descriptor < 0) {
-        return std::nullopt;
-    }
-    QFile file;
-    if (!file.open(descriptor, QIODevice::ReadOnly, QFileDevice::AutoCloseHandle)) {
-        close(descriptor);
-        return std::nullopt;
-    }
-    struct stat status{};
-    if (fstat(descriptor, &status) != 0 || !S_ISREG(status.st_mode) || status.st_uid != owner ||
-        status.st_size > largest) {
-        return std::nullopt;
-    }
-    File read{.bytes = file.read(largest + 1), .modified = {}};
-    if (read.bytes.size() > largest) {
-        return std::nullopt;
-    }
-    read.modified = QDateTime::fromSecsSinceEpoch(status.st_mtim.tv_sec);
-    return read;
-}
-
-bool RootFolder::holds(const QString& folder, const QString& name) {
-    struct stat status{};
-    return lstat(QFile::encodeName(pathIn(folder, name)).constData(), &status) == 0;
 }
 
 // A folder that is not there holds no file either.

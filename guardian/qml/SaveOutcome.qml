@@ -46,8 +46,6 @@ Rectangle {
                 return qsTr("Copying games for %1. This can take a few minutes, and %1 cannot log in until it ends.").arg(name);
             case GamesSaving.WaitingForLogout:
                 return qsTr("Waiting for %1's last login to end.").arg(name);
-            case GamesSaving.LoggingOut:
-                return qsTr("Logging %1 out. Steam gets a moment to save.").arg(name);
             }
             return qsTr("Looking at the shared folder for games and their pictures.");
         case GamesSaving.Saved:
@@ -152,8 +150,6 @@ Rectangle {
             return qsTr("The copy for %1 could not start. Pressing Save again is safe. If it happens again, the reason is in the system log. In a terminal: journalctl -t cairn-family").arg(name);
         case GamesSaving.NotWritten:
             return qsTr("%1's list could not be written after the copy, so it holds none of the new games, and the counts say what it holds. Pressing Save again is safe. If it fails again, the reason is in the system log. In a terminal: journalctl -t cairn-family").arg(name);
-        case GamesSaving.Stuck:
-            return qsTr("One of %1's programs would not close, so their new games could not be copied. Restart the computer, then press Save again.").arg(name);
         }
         return qsTr("Not all of %1's new games could be given. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-steam-visit").arg(name);
     }
@@ -202,9 +198,7 @@ Rectangle {
             else
                 said.push(qsTr("%1's list is saved. Added: %2. Taken off: %3.").arg(result.name).arg(result.added).arg(result.removed));
         }
-        // A child whose games wait for their logout gets the LaterNote
-        // instead.
-        const held = result.later ? "" : box.heldSentence(result.held, result.name, result.removed);
+        const held = box.heldSentence(result.held, result.name, result.removed);
         if (held !== "")
             said.push(held);
         for (let i = 0; i < result.skipped.length; ++i)
@@ -244,15 +238,6 @@ Rectangle {
                     objectName: "resultSentence"
                     text: box.resultSentence(result.modelData)
                     visible: text !== ""
-                }
-
-                LaterNote {
-                    objectName: "laterNote"
-                    width: column.width
-                    visible: result.modelData.later === true
-                    held: result.modelData.held
-                    name: result.modelData.name
-                    removed: result.modelData.removed
                 }
             }
         }
