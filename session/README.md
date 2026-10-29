@@ -69,7 +69,9 @@ What is here:
   `done`. Its second mode, `--copy-games CHILD --all` or `--copy-games
   CHILD APPID...`, runs as root and never through `pkexec`: provisioning
   runs it from a terminal, and on the image `cairn-family save-games`
-  runs it as a system job with `systemd-run` (ADR-0041). It takes the same list, runs
+  runs it as a system job with `systemd-run` (ADR-0041), and
+  `cairn-family finish-games`, a system unit already, runs it in its own
+  unit. It takes the same list, runs
   `../provision/cairn-copy-games.py` as the child, and passes on only that
   program's fixed lines (ADR-0033). It notes each line but `have`, and why
   a copy was refused or failed, in the journal. A visit tried meanwhile is

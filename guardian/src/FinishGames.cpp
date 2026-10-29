@@ -68,8 +68,11 @@ FinishGames::Outcome FinishGames::finish(const Account& child) const {
                                               "removed and nothing was copied")}};
     }
 
+    // This is a system unit of its own already, so the helper runs in it.
+    CopyJob::Setup copy = m_setup.copy;
+    copy.runs = CopyJob::Runs::InThisUnit;
     const ChildSave::Shared shared{
-        .copy = m_setup.copy,
+        .copy = copy,
         .file = ChildGamesFile(m_setup.gamesFolder, m_setup.owner, m_setup.restorecon),
         .catalogue = CatalogueRefresh::read(m_setup.gamesFile),
         // The child has just logged out, and nobody chose to log them out.

@@ -185,7 +185,8 @@ private slots:
         QVERIFY(!outcome.refusal);
         QCOMPARE(outcome.notes, QStringList({"at ada's logout: child ada added 1 removed 1"}));
         QCOMPARE(lines("helper-calls"), QStringList({"--copy-games ada 12"}));
-        QVERIFY(lines("systemd-run-calls").constFirst().contains("--unit=cairn-copy-games-1002"));
+        // It is a system unit of its own already, so the helper runs in it.
+        QVERIFY(!QFile::exists(path("systemd-run-calls")));
         const QByteArray list = read("games/ada.json");
         QVERIFY(list.contains("\"620\"") && list.contains("\"12\"") && !list.contains("504230"));
         // The copy found Celeste already gone.
@@ -220,9 +221,10 @@ private slots:
         QVERIFY(QDir(path("games-finished")).isEmpty());
     }
 
+    // A helper that cannot be started keeps the child waiting.
     void aJobThatDoesNotStartKeepsTheChildWaiting() {
         give("games-waiting/ada", "ada=620,12\n");
-        give("fail-start", "");
+        QVERIFY(QFile::remove(path("cairn-steam-visit")));
         QVERIFY(run({"finish-games", "1002"}).notes.constFirst().contains("held not-started"));
         QVERIFY(QFile::exists(path("games-waiting/ada")));
     }

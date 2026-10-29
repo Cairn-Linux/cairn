@@ -250,9 +250,16 @@ The maintainer settled how on 2026-10-28.
   A file that fails a check is removed, noted in the journal and never
   copied.
   The copy is a Save's for one child, from `games.json` as it is, with no
-  pictures made, through the same system job and visit lock: the games
-  not on the list go, the new ones are copied, and the child's list is
-  written.
+  pictures made, with the same helper and visit lock: the games not on
+  the list go, the new ones are copied, and the child's list is written.
+  The unit is a system job of its own already, so it runs the helper
+  itself, not through `systemd-run`.
+  It cannot use `systemd-run --pipe` there: inside a system service, the
+  service manager drops the request when the output it is handed is a
+  pipe made in that service ("Remote peer disconnected"), and the pipe
+  `cairn-family` reads the helper's lines from is one.
+  The stand-in tests could not show this; the cairn-iso VM did, on
+  2026-10-29, where every copy at a logout ended `not-started`.
   An ending in the keep set leaves the waiting list for the next logout.
   Any other writes the child's lines to
   `/var/lib/cairn/games-finished/<login>` and removes the waiting list.
@@ -421,10 +428,13 @@ It moves to per-child lists when it is reinstalled from the image.
    **Later** then the copy at Ada's logout; a Guardian who logs out
    during a log-out; and a program that will not close giving `stuck`
    and the restart sentence.
-   For 5a: the drop-in fires on Bazzite's systemd under SELinux;
-   `finish-games` can write `/var/lib/cairn` and run `restorecon` from a
-   system unit; a shutdown with a child waiting does not hang; a logout
-   leads to the new tiles at the next login; a child who logs back in
+   For 5a: the drop-in fires on Bazzite's systemd under SELinux
+   (passed 2026-10-29); `finish-games` can write `/var/lib/cairn`, run
+   `restorecon` and run the copy from a system unit (passed 2026-10-29,
+   once the copy stopped going through `systemd-run`); a shutdown with a
+   child waiting does not hang (passed 2026-10-29, 6 s); a logout leads to
+   the new tiles at the next login (passed 2026-10-29, after a restart
+   too); a child who logs back in
    within ten seconds keeps waiting; `virsh destroy` mid-finish, then the
    child can log in and the next logout finishes; and whether
    `user-runtime-dir@` stops while a closing session is stuck.

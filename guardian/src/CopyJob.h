@@ -11,23 +11,34 @@
 class QProcess;
 
 // One child's copy of the games on their list (ADR-0041), run by the visit
-// helper as a system job: `cairn-steam-visit --copy-games CHILD APPID...`
-// in a transient service of its own, started by systemd-run. The job is not
-// in the Guardian's session, so a Guardian who logs out mid-copy ends this
-// program and not the copy, which lets the child log in again when it ends.
+// helper as a system job: `cairn-steam-visit --copy-games CHILD APPID...`.
+// For a Save it runs in a transient service of its own, started by
+// systemd-run. That job is not in the Guardian's session, so a Guardian who
+// logs out mid-copy ends this program and not the copy, which lets the
+// child log in again when it ends.
 //
 // It waits as long as the copy takes, with no time limit, and never kills
 // it: a copy cut off holds the child's login until its helper ends.
 //
 // For a child the parent chose to log out now, the helper is given
 // `--log-out`, and logs the child out first when they are logged in.
+//
+// finish-games is already a system unit of its own, so it runs the helper
+// itself. It cannot use systemd-run --pipe: inside a system service, the
+// service manager drops the request when the output it is handed is a pipe
+// made there, which QProcess's always is (systemd 259, seen 2026-10-29).
 class CopyJob {
 public:
     using Say = std::function<void(const QString&)>;
 
+    // Where the helper runs: in a transient service of its own, or in this
+    // program's own system unit.
+    enum class Runs : std::uint8_t { InItsOwnUnit, InThisUnit };
+
     struct Setup {
         QString systemdRun = QStringLiteral("/usr/bin/systemd-run");
         QString visitHelper;
+        Runs runs = Runs::InItsOwnUnit;
     };
 
     // What the copy does when the child is logged in: holds their games

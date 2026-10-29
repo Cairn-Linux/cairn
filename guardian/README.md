@@ -301,7 +301,7 @@ QML draws, C++ decides (ADR-0002):
 | `src/ChildGameList` | The rule for a child's new list, with nothing read or written. |
 | `src/ChildGamesFile` | A child's own games file: reading it, and writing it into place in a folder only root may change. |
 | `src/ReadableFile` | Writes a file every account may read, renamed into place. |
-| `src/CopyJob` | Runs a child's copy as a system job with `systemd-run`, with `--log-out` for a child the parent chose to log out, waits for it, and passes on only the helper's own lines. |
+| `src/CopyJob` | Runs a child's copy as a system job with `systemd-run`, or, for `finish-games`, which is a system unit already, in finish-games' own unit, with `--log-out` for a child the parent chose to log out, waits for it, and passes on only the helper's own lines. |
 | `src/ChildSave` | One child's part of a Save: their file without the games taken off, then the copy, their file again and their line. |
 | `src/WaitingSave` | A child's waiting list: writing it, reading it back with every check, removing it, and which held words keep it. |
 | `src/FinishedSave` | How the copy at a child's logout ended: the lines, dated by the file. |
