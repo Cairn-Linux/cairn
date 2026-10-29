@@ -126,7 +126,9 @@ games on their list.**
   `--log-out` goes straight after `--copy-games`, once, and never with
   `--all`, or the helper refuses `usage`.
   An empty list still copies nothing and logs nobody out.
-  A visit's close ends the child in the same way.
+  A visit's close logs the child out with the same steps, with one
+  difference: a stuck visit keeps the child refused at login until a
+  restart, while a stuck copy does not.
 - A listed game that is not in the shared folder is reported as
   `skipped APPID not-shared`, and the rest go ahead.
   An appid that is not a plain number is refused before anything
@@ -249,8 +251,8 @@ It moves to per-child lists when it is reinstalled from the image.
    A logged-in child's games wait for a second Save, as above.
 5. **"Log them out now" and "Later"** for a child who is logged in, in
    their own small step.
-   Its part 5b, the helper's `--log-out` above, landed 2026-10-28 on
-   its own, with tests; nothing passes it yet.
+   The helper's part, `--log-out` above, landed 2026-10-28 on its own,
+   with tests; nothing passes it yet.
 6. **Checks in the cairn-iso VM**, with two children at different
    levels: one password per Save, with the games message, while adding a
    child still shows the account message, each child sees only their own
