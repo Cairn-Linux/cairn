@@ -33,7 +33,9 @@ void SaveReport::take(const QString& line) {
                 QStringLiteral(" added ([0-9]{1,4}) removed ([0-9]{1,4})(?: held ") + reasonWord +
                 QStringLiteral(")?")));
 
-    if (const QRegularExpressionMatch match = made.match(line); match.hasMatch()) {
+    if (line == QLatin1String("looking")) {
+        m_stage = Stage::Looking;
+    } else if (const QRegularExpressionMatch match = made.match(line); match.hasMatch()) {
         const bool kept = match.captured(2) == QLatin1String("kept");
         if (match.captured(1) == QLatin1String("pictures")) {
             m_picturesKept = kept;

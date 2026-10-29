@@ -98,6 +98,10 @@ bool GamesPage::canSave() const {
     return m_choices.anyChanged() && !busy();
 }
 
+bool GamesPage::canPutBack() const {
+    return m_choices.changed(m_chosen) && !busy();
+}
+
 bool GamesPage::busy() const {
     return m_saving->busy();
 }
@@ -112,6 +116,7 @@ void GamesPage::choose(const QString& login) {
     }
     m_chosen = login;
     m_steamNotOpened.clear();
+    m_saving->clearOutcome();
     readShelf();
     emit changed();
 }
@@ -121,14 +126,16 @@ void GamesPage::turn(const QString& appId) {
         return;
     }
     m_choices.turn(m_chosen, appId);
+    m_saving->clearOutcome();
     emit changed();
 }
 
 void GamesPage::putBack() {
-    if (busy()) {
+    if (!canPutBack()) {
         return;
     }
     m_choices.putBack(m_chosen);
+    m_saving->clearOutcome();
     emit changed();
 }
 
@@ -139,9 +146,11 @@ void GamesPage::save() {
     }
 }
 
+// save-games with no child named: no list read by this window, which may
+// be out of date or unreadable, is ever sent back to be written.
 void GamesPage::lookForGames() {
-    if (!busy() && child(m_chosen) != nullptr) {
-        m_saving->start(GamesSaving::Kind::Look, m_choices.lookArguments(m_chosen), m_children,
+    if (!busy()) {
+        m_saving->start(GamesSaving::Kind::Look, {QStringLiteral("save-games")}, m_children,
                         m_shelf.games());
     }
 }

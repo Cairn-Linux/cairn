@@ -5,6 +5,8 @@ login screen, a child reached the tiles, and a Guardian reached Plasma.
 **Date:** 2026-10-21
 **Closes:** (none) — the first slice of issue #164; part of ROADMAP P1-2
 and P1-3
+**Amended by:** ADR-0041, proposed (the family's setup makes no child's
+copy of the games; a Guardian's Save on the Games page does)
 
 ## Context
 

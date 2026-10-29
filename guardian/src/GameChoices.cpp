@@ -64,11 +64,6 @@ QStringList GameChoices::saveArguments(const QStringList& logins) const {
     return arguments;
 }
 
-QStringList GameChoices::lookArguments(const QString& login) const {
-    return {QStringLiteral("save-games"),
-            login + QLatin1Char('=') + m_saved.value(login).join(QLatin1Char(','))};
-}
-
 void GameChoices::keepOnly(const QStringList& logins, const QSet<QString>& shared) {
     QHash<QString, QStringList> kept;
     for (const QString& login : logins) {

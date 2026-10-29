@@ -36,6 +36,9 @@ Rectangle {
         case GamesSaving.Asking:
             return qsTr("Confirm with your password, or your fingerprint, in the box that opened.");
         case GamesSaving.Saving:
+            // A look names no child, so it has no list to write or copy.
+            if (box.saving.kind === GamesSaving.Look)
+                return qsTr("Looking at the shared folder for games and their pictures.");
             switch (box.saving.progress) {
             case GamesSaving.Writing:
                 return qsTr("Saving the children's lists.");
@@ -61,10 +64,14 @@ Rectangle {
     }
 
     function reasonSentence() {
+        if (box.saving.kind === GamesSaving.Look)
+            return box.lookReasonSentence();
         switch (box.saving.reason) {
         case GamesSaving.Dismissed:
         case GamesSaving.NotAuthorized:
             return qsTr("Nothing was saved. It needs your password: the box was closed, or the password was not accepted. Your changes are still here.");
+        case GamesSaving.CommandNotStarted:
+            return qsTr("Cairn's family command could not be started, so nothing was saved. Your changes are still here. The reason is in the system log. In a terminal: journalctl -t cairn-guardian");
         case GamesSaving.NotAGrownUp:
             return qsTr("This account may not change the children's games. A grown-up's account can.");
         case GamesSaving.NotRoot:
@@ -77,6 +84,27 @@ Rectangle {
             return qsTr("Another Save is still running, perhaps from another login, so nothing was saved. Wait until it ends, then press Save again.");
         }
         return qsTr("Cairn's family command did not answer as expected. Some lists may have been saved, and the page shows what is saved now. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian");
+    }
+
+    // Why a look for new games did not run to its end. It saves no list,
+    // so these never speak of saving or of changes.
+    function lookReasonSentence() {
+        switch (box.saving.reason) {
+        case GamesSaving.Dismissed:
+        case GamesSaving.NotAuthorized:
+            return qsTr("The shared folder was not looked at again. It needs your password: the box was closed, or the password was not accepted.");
+        case GamesSaving.NotAGrownUp:
+            return qsTr("This account may not look for new games for the children. A grown-up's account can.");
+        case GamesSaving.AnotherSave:
+            return qsTr("A Save is still running, perhaps from another login, so the shared folder was not looked at again. Wait until it ends, then press Look for new games again.");
+        case GamesSaving.CommandNotStarted:
+            return qsTr("Cairn's family command could not be started, so the shared folder was not looked at again. The reason is in the system log. In a terminal: journalctl -t cairn-guardian");
+        case GamesSaving.Usage:
+            return qsTr("This window asked Cairn's family command for something it does not do, so the shared folder was not looked at again. The window and the command may come from different versions of Cairn. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian");
+        case GamesSaving.NotRoot:
+            return qsTr("Cairn's family command did not get the rights it needs, so the shared folder was not looked at again. Close Family and open it again. If it happens again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian");
+        }
+        return qsTr("Cairn's family command did not answer as expected. No child's list was changed, and the page shows the games there are now. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian");
     }
 
     // Why a child's new games were not all given, for each held word.
@@ -99,11 +127,11 @@ Rectangle {
         case GamesSaving.NoLibrary:
             return qsTr("%1's Steam has not run yet, so it has no place for games. Open Steam for %1 and sign in, then press Save again.").arg(name);
         case GamesSaving.NoShared:
-            return qsTr("There is no shared game folder, so no games were copied for %1.").arg(name);
+            return qsTr("There is no shared game folder, /var/lib/cairn/steam-library, so no games were copied for %1. Restarting the computer makes the folder again; then press Save again. If it happens again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-steam-visit").arg(name);
         case GamesSaving.ListsShared:
             return qsTr("%1's Steam lists the shared game folder as its own, so no games were copied for %1. Open Steam for %1, remove that folder in Steam's Settings, under Storage, then press Save again.").arg(name);
         case GamesSaving.UnreadableConfig:
-            return qsTr("No games were copied for %1: their Steam's list of game folders is not a plain file, so Cairn does not read it.").arg(name);
+            return qsTr("No games were copied for %1: their Steam's list of game folders is not a plain file, so Cairn does not read it. It is libraryfolders.vdf, in .local/share/Steam/config or .local/share/Steam/steamapps in %1's home. Once it is a plain file again, press Save again. The record is in the system log. In a terminal: journalctl -t cairn-family -t cairn-steam-visit").arg(name);
         case GamesSaving.NoReflink:
             return qsTr("No games were copied for %1: this computer's disk cannot make a copy that shares the original's space, and full copies would fill it.").arg(name);
         case GamesSaving.CopyStopped:

@@ -11,6 +11,8 @@
 # command does (ADR-0041). save-done gives each child named every game on
 # their new list, and writes their list into the folder
 # CAIRN_TEST_GAMES names, when it names one, with an entry for each game.
+# save-looking says its first line, then makes the pictures for a long
+# time.
 set -u
 scenario="${CAIRN_TEST_SCENARIO:-}"
 if [ -n "${CAIRN_TEST_ARGUMENTS:-}" ]; then
@@ -35,6 +37,10 @@ write_list() {
 # Each child of a save-games run, in turn, as the scenario says.
 save_games() {
     local argument login ids id count
+    echo "looking"
+    if [ "$scenario" = save-looking ]; then
+        exec sleep 30
+    fi
     echo "pictures made"
     echo "catalogue made"
     for argument in "${@:2}"; do

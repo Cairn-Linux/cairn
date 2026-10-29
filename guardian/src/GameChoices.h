@@ -32,10 +32,8 @@ public:
     // cairn-family's arguments for a Save of every child with a change,
     // in the order of `logins`: save-games, then each child's whole new
     // list, such as ada=620,1001 or ben= for no games.
+    // With no change, save-games alone, which changes no child's list.
     QStringList saveArguments(const QStringList& logins) const;
-    // A Save of the child's list as saved, which changes no list but makes
-    // the full games list and the pictures again, to find new games.
-    QStringList lookArguments(const QString& login) const;
 
     // After the lists are read again: keeps changes only for the children in
     // `logins`, and only games still on their saved list or in `shared`,

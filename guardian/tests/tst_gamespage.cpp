@@ -363,8 +363,11 @@ private slots:
         const auto page = makePage();
         page->turn("1001");
         page->choose("ben");
+        QVERIFY(!page->canPutBack());
         page->turn("1003");
+        QVERIFY(page->canPutBack());
         page->putBack();
+        QVERIFY(!page->canPutBack());
         QCOMPARE(page->unsavedLogins(), QStringList({"ada"}));
         QCOMPARE(states(*page), QStringList({"1001=off", "1002=off", "1003=off"}));
     }
@@ -514,15 +517,67 @@ private slots:
         QVERIFY(page->busy());
     }
 
-    // Looking for new games saves the picked child's list as it is.
+    // Looking for new games names no child, so no list the page read, old
+    // or unreadable, is written back.
     void lookForGamesChangesNoList() {
         const auto page = makePage();
         page->choose("ben");
         page->turn("1003");
         page->choose("ada");
-        QCOMPARE(saveWith(*page, "done", true), QStringLiteral("run\nsave-games\nada=1002\n"));
+        QCOMPARE(saveWith(*page, "done", true), QStringLiteral("run\nsave-games\n"));
         QCOMPARE(page->saving()->kind(), GamesSaving::Kind::Look);
         QCOMPARE(page->unsavedLogins(), QStringList({"ben"}));
+
+        write(path("games/ada.json"), "not a list");
+        page->reload();
+        QCOMPARE(page->list(), GamesPage::List::Unreadable);
+        QCOMPARE(saveWith(*page, "done", true), QStringLiteral("run\nsave-games\n"));
+    }
+
+    // The first line comes before the pictures are made, so the page stops
+    // asking for the password as soon as it is accepted.
+    void thePasswordBoxEndsBeforeThePictures() {
+        const auto page = makePage();
+        qputenv("CAIRN_TEST_SCENARIO", "save-looking");
+        page->lookForGames();
+        QTRY_COMPARE_WITH_TIMEOUT(page->saving()->step(), GamesSaving::Step::Saving,
+                                  kAnswerMilliseconds);
+        QCOMPARE(page->saving()->progress(), GamesSaving::Progress::Looking);
+    }
+
+    // What the last Save did stops showing once the page changes, so it is
+    // never read as being about the lists there now.
+    void theOutcomeEndsWithTheNextChange() {
+        const auto page = makePage();
+        page->turn("1001");
+        saveWith(*page, "save-done");
+        QCOMPARE(page->saving()->step(), GamesSaving::Step::Saved);
+        page->turn("1003");
+        QCOMPARE(page->saving()->step(), GamesSaving::Step::Ready);
+        QVERIFY(page->saving()->results().isEmpty());
+
+        saveWith(*page, "refused-busy");
+        QCOMPARE(page->saving()->step(), GamesSaving::Step::NotSaved);
+        page->choose("ben");
+        QCOMPARE(page->saving()->step(), GamesSaving::Step::Ready);
+        QCOMPARE(page->saving()->reason(), GamesSaving::Reason::NoReason);
+
+        page->choose("ada");
+        saveWith(*page, "dismissed");
+        page->putBack();
+        QCOMPARE(page->saving()->step(), GamesSaving::Step::Ready);
+    }
+
+    // Picking the child already picked changes nothing, so the outcome stays.
+    void theOutcomeStaysWithNoChange() {
+        const auto page = makePage();
+        page->turn("1001");
+        saveWith(*page, "save-done");
+        page->choose("ada");
+        page->choose("nobody");
+        page->putBack();
+        page->turn("4242");
+        QCOMPARE(page->saving()->step(), GamesSaving::Step::Saved);
     }
 
     // A login cairn-family would refuse is refused before any password.
@@ -537,7 +592,7 @@ private slots:
         QCOMPARE(page->saving()->reason(), GamesSaving::Reason::Usage);
     }
 
-    void aMissingCommandSaysItCouldNotRead() {
+    void aMissingCommandSaysItDidNotStart() {
         GamesPage::Setup setup;
         setup.pkexec = FIXTURES "/pkexec-family";
         setup.command = FIXTURES "/no-such-cairn-family";
@@ -548,7 +603,7 @@ private slots:
         page.turn("1001");
         QTest::ignoreMessage(QtWarningMsg, QRegularExpression("is not there to run"));
         QCOMPARE(saveWith(page, "done"), QString());
-        QCOMPARE(page.saving()->reason(), GamesSaving::Reason::Unknown);
+        QCOMPARE(page.saving()->reason(), GamesSaving::Reason::CommandNotStarted);
         QVERIFY(page.canSave());
     }
 };

@@ -29,6 +29,9 @@ private slots:
     // Each line moves the stage on, as the command goes.
     void theStageFollowsTheLines() {
         SaveReport report({QStringLiteral("ada")});
+        report.take(QStringLiteral("looking"));
+        QCOMPARE(report.stage(), SaveReport::Stage::Looking);
+        QVERIFY(!report.picturesKept().has_value());
         report.take(QStringLiteral("pictures made"));
         QCOMPARE(report.stage(), SaveReport::Stage::Looking);
         QCOMPARE(report.picturesKept(), std::optional<bool>(false));

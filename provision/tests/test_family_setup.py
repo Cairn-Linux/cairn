@@ -125,6 +125,33 @@ class FamilyStepsTest(unittest.TestCase):
         self.assertIn('\nFAMILY_COMMAND="$PREFIX/libexec/cairn/cairn-family"\n', text)
 
 
+class FamilyTilesNoteTest(unittest.TestCase):
+    """make_game_tiles is shared with the kids' laptop, but on the image
+    each child's tiles come from their own list (ADR-0041), so its notes
+    name what the family's setup really keeps."""
+
+    def test_a_link_names_the_games_page(self):
+        with tempfile.TemporaryDirectory() as folder:
+            library = pathlib.Path(folder)
+            (library / "steamapps").symlink_to(folder)
+            code, output, _ = run_steps(
+                f"SHARED_LIBRARY={shlex.quote(folder)}\nmake_game_tiles", script=FAMILY)
+        self.assertEqual(code, 0, output)
+        self.assertIn(
+            f"note: {library}/steamapps is a link, which Cairn does not follow, so the list of shared "
+            "games was not made again; the Games page in Family shows the one from the last run, and "
+            "each child keeps the games on their own list.", output)
+        said = "\n".join(line for line in output.splitlines() if not line.startswith("+"))
+        self.assertNotIn("the children keep the ones from the last run", said)
+
+    def test_a_failed_list_names_the_games_page(self):
+        code, output, _ = run_steps('echo "said: $TILES_NOT_MADE"', script=FAMILY)
+        self.assertEqual(code, 0, output)
+        self.assertIn(
+            "said: the list of shared games could not be made again; the Games page in Family shows "
+            "the one from the last run, and each child keeps the games on their own list.", output)
+
+
 class FamilyGuardTest(Scenario):
     def test_refuses_a_computer_set_up_by_hand(self):
         code, output, calls = self.run_script("main --guardian gina --child ada", mark=False)

@@ -61,7 +61,8 @@ The Games page (ADR-0041):
    changes for the child picked.
 4. **Save** runs `cairn-family save-games` through `pkexec` once, with
    each changed child's whole new list, so one password covers the whole
-   Save. It is ready only when there is something to save. While it runs,
+   Save. It is ready only when there is something to save, and **Put
+   back as saved** only when the child picked has a change. While it runs,
    every control on the page waits, and the page says what it is doing,
    such as "Copying games for Ada.", read from the command's lines as
    they come. Then one sentence says it was saved, or why nothing was,
@@ -69,10 +70,12 @@ The Games page (ADR-0041):
    their new games back, such as the child being logged in, or which game
    was not given and why. A child's games that could not be given stay
    chosen, so pressing Save again tries them again. A closed password box
-   keeps every change. The page reads everything again after each Save.
-5. **Look for new games** runs the same Save with the picked child's
-   list as it is, which changes no list but makes the full games list
-   and the pictures again from the Guardian's own Steam, so a game just
+   keeps every change. The page reads everything again after each Save,
+   and what the Save did stops showing once the parent turns a game,
+   puts a list back or picks another child.
+5. **Look for new games** runs `cairn-family save-games` with no child
+   named, which changes no list but makes the full games list and the
+   pictures again from the Guardian's own Steam, so a game just
    installed shows. Save does that too.
 6. **Open Steam for <child>** opens the same window as the "Steam for
    <child>" menu entry, as a program of its own. If it cannot be
@@ -156,7 +159,8 @@ It answers in one line: `done`, or `refused` and one of `not-root`,
 `save-games` gives children their games (ADR-0041); the Games page's
 Save runs it. Each argument is one
 child's whole new list, so `ben=` means no games, and a child not named
-is left alone.
+is left alone. With no child named it only makes the pictures and the
+full games list again: the page's Look for new games.
 
 - It checks the caller, every value and that every name is a child
   Cairn made before anything changes, and holds a lock for the whole
@@ -180,12 +184,14 @@ is left alone.
   instance because the child is logged in.
 
 It answers line by line as it goes, with fixed words, checked logins and
-appids: `pictures made|kept`, `catalogue made|kept`, `copying LOGIN`,
+appids: `looking` (the password was accepted and the work starts),
+`pictures made|kept`, `catalogue made|kept`, `copying LOGIN`,
 `waiting LOGIN`, `copied|have LOGIN APPID`, `skipped LOGIN APPID REASON`,
 then `child LOGIN added N removed N`, with `held WORD` when the child's
 new games could not all be given. It ends with `done`, or `refused` and a
 word, which means nothing changed: the words above, `bad-appid` or `busy`.
-ADR-0041 lists every word.
+ADR-0041 lists every word but the copy step's skip reasons, which
+`provision/cairn-copy-games.py` lists and `cairn-family` passes on.
 
 It writes to the journal:
 
@@ -212,7 +218,7 @@ QML draws, C++ decides (ADR-0002):
 | `src/GameShelf` | Every shared game from the full games list, each marked when it is on one child's own list, and whether that list could be read. |
 | `src/GameChoices` | The changes to each child's list not saved yet, and `save-games`'s arguments for them. |
 | `src/GamesSaving` | One Save as the page shows it: the password box, how far it has got, each child's result, or why nothing was saved, each as a value the page's QML puts into a sentence. |
-| `src/SaveRun` | Runs `pkexec` with `cairn-family save-games`, and passes on each line as it arrives, then the answer, or pkexec's own exit code. |
+| `src/SaveRun` | Runs `pkexec` with `cairn-family save-games`, and passes on each line as it arrives, then the answer, pkexec's own exit code, or `not-started` when nothing could be started. |
 | `src/SaveReport` | Reads `save-games`'s lines into how far it has got and each child's counts, held word and games left out, taking only its fixed words and the children the Save named. |
 | `src/PkexecAnswer` | pkexec's own two exit codes, for both runners of `cairn-family`. |
 | `src/GamePicture` | A game's picture from its games file entry, with the launcher's rule: only the full path of a file here. |

@@ -23,7 +23,7 @@ public:
     bool running() const;
     // Starts the command with these arguments, "save-games" first. False,
     // and nothing starts, while a Save is still running. When the command
-    // is not there, it answers "unknown" without running pkexec.
+    // is not there, it answers "not-started" without running pkexec.
     bool start(const QStringList& arguments);
 
 signals:
@@ -31,8 +31,9 @@ signals:
     // longer than any the command says is dropped.
     void lineRead(const QString& line);
     // "done"; the command's own word after "refused", such as "busy";
-    // pkexec's "dismissed" or "not-authorized"; or "unknown" when there was
-    // no answer the window can read.
+    // pkexec's "dismissed" or "not-authorized"; "not-started" when the
+    // command or pkexec could not be started, so nothing ran; or "unknown"
+    // when there was no answer the window can read.
     void finished(const QString& answer);
 
 private:

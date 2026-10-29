@@ -33,6 +33,10 @@ SHARE=/usr/share/cairn
 GROUP_NUMBERS="$IMAGE_MARK"
 # Makes each child's account and menu entry (ADR-0039).
 FAMILY_COMMAND="$PREFIX/libexec/cairn/cairn-family"
+# make_game_tiles makes only the full list here. Each child's tiles come
+# from their own list, which stays as a Guardian saved it (ADR-0041).
+TILES_NOT_FOLLOWED="so the list of shared games was not made again; the Games page in Family shows the one from the last run, and each child keeps the games on their own list."
+TILES_NOT_MADE="the list of shared games could not be made again; the Games page in Family shows the one from the last run, and each child keeps the games on their own list."
 
 check_image() {
     [ -f "$IMAGE_MARK" ] ||

@@ -17,7 +17,9 @@
 // Games page (ADR-0041). It checks the caller and every value, then makes
 // the pictures and the full games list again, then takes the games taken
 // off out of every child's own games file, then copies each child's newly
-// ticked games and writes their file again with them.
+// ticked games and writes their file again with them. With no child named
+// it only makes the pictures and the full games list again: the window's
+// look for new games, which changes no child's list.
 //
 // It answers in lines of fixed words, checked login names and appids, as it
 // goes, and ends with `done` or `refused WORD`. A refusal means nothing

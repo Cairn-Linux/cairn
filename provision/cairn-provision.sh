@@ -36,6 +36,11 @@ SHARED_LIBRARY=/var/lib/cairn/steam-library
 # each one shows, copied from the Guardian's Steam (ADR-0033, ADR-0035).
 GAMES_FILE=/var/lib/cairn/games.json
 GAME_PICTURES=/var/lib/cairn/game-pictures
+# What stays when that file is not made again, for make_game_tiles' notes.
+# The family's setup says it its own way: on the image each child's tiles
+# come from the list a Guardian saved, not from this file (ADR-0041).
+TILES_NOT_FOLLOWED="so the game tiles were not made again; the children keep the ones from the last run."
+TILES_NOT_MADE="the game tiles could not be made again; the children keep the ones from the last run."
 LEVEL_GROUPS=(cairn-l1 cairn-l2 cairn-l3 cairn-l4 cairn-guardian)
 # Only the image ships this file, and /usr cannot be written on a stock
 # Bazzite, so a computer that has it runs the image (ADR-0038).
@@ -792,7 +797,7 @@ make_game_tiles() {
     # this ran. The picture step and kidscan refuse one that comes later
     # still.
     if [ -L "$SHARED_LIBRARY/steamapps" ]; then
-        echo "note: $SHARED_LIBRARY/steamapps is a link, which Cairn does not follow, so the game tiles were not made again; the children keep the ones from the last run."
+        echo "note: $SHARED_LIBRARY/steamapps is a link, which Cairn does not follow, $TILES_NOT_FOLLOWED"
         return 0
     fi
     # With no shared folder the tiles from the last run stay.
@@ -829,7 +834,7 @@ make_game_tiles() {
         --library "$SHARED_LIBRARY" --pictures "$GAME_PICTURES" > "$games" 2> /dev/null; then
         install_file 644 "$games" "$GAMES_FILE"
     else
-        echo "note: the game tiles could not be made again; the children keep the ones from the last run."
+        echo "note: $TILES_NOT_MADE"
     fi
     rm "$games"
 }

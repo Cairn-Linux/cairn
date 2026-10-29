@@ -23,6 +23,11 @@ QString unknown() {
     return QStringLiteral("unknown");
 }
 
+// Nothing ran, so nothing can have been saved.
+QString notStartedWord() {
+    return QStringLiteral("not-started");
+}
+
 // The last line, read only as far as the words it can say.
 QString answerFrom(const QString& lastLine, int exitCode) {
     static const QRegularExpression refused(QStringLiteral("^refused ([a-z]+(-[a-z]+)*)$"));
@@ -60,7 +65,7 @@ bool SaveRun::start(const QStringList& arguments) {
         m_commandMissing = true;
         QTimer::singleShot(0, this, [this] {
             m_commandMissing = false;
-            emit finished(unknown());
+            emit finished(notStartedWord());
         });
         return true;
     }
@@ -117,7 +122,10 @@ void SaveRun::ended(int exitCode, QProcess::ExitStatus status) {
 
 void SaveRun::notStarted(QProcess::ProcessError error) {
     if (error == QProcess::FailedToStart) {
-        finish(unknown());
+        // The page sends the parent to this line in the system log.
+        qWarning("cairn-guardian: %s could not be started, so nothing was saved.",
+                 qUtf8Printable(m_pkexec));
+        finish(notStartedWord());
     }
 }
 

@@ -31,11 +31,18 @@ private slots:
         QCOMPARE(request.logins(), QStringList({"ada", "ben", "cy"}));
     }
 
+    // No child named is a look for new games, which changes no list.
+    void noChildIsALook() {
+        const GamesRequest request = GamesRequest::fromArguments({"save-games"});
+        QVERIFY(!request.refusal.has_value());
+        QVERIFY(request.children.isEmpty());
+        QVERIFY(request.logins().isEmpty());
+    }
+
     void refuses_data() {
         QTest::addColumn<QStringList>("arguments");
         QTest::addColumn<QString>("word");
         QTest::newRow("nothing") << QStringList{} << "usage";
-        QTest::newRow("no child") << QStringList{"save-games"} << "usage";
         QTest::newRow("another subcommand") << QStringList{"save-game", "ada=620"} << "usage";
         QTest::newRow("no equals sign") << QStringList{"save-games", "ada"} << "usage";
         QTest::newRow("a flag") << QStringList{"save-games", "--all"} << "usage";

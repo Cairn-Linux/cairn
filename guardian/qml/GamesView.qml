@@ -151,7 +151,7 @@ Column {
             objectName: "putBack"
             quiet: true
             text: qsTr("Put back as saved")
-            enabled: !view.busy && view.page.unsavedLogins.indexOf(view.page.chosen) >= 0
+            enabled: view.page.canPutBack
             onActivated: view.page.putBack()
         }
 

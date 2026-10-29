@@ -2,6 +2,7 @@
 #include "SaveRun.h"
 
 #include <QFile>
+#include <QRegularExpression>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTest>
@@ -83,8 +84,8 @@ private slots:
     void everyLineIsPassedOn() {
         const Heard heard = hear(QStringLiteral("save-done"));
         QCOMPARE(heard.lines,
-                 QStringList({"pictures made", "catalogue made", "copying ada", "copied ada 1001",
-                              "copied ada 1002", "child ada added 2 removed 0",
+                 QStringList({"looking", "pictures made", "catalogue made", "copying ada",
+                              "copied ada 1001", "copied ada 1002", "child ada added 2 removed 0",
                               "child ben added 0 removed 0", "done"}));
     }
 
@@ -103,8 +104,8 @@ private slots:
         const QSignalSpy lines(&run, &SaveRun::lineRead);
         const QSignalSpy finished(&run, &SaveRun::finished);
         QVERIFY(run.start(saveTwo()));
-        QTRY_COMPARE_WITH_TIMEOUT(lines.size(), 3, kAnswerMilliseconds);
-        QCOMPARE(lines.at(2).constFirst().toString(), QStringLiteral("copying ada"));
+        QTRY_COMPARE_WITH_TIMEOUT(lines.size(), 4, kAnswerMilliseconds);
+        QCOMPARE(lines.at(3).constFirst().toString(), QStringLiteral("copying ada"));
         QVERIFY(run.running());
         QVERIFY(finished.isEmpty());
     }
@@ -127,14 +128,15 @@ private slots:
         qputenv("CAIRN_TEST_SCENARIO", "done");
         SaveRun run(QStringLiteral(FIXTURES "/no-such-pkexec"), command());
         QSignalSpy finished(&run, &SaveRun::finished);
+        QTest::ignoreMessage(QtWarningMsg, QRegularExpression("could not be started"));
         QVERIFY(run.start(saveTwo()));
         QVERIFY(finished.wait(kAnswerMilliseconds));
-        QCOMPARE(finished.constFirst().constFirst().toString(), QStringLiteral("unknown"));
+        QCOMPARE(finished.constFirst().constFirst().toString(), QStringLiteral("not-started"));
         QVERIFY(!run.running());
     }
 
     // pkexec would say 127, as for a refused password, without asking for
-    // one. The window does not run it, and says it cannot read an answer.
+    // one. The window does not run it, and says it did not start.
     void commandMissing() {
         const QTemporaryDir folder;
         const QString record = folder.filePath(QStringLiteral("arguments"));
@@ -149,7 +151,7 @@ private slots:
         QVERIFY(finished.wait(kAnswerMilliseconds));
         qunsetenv("CAIRN_TEST_ARGUMENTS");
         QCOMPARE(finished.size(), 1);
-        QCOMPARE(finished.constFirst().constFirst().toString(), QStringLiteral("unknown"));
+        QCOMPARE(finished.constFirst().constFirst().toString(), QStringLiteral("not-started"));
         QVERIFY(!run.running());
         QVERIFY(!QFile::exists(record));
     }

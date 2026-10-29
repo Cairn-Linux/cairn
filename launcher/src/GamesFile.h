@@ -8,7 +8,10 @@
 #include <QString>
 #include <QStringList>
 
-// Reads the games file provisioning makes with kidscan from the shared Steam
+// Reads a games file: on the image, the child's own list,
+// /var/lib/cairn/games/<login>.json, which cairn-family save-games writes
+// from entries of the full list (ADR-0041); on a computer set up by
+// provisioning, the full list it makes with kidscan from the shared Steam
 // library, /var/lib/cairn/games.json (ADR-0033). It has the manifest's form,
 // but the launcher trusts it less: it is made from Steam's files, so nothing
 // in it may choose a program. The one command an entry may hold is the Steam

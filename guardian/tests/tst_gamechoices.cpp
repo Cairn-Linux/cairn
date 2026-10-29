@@ -80,15 +80,6 @@ private slots:
         QCOMPARE(family().saveArguments({"ada", "ben"}), QStringList({"save-games"}));
     }
 
-    // A look for new games names the child's saved list, whatever is
-    // changed.
-    void theLookArguments() {
-        GameChoices choices = family();
-        choices.turn("cy", "1003");
-        QCOMPARE(choices.lookArguments("cy"), QStringList({"save-games", "cy=1001,2001"}));
-        QCOMPARE(choices.lookArguments("ben"), QStringList({"save-games", "ben="}));
-    }
-
     // After the lists are read again, a change now saved is gone, and so
     // is a child no longer there.
     void keepOnlyWhatIsStillAChange() {

@@ -717,8 +717,57 @@ TestCase {
         mouseClick(findChild(window, "lookForGames"));
         tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
         compare(saveOutcome(window), "The shared folder was read again. Every game in it shows below.");
-        verify(!result(window, 0).visible);
-        compare(result(window, 0).text, "");
+        // It names no child, so it says nothing about any child's list.
+        compare(findChild(window, "saveResults").count, 0);
+    }
+
+    // While a look runs, the page speaks of looking, never of saving, and
+    // stops asking for the password once the command has said it runs.
+    function test_aLookInProgressSaysItIsLooking() {
+        const window = makeWindow("done", {
+            "gamesScenario": "save-looking"
+        });
+        showGames(window);
+        mouseClick(findChild(window, "lookForGames"));
+        tryCompare(window.gamesPage.saving, "step", GamesSaving.Saving);
+        compare(saveOutcome(window), "Looking at the shared folder for games and their pictures.");
+    }
+
+    // A look that did not run speaks of looking, not of saved changes.
+    function test_aRefusedLookSpeaksOfLooking() {
+        const window = makeWindow("done", {
+            "gamesScenario": "refused-busy"
+        });
+        showGames(window);
+        mouseClick(findChild(window, "lookForGames"));
+        tryCompare(window.gamesPage.saving, "step", GamesSaving.NotSaved);
+        compare(saveOutcome(window), "A Save is still running, perhaps from another login, so the shared folder was not looked at again. Wait until it ends, then press Look for new games again.");
+    }
+
+    function test_aClosedPasswordBoxDuringALook() {
+        const window = makeWindow("done", {
+            "gamesScenario": "dismissed"
+        });
+        showGames(window);
+        mouseClick(findChild(window, "lookForGames"));
+        tryCompare(window.gamesPage.saving, "step", GamesSaving.NotSaved);
+        compare(saveOutcome(window), "The shared folder was not looked at again. It needs your password: the box was closed, or the password was not accepted.");
+    }
+
+    // What a Save did stops showing once a game is turned, so the page
+    // never says "Saved" beside changes that are not.
+    function test_theOutcomeEndsWithTheNextTap() {
+        const window = makeWindow("done", {
+            "gamesScenario": "save-done"
+        });
+        showGames(window);
+        mouseClick(card(window, 1));
+        mouseClick(findChild(window, "saveButton"));
+        tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
+        verify(findChild(window, "saveOutcomeBox").visible);
+        mouseClick(card(window, 2));
+        verify(!findChild(window, "saveOutcomeBox").visible);
+        verify(findChild(window, "unsavedSentence").visible);
     }
 
     // A list that cannot be read says that Saving writes it again.

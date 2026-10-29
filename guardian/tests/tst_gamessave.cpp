@@ -148,9 +148,9 @@ private slots:
         const GamesSave::Outcome outcome = run({"save-games", "ada=620,12", "ben=504230"});
         QVERIFY(!outcome.refusal.has_value());
         QCOMPARE(m_said,
-                 QStringList({"pictures made", "catalogue made", "copying ada", "copied ada 620",
-                              "copied ada 12", "child ada added 2 removed 0", "copying ben",
-                              "copied ben 504230", "child ben added 1 removed 0"}));
+                 QStringList({"looking", "pictures made", "catalogue made", "copying ada",
+                              "copied ada 620", "copied ada 12", "child ada added 2 removed 0",
+                              "copying ben", "copied ben 504230", "child ben added 1 removed 0"}));
         QCOMPARE(outcome.asked, QStringLiteral("save-games ada ben"));
         QCOMPARE(outcome.children,
                  QStringList({"child ada added 2 removed 0", "child ben added 1 removed 0"}));
@@ -160,6 +160,21 @@ private slots:
         const QByteArray ada = read("games/ada.json");
         QVERIFY(ada.contains("\"620\"") && ada.contains("\"12\"") && !ada.contains("504230"));
         QVERIFY(read("games/ben.json").contains("\"504230\""));
+        QCOMPARE(read("games.json"), QByteArray(sharedGames));
+    }
+
+    // With no child named, only the pictures and the full list are made
+    // again, and no child's file is touched, even one that cannot be read.
+    void aLookChangesNoList() {
+        give("games/ada.json", "not a list");
+        const GamesSave::Outcome outcome = run({"save-games"});
+        QVERIFY(!outcome.refusal.has_value());
+        QCOMPARE(m_said, QStringList({"looking", "pictures made", "catalogue made"}));
+        QCOMPARE(outcome.asked, QStringLiteral("save-games"));
+        QVERIFY(outcome.children.isEmpty());
+        QVERIFY(!QFile::exists(path("systemd-run-calls")));
+        QCOMPARE(read("games/ada.json"), QByteArray("not a list"));
+        QCOMPARE(QDir(path("games")).entryList(QDir::Files), QStringList({"ada.json"}));
         QCOMPARE(read("games.json"), QByteArray(sharedGames));
     }
 
@@ -176,7 +191,7 @@ private slots:
             << QStringList{"save-games", "guardian-child="} << "not-a-child";
         QTest::newRow("one child of two")
             << QStringList{"save-games", "ada=620", "gina=620"} << "not-a-child";
-        QTest::newRow("usage") << QStringList{"save-games"} << "usage";
+        QTest::newRow("usage") << QStringList{"save-games", "ada"} << "usage";
         QTest::newRow("a bad name") << QStringList{"save-games", "Ada=620"} << "bad-name";
         QTest::newRow("a bad appid")
             << QStringList{"save-games", "ada=620", "ben=--all"} << "bad-appid";
@@ -216,7 +231,7 @@ private slots:
     void sudoKeepsThePictures() {
         m_pkexecUid = std::nullopt;
         run({"save-games", "ada=620"});
-        QCOMPARE(m_said.mid(0, 2), QStringList({"pictures kept", "catalogue made"}));
+        QCOMPARE(m_said.mid(0, 3), QStringList({"looking", "pictures kept", "catalogue made"}));
         QCOMPARE(lines("python-calls").size(), 1);
     }
 
@@ -228,7 +243,7 @@ private slots:
         give("status-ada", "1");
         const GamesSave::Outcome outcome = run({"save-games", "ada=12", "ben=620"});
         QVERIFY(!outcome.refusal.has_value());
-        QCOMPARE(m_said.mid(2),
+        QCOMPARE(m_said.mid(3),
                  QStringList({"copying ada", "child ada added 0 removed 1 held logged-in",
                               "copying ben", "copied ben 620", "child ben added 1 removed 0"}));
         QVERIFY(!read("games/ada.json").contains("\"620\""));
@@ -238,7 +253,7 @@ private slots:
     // A game no longer shared is never passed to the copy.
     void aGameNotSharedIsSkipped() {
         run({"save-games", "ada=999,620"});
-        QCOMPARE(m_said.mid(2, 2), QStringList({"skipped ada 999 not-shared", "copying ada"}));
+        QCOMPARE(m_said.mid(3, 2), QStringList({"skipped ada 999 not-shared", "copying ada"}));
         QCOMPARE(lines("helper-calls"), QStringList({"--copy-games ada 620"}));
         QVERIFY(!read("games/ada.json").contains("999"));
     }
@@ -256,7 +271,7 @@ private slots:
         m_said.clear();
         run({"save-games", "ada=620,12"});
         QVERIFY(!QFile::exists(path("systemd-run-calls")));
-        QCOMPARE(m_said.mid(2), QStringList({"child ada added 0 removed 0"}));
+        QCOMPARE(m_said.mid(3), QStringList({"child ada added 0 removed 0"}));
     }
 
     // Every child's games taken off are gone before the first copy starts,
@@ -287,7 +302,7 @@ private slots:
         give("fail-kidscan", "");
         give("games/ada.json", adaHasPortal);
         run({"save-games", "ada=620,12"});
-        QCOMPARE(m_said.mid(1), QStringList({"catalogue kept", "skipped ada 12 no-catalogue",
+        QCOMPARE(m_said.mid(2), QStringList({"catalogue kept", "skipped ada 12 no-catalogue",
                                              "child ada added 0 removed 0"}));
         QVERIFY(!QFile::exists(path("systemd-run-calls")));
         QVERIFY(read("games/ada.json").contains("\"620\""));

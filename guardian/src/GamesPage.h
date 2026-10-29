@@ -61,6 +61,8 @@ class GamesPage : public QObject {
     Q_PROPERTY(QString unsavedNames READ unsavedNames NOTIFY changed)
     // Whether Save would save something now.
     Q_PROPERTY(bool canSave READ canSave NOTIFY changed)
+    // Whether "Put back as saved" would change the picked child's list now.
+    Q_PROPERTY(bool canPutBack READ canPutBack NOTIFY changed)
     // A Save, or a look for new games, is running; every control waits.
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
     Q_PROPERTY(GamesSaving* saving READ saving CONSTANT)
@@ -98,8 +100,12 @@ public:
     QStringList unsavedLogins() const;
     QString unsavedNames() const;
     bool canSave() const;
+    bool canPutBack() const;
     bool busy() const;
     GamesSaving* saving() const;
+
+    // Picking a child, turning a game and putting a list back each end the
+    // last Save's outcome, which was about the page as it was then.
 
     // Picks the child whose games show. A login that is not a listed child
     // changes nothing. Changes to the other children's lists are kept.
@@ -112,7 +118,8 @@ public:
     // Saves every child's changed list, with one password.
     Q_INVOKABLE void save();
     // Makes the full games list and the pictures again, with one password,
-    // so a game just installed shows. It changes no child's list.
+    // so a game just installed shows. It names no child, so it changes no
+    // child's list.
     Q_INVOKABLE void lookForGames();
     // Opens the child's own Steam, in the Steam window, as a program of its
     // own. A login that is not a listed child opens nothing.

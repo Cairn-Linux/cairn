@@ -19,7 +19,8 @@ public:
     enum class Stage : std::uint8_t {
         // Nothing said yet: the password box, or the command's first step.
         Starting,
-        // Making the pictures and the full games list again.
+        // The password was accepted, and the pictures and the full games
+        // list are being made again.
         Looking,
         // Writing the children's lists.
         Writing,

@@ -5,8 +5,8 @@ below have run in the cairn-iso VM and none of them overturns a bullet
 of the Decision.
 **Date:** 2026-10-27
 **Closes:** (none) — the Games page of issue #167; part of ROADMAP P1-5.
-Once accepted, amends ADR-0033, ADR-0032, ADR-0035, ADR-0039 and
-ADR-0040.
+Once accepted, amends ADR-0033, ADR-0032, ADR-0035, ADR-0038, ADR-0039
+and ADR-0040.
 
 ## Context
 
@@ -49,8 +49,9 @@ games on their list.**
   So a game the Guardian has just installed shows without a separate
   step.
 - With no change to save, **Look for new games** runs the same Save
-  with the picked child's list as it is saved, which changes no list
-  and only rescans. A family whose shared folder had no games yet has
+  with no child named, which changes no list and only rescans.
+  So no list the window read, which may be out of date or unreadable,
+  is ever sent back to be written. A family whose shared folder had no games yet has
   nothing to highlight, so without it no Save could run.
 
 ### The root side
@@ -69,9 +70,11 @@ games on their list.**
   path alone, whatever order polkit lists them in.
   Any other first argument falls back to pkexec's own action, which also
   asks for an administrator, and `cairn-family` refuses it.
-- `cairn-family save-games LOGIN=APPID,APPID... [LOGIN=...]` takes each
+- `cairn-family save-games [LOGIN=APPID,APPID...]...` takes each
   named child's whole new list, never a change to it: `ben=` means no
   games, and a child not named is left alone.
+  With no child named it only remakes the pictures and the full games
+  list: the window's Look for new games.
   It never passes `--all`, so a child can never get every game this way.
 - Before anything changes it checks the caller (root, and through pkexec
   an administrator), every value, and that every name is a child Cairn
@@ -127,12 +130,13 @@ a Steam name or a path:
 
 | Line | Meaning |
 |---|---|
+| `looking` | The first line, before the pictures and the full games list are made: the password was accepted and the work starts |
 | `pictures made` or `pictures kept` | The picture step ran to its end, or the pictures stay as they were |
 | `catalogue made` or `catalogue kept` | The full games list is new, or the old one stays |
 | `copying LOGIN` | The child's copy starts |
 | `waiting LOGIN` | The child's last login is still ending |
 | `copied LOGIN APPID`, `have LOGIN APPID` | The child has the game now |
-| `skipped LOGIN APPID REASON` | The game is left out, for REASON: `not-shared`, or `no-catalogue` when no full games list could be read, so whether it is shared is not known |
+| `skipped LOGIN APPID REASON` | The game is left out, for REASON: `not-shared`, or `no-catalogue` when no full games list could be read, so whether it is shared is not known, or one of the copy step's own reasons, passed on as it says them: `unreadable`, `appid`, `installdir`, `beta-branch`, `not-installed`, `downloading`, `no-folder`, `folder-without-manifest`, `changed`, `copy-failed` or `unreadable-files` (`provision/cairn-copy-games.py` says what each means) |
 | `child LOGIN added N removed N [held WORD]` | The child's list is written, and the counts say what it holds now; `held` says why their new games are not all given |
 | `done` | The last line of a Save |
 | `refused WORD` | Nothing changed |
@@ -251,6 +255,8 @@ It moves to per-child lists when it is reinstalled from the image.
   grown-up screen (ADR-0030).
 - **ADR-0035** is amended: pictures are also remade on every Save, from
   the window.
+- **ADR-0038** is amended: the family's setup on the image makes no
+  child's copy of the games; a Guardian's Save on the Games page does.
 - **ADR-0039** is amended: `cairn-family` gains a subcommand, with its
   own answer lines and refusal words, and its one polkit action becomes
   one for each subcommand.

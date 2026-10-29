@@ -29,7 +29,7 @@ GamesRequest refused(Refusal refusal) {
 
 GamesRequest GamesRequest::fromArguments(const QStringList& arguments) {
     if (arguments.isEmpty() || arguments.constFirst() != QStringLiteral("save-games") ||
-        arguments.size() < 2 || arguments.size() > mostChildren + 1) {
+        arguments.size() > mostChildren + 1) {
         return refused(Refusal::Usage);
     }
 

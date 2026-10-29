@@ -58,6 +58,8 @@ public:
         AnotherSave, // busy
         Dismissed,
         NotAuthorized,
+        // The command, or pkexec, could not be started, so nothing ran.
+        CommandNotStarted,
         Unknown,
     };
     Q_ENUM(Reason)
@@ -125,6 +127,10 @@ public:
     // `children` and `games` do. False while a Save runs.
     bool start(Kind kind, const QStringList& arguments, const std::vector<ListedChild>& children,
                const QList<GameShelf::Game>& games);
+
+    // The last Save's outcome stops showing, because the page has changed
+    // since it ended. Nothing while a Save runs.
+    void clearOutcome();
 
     static Reason reasonFor(const QString& answer);
     // NotHeld for no word.
