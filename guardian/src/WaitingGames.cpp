@@ -29,8 +29,11 @@ void WaitingGames::read(const std::vector<Account>& accounts) {
         if (!account.isCairnChild() || list.isEmpty()) {
             continue;
         }
-        Files files{.saved = GameShelf::listedIds(list), .waiting = {}, .finished = {}};
         const WaitingSave::Read read = waiting.read(account);
+        Files files{.saved = GameShelf::listedIds(list),
+                    .waiting = {},
+                    .finished = {},
+                    .found = read.found};
         if (read.found == WaitingSave::Found::Waiting) {
             files.waiting = read.appIds;
         }
@@ -46,6 +49,10 @@ QStringList WaitingGames::baseline(const QString& login) const {
 
 bool WaitingGames::isWaiting(const QString& login) const {
     return m_files.value(login).waiting.has_value();
+}
+
+bool WaitingGames::waitEnded(const QString& login) const {
+    return m_files.contains(login) && m_files.value(login).found == WaitingSave::Found::Nothing;
 }
 
 QStringList WaitingGames::saved(const QString& login) const {

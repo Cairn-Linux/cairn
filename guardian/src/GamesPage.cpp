@@ -77,6 +77,10 @@ bool GamesPage::chosenWaiting() const {
     return m_lists->isWaiting(m_chosen);
 }
 
+bool GamesPage::chosenSettled() const {
+    return m_saving->settled(m_chosen);
+}
+
 QVariantMap GamesPage::finished() const {
     return m_lists->finished(m_chosen, chosenName(), SaveResults::titlesOf(m_shelf.games()));
 }
@@ -183,6 +187,13 @@ void GamesPage::reload() {
     }
     readShelf();
     m_choices.keepOnly(loginsOf(m_children), m_shelf.sharedIds());
+    // A child the outcome says still waits, whose waiting file is gone,
+    // has had the copy at their logout: the outcome stops speaking for them.
+    for (const QString& login : m_saving->laterLogins()) {
+        if (m_lists->waitEnded(login)) {
+            m_saving->settle(login);
+        }
+    }
     if (!sameChildren) {
         emit listedChildrenChanged();
     }

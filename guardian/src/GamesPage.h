@@ -61,6 +61,10 @@ class GamesPage : public QObject {
     Q_PROPERTY(int goneCount READ goneCount NOTIFY changed)
     // The child picked has games waiting for their next logout.
     Q_PROPERTY(bool chosenWaiting READ chosenWaiting NOTIFY changed)
+    // The last Save left the picked child's new games for their next
+    // logout, and that wait has ended since, so the Save's outcome no
+    // longer speaks for them and the note about the logout shows.
+    Q_PROPERTY(bool chosenSettled READ chosenSettled NOTIFY changed)
     // The copy at the picked child's last logout, as WaitingGames gives
     // it, until the next Save for them; empty when there is none.
     Q_PROPERTY(QVariantMap finished READ finished NOTIFY changed)
@@ -114,6 +118,7 @@ public:
     int sharedCount() const;
     int goneCount() const;
     bool chosenWaiting() const;
+    bool chosenSettled() const;
     QVariantMap finished() const;
     QString steamNotOpened() const;
     QStringList unsavedLogins() const;
@@ -148,7 +153,11 @@ public:
     // Reads the children and the games files again. Changes not saved yet
     // stay, but for a child who is gone or a game that can no longer show.
     // A waiting or finished file that changes reads them again too, unless
-    // a Save is running, after which they are read anyway.
+    // a Save is running, after which they are read anyway. Once the
+    // waiting file of a child the last Save left for their next logout is
+    // gone, its outcome leaves that child out, so it never says games are
+    // still to come that have come, and ends when it speaks for no child.
+    // A waiting file that fails a check ends nothing.
     Q_INVOKABLE void reload();
 
 signals:

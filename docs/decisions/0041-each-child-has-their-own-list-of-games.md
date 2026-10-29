@@ -271,8 +271,9 @@ The maintainer settled how on 2026-10-28.
   The child sees no new text.
 - **The Games page.** After a Save with `later`, the child's sentence
   says why their games wait, then "Ada's new games are copied the next
-  time Ada logs out. You do not need to do anything else. The games taken
-  off are already gone from Ada's list."
+  time Ada logs out. You do not need to do anything else."
+  Only when that Save took games off Ada's list does it add "The games
+  taken off are already gone from Ada's list."
   The Save's first sentence no longer says that each child sees their
   games at their next login whenever a child was held or had a game left
   out.
@@ -289,6 +290,18 @@ The maintainer settled how on 2026-10-28.
   finished file.
   The page reads both folders without root, with the same checks, and
   watches them, so an open page follows a copy at a logout.
+  The reason a Save gives for the wait says what was so at the Save,
+  such as "Ada was logged in", so it stays true after Ada logs out.
+  When the waiting file of a child the Save's outcome left waiting is
+  gone, the outcome leaves that child out, so it never says games are
+  still to come once they have come, and the note about the logout shows
+  for that child.
+  Every other child's sentences stay.
+  The outcome ends once it speaks for no child.
+  A waiting file that fails the page's checks ends nothing.
+  A copy at the logout that has to wait again changes no file, so the
+  page cannot see it; the sentences stay true, since the games still
+  come at the next logout.
 - **A new child.** `cairn-family create-child` removes any
   `games/<login>.json`, waiting list and finished file before it makes a
   new account, and refuses `failed` if one stays, so a new child never

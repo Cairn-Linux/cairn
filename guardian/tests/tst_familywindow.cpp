@@ -200,6 +200,12 @@ public:
                 file.setFileTime(modified, QFileDevice::FileModificationTime));
     }
 
+    // Takes a file in the Games page's folder away, as root does when a
+    // copy at a logout ends.
+    Q_INVOKABLE bool takeAway(const QString& name) const {
+        return QFile::remove(QDir(m_files.path()).filePath(name));
+    }
+
     // Each run of cairn-family since the Games page was made, as "run" and
     // then its arguments, a line each.
     Q_INVOKABLE QString savedArguments() const {

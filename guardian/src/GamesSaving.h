@@ -8,6 +8,7 @@
 #include <QHash>
 #include <QObject>
 #include <QQmlEngine>
+#include <QSet>
 #include <QString>
 #include <QStringList>
 #include <QVariantList>
@@ -137,11 +138,17 @@ public:
     // The last Save's outcome stops showing, because the page has changed
     // since it ended. Nothing while a Save runs.
     void clearOutcome();
+    // The children whose new games the last Save left for their next
+    // logout, while its outcome shows, but for those settled since.
+    QStringList laterLogins() const;
+    // The child's wait, which the last Save left for their next logout,
+    // has ended, so the outcome no longer speaks for them: it leaves them
+    // out, and ends once no child is left for it to speak for. Nothing for
+    // a child it did not leave waiting.
+    void settle(const QString& login);
+    bool settled(const QString& login) const;
 
     static Reason reasonFor(const QString& answer);
-    // NotHeld for no word.
-    static Held heldFor(const QString& word);
-    static Skip skipFor(const QString& word);
 
 signals:
     void changed();
@@ -152,6 +159,9 @@ private:
     void lineRead(const QString& line);
     void finished(const QString& answer);
     QString nameOf(const QString& login) const;
+    // The children the outcome speaks for: all it answered for but the
+    // settled.
+    QList<SaveReport::Child> shownChildren() const;
 
     SaveRun* m_run;
     SaveReport m_report;
@@ -160,4 +170,5 @@ private:
     Reason m_reason = Reason::NoReason;
     QHash<QString, QString> m_names;
     QHash<QString, QString> m_titles;
+    QSet<QString> m_settled;
 };

@@ -47,14 +47,14 @@ QString GamesSaving::progressName() const {
 
 QVariantList GamesSaving::results() const {
     QVariantList results;
-    for (const SaveReport::Child& child : m_report.children()) {
+    for (const SaveReport::Child& child : shownChildren()) {
         results.append(SaveResults::forChild(child, nameOf(child.login), m_titles));
     }
     return results;
 }
 
 bool GamesSaving::allGiven() const {
-    return SaveResults::allGiven(m_report.children());
+    return SaveResults::allGiven(shownChildren());
 }
 
 bool GamesSaving::catalogueKept() const {
@@ -82,6 +82,7 @@ bool GamesSaving::start(Kind kind, const QStringList& arguments,
     }
     m_titles = SaveResults::titlesOf(games);
     m_report = SaveReport(request.logins());
+    m_settled.clear();
     if (request.refusal) {
         m_step = Step::NotSaved;
         m_reason = reasonFor(refusalWord(*request.refusal));
@@ -109,7 +110,36 @@ void GamesSaving::clearOutcome() {
     m_step = Step::Ready;
     m_reason = Reason::NoReason;
     m_report = SaveReport();
+    m_settled.clear();
     emit changed();
+}
+
+QStringList GamesSaving::laterLogins() const {
+    QStringList logins;
+    for (const SaveReport::Child& child : shownChildren()) {
+        if (child.later) {
+            logins.append(child.login);
+        }
+    }
+    return logins;
+}
+
+// The list of shared games kept as it was is said in the first sentence,
+// which speaks for no child, so it keeps the outcome.
+void GamesSaving::settle(const QString& login) {
+    if ((m_step != Step::Saved && m_step != Step::NotSaved) || !laterLogins().contains(login)) {
+        return;
+    }
+    m_settled.insert(login);
+    if (shownChildren().isEmpty() && !catalogueKept()) {
+        clearOutcome();
+        return;
+    }
+    emit changed();
+}
+
+bool GamesSaving::settled(const QString& login) const {
+    return m_settled.contains(login);
 }
 
 GamesSaving::Reason GamesSaving::reasonFor(const QString& answer) {
@@ -129,49 +159,6 @@ GamesSaving::Reason GamesSaving::reasonFor(const QString& answer) {
     return reasons.value(answer, Reason::Unknown);
 }
 
-GamesSaving::Held GamesSaving::heldFor(const QString& word) {
-    if (word.isEmpty()) {
-        return Held::NotHeld;
-    }
-    static const QHash<QString, Held> held = {
-        {QStringLiteral("logged-in"), Held::LoggedIn},
-        {QStringLiteral("busy"), Held::VisitOpen},
-        {QStringLiteral("copying"), Held::CopyStillRunning},
-        {QStringLiteral("still-running"), Held::StillRunning},
-        {QStringLiteral("stopped"), Held::Stopped},
-        {QStringLiteral("not-set-up"), Held::NotSetUp},
-        {QStringLiteral("no-library"), Held::NoLibrary},
-        {QStringLiteral("no-shared"), Held::NoShared},
-        {QStringLiteral("lists-shared"), Held::ListsShared},
-        {QStringLiteral("unreadable-config"), Held::UnreadableConfig},
-        {QStringLiteral("no-reflink"), Held::NoReflink},
-        {QStringLiteral("failed"), Held::CopyStopped},
-        {QStringLiteral("not-started"), Held::NotStarted},
-        {QStringLiteral("not-written"), Held::NotWritten},
-        {QStringLiteral("stuck"), Held::Stuck},
-    };
-    return held.value(word, Held::OtherHold);
-}
-
-GamesSaving::Skip GamesSaving::skipFor(const QString& word) {
-    static const QHash<QString, Skip> skips = {
-        {QStringLiteral("not-shared"), Skip::NotShared},
-        {QStringLiteral("no-catalogue"), Skip::NoCatalogue},
-        {QStringLiteral("unreadable"), Skip::UnreadableManifest},
-        {QStringLiteral("appid"), Skip::OtherGame},
-        {QStringLiteral("installdir"), Skip::OddFolder},
-        {QStringLiteral("beta-branch"), Skip::BetaBranch},
-        {QStringLiteral("not-installed"), Skip::NotInstalled},
-        {QStringLiteral("downloading"), Skip::Downloading},
-        {QStringLiteral("no-folder"), Skip::NoFolder},
-        {QStringLiteral("folder-without-manifest"), Skip::FolderThere},
-        {QStringLiteral("changed"), Skip::ChangedDuringCopy},
-        {QStringLiteral("copy-failed"), Skip::CopyDidNotWork},
-        {QStringLiteral("unreadable-files"), Skip::UnreadableFiles},
-    };
-    return skips.value(word, Skip::OtherSkip);
-}
-
 // The first line means the password was accepted and the command runs:
 // cairn-family says "looking" before its first slow step.
 void GamesSaving::lineRead(const QString& line) {
@@ -189,4 +176,10 @@ void GamesSaving::finished(const QString& answer) {
 
 QString GamesSaving::nameOf(const QString& login) const {
     return m_names.value(login, login);
+}
+
+QList<SaveReport::Child> GamesSaving::shownChildren() const {
+    QList<SaveReport::Child> shown = m_report.children();
+    shown.removeIf([this](const SaveReport::Child& child) { return settled(child.login); });
+    return shown;
 }

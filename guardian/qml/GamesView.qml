@@ -179,11 +179,12 @@ Column {
         text: qsTr("Not saved yet: the changes for %1. Save gives each child their new list, with one password.").arg(view.page.unsavedNames)
     }
 
-    // Hidden while a Save's own outcome shows, which says the same.
+    // Hidden while a Save's own outcome shows, which says the same, unless
+    // it no longer speaks for the child picked.
     WaitingNote {
         objectName: "waitingNotes"
         width: view.width
-        visible: view.hasChildren && !outcome.visible && (view.page.chosenWaiting || view.page.finished.result !== undefined)
+        visible: view.hasChildren && (!outcome.visible || view.page.chosenSettled) && (view.page.chosenWaiting || view.page.finished.result !== undefined)
         page: view.page
         sentences: outcome
     }

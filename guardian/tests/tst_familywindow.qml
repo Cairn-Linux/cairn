@@ -635,7 +635,8 @@ TestCase {
         tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
         // Not every child sees their games at their next login.
         compare(saveOutcome(window), "Saved, but not every new game could be given. The sentences below say what each child has now, and what comes next.");
-        compare(result(window, 0).text, "Ada's list is saved, with no change. Ada is logged in, so their new games could not be copied. They come after Ada logs out and you press Save again. The games taken off are already gone from Ada's list.");
+        // Nothing was taken off, so the sentence does not say so.
+        compare(result(window, 0).text, "Ada's list is saved, with no change. Ada is logged in, so their new games could not be copied. They come after Ada logs out and you press Save again.");
         verify(!laterNote(window, 0).visible);
         // The game stays chosen, so Save gives it later.
         verify(findChild(window, "saveButton").enabled);
@@ -660,7 +661,8 @@ TestCase {
         compare(result(window, 0).text, "Ada's list is saved, with no change.");
         const note = laterNote(window, 0);
         verify(note.visible);
-        compare(note.text, "Ada is logged in, so Ada's new games could not be copied yet. Ada's new games are copied the next time Ada logs out. You do not need to do anything else. The games taken off are already gone from Ada's list.");
+        // Nothing was taken off, so the note does not say so.
+        compare(note.text, "Ada was logged in, so Ada's new games could not be copied yet. Ada's new games are copied the next time Ada logs out. You do not need to do anything else.");
         compare(note.Accessible.name, note.text);
         // Nothing is left to save, and the game says it waits.
         verify(!findChild(window, "saveButton").enabled);
@@ -672,6 +674,83 @@ TestCase {
             wait(300);
             grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-games-later.png"));
         }
+    }
+
+    // A game taken off goes at once, and only then does the note say so.
+    function test_aLaterNoteSaysWhatWasTakenOff() {
+        const window = makeWindow("done", {
+            "gamesScenario": "save-held-later"
+        });
+        showGames(window);
+        mouseClick(card(window, 0));
+        mouseClick(card(window, 1));
+        mouseClick(findChild(window, "saveButton"));
+        tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
+        compare(result(window, 0).text, "Ada's list is saved. Added: 0. Taken off: 1.");
+        compare(laterNote(window, 0).text, "Ada was logged in, so Ada's new games could not be copied yet. Ada's new games are copied the next time Ada logs out. You do not need to do anything else. The games taken off are already gone from Ada's list.");
+    }
+
+    // The same for a logged-in child held without a wait.
+    function test_aHeldSentenceSaysWhatWasTakenOff() {
+        const window = makeWindow("done", {
+            "gamesScenario": "save-held-logged-in"
+        });
+        showGames(window);
+        mouseClick(card(window, 0));
+        mouseClick(card(window, 1));
+        mouseClick(findChild(window, "saveButton"));
+        tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
+        compare(result(window, 0).text, "Ada's list is saved. Added: 0. Taken off: 1. Ada is logged in, so their new games could not be copied. They come after Ada logs out and you press Save again. The games taken off are already gone from Ada's list.");
+    }
+
+    // Ada logs out while the outcome says her games are still to come:
+    // the copy at her logout ends that outcome, and the dated note shows.
+    function test_aLogoutEndsTheOutcomeThatWaitedForIt() {
+        const window = makeWindow("done", {
+            "gamesScenario": "save-held-later"
+        });
+        showGames(window);
+        mouseClick(card(window, 1));
+        mouseClick(findChild(window, "saveButton"));
+        tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
+        verify(laterNote(window, 0).visible);
+        const when = new Date(2026, 9, 29, 16, 0);
+        verify(standIns.takeAway("games-waiting/ada"));
+        verify(standIns.leave("games-finished/ada", "copied ada 1002\nchild ada added 1 removed 0\n", when));
+        tryVerify(() => !findChild(window, "saveOutcomeBox").visible, 10000);
+        verify(findChild(window, "waitingNotes").visible);
+        verify(!findChild(window, "waitingNote").visible);
+        const finished = findChild(window, "finishedNote");
+        tryVerify(() => finished.visible);
+        compare(finished.text, "Ada's new games were copied when Ada logged out on " + when.toLocaleDateString(Qt.locale(), Locale.LongFormat) + ".");
+    }
+
+    // Ada and Ben both wait. Ada logs out: the outcome leaves her out and
+    // keeps Ben's note, and Ada's dated note shows beside it.
+    function test_aLogoutLeavesTheOtherChildInTheOutcome() {
+        const window = makeWindow("done", {
+            "gamesScenario": "save-held-later"
+        });
+        showGames(window);
+        mouseClick(card(window, 1));
+        chooseChild(window, "ben");
+        mouseClick(card(window, 1));
+        chooseChild(window, "ada");
+        mouseClick(findChild(window, "saveButton"));
+        tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
+        compare(findChild(window, "saveResults").count, 2);
+        verify(!findChild(window, "waitingNotes").visible);
+        const when = new Date(2026, 9, 29, 16, 0);
+        verify(standIns.takeAway("games-waiting/ada"));
+        verify(standIns.leave("games-finished/ada", "copied ada 1002\nchild ada added 1 removed 0\n", when));
+        tryCompare(findChild(window, "saveResults"), "count", 1, 10000);
+        verify(findChild(window, "saveOutcomeBox").visible);
+        compare(findChild(window, "saveResults").itemAt(0).objectName, "result_ben");
+        const note = laterNote(window, 0);
+        verify(note.visible);
+        compare(note.text, "Ben was logged in, so Ben's new games could not be copied yet. Ben's new games are copied the next time Ben logs out. You do not need to do anything else.");
+        tryVerify(() => findChild(window, "waitingNotes").visible);
+        compare(findChild(window, "finishedNote").text, "Ada's new games were copied when Ada logged out on " + when.toLocaleDateString(Qt.locale(), Locale.LongFormat) + ".");
     }
 
     // ---- a child who is logged in when the parent presses Save ----

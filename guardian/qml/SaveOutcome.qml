@@ -116,12 +116,16 @@ Rectangle {
     }
 
     // Why a child's new games were not all given, for each held word.
-    function heldSentence(held, name) {
+    // `removed` is how many games the Save took off the child's list, when
+    // it is known.
+    function heldSentence(held, name, removed) {
         switch (held) {
         case GamesSaving.NotHeld:
             return "";
         case GamesSaving.LoggedIn:
-            return qsTr("%1 is logged in, so their new games could not be copied. They come after %1 logs out and you press Save again. The games taken off are already gone from %1's list.").arg(name);
+            if (removed > 0)
+                return qsTr("%1 is logged in, so their new games could not be copied. They come after %1 logs out and you press Save again. The games taken off are already gone from %1's list.").arg(name);
+            return qsTr("%1 is logged in, so their new games could not be copied. They come after %1 logs out and you press Save again.").arg(name);
         case GamesSaving.VisitOpen:
             return qsTr("Steam for a child is open from a grown-up's login, so %1's new games could not be copied. Press Done in that window, then press Save again.").arg(name);
         case GamesSaving.CopyStillRunning:
@@ -200,7 +204,7 @@ Rectangle {
         }
         // A child whose games wait for their logout gets the LaterNote
         // instead.
-        const held = result.later ? "" : box.heldSentence(result.held, result.name);
+        const held = result.later ? "" : box.heldSentence(result.held, result.name, result.removed);
         if (held !== "")
             said.push(held);
         for (let i = 0; i < result.skipped.length; ++i)
@@ -248,6 +252,7 @@ Rectangle {
                     visible: result.modelData.later === true
                     held: result.modelData.held
                     name: result.modelData.name
+                    removed: result.modelData.removed
                 }
             }
         }
