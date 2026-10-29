@@ -53,9 +53,9 @@ void prepare(QProcess& process) {
 CopyJob::CopyJob(QString login, QStringList appIds, Say say)
     : m_login(std::move(login)), m_appIds(std::move(appIds)), m_say(std::move(say)) {}
 
-// --pipe hands the service this program's pipe, so the helper's lines come
-// straight back, and --wait waits for the service to end. --collect lets a
-// failed job's name be used again.
+// Through systemd-run, --pipe hands the service this program's pipe, so the
+// helper's lines come straight back, and --wait waits for the service to
+// end. --collect lets a failed job's name be used again.
 // The helper takes --log-out straight after --copy-games.
 CopyJob::Result CopyJob::run(const Setup& setup, const QString& login, unsigned int uid,
                              const QStringList& appIds, IfLoggedIn ifLoggedIn, const Say& say) {

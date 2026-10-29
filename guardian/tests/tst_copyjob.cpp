@@ -96,6 +96,15 @@ private slots:
         QCOMPARE(m_said, QStringList({"copied ada 620", "copied ada 12"}));
         QCOMPARE(result.copied, QStringList({"620", "12"}));
         QVERIFY(!result.held.has_value());
+        // No systemd-run cleans the environment on this path, so this does.
+        const QString environment = QString::fromUtf8(read("helper-environment"));
+        QVERIFY(environment.contains("PATH=/usr/sbin:/usr/bin\n"));
+        QVERIFY(environment.contains("LC_ALL=C\n"));
+        for (const char* name : {"PKEXEC_UID=", "HOME=", "USER="}) {
+            QVERIFY2(!environment.contains(QLatin1String("\n") + QLatin1String(name)) &&
+                         !environment.startsWith(QLatin1String(name)),
+                     name);
+        }
     }
 
     // A helper that is not there says nothing: held as `not-started`.

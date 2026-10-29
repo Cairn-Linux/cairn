@@ -3,7 +3,8 @@
 #
 # A stand-in for cairn-steam-visit --copy-games [--log-out] CHILD
 # APPID..., for cairn-family save-games' tests. A test links it in a
-# folder of its own. It writes its arguments to "helper-calls" there. It
+# folder of its own. It writes its arguments to "helper-calls" there, and
+# the environment it was given to "helper-environment". It
 # prints the lines in "lines-CHILD" when that file is there, and otherwise
 # "copied APPID" for each appid and then "finished". It waits the seconds
 # in "sleep-CHILD" first and ends with the status in "status-CHILD", or 0.
@@ -15,6 +16,7 @@
 # copy.
 here="${0%/*}"
 echo "$*" >> "$here/helper-calls"
+env > "$here/helper-environment"
 shift
 [ "$1" != --log-out ] || shift
 child="$1"

@@ -431,8 +431,10 @@ It moves to per-child lists when it is reinstalled from the image.
    For 5a: the drop-in fires on Bazzite's systemd under SELinux
    (passed 2026-10-29); `finish-games` can write `/var/lib/cairn`, run
    `restorecon` and run the copy from a system unit (passed 2026-10-29,
-   once the copy stopped going through `systemd-run`); a shutdown with a child waiting does not hang; a logout
-   leads to the new tiles at the next login; a child who logs back in
+   once the copy stopped going through `systemd-run`); a shutdown with a
+   child waiting does not hang (passed 2026-10-29, 6 s); a logout leads to
+   the new tiles at the next login (passed 2026-10-29, after a restart
+   too); a child who logs back in
    within ten seconds keeps waiting; `virsh destroy` mid-finish, then the
    child can log in and the next logout finishes; and whether
    `user-runtime-dir@` stops while a closing session is stuck.
