@@ -79,7 +79,8 @@ What is here:
   same list it asks the child's Steam to save and quit, ends their
   sessions and kills what is left after 15 seconds, saying `logging-out`,
   `logged-out` and `finished`, or `refused stuck` when a program would not
-  end. On the image `cairn-family log-out` runs it as a system job
+  end. It marks the list as a logout's, so a visit, a copy or another
+  logout meanwhile is refused with `logging-out`. On the image `cairn-family log-out` runs it as a system job
   (ADR-0041).
 - `pam.d/`: `cairn-steam-visit`, the session a visit runs in, which no one
   logs in through; and `login`, Fedora's console login with the line that

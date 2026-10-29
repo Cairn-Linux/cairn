@@ -58,8 +58,9 @@
 # "logged-out". "refused stuck" means a program of the child's would not
 # end, and the computer needs a restart; "refused logged-in" means their
 # login still showed after it ended. The child is listed meanwhile, so they
-# cannot log in again halfway, and a visit or a copy refuses it with "busy"
-# or "copying".
+# cannot log in again halfway. A visit, a copy or another logout tried
+# meanwhile is refused with "logging-out"; a logout tried during a visit
+# is refused with "busy", and during a copy with "copying".
 set -ouex pipefail
 
 # The copy of cage that the child may run but not read. Linux will not let
@@ -73,6 +74,8 @@ RUN_DIR=/run/cairn
 VISITS="$RUN_DIR/steam-visits"
 # Says that a copy, not a visit, holds the list. Only this helper reads it.
 COPYING="$RUN_DIR/steam-copy"
+# Says that a grown-up's logout of a child holds the list.
+LOGGING_OUT="$RUN_DIR/steam-logout"
 RUNTIME_ROOT=/run/user
 X11_DIR=/tmp
 
@@ -96,8 +99,10 @@ opened=no
 # wrote the marker that a copy holds the list.
 copying=no
 marked=no
-# Whether this run only logs a child out for a grown-up.
+# Whether this run only logs a child out for a grown-up, and whether it
+# wrote the marker that a logout holds the list.
 logging_out=no
+logout_marked=no
 # A signal only sets this, and the visit ends at the next check. Leaving
 # from inside the trap would end `read -t` before its timer, and bash
 # crashed when that timer went off later, halfway through the close.
@@ -304,10 +309,13 @@ list_child() {
     listed=yes
 }
 
-# Why the list was taken: a copy says so in its marker.
+# Why the list was taken: a copy or a logout says so in its marker. This
+# run's own marker never counts.
 busy_reason() {
-    if [ -e "$COPYING" ]; then
+    if [ "$marked" = no ] && [ -e "$COPYING" ]; then
         echo copying
+    elif [ "$logout_marked" = no ] && [ -e "$LOGGING_OUT" ]; then
+        echo logging-out
     else
         echo busy
     fi
@@ -378,8 +386,12 @@ log_out_only() {
     [ "$(id -u)" = 0 ] || refuse not-root
     take_child "$1"
     make_run_dir
-    list_child || refuse "$(busy_reason)"
+    # The marker first, so that a copy or a visit refused by the list says
+    # why.
+    (set -o noclobber && echo "$child" > "$LOGGING_OUT") 2> /dev/null || refuse logging-out
+    logout_marked=yes
     trap release_copy EXIT
+    list_child || refuse "$(busy_reason)"
     check_list
     if child_logged_in; then
         log_out_child
@@ -392,11 +404,13 @@ log_out_only() {
     exit 0
 }
 
-# A copy ends here, however it ends, and lets the child log in again.
+# A copy or a logout ends here, however it ends, and lets the child log in
+# again.
 release_copy() {
     local status=$?
     [ "$listed" = no ] || rm -f -- "$VISITS"
     [ "$marked" = no ] || rm -f -- "$COPYING"
+    [ "$logout_marked" = no ] || rm -f -- "$LOGGING_OUT"
     return "$status"
 }
 
@@ -472,7 +486,7 @@ copy_games() {
     (set -o noclobber && echo "$child" > "$COPYING") 2> /dev/null || refuse busy
     marked=yes
     trap release_copy EXIT
-    list_child || refuse busy
+    list_child || refuse "$(busy_reason)"
     check_list
     wait_for_logout
     note "copying $child's games"

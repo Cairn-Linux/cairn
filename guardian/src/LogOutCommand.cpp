@@ -17,8 +17,9 @@ bool isPlainLogin(const QString& login) {
 // means a mistake, and is held as `failed`.
 bool isHoldingRefusal(const QString& word) {
     static const QStringList words{
-        QStringLiteral("stuck"), QStringLiteral("logged-in"), QStringLiteral("stopped"),
-        QStringLiteral("busy"),  QStringLiteral("copying"),   QStringLiteral("not-set-up"),
+        QStringLiteral("stuck"),      QStringLiteral("logged-in"), QStringLiteral("stopped"),
+        QStringLiteral("busy"),       QStringLiteral("copying"),   QStringLiteral("logging-out"),
+        QStringLiteral("not-set-up"),
     };
     return words.contains(word);
 }

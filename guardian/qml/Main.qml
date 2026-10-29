@@ -62,6 +62,8 @@ Window {
             return qsTr("A child's Steam is already open on this computer. Press Done in its window first.");
         case SteamForChild.Copying:
             return qsTr("Games are being copied into a child's Steam on this computer. Try again in a minute.");
+        case SteamForChild.LoggingOut:
+            return qsTr("A child is being logged out on this computer. Try again in a moment.");
         case SteamForChild.LoggedIn:
             return qsTr("%1 is logged in. %1 needs to log out first.").arg(child);
         case SteamForChild.StillEnding:

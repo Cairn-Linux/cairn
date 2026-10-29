@@ -45,6 +45,7 @@ public:
         None,
         Busy,
         Copying,
+        LoggingOut,
         LoggedIn,
         StillEnding,
         NotSetUp,

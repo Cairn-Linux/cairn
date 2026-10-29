@@ -131,6 +131,7 @@ source "$HELPER"
 RUN_DIR="$STATE/run/cairn"
 VISITS="$RUN_DIR/steam-visits"
 COPYING="$RUN_DIR/steam-copy"
+LOGGING_OUT="$RUN_DIR/steam-logout"
 RUNTIME_ROOT="$STATE/run/user"
 X11_DIR="$STATE/tmp"
 STEAM_SECONDS=3
@@ -188,6 +189,10 @@ class Scenario:
     @property
     def marker(self):
         return self.state / "run" / "cairn" / "steam-copy"
+
+    @property
+    def logout_marker(self):
+        return self.state / "run" / "cairn" / "steam-logout"
 
     def set(self, name, text):
         (self.state / name).write_text(text + "\n" if text else "")
@@ -756,6 +761,7 @@ class SteamVisitTest(unittest.TestCase):
     def assertLetIn(self):
         self.assertFalse(self.scenario.visits.exists(), "the child can log in again")
         self.assertFalse(self.scenario.marker.exists())
+        self.assertFalse(self.scenario.logout_marker.exists())
 
     def assertLogOutRefused(self, run, reason):
         self.assertEqual(run.said, [f"refused {reason}"])
@@ -891,6 +897,34 @@ class SteamVisitTest(unittest.TestCase):
         self.scenario.visits.write_text("ben\n")
         self.assertLogOutRefused(self.log_out(), "busy")
         self.assertEqual(self.scenario.visits.read_text(), "ben\n", "the visit's list stays")
+
+    def test_a_logout_during_a_visit_leaves_no_marker_of_its_own(self):
+        self.child_logs_in()
+        self.scenario.visits.write_text("ben\n")
+        self.assertLogOutRefused(self.log_out(), "busy")
+        self.assertFalse(self.scenario.logout_marker.exists())
+
+    def test_no_logout_during_another_logout(self):
+        self.child_logs_in()
+        self.scenario.visits.write_text("ben\n")
+        self.scenario.logout_marker.write_text("ben\n")
+        self.assertLogOutRefused(self.log_out(), "logging-out")
+        self.assertEqual(self.scenario.visits.read_text(), "ben\n", "the other logout's list stays")
+        self.assertTrue(self.scenario.logout_marker.exists(), "and so does its marker")
+
+    def test_a_copy_during_a_logout_says_a_child_is_being_logged_out(self):
+        # Not "busy", which the Games page would read as a visit to close.
+        self.scenario.visits.write_text("ben\n")
+        self.scenario.logout_marker.write_text("ben\n")
+        self.assertCopyRefused(self.copy(), "logging-out")
+        self.assertFalse(self.scenario.marker.exists(), "the copy takes its own marker away")
+        self.assertTrue(self.scenario.logout_marker.exists(), "and leaves the logout's")
+
+    def test_a_visit_during_a_logout_says_a_child_is_being_logged_out(self):
+        self.scenario.visits.write_text("ben\n")
+        self.scenario.logout_marker.write_text("ben\n")
+        self.assertRefused(self.scenario.run(), "logging-out")
+        self.assertEqual(self.scenario.visits.read_text(), "ben\n", "the logout's list stays")
 
     def test_no_logout_during_a_copy(self):
         self.child_logs_in()

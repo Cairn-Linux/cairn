@@ -968,7 +968,7 @@ TestCase {
         window.gamesPage.reload();
         verify(!findChild(window, "saveButton").enabled);
         verify(!findChild(window, "putBack").enabled);
-        compare(findChild(window, "loggedInUnsavedSentence").text, "Save waits: changes for a child who is logged in cannot be saved yet. Logged in: Ada. Log them out first, or put back their changes.");
+        compare(findChild(window, "loggedInUnsavedSentence").text, "Save waits: changes for a child who is logged in cannot be saved yet. Logged in: Ada. Log them out first.");
         compare(card(window, 1).onList, true);
     }
 

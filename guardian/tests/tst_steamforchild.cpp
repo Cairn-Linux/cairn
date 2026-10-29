@@ -226,6 +226,7 @@ private slots:
     void eachWordOfTheHelperHasItsReason() {
         QCOMPARE(SteamForChild::reasonFor(QStringLiteral("busy")), Reason::Busy);
         QCOMPARE(SteamForChild::reasonFor(QStringLiteral("copying")), Reason::Copying);
+        QCOMPARE(SteamForChild::reasonFor(QStringLiteral("logging-out")), Reason::LoggingOut);
         QCOMPARE(SteamForChild::reasonFor(QStringLiteral("logged-in")), Reason::LoggedIn);
         QCOMPARE(SteamForChild::reasonFor(QStringLiteral("still-running")), Reason::StillEnding);
         QCOMPARE(SteamForChild::reasonFor(QStringLiteral("not-set-up")), Reason::NotSetUp);

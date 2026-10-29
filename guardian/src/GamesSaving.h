@@ -83,6 +83,7 @@ public:
         LoggedIn,
         VisitOpen,        // busy
         CopyStillRunning, // copying
+        ChildLoggingOut,  // logging-out
         StillRunning,
         Stopped,
         NotSetUp,

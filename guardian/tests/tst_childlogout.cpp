@@ -110,6 +110,8 @@ private slots:
         QTest::newRow("stopped") << "log-out-held-stopped" << ChildLogOut::Reason::StoppedEarly;
         QTest::newRow("a visit") << "log-out-held-busy" << ChildLogOut::Reason::VisitOpen;
         QTest::newRow("a copy") << "log-out-held-copying" << ChildLogOut::Reason::CopyRunning;
+        QTest::newRow("another logout")
+            << "log-out-held-logging-out" << ChildLogOut::Reason::AnotherLogOut;
         QTest::newRow("not set up") << "log-out-held-not-set-up" << ChildLogOut::Reason::NotSetUp;
         QTest::newRow("job not started")
             << "log-out-held-not-started" << ChildLogOut::Reason::NotStarted;

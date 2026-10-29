@@ -34,10 +34,11 @@ public:
     enum class Reason : std::uint8_t {
         NoReason,
         Stuck,
-        StillClosing, // logged-in
-        StoppedEarly, // stopped
-        VisitOpen,    // busy
-        CopyRunning,  // copying
+        StillClosing,  // logged-in
+        StoppedEarly,  // stopped
+        VisitOpen,     // busy
+        CopyRunning,   // copying
+        AnotherLogOut, // logging-out
         NotSetUp,
         NotStarted,
         Dismissed,

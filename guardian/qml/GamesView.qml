@@ -136,7 +136,7 @@ Column {
     Words {
         objectName: "loggedInUnsavedSentence"
         visible: view.hasChildren && view.page.loggedInUnsavedNames !== "" && !view.busy
-        text: qsTr("Save waits: changes for a child who is logged in cannot be saved yet. Logged in: %1. Log them out first, or put back their changes.").arg(view.page.loggedInUnsavedNames)
+        text: qsTr("Save waits: changes for a child who is logged in cannot be saved yet. Logged in: %1. Log them out first.").arg(view.page.loggedInUnsavedNames)
     }
 
     // The child picked: their Steam, their list and the games, greyed and

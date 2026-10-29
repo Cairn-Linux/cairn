@@ -118,6 +118,8 @@ SteamForChild::Reason SteamForChild::reasonFor(const QString& refusal) {
         {QStringLiteral("busy"), Reason::Busy},
         // Provisioning is copying games into the child's library (ADR-0033).
         {QStringLiteral("copying"), Reason::Copying},
+        // A grown-up is logging a child out from the Games page (ADR-0041).
+        {QStringLiteral("logging-out"), Reason::LoggingOut},
         {QStringLiteral("logged-in"), Reason::LoggedIn},
         {QStringLiteral("still-running"), Reason::StillEnding},
         {QStringLiteral("not-set-up"), Reason::NotSetUp},

@@ -6,9 +6,10 @@ import Cairn.Family
 
 // A Save's progress window (ADR-0041): from the password box to the end it
 // covers the whole Family window, so nothing else can be changed meanwhile.
-// It says what the Save is doing, names each game as it is copied, and, for
-// a Save that copies games, warns not to log out or close the lid. At the
-// end it says what the Save did, and Close puts it away.
+// It says what the Save is doing, names each game as it is copied, and,
+// while any Save runs, warns not to log out or close the lid: logging out
+// would end even a Save that only takes games off before the lists are
+// written. At the end it says what the Save did, and Close puts it away.
 Item {
     id: progress
 

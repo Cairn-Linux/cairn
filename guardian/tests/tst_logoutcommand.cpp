@@ -128,6 +128,7 @@ private slots:
         QTest::newRow("stopped") << QByteArray("logging-out\nrefused stopped\n") << "stopped";
         QTest::newRow("a visit") << QByteArray("refused busy\n") << "busy";
         QTest::newRow("a copy") << QByteArray("refused copying\n") << "copying";
+        QTest::newRow("another logout") << QByteArray("refused logging-out\n") << "logging-out";
         QTest::newRow("not set up") << QByteArray("refused not-set-up\n") << "not-set-up";
         QTest::newRow("a mistake") << QByteArray("refused not-for-pkexec\n") << "failed";
         QTest::newRow("no last word") << QByteArray("logging-out\n") << "failed";

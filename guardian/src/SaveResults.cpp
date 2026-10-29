@@ -19,6 +19,7 @@ GamesSaving::Held heldFor(const QString& word) {
         {QStringLiteral("logged-in"), GamesSaving::Held::LoggedIn},
         {QStringLiteral("busy"), GamesSaving::Held::VisitOpen},
         {QStringLiteral("copying"), GamesSaving::Held::CopyStillRunning},
+        {QStringLiteral("logging-out"), GamesSaving::Held::ChildLoggingOut},
         {QStringLiteral("still-running"), GamesSaving::Held::StillRunning},
         {QStringLiteral("stopped"), GamesSaving::Held::Stopped},
         {QStringLiteral("not-set-up"), GamesSaving::Held::NotSetUp},

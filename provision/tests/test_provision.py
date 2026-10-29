@@ -699,6 +699,7 @@ class CopyGamesStepTest(unittest.TestCase):
             "unnumbered": "has no game number",
             "refused logged-in": "ada is logged in; their games are copied at the next run with ada logged out",
             "refused busy": "a child's Steam is open from a grown-up's login",
+            "refused logging-out": "a grown-up is logging a child out",
             "refused still-running": "a program of ada's is still running",
             "refused not-set-up": "is not labelled yet",
             "refused stopped": "the helper refused: stopped",

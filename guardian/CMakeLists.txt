@@ -127,6 +127,7 @@ set(family_window_qml_files
     qml/ChildChoice.qml
     qml/GameCard.qml
     qml/SaveOutcome.qml
+    qml/SaveResultWords.qml
     qml/SaveProgress.qml
     qml/LoggedInCover.qml
     qml/ChildRow.qml

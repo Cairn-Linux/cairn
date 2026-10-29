@@ -15,6 +15,7 @@ ChildLogOut::Reason reasonFor(const QString& word) {
         {QStringLiteral("stopped"), Reason::StoppedEarly},
         {QStringLiteral("busy"), Reason::VisitOpen},
         {QStringLiteral("copying"), Reason::CopyRunning},
+        {QStringLiteral("logging-out"), Reason::AnotherLogOut},
         {QStringLiteral("not-set-up"), Reason::NotSetUp},
         {QStringLiteral("not-started"), Reason::NotStarted},
         {QStringLiteral("dismissed"), Reason::Dismissed},

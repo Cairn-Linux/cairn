@@ -65,6 +65,8 @@ Rectangle {
             return qsTr("Steam for a child is open from a grown-up's login, so %1 was not logged out. Press Done in that window, then try again.").arg(name);
         case ChildLogOut.CopyRunning:
             return qsTr("Games are being copied to a child, so %1 was not logged out. Wait a few minutes, then try again.").arg(name);
+        case ChildLogOut.AnotherLogOut:
+            return qsTr("A child is being logged out from another window, so %1 was not logged out. Wait a moment, then try again.").arg(name);
         case ChildLogOut.NotSetUp:
             return qsTr("%1 was not logged out: the list that keeps a child from logging in meanwhile is not set up on this computer. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-steam-visit").arg(name);
         case ChildLogOut.NotStarted:

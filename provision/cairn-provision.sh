@@ -701,6 +701,7 @@ not_copying_because() {
     case "$1" in
         logged-in) echo "$child is logged in; their games are copied at the next run with $child logged out" ;;
         busy) echo "a child's Steam is open from a grown-up's login; $child's games are copied at the next run" ;;
+        logging-out) echo "a grown-up is logging a child out; $child's games are copied at the next run" ;;
         still-running) echo "a program of $child's is still running; their games are copied at the next run" ;;
         not-set-up) echo "no games are copied for $child; the list that keeps a child from logging in meanwhile is not labelled yet" ;;
         *) echo "no games are copied for $child; the helper refused: $1" ;;

@@ -22,8 +22,9 @@ bool isCondition(const QString& line) {
 // is held as `failed`.
 bool isHoldingRefusal(const QString& word) {
     static const QStringList words{
-        QStringLiteral("logged-in"),     QStringLiteral("busy"),    QStringLiteral("copying"),
-        QStringLiteral("still-running"), QStringLiteral("stopped"), QStringLiteral("not-set-up"),
+        QStringLiteral("logged-in"),   QStringLiteral("busy"),          QStringLiteral("copying"),
+        QStringLiteral("logging-out"), QStringLiteral("still-running"), QStringLiteral("stopped"),
+        QStringLiteral("not-set-up"),
     };
     return words.contains(word);
 }

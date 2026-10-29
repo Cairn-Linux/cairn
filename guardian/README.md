@@ -66,8 +66,10 @@ The Games page (ADR-0041):
    progress window over the whole Family window, so nothing else changes
    meanwhile. It says what the Save is doing, such as "Copying games for
    Ada.", names each game as it is copied, read from the command's lines
-   as they come, and for a Save that copies games says "Do not log out
-   or close the lid until this is finished." Then one sentence says it
+   as they come, and while any Save runs says "Do not log out or close
+   the lid until this is finished." A Save that only takes games off
+   copies nothing and takes no lock, but logging out would still end it
+   before the lists are written. Then one sentence says it
    was saved, or why nothing was, and one for each child says what their
    list holds now and what held their new games back, or which game was
    not given and why. **Close**, or Escape once it has ended, puts it
@@ -95,8 +97,9 @@ only logs Ada out. The page asks systemd-logind who is logged in, and
 asks again when logind says a session came or went, so the card goes as
 soon as Ada is out. When a program of Ada's would not close, the card
 says to restart the computer. A child who logs in while their changes
-wait keeps them, but Save waits until they are logged out, and the page
-says why. A child who logs in after the page looked is still held
+wait keeps them, but Save waits, for every child, until they are logged
+out, and the page says why; their Put back waits too, so logging them
+out is the way on. A child who logs in after the page looked is still held
 `logged-in` by `cairn-family`, and the Save's result says so.
 
 The window's notes and the error output of `cairn-family`'s tools go to
@@ -209,8 +212,8 @@ word, which means nothing changed: the words above, `bad-appid` or `busy`.
 `log-out LOGIN` checks the caller and that the login is a child Cairn
 made, then runs `cairn-steam-visit --log-out CHILD` as a system job. It
 says `logging-out LOGIN` and `logged-out LOGIN`, or `held LOGIN WORD`
-(`stuck`, `logged-in`, `stopped`, `busy`, `copying`, `not-set-up`,
-`not-started` or `failed`) when the child is not logged out, then
+(`stuck`, `logged-in`, `stopped`, `busy`, `copying`, `logging-out`,
+`not-set-up`, `not-started` or `failed`) when the child is not logged out, then
 `done`; `refused WORD` means it was not tried.
 
 `create-child` removes a new child's old games file first.
@@ -252,7 +255,7 @@ QML draws, C++ decides (ADR-0002):
 | `src/PkexecAnswer` | pkexec's own two exit codes, for both runners of `cairn-family`. |
 | `src/GamePicture` | A game's picture from its games file entry, with the launcher's rule: only the full path of a file here. |
 | `qml/FamilyWindow.qml`, `qml/ChildrenView.qml`, `qml/GamesView.qml` | The Guardian tool's window with its switch between pages, its Children page with the sentence for every answer, and its Games page. |
-| `qml/ChildChoice.qml`, `qml/GameCard.qml`, `qml/SaveOutcome.qml` | A child to pick on the Games page, one game in its grid, and the sentences for a Save. |
+| `qml/ChildChoice.qml`, `qml/GameCard.qml`, `qml/SaveOutcome.qml`, `qml/SaveResultWords.qml` | A child to pick on the Games page, one game in its grid, the sentences for a Save, and its words for what each child got. |
 | `qml/ChildGames.qml`, `qml/LoggedInCover.qml`, `qml/SaveProgress.qml` | The picked child's Steam, list and games, greyed and blurred while they are logged in; the card over them; and the Save's progress window, with the lid warning and Close. |
 | `qml/ChildRow.qml`, `qml/AddChildForm.qml`, `qml/LabelledField.qml`, `qml/LevelChoice.qml` | A child on the list, the Add form, a text field with its label, and one level to pick. |
 | `qml/TextButton.qml` | The button both windows use. |

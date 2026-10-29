@@ -484,6 +484,17 @@ private slots:
         QCOMPARE(states(*page), QStringList({"1001=added", "1002=on", "1003=off"}));
     }
 
+    // A copy refused because a child is being logged out is not a visit
+    // the parent could close.
+    void aCopyDuringALogoutIsHeldForIt() {
+        const auto page = makePage();
+        page->turn("1001");
+        saveWith(*page, "save-held-logging-out");
+        const QVariantMap ada = page->saving()->results().constFirst().toMap();
+        QCOMPARE(ada.value("held").toInt(), static_cast<int>(GamesSaving::Held::ChildLoggingOut));
+        QVERIFY(page->canSave());
+    }
+
     void skippedGamesAreNamed() {
         const auto page = makePage();
         page->turn("1001");

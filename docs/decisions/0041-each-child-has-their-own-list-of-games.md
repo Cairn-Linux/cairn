@@ -111,8 +111,11 @@ games on their list.**
   LOGIN` runs `cairn-steam-visit --log-out CHILD`, which only logs the
   child out and copies nothing.
   It lists the child first, so PAM refuses a new login of theirs until it
-  ends, and a visit or a copy meanwhile refuses it as `busy` or
-  `copying`.
+  ends.
+  It writes its own marker first, as a copy does, so a visit, a copy or
+  another logout meanwhile is refused as `logging-out`, not as `busy`,
+  which the page would read as a visit to close; a logout tried during
+  a visit or a copy is refused as `busy` or `copying`.
   It says `logging-out`, asks the child's Steam to save and quit when it
   is running, ends the child's account with `loginctl terminate-user`,
   kills what is left after 15 seconds, and gives a closing login 5
@@ -175,7 +178,8 @@ a Steam name or a path:
 | `done` | The last line of a Save |
 | `refused WORD` | Nothing changed |
 
-`held` is one of `logged-in`, `busy` (a visit), `copying`, `still-running`,
+`held` is one of `logged-in`, `busy` (a visit), `copying`, `logging-out`
+(a grown-up is logging a child out), `still-running`,
 `stopped`, `not-set-up`, `no-library`, `no-shared`, `lists-shared`,
 `unreadable-config`, `no-reflink`, `failed`, `not-started` (the job, or
 its inhibitor lock, could not start) or
@@ -197,8 +201,9 @@ running.
 `logged-out LOGIN` once they are out, with the login from its own
 argument, never from the helper.
 A logout that did not finish is one line `held LOGIN WORD`: `stuck`,
-`logged-in`, `stopped`, `busy`, `copying` or `not-set-up` as the helper
-said it, `not-started` when the job never started, or `failed`.
+`logged-in`, `stopped`, `busy`, `copying`, `logging-out` or `not-set-up`
+as the helper said it, `not-started` when the job never started, or
+`failed`.
 Then `done`.
 `refused` is one of `not-root`, `not-a-grown-up`, `usage`, `bad-name` or
 `not-a-child`, and means nothing was tried.
@@ -228,7 +233,8 @@ out mid-copy lost their choice.
   says "Ada is still logged in. Log Ada out, then choose their games.",
   with **Log Ada out**.
   "Open Steam for Ada" waits too.
-  The other children, Save for them, and Look for new games stay.
+  The other children, Save for them, and Look for new games stay, unless
+  a logged-in child has changes waiting (below).
   Where blur cannot be drawn, the fade alone says the games wait.
 - **Log Ada out** warns first: "Log Ada out? Anything Ada has not saved
   in a game or program is lost. Steam is asked to save first.", with
@@ -247,18 +253,21 @@ out mid-copy lost their choice.
   A closed password box, a visit or copy running, and the rest each have
   their own plain sentence.
 - **A child who logs in while their changes wait** keeps the changes,
-  but Save waits until every child with changes is logged out, and the
-  page says "Save waits: changes for a child who is logged in cannot be
-  saved yet. Logged in: Ada. Log them out first, or put back their
-  changes."
+  but Save waits, for every child, until every child with changes is
+  logged out, and the page says "Save waits: changes for a child who is
+  logged in cannot be saved yet. Logged in: Ada. Log them out first."
+  Put back waits too, as everything of a logged-in child's does: one
+  rule, so logging the child out is the one way on.
 - **A child who logs in between the page's look and the copy** is still
   refused safely: the Save writes the games taken off, the copy is held
   `logged-in`, the result says so, and the page then greys their games.
 - **The Save's progress window.** Save opens a window over the whole
   Family window, so nothing else changes meanwhile.
   It says what the Save is doing, names each game as it is copied
-  ("Copied Portal 2 for Ada."), and, for a Save that copies games, says
+  ("Copied Portal 2 for Ada."), and, for as long as any Save runs, says
   "Do not log out or close the lid until this is finished."
+  A Save that only takes games off copies nothing and takes no lock, but
+  logging out would still end it before the lists are written.
   At the end it shows the Save's own result sentences and Close.
   Escape closes it only once the Save has ended.
   The copy holds the inhibitor lock above, so closing the lid does not
@@ -409,8 +418,11 @@ It moves to per-child lists when it is reinstalled from the image.
 - If `cairn-family` itself is ended after a copy starts, by a Guardian
   logging out, the copy finishes but the child's list is not written,
   and nothing writes it down for later.
-  The page shows the games still chosen and not saved; the next Save
-  finds them as `have` and writes the list.
+  The window's choices are kept nowhere else, so the child's list holds
+  only the games taken off; the games copied stay in the child's library
+  but give no tile.
+  The parent chooses them again and saves, and that Save finds them as
+  `have` and writes the list.
   The progress window's warning is the only guard; moving the whole Save
   into a system job would be a separate decision.
 - The inhibitor lock blocks sleep and logind's lid handling, not
