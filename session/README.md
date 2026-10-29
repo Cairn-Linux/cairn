@@ -74,7 +74,11 @@ What is here:
   program's fixed lines (ADR-0033). It notes each line but `have`, and why
   a copy was refused or failed, in the journal. A visit tried meanwhile is
   refused with `copying`, and the Guardian's window says games are being
-  copied.
+  copied. `--copy-games --log-out CHILD APPID...` is the same copy for a
+  child who is logged in: once the child is listed it says `logging-out`,
+  lets Steam save, ends the child's account as a visit's close does, says
+  `logged-out` and copies. It refuses `stuck` when a program of the
+  child's would not end, and frees the list however it ends (ADR-0041).
 - `pam.d/`: `cairn-steam-visit`, the session a visit runs in, which no one
   logs in through; and `login`, Fedora's console login with the line that
   refuses a child on a visit, as the greeter's file has.

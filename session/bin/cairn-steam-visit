@@ -44,6 +44,22 @@
 # copied. A visit tried meanwhile is refused with "copying". Provisioning
 # prints only sentences of its own, so a copy also leaves a record of each of
 # these lines but "have" in the journal, and of why it was refused or failed.
+#
+# A grown-up who chose "Log them out now" for a child who is logged in has
+# the copy log the child out first (ADR-0041):
+#
+#   /usr/local/libexec/cairn/cairn-steam-visit --copy-games --log-out CHILD APPID...
+#
+# Only once the child is listed, so they cannot log in again, it says
+# "logging-out", asks Steam to save and quit, and ends the child's own
+# account as a visit's close does. Then it says "logged-out" and copies as
+# above. "refused stuck" means a program of the child would not end, so
+# nothing was copied and the computer needs a restart; "refused logged-in"
+# here means their ended login was still closing after a few seconds, and
+# "refused stopped" that a signal came mid-logout. A child who is not
+# logged in is copied for with no logout, and an empty list logs nobody
+# out. "--log-out" goes straight after "--copy-games", once, and never with
+# "--all"; anywhere else it is refused with "refused usage".
 set -ouex pipefail
 
 # The copy of cage that the child may run but not read. Linux will not let
@@ -64,6 +80,8 @@ X11_DIR=/tmp
 # child's last programs get to end before they are killed.
 STEAM_SECONDS=25
 END_SECONDS=15
+# How long a login that loginctl has ended may still show while it closes.
+CLOSE_SECONDS=5
 
 caller=""
 child=""
@@ -191,6 +209,22 @@ shut_down_steam() {
     done
 }
 
+# Ends every session of the child's and their service manager, then kills
+# whatever of theirs is left. False when a program of theirs still would
+# not end. Each step goes ahead whatever the one before it answered.
+end_child() {
+    loginctl terminate-user "$child" || true
+    if ! wait_for_no_processes "$END_SECONDS"; then
+        pkill --signal KILL --uid "$child_uid" || true
+        wait_for_no_processes 5 || true
+    fi
+    # A killed Xwayland leaves its socket and lock behind, and the next
+    # shut_down_steam would take that socket for the child's display.
+    find "$X11_DIR/.X11-unix" -maxdepth 1 -name 'X*' -user "$child_uid" -delete 2> /dev/null || true
+    find "$X11_DIR" -maxdepth 1 -name '.X*-lock' -user "$child_uid" -delete 2> /dev/null || true
+    ! child_has_processes
+}
+
 # Every ending of a visit comes here, once (ADR-0032). Before the visit
 # started, taking the child off the list is all there is to undo.
 close_visit() {
@@ -207,15 +241,7 @@ close_visit() {
     # The visit's session and the child's service manager. The child has no
     # other session: the visit opened only while they had none, and PAM
     # refuses their login until the list below no longer names them.
-    loginctl terminate-user "$child"
-    if ! wait_for_no_processes "$END_SECONDS"; then
-        pkill --signal KILL --uid "$child_uid"
-        wait_for_no_processes 5
-    fi
-    # cage's Xwayland leaves its socket and lock behind when it is killed.
-    find "$X11_DIR/.X11-unix" -maxdepth 1 -name 'X*' -user "$child_uid" -delete 2> /dev/null
-    find "$X11_DIR" -maxdepth 1 -name '.X*-lock' -user "$child_uid" -delete 2> /dev/null
-    if child_has_processes; then
+    if ! end_child; then
         # The child stays refused at login until a restart empties /run.
         note "$child's Steam visit could not close: a program of theirs would not end; restart the computer"
         say stuck
@@ -308,6 +334,38 @@ wait_for_logout() {
     [ "$stopping" = no ] || refuse stopped
 }
 
+# True once the child has no login left, or false after SECONDS or a
+# signal.
+wait_for_no_login() {
+    local seconds="$1"
+    for _ in $(seq "$seconds"); do
+        [ "$stopping" = no ] || return 1
+        child_logged_in || return 0
+        sleep 1
+    done
+    ! child_logged_in
+}
+
+# A grown-up chose "Log them out now" (ADR-0041). Only once the child is
+# listed, so PAM refuses a new login of theirs from here until the copy
+# ends. Steam gets its moment to save first, as at a visit's close.
+log_out_child() {
+    [ "$stopping" = no ] || refuse stopped
+    say logging-out
+    note "logging $child out to copy their games"
+    shut_down_steam
+    [ "$stopping" = no ] || refuse stopped
+    if ! end_child; then
+        note "$child could not be logged out: a program of theirs would not end; restart the computer"
+        refuse stuck
+    fi
+    if ! wait_for_no_login "$CLOSE_SECONDS"; then
+        [ "$stopping" = no ] || refuse stopped
+        refuse logged-in
+    fi
+    say logged-out
+}
+
 # A copy ends here, however it ends, and lets the child log in again.
 release_copy() {
     local status=$?
@@ -355,7 +413,20 @@ run_copy() {
 # ends.
 copy_games() {
     copying=yes
+    # "Log them out now" (ADR-0041): straight after --copy-games, once, and
+    # for a list only, so it can never come with every game.
+    local log_out=no word
+    if [ "${1:-}" = --log-out ]; then
+        log_out=yes
+        shift
+    fi
     [ "$#" -ge 1 ] || refuse usage
+    for word in "$@"; do
+        [ "$word" != --log-out ] || refuse usage
+        if [ "$log_out" = yes ] && [ "$word" = --all ]; then
+            refuse usage
+        fi
+    done
     # A visit's polkit action must not become a way to start copies: pkexec
     # always sets PKEXEC_UID, and no caller can take it away. The one route
     # from a password box is cairn-family save-games, whose own polkit
@@ -390,6 +461,9 @@ copy_games() {
     trap release_copy EXIT
     list_child || refuse busy
     check_list
+    if [ "$log_out" = yes ] && child_logged_in; then
+        log_out_child
+    fi
     wait_for_logout
     note "copying $child's games"
     if run_copy "$@"; then
