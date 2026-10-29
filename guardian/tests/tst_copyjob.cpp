@@ -82,6 +82,33 @@ private slots:
         }
     }
 
+    // From a unit of its own, finish-games runs the helper itself, with
+    // the same arguments and nothing of this program's environment.
+    void runsTheHelperInThisUnit() {
+        const CopyJob::Setup setup{.systemdRun = path("systemd-run"),
+                                   .visitHelper = path("cairn-steam-visit"),
+                                   .runs = CopyJob::Runs::InThisUnit};
+        const CopyJob::Result result =
+            CopyJob::run(setup, "ada", 1002, {"620", "12"}, CopyJob::IfLoggedIn::Hold,
+                         [this](const QString& line) { m_said.append(line); });
+        QVERIFY(!QFile::exists(path("systemd-run-calls")));
+        QCOMPARE(lines("helper-calls"), QStringList({"--copy-games ada 620 12"}));
+        QCOMPARE(m_said, QStringList({"copied ada 620", "copied ada 12"}));
+        QCOMPARE(result.copied, QStringList({"620", "12"}));
+        QVERIFY(!result.held.has_value());
+    }
+
+    // A helper that is not there says nothing: held as `not-started`.
+    void aMissingHelperInThisUnitIsNotStarted() {
+        QVERIFY(QFile::remove(path("cairn-steam-visit")));
+        const CopyJob::Setup setup{.systemdRun = path("systemd-run"),
+                                   .visitHelper = path("cairn-steam-visit"),
+                                   .runs = CopyJob::Runs::InThisUnit};
+        const CopyJob::Result result = CopyJob::run(
+            setup, "ada", 1002, {"620"}, CopyJob::IfLoggedIn::Hold, [](const QString&) {});
+        QCOMPARE(result.held, std::optional<QString>("not-started"));
+    }
+
     // A child the parent chose to log out: --log-out goes straight after
     // --copy-games, and nowhere else.
     void logsOutWhenAsked() {

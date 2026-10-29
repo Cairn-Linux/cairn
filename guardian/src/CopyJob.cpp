@@ -66,17 +66,23 @@ CopyJob::Result CopyJob::run(const Setup& setup, const QString& login, unsigned 
     if (ifLoggedIn == IfLoggedIn::LogOut) {
         helper.append(QStringLiteral("--log-out"));
     }
+    helper += QStringList{login} + appIds;
     QProcess process;
     prepare(process);
-    process.start(
-        setup.systemdRun,
-        QStringList{
-            QStringLiteral("--quiet"), QStringLiteral("--collect"), QStringLiteral("--wait"),
-            QStringLiteral("--pipe"), QStringLiteral("--no-ask-password"),
-            QStringLiteral("--service-type=exec"), QStringLiteral("--expand-environment=no"),
-            QStringLiteral("--unit=cairn-copy-games-%1").arg(uid),
-            QStringLiteral("--description=Cairn copies games to a child"), QStringLiteral("--")} +
-            helper + QStringList{login} + appIds);
+    if (setup.runs == Runs::InThisUnit) {
+        process.start(helper.takeFirst(), helper);
+    } else {
+        process.start(setup.systemdRun,
+                      QStringList{QStringLiteral("--quiet"), QStringLiteral("--collect"),
+                                  QStringLiteral("--wait"), QStringLiteral("--pipe"),
+                                  QStringLiteral("--no-ask-password"),
+                                  QStringLiteral("--service-type=exec"),
+                                  QStringLiteral("--expand-environment=no"),
+                                  QStringLiteral("--unit=cairn-copy-games-%1").arg(uid),
+                                  QStringLiteral("--description=Cairn copies games to a child"),
+                                  QStringLiteral("--")} +
+                          helper);
+    }
 
     CopyJob job(login, appIds, say);
     job.read(process);
@@ -90,8 +96,8 @@ CopyJob::Result CopyJob::run(const Setup& setup, const QString& login, unsigned 
         const QString word = job.m_ending->mid(QStringLiteral("refused ").size());
         result.held = isHoldingRefusal(word) ? word : QStringLiteral("failed");
     } else if (!job.m_ending && job.m_lines == 0) {
-        // systemd-run said nothing of the helper's: the name is still taken
-        // by an earlier copy, the helper is missing, or systemd is not there.
+        // Nothing of the helper's came: systemd-run's name is still taken by
+        // an earlier copy, the helper is missing, or systemd is not there.
         result.held = QStringLiteral("not-started");
     } else {
         result.held = result.held.value_or(QStringLiteral("failed"));
