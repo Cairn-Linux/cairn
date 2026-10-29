@@ -3,6 +3,7 @@
 
 #include "Account.h"
 #include "FinishedSave.h"
+#include "WaitingSave.h"
 
 #include <QHash>
 #include <QObject>
@@ -46,6 +47,9 @@ public:
     // the list their file holds.
     QStringList baseline(const QString& login) const;
     bool isWaiting(const QString& login) const;
+    // True when the child has no waiting file at all. A file that fails a
+    // check is not waiting, but its wait has not ended either.
+    bool waitEnded(const QString& login) const;
     // The list the child's own file holds now: the games they have.
     QStringList saved(const QString& login) const;
 
@@ -70,6 +74,7 @@ private:
         QStringList saved;
         std::optional<QStringList> waiting;
         std::optional<FinishedSave::Finished> finished;
+        WaitingSave::Found found = WaitingSave::Found::Nothing;
     };
 
     void watch();

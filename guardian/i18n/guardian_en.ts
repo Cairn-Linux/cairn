@@ -354,7 +354,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="212"/>
+        <location filename="../qml/GamesView.qml" line="213"/>
         <source>Games in the shared folder</source>
         <translation type="unfinished"></translation>
     </message>
@@ -362,42 +362,42 @@
 <context>
     <name>LaterNote</name>
     <message>
-        <location filename="../qml/LaterNote.qml" line="22"/>
-        <source>%1 is logged in, so %1&apos;s new games could not be copied yet.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <location filename="../qml/LaterNote.qml" line="24"/>
-        <source>A program of %1&apos;s was still running from %1&apos;s last login, so %1&apos;s new games could not be copied yet.</source>
+        <source>%1 was logged in, so %1&apos;s new games could not be copied yet.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/LaterNote.qml" line="26"/>
-        <source>Copying %1&apos;s games was stopped before it began.</source>
+        <source>A program of %1&apos;s was still running from %1&apos;s last login, so %1&apos;s new games could not be copied yet.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/LaterNote.qml" line="28"/>
-        <source>The copy for %1 could not start.</source>
+        <source>Copying %1&apos;s games was stopped before it began.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/LaterNote.qml" line="30"/>
+        <source>The copy for %1 could not start.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/LaterNote.qml" line="32"/>
         <source>%1&apos;s new games could not be copied yet.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/LaterNote.qml" line="44"/>
+        <location filename="../qml/LaterNote.qml" line="46"/>
         <source>%1&apos;s new games are copied the next time %1 logs out. You do not need to do anything else.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/LaterNote.qml" line="47"/>
+        <location filename="../qml/LaterNote.qml" line="49"/>
         <source>The games taken off are already gone from %1&apos;s list.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/LaterNote.qml" line="43"/>
+        <location filename="../qml/LaterNote.qml" line="45"/>
         <source>One of %1&apos;s programs would not close. Restart the computer. %1&apos;s new games are copied the next time %1 logs out.</source>
         <translation type="unfinished"></translation>
     </message>

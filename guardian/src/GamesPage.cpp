@@ -3,7 +3,6 @@
 
 #include "SaveResults.h"
 
-#include <algorithm>
 #include <utility>
 
 GamesPage::GamesPage(Setup setup, QObject* parent)
@@ -76,6 +75,10 @@ int GamesPage::goneCount() const {
 
 bool GamesPage::chosenWaiting() const {
     return m_lists->isWaiting(m_chosen);
+}
+
+bool GamesPage::chosenSettled() const {
+    return m_saving->settled(m_chosen);
 }
 
 QVariantMap GamesPage::finished() const {
@@ -184,12 +187,12 @@ void GamesPage::reload() {
     }
     readShelf();
     m_choices.keepOnly(loginsOf(m_children), m_shelf.sharedIds());
-    // A child the outcome says still waits, whose waiting list is settled,
-    // makes the whole outcome out of date, as a change by the parent does.
-    const QStringList later = m_saving->laterLogins();
-    if (std::ranges::any_of(later,
-                            [this](const QString& login) { return !m_lists->isWaiting(login); })) {
-        m_saving->clearOutcome();
+    // A child the outcome says still waits, whose waiting file is gone,
+    // has had the copy at their logout: the outcome stops speaking for them.
+    for (const QString& login : m_saving->laterLogins()) {
+        if (m_lists->waitEnded(login)) {
+            m_saving->settle(login);
+        }
     }
     if (!sameChildren) {
         emit listedChildrenChanged();

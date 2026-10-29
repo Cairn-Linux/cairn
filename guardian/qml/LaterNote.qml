@@ -15,11 +15,13 @@ Text {
     required property string name
     required property int removed
 
-    // Why the games wait, for each held word a logout settles.
+    // Why the games wait, for each held word a logout settles. Each says
+    // what was so at the Save, so it stays true after the child logs out,
+    // even when the copy then has to wait for another logout.
     function reason() {
         switch (note.held) {
         case GamesSaving.LoggedIn:
-            return qsTr("%1 is logged in, so %1's new games could not be copied yet.").arg(note.name);
+            return qsTr("%1 was logged in, so %1's new games could not be copied yet.").arg(note.name);
         case GamesSaving.StillRunning:
             return qsTr("A program of %1's was still running from %1's last login, so %1's new games could not be copied yet.").arg(note.name);
         case GamesSaving.Stopped:

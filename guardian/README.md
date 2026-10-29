@@ -97,10 +97,13 @@ for Ada to log out", a note says they are copied at the next logout, and
 Save stays off until something changes. Once the copy at the logout has
 run, a note says it worked, with its date, or what stopped it, until the
 next Save for that child. An open page follows both as they happen.
-When a child the last Save left waiting no longer waits, that Save's
-outcome ends, so it never says games are still to come once they have
-come, and the note about the logout shows instead. The sentences say the
-games taken off are already gone only when the Save took some off.
+When the waiting file of a child the last Save left waiting is gone,
+that Save's outcome leaves the child out, so it never says games are
+still to come once they have come, and the note about the logout shows
+for them. The other children's sentences stay, and the outcome ends once
+it speaks for no child. A waiting file that fails the page's checks ends
+nothing. The sentences say the games taken off are already gone only
+when the Save took some off.
 
 Before the password box opens, the page asks systemd-logind, without
 root, who is logged in (ADR-0041, step 5c). For each child with a new

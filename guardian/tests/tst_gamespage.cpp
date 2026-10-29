@@ -618,6 +618,51 @@ private slots:
         QVERIFY(!page->chosenWaiting());
     }
 
+    // Two children wait; once Ada's wait has ended, the outcome leaves her
+    // out but still speaks for Ben, and ends once Ben's has too.
+    void aSettledChildLeavesTheOthersInTheOutcome() {
+        const auto page = makePage();
+        page->turn("1001");
+        page->choose("ben");
+        page->turn("1001");
+        page->choose("ada");
+        saveWith(*page, "save-held-later");
+        QCOMPARE(page->saving()->laterLogins(), QStringList({"ada", "ben"}));
+        QCOMPARE(page->saving()->results().size(), 2);
+        QVERIFY(!page->chosenSettled());
+        QVERIFY(QFile::remove(path("games-waiting/ada")));
+        finish("ada", "copied ada 1001\nchild ada added 1 removed 0\n",
+               QDateTime::currentDateTime());
+        QTRY_COMPARE_WITH_TIMEOUT(page->saving()->laterLogins(), QStringList({"ben"}),
+                                  kAnswerMilliseconds);
+        QCOMPARE(page->saving()->step(), GamesSaving::Step::Saved);
+        const QVariantList results = page->saving()->results();
+        QCOMPARE(results.size(), 1);
+        QCOMPARE(results.constFirst().toMap().value("login").toString(), "ben");
+        QVERIFY(page->chosenSettled());
+        QVERIFY(!page->finished().isEmpty());
+        QVERIFY(QFile::remove(path("games-waiting/ben")));
+        QTRY_COMPARE_WITH_TIMEOUT(page->saving()->step(), GamesSaving::Step::Ready,
+                                  kAnswerMilliseconds);
+        QVERIFY(!page->chosenSettled());
+    }
+
+    // A waiting file that fails the page's checks is not the end of the
+    // wait, so the outcome stays and still speaks for the child.
+    void aRefusedWaitingFileKeepsTheOutcome() {
+        const auto page = makePage();
+        page->turn("1001");
+        saveWith(*page, "save-held-later");
+        QCOMPARE(page->saving()->laterLogins(), QStringList({"ada"}));
+        write(path("games-waiting/ada"), "ben=1001\n");
+        page->reload();
+        QVERIFY(!page->chosenWaiting());
+        QCOMPARE(page->saving()->step(), GamesSaving::Step::Saved);
+        QCOMPARE(page->saving()->laterLogins(), QStringList({"ada"}));
+        QCOMPARE(page->saving()->results().size(), 1);
+        QVERIFY(!page->chosenSettled());
+    }
+
     // A Save that left no child waiting is not ended by a logout.
     void aSaveWithNoWaitIsKept() {
         const auto page = makePage();
