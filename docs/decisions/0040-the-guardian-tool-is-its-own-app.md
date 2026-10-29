@@ -8,7 +8,8 @@ The names `cairn-guardian` and "Family" are now the program's names.
 **Date:** 2026-10-23
 **Closes:** (none) — the second slice of issue #167; part of ROADMAP P1-5
 **Amended by:** ADR-0041, proposed (a Games page beside Children; the
-switch between them and a read-only Games page landed 2026-10-28)
+switch between them and a read-only Games page landed 2026-10-28, and
+highlighting games and Save the same day)
 
 ## Context
 
@@ -65,8 +66,8 @@ drawn for a page that does not exist.
 
 ### The Games page
 
-Added by ADR-0041, step 3. It only shows each child's list; choosing
-games by highlighting them, and Save, come in its step 4.
+Added by ADR-0041, step 3; highlighting games and Save came in its
+step 4, and ADR-0041 says how they work.
 
 - The parent picks a child, from the same children as the Children
   page, in the same order. The first is picked when the page opens.
@@ -75,10 +76,9 @@ games by highlighting them, and Save, come in its step 4.
   `/var/lib/cairn/game-pictures` and its title in plain text, never rich
   text, as on the launcher's tile. The games on that child's own list,
   `/var/lib/cairn/games/<login>.json`, are highlighted and say so in
-  words. Both files are read with the launcher's rules. Once step 4 has
-  the launcher read the child's own list, a game is highlighted when the
-  child's launcher gives it a tile; until then every child's launcher
-  still reads the full list, and the page says so. A game on the child's
+  words. Both files are read with the launcher's rules, and the image's
+  launcher reads the child's own list, so a saved game is highlighted
+  when the child's launcher gives it a tile. A game on the child's
   list that the shared folder no longer has still shows, last, and says
   so: the child's own copy may still play it. A child with no file has
   no games; a file that cannot be read counts as none, and the page says
@@ -93,7 +93,9 @@ games by highlighting them, and Save, come in its step 4.
 - With no children, it says to add one on the Children page. With no
   games, it says how to install one into the shared folder from the
   Guardian's own Steam.
-- It says plainly that, for now, it only shows each child's list.
+- A tap on a game puts it on the child's list or takes it off until
+  Save, which gives every changed child their new list with one
+  password (ADR-0041).
 
 ### The Children page
 
@@ -132,9 +134,8 @@ games by highlighting them, and Save, come in its step 4.
   A closed box and a wrong password share one; every other reason has its
   own. They say what happened and what to do next, in the parent's
   voice:
-  - Added: the child can log in now, at that level, and the Games page
-    shows their list. Until ADR-0041's step 4, the family set-up script
-    is what gives them their games, and the sentence says so.
+  - Added: the child can log in now, at that level, and starts with no
+    games, which the parent chooses on the Games page (ADR-0041).
   - Level changed: the child is at that level now, and it starts the next
     time they log in. That is so: PAM and `cairn-session` read the groups
     once, at login.
@@ -170,8 +171,8 @@ games by highlighting them, and Save, come in its step 4.
 - Adding two children asks for the password twice. A Guardian who is in
   `wheel` but not `cairn-guardian` may run `cairn-family` but not this
   window, as with the Steam window.
-- A Guardian at the screen must still copy games to a new child with the
-  family set-up script (ADR-0033) until the window can.
+- A Guardian at the screen gives a child their games on the Games page
+  (ADR-0041); the family set-up script no longer copies them.
 - Still to decide, and to add here when they land: the "Family" link in
   System Settings and the Kiosk hide of Plasma's Users page, with the
   Guardian's own password and picture reachable from the tool first

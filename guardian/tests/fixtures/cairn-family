@@ -6,13 +6,84 @@
 # pkexec's own 126 and 127. When CAIRN_TEST_ARGUMENTS names a file, each
 # argument is written to it on a line of its own, and each run adds a
 # line "run" first.
+#
+# The save-* scenarios answer save-games in many lines, as the real
+# command does (ADR-0041). save-done gives each child named every game on
+# their new list, and writes their list into the folder
+# CAIRN_TEST_GAMES names, when it names one, with an entry for each game.
+# save-looking says its first line, then makes the pictures for a long
+# time.
 set -u
 scenario="${CAIRN_TEST_SCENARIO:-}"
 if [ -n "${CAIRN_TEST_ARGUMENTS:-}" ]; then
     { echo run; printf '%s\n' "$@"; } >> "$CAIRN_TEST_ARGUMENTS"
 fi
 
+# A child's list as the launcher's games file.
+write_list() {
+    local login="$1" ids="$2" id first=yes
+    [ -n "${CAIRN_TEST_GAMES:-}" ] || return 0
+    {
+        printf '{"version": 1, "entries": ['
+        for id in ${ids//,/ }; do
+            [ "$first" = yes ] || printf ', '
+            first=no
+            printf '{"id": "steam-%s", "title": "Game %s", "category": "games", "exec": ["steam", "-applaunch", "%s"]}' "$id" "$id" "$id"
+        done
+        printf ']}\n'
+    } > "$CAIRN_TEST_GAMES/$login.json"
+}
+
+# Each child of a save-games run, in turn, as the scenario says.
+save_games() {
+    local argument login ids id count
+    echo "looking"
+    if [ "$scenario" = save-looking ]; then
+        exec sleep 30
+    fi
+    echo "pictures made"
+    echo "catalogue made"
+    for argument in "${@:2}"; do
+        login="${argument%%=*}"
+        ids="${argument#*=}"
+        count=0
+        for id in ${ids//,/ }; do
+            count=$((count + 1))
+        done
+        case "$scenario" in
+            save-done)
+                if [ -n "$ids" ]; then
+                    echo "copying $login"
+                    for id in ${ids//,/ }; do
+                        echo "copied $login $id"
+                    done
+                fi
+                write_list "$login" "$ids"
+                echo "child $login added $count removed 0"
+                ;;
+            save-held-*)
+                echo "child $login added 0 removed 0 held ${scenario#save-held-}"
+                ;;
+            save-skipped)
+                for id in ${ids//,/ }; do
+                    echo "skipped $login $id downloading"
+                done
+                echo "child $login added 0 removed 0"
+                ;;
+            save-copying)
+                echo "copying $login"
+                exec sleep 30
+                ;;
+            save-cut-off)
+                exit 1
+                ;;
+        esac
+    done
+    echo "done"
+}
+
 case "$scenario" in
+    save-*) save_games "$@" ;;
     done) echo "done" ;;
     refused-*) echo "refused ${scenario#refused-}"; exit 1 ;;
     # pkexec's own: the box was dismissed, or the password not accepted.
@@ -27,5 +98,7 @@ case "$scenario" in
     done-but-failed) echo "done"; exit 1 ;;
     zero-after-refused) echo "refused taken" ;;
     crashes) kill -KILL $$ ;;
+    # A line far longer than any the command says, then its answer.
+    long-line) printf '%0300d\n' 0; echo "done" ;;
     *) exit 1 ;;
 esac

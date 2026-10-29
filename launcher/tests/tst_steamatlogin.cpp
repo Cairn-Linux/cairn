@@ -83,6 +83,25 @@ private slots:
         QVERIFY(SteamAtLogin::wanted(TileFiles::read(QString(), games).tiles));
     }
 
+    // On the image each child reads their own list, which a Guardian's Save
+    // writes (ADR-0041). A child with none yet has no game tiles, no
+    // sentence for the parent, and no Steam at login.
+    void aChildWithNoListGetsNoSteam() {
+        const QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString manifest = dir.filePath(QStringLiteral("manifest.json"));
+        QFile manifestFile(manifest);
+        QVERIFY(manifestFile.open(QIODevice::WriteOnly));
+        manifestFile.write(R"({"version": 1, "entries": [
+            {"title": "Paint", "category": "make", "exec": ["tuxpaint"]}]})");
+        manifestFile.close();
+        const TileFiles::Result result =
+            TileFiles::read(manifest, dir.filePath(QStringLiteral("games/ada.json")));
+        QCOMPARE(result.tiles.size(), 1);
+        QVERIFY(result.sentences.isEmpty());
+        QVERIFY(!SteamAtLogin::wanted(result.tiles));
+    }
+
     // Its own service in the child's systemd, on the child's display, quiet.
     void theClientStartsAsAServiceOfItsOwn() {
         QCOMPARE(SteamAtLogin::command(),

@@ -120,7 +120,9 @@ class InstallTree(unittest.TestCase):
         self.assertIn("launcher=(/usr/libexec/cairn/cairn-launcher"
                       " --manifest /usr/share/cairn/manifest.json\n", wrapper)
         self.assertIn("--log-out /usr/bin/cairn-log-out\n", wrapper)
-        self.assertIn("--games /var/lib/cairn/games.json", wrapper)
+        # Each child's own list, never the full one (ADR-0041).
+        self.assertIn('games=(--games "/var/lib/cairn/games/$login.json")', wrapper)
+        self.assertNotIn("/var/lib/cairn/games.json", wrapper)
         # The launcher finds its library through its rpath, so the games it
         # starts do not inherit a library path.
         self.assertNotIn("LD_LIBRARY_PATH", wrapper)

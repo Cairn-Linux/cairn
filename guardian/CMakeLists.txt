@@ -92,11 +92,17 @@ set(family_window_sources
     src/FamilyRequest.h src/FamilyRequest.cpp
     src/LoginName.h src/LoginName.cpp
     src/ChildList.h src/ChildList.cpp
+    src/PkexecAnswer.h src/PkexecAnswer.cpp
     src/FamilyChange.h src/FamilyChange.cpp
     src/ChildrenPage.h src/ChildrenPage.cpp
     src/GameCatalogue.h src/GameCatalogue.cpp
     src/GamePicture.h src/GamePicture.cpp
     src/GameShelf.h src/GameShelf.cpp
+    src/GamesRequest.h src/GamesRequest.cpp
+    src/GameChoices.h src/GameChoices.cpp
+    src/SaveRun.h src/SaveRun.cpp
+    src/SaveReport.h src/SaveReport.cpp
+    src/GamesSaving.h src/GamesSaving.cpp
     src/GamesPage.h src/GamesPage.cpp
 )
 set(family_window_qml_files
@@ -105,6 +111,7 @@ set(family_window_qml_files
     qml/GamesView.qml
     qml/ChildChoice.qml
     qml/GameCard.qml
+    qml/SaveOutcome.qml
     qml/ChildRow.qml
     qml/AddChildForm.qml
     qml/LabelledField.qml
@@ -273,11 +280,29 @@ target_link_libraries(tst_childlist PRIVATE Qt6::Core Qt6::Test cairn-accounts)
 add_test(NAME childlist COMMAND tst_childlist)
 
 qt_add_executable(tst_familychange tests/tst_familychange.cpp
-    src/FamilyChange.h src/FamilyChange.cpp)
+    src/FamilyChange.h src/FamilyChange.cpp src/PkexecAnswer.h src/PkexecAnswer.cpp)
 target_include_directories(tst_familychange PRIVATE src)
 target_link_libraries(tst_familychange PRIVATE Qt6::Core Qt6::Test)
 target_compile_definitions(tst_familychange PRIVATE FIXTURES="${guardian_fixtures}")
 add_test(NAME familychange COMMAND tst_familychange)
+
+qt_add_executable(tst_saverun tests/tst_saverun.cpp src/SaveRun.h src/SaveRun.cpp
+    src/PkexecAnswer.h src/PkexecAnswer.cpp)
+target_include_directories(tst_saverun PRIVATE src)
+target_link_libraries(tst_saverun PRIVATE Qt6::Core Qt6::Test)
+target_compile_definitions(tst_saverun PRIVATE FIXTURES="${guardian_fixtures}")
+add_test(NAME saverun COMMAND tst_saverun)
+
+qt_add_executable(tst_savereport tests/tst_savereport.cpp src/SaveReport.h src/SaveReport.cpp)
+target_include_directories(tst_savereport PRIVATE src)
+target_link_libraries(tst_savereport PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME savereport COMMAND tst_savereport)
+
+qt_add_executable(tst_gamechoices tests/tst_gamechoices.cpp src/GameChoices.h
+    src/GameChoices.cpp)
+target_include_directories(tst_gamechoices PRIVATE src)
+target_link_libraries(tst_gamechoices PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME gamechoices COMMAND tst_gamechoices)
 
 qt_add_executable(tst_childrenpage tests/tst_childrenpage.cpp ${family_window_sources})
 target_include_directories(tst_childrenpage PRIVATE src)
@@ -300,6 +325,7 @@ add_test(NAME gameshelf COMMAND tst_gameshelf)
 qt_add_executable(tst_gamespage tests/tst_gamespage.cpp ${family_window_sources})
 target_include_directories(tst_gamespage PRIVATE src)
 target_link_libraries(tst_gamespage PRIVATE Qt6::Qml Qt6::Test cairn-accounts)
+target_compile_definitions(tst_gamespage PRIVATE FIXTURES="${guardian_fixtures}")
 add_test(NAME gamespage COMMAND tst_gamespage)
 
 # The real window in the Quick Test host, as for the Steam window.
@@ -321,7 +347,7 @@ add_test(NAME familywindow COMMAND tst_familywindow
 
 set_tests_properties(steamvisit ownsteam screenlockwatch steamforchild steamwindow familycommand
     caller gamesrequest childgamelist childgamesfile cataloguerefresh copyjob gamessave
-    steamentry loginname childlist familychange childrenpage gamepicture gameshelf gamespage
-    familywindow PROPERTIES
+    steamentry loginname childlist familychange saverun savereport gamechoices childrenpage
+    gamepicture gameshelf gamespage familywindow PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QML_IMPORT_PATH=${QT_QML_OUTPUT_DIRECTORY}"
 )

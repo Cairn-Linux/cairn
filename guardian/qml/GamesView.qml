@@ -5,18 +5,26 @@ import Cairn.Brand
 import Cairn.Family
 
 // The Games page (ADR-0041): pick a child, and see every game in the
-// shared folder, with the games on that child's own list highlighted. It
-// only shows; choosing games here comes in a later step. Each child also
-// has a way to open their own Steam.
+// shared folder, with the games on that child's own list highlighted.
+// Tapping a game puts it on the list or takes it off, for one child or
+// several, and Save gives each of them their new list with one password.
+// Each child also has a way to open their own Steam. While a Save runs,
+// every control waits.
 Column {
     id: view
 
     required property GamesPage page
+    // The box with what the last Save did, for the window to scroll to.
+    readonly property alias outcomeBox: outcome
 
     readonly property bool hasChildren: view.page.listedChildren.length > 0
     // Games to show: the shared folder's, and any left on the child's list.
     readonly property bool hasGames: view.page.games.length > 0
     readonly property string name: view.page.chosenName
+    readonly property bool busy: view.page.busy
+
+    // A Save has started or ended, and focus is where the parent can go on.
+    signal outcomeShown
 
     spacing: Tokens.bodySize
 
@@ -35,7 +43,7 @@ Column {
     // What the picked child's list holds, or why it holds nothing.
     function listSentence() {
         if (view.page.list === GamesPage.Unreadable)
-            return qsTr("%1's list of games could not be read, so it counts as a list with no games. The file is /var/lib/cairn/games/%2.json. Saving %1's games on this page, in a later version of Cairn, writes it again. Until then this changes nothing for %1.").arg(view.name).arg(view.page.chosen);
+            return qsTr("%1's list of games could not be read, so it counts as a list with no games, and %1 has no game tiles. The file is /var/lib/cairn/games/%2.json. Saving %1's games on this page writes it again.").arg(view.name).arg(view.page.chosen);
         if (view.page.onListCount === 0)
             return qsTr("%1 has no games on their list yet.").arg(view.name);
         const listed = qsTr("Games on %1's list: %2. They are highlighted.").arg(view.name).arg(view.page.onListCount);
@@ -59,12 +67,7 @@ Column {
     }
 
     Words {
-        text: qsTr("Each child has their own list of the games in the shared folder. A new child starts with none.")
-    }
-
-    Words {
-        objectName: "notYet"
-        text: qsTr("This page only shows each child's list for now. Changing it here comes in a later version of Cairn. Until then, every child still gets a tile for every game the family set-up script copies to them.")
+        text: qsTr("Each child has their own list of the games in the shared folder. A new child starts with none. Tap a game to put it on the list or take it off, then press Save. A child sees their games the next time they log in.")
     }
 
     Words {
@@ -76,7 +79,7 @@ Column {
     Words {
         objectName: "noGames"
         visible: view.page.sharedCount === 0
-        text: qsTr("No games in the shared folder yet. To add one, install it from your own Steam into the folder /var/lib/cairn/steam-library. If Steam's install dialog does not offer that folder, add it first in Steam's Settings, under Storage. A game shows here after the family set-up script has run again.")
+        text: qsTr("No games in the shared folder yet. To add one, install it from your own Steam into the folder /var/lib/cairn/steam-library. If Steam's install dialog does not offer that folder, add it first in Steam's Settings, under Storage. A game shows here after the next Save, which looks at the shared folder again. With nothing to save, Look for new games does the same.")
     }
 
     Flow {
@@ -89,6 +92,8 @@ Column {
         Accessible.name: qsTr("Whose games to show")
 
         Repeater {
+            id: childChoiceRepeater
+
             objectName: "childChoiceRepeater"
             model: view.page.listedChildren
 
@@ -98,6 +103,8 @@ Column {
                 objectName: "choose_" + modelData.login
                 name: modelData.name
                 checked: view.page.chosen === modelData.login
+                unsaved: view.page.unsavedLogins.indexOf(modelData.login) >= 0
+                enabled: !view.busy
                 onChosen: view.page.choose(modelData.login)
             }
         }
@@ -107,6 +114,7 @@ Column {
         objectName: "openSteam"
         visible: view.hasChildren
         quiet: true
+        enabled: !view.busy
         text: qsTr("Open Steam for %1").arg(view.name)
         onActivated: view.page.openSteam(view.page.chosen)
     }
@@ -122,6 +130,52 @@ Column {
         objectName: "listSentence"
         visible: view.hasChildren && view.hasGames
         text: view.listSentence()
+    }
+
+    Flow {
+        objectName: "saveRow"
+        width: view.width
+        spacing: Tokens.bodySize / 2
+        visible: view.hasChildren
+
+        TextButton {
+            id: saveButton
+
+            objectName: "saveButton"
+            text: qsTr("Save")
+            enabled: view.page.canSave
+            onActivated: view.page.save()
+        }
+
+        TextButton {
+            objectName: "putBack"
+            quiet: true
+            text: qsTr("Put back as saved")
+            enabled: view.page.canPutBack
+            onActivated: view.page.putBack()
+        }
+
+        TextButton {
+            objectName: "lookForGames"
+            quiet: true
+            text: qsTr("Look for new games")
+            enabled: !view.busy
+            onActivated: view.page.lookForGames()
+        }
+    }
+
+    Words {
+        objectName: "unsavedSentence"
+        visible: view.hasChildren && view.page.unsavedNames !== "" && !view.busy
+        text: qsTr("Not saved yet: the changes for %1. Save gives each child their new list, with one password.").arg(view.page.unsavedNames)
+    }
+
+    SaveOutcome {
+        id: outcome
+
+        objectName: "saveOutcomeBox"
+        width: view.width
+        saving: view.page.saving
     }
 
     Flow {
@@ -149,7 +203,40 @@ Column {
                 width: (grid.width - grid.spacing * (grid.columns - 1)) / grid.columns
                 game: modelData
                 childName: view.name
+                onList: view.page.wanted.indexOf(modelData.appId) >= 0
+                enabled: !view.busy
+                onTurned: view.page.turn(modelData.appId)
             }
+        }
+    }
+
+    // Every control waits while a Save runs, which takes focus away. After
+    // it, focus goes to Save when there is still something to save, and to
+    // the child picked otherwise.
+    function restoreFocus() {
+        if (saveButton.enabled) {
+            saveButton.forceActiveFocus();
+        } else {
+            const choices = childChoiceRepeater;
+            for (let i = 0; i < choices.count; ++i) {
+                const choice = choices.itemAt(i) as ChildChoice;
+                if (choice && choice.checked)
+                    choice.forceActiveFocus();
+            }
+        }
+        view.outcomeShown();
+    }
+
+    Connections {
+        target: view.page.saving
+
+        function onEnded() {
+            Qt.callLater(view.restoreFocus);
+        }
+
+        function onChanged() {
+            if (view.page.saving.step === GamesSaving.Asking)
+                Qt.callLater(view.outcomeShown);
         }
     }
 }

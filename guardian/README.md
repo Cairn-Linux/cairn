@@ -5,10 +5,10 @@ The Guardian's side of Cairn (ROADMAP P1-5). So far it has three pieces:
 - **The Guardian tool**, "Family" in a Guardian's application menu
   (ADR-0040). Its Children page lists the family's children with their
   levels, adds a child and moves a child to another level. Its Games
-  page shows which games are on each child's own list (ADR-0041).
+  page chooses the games on each child's own list (ADR-0041).
 - **`cairn-family`**, the root command under it that makes a child's
-  account and sets a child's level (ADR-0039). The family's
-  setup on the image runs it too.
+  account, sets a child's level (ADR-0039) and gives children their
+  games (ADR-0041). The family's setup on the image runs it too.
 - **Steam for a child**, a small window that opens a child's own Steam
   from the Guardian's own Plasma login, to sign the child in, switch the
   account or change Steam's settings (ADR-0032, proposed).
@@ -41,27 +41,52 @@ The Children page:
    is in, and one sentence says what happened, or why nothing changed and
    what to do next. A refusal leaves the form as it was.
 
-The Games page (ADR-0041, step 3) only shows for now:
+The Games page (ADR-0041):
 
 1. Pick a child. The first child is picked when the page opens.
 2. A grid shows every game in the shared folder, from
    `/var/lib/cairn/games.json`, with its picture from
    `/var/lib/cairn/game-pictures` and its title as plain text. The games
    on that child's own list, `/var/lib/cairn/games/<login>.json`, are
-   highlighted and marked "On the list". A game on the child's list
-   that the shared folder no longer has still shows, last, marked "On
-   the list, no longer shared". A child with no file has no games, as a
-   new child does. Until step 4 the launcher still reads the full list,
-   so a child's tiles do not follow this list yet.
-3. **Open Steam for <child>** opens the same window as the "Steam for
+   highlighted and marked "On the list". That file is what the child's
+   launcher reads, so the highlighted games are the child's game tiles.
+   A game on the child's list that the shared folder no longer has
+   still shows, last, marked "On the list, no longer shared". A child
+   with no file has no games, as a new child does.
+3. A tap on a game, or Space or Enter, puts it on the list or takes it
+   off. Nothing is saved yet: the card says "Added, not saved yet" or
+   "Taken off, not saved yet", the child's name above says "not saved",
+   and a sentence names every child with changes. The parent can change
+   several children and save once. **Put back as saved** undoes the
+   changes for the child picked.
+4. **Save** runs `cairn-family save-games` through `pkexec` once, with
+   each changed child's whole new list, so one password covers the whole
+   Save. It is ready only when there is something to save, and **Put
+   back as saved** only when the child picked has a change. While it runs,
+   every control on the page waits, and the page says what it is doing,
+   such as "Copying games for Ada.", read from the command's lines as
+   they come. Then one sentence says it was saved, or why nothing was,
+   and one for each child says what their list holds now and what held
+   their new games back, such as the child being logged in, or which game
+   was not given and why. A child's games that could not be given stay
+   chosen, so pressing Save again tries them again. A closed password box
+   keeps every change. The page reads everything again after each Save,
+   and what the Save did stops showing once the parent turns a game,
+   puts a list back or picks another child.
+5. **Look for new games** runs `cairn-family save-games` with no child
+   named, which changes no list but makes the full games list and the
+   pictures again from the Guardian's own Steam, so a game just
+   installed shows. Save does that too.
+6. **Open Steam for <child>** opens the same window as the "Steam for
    <child>" menu entry, as a program of its own. If it cannot be
    started, the reason is under `-t cairn-guardian`; if it started and
    then stopped, under `-t cairn-steam-for`.
-4. With no children, or no games in the shared folder yet, it says what
+7. With no children, or no games in the shared folder yet, it says what
    to do instead. It reads everything again each time it is shown.
 
-Highlighting games and Save, which runs `cairn-family save-games`, come
-in ADR-0041's step 4.
+A child who is logged in gets the games taken off at once, and their new
+games after they log out and the parent presses Save again. Buttons to
+log them out from the page come in ADR-0041's next step.
 
 The window's notes and the error output of `cairn-family`'s tools go to
 the journal:
@@ -131,10 +156,11 @@ It answers in one line: `done`, or `refused` and one of `not-root`,
 `not-a-grown-up`, `usage`, `bad-name`, `bad-full-name`, `bad-level`,
 `taken`, `not-a-child` or `failed`.
 
-`save-games` gives children their games (ADR-0041); no window runs it
-yet, though the Games page shows what it writes. Each argument is one
+`save-games` gives children their games (ADR-0041); the Games page's
+Save runs it. Each argument is one
 child's whole new list, so `ben=` means no games, and a child not named
-is left alone.
+is left alone. With no child named it only makes the pictures and the
+full games list again: the page's Look for new games.
 
 - It checks the caller, every value and that every name is a child
   Cairn made before anything changes, and holds a lock for the whole
@@ -158,12 +184,14 @@ is left alone.
   instance because the child is logged in.
 
 It answers line by line as it goes, with fixed words, checked logins and
-appids: `pictures made|kept`, `catalogue made|kept`, `copying LOGIN`,
+appids: `looking` (the password was accepted and the work starts),
+`pictures made|kept`, `catalogue made|kept`, `copying LOGIN`,
 `waiting LOGIN`, `copied|have LOGIN APPID`, `skipped LOGIN APPID REASON`,
 then `child LOGIN added N removed N`, with `held WORD` when the child's
 new games could not all be given. It ends with `done`, or `refused` and a
 word, which means nothing changed: the words above, `bad-appid` or `busy`.
-ADR-0041 lists every word.
+ADR-0041 lists every word but the copy step's skip reasons, which
+`provision/cairn-copy-games.py` lists and `cairn-family` passes on.
 
 It writes to the journal:
 
@@ -186,11 +214,16 @@ QML draws, C++ decides (ADR-0002):
 | `src/ChildList` | The family's children among the accounts, in the order they were made, each with their name and level. |
 | `src/FamilyChange` | Runs `pkexec` with `cairn-family`, one change at a time, and reads its one-line answer, or pkexec's own exit code. |
 | `src/ChildrenPage` | What the Children page shows and what its buttons do: the list, the checks before a change, and why a change was refused. Its account database is in its `Setup`, so a test can replace it. |
-| `src/GamesPage` | What the Games page shows: the children, the one picked, the games with each marked when it is on that child's list, and opening a child's Steam window. Its files, accounts and program start are in its `Setup`, so a test can replace them. |
+| `src/GamesPage` | What the Games page shows and does: the children, the one picked, the games with each marked when it is on that child's list as saved and as wanted, turning a game, Save, and opening a child's Steam window. Its files, accounts, commands and program start are in its `Setup`, so a test can replace them. |
 | `src/GameShelf` | Every shared game from the full games list, each marked when it is on one child's own list, and whether that list could be read. |
+| `src/GameChoices` | The changes to each child's list not saved yet, and `save-games`'s arguments for them. |
+| `src/GamesSaving` | One Save as the page shows it: the password box, how far it has got, each child's result, or why nothing was saved, each as a value the page's QML puts into a sentence. |
+| `src/SaveRun` | Runs `pkexec` with `cairn-family save-games`, and passes on each line as it arrives, then the answer, pkexec's own exit code, or `not-started` when nothing could be started. |
+| `src/SaveReport` | Reads `save-games`'s lines into how far it has got and each child's counts, held word and games left out, taking only its fixed words and the children the Save named. |
+| `src/PkexecAnswer` | pkexec's own two exit codes, for both runners of `cairn-family`. |
 | `src/GamePicture` | A game's picture from its games file entry, with the launcher's rule: only the full path of a file here. |
 | `qml/FamilyWindow.qml`, `qml/ChildrenView.qml`, `qml/GamesView.qml` | The Guardian tool's window with its switch between pages, its Children page with the sentence for every answer, and its Games page. |
-| `qml/ChildChoice.qml`, `qml/GameCard.qml` | A child to pick on the Games page, and one game in its grid. |
+| `qml/ChildChoice.qml`, `qml/GameCard.qml`, `qml/SaveOutcome.qml` | A child to pick on the Games page, one game in its grid, and the sentences for a Save. |
 | `qml/ChildRow.qml`, `qml/AddChildForm.qml`, `qml/LabelledField.qml`, `qml/LevelChoice.qml` | A child on the list, the Add form, a text field with its label, and one level to pick. |
 | `qml/TextButton.qml` | The button both windows use. |
 | `src/FamilyCommand` | `cairn-family create-child` and `set-level`: which accounts it may change, and the steps for each. Everything it reads from or does to the machine is in its `Setup`, so a test can replace it. |
@@ -223,12 +256,13 @@ journalctl -t cairn-steam-for -t cairn-steam-visit --since today
 
 ## Tests
 
-CTest runs twenty-two, among them `steamvisit`, `ownsteam`, `screenlockwatch`,
+CTest runs twenty-five, among them `steamvisit`, `ownsteam`, `screenlockwatch`,
 `steamforchild`, `steamwindow` (the real window in Qt Quick Test),
 `familycommand`, `steamentry`, and for the Guardian tool `loginname`,
-`childlist`, `familychange`, `childrenpage`, `gamepicture`, `gameshelf`,
-`gamespage` and `familywindow` (the real window in Qt Quick Test, both
-pages and the switch). They use stand-ins in `tests/fixtures/`
+`childlist`, `familychange`, `saverun`, `savereport`, `gamechoices`,
+`childrenpage`, `gamepicture`, `gameshelf`, `gamespage` and
+`familywindow` (the real window in Qt Quick Test, both pages and the
+switch). They use stand-ins in `tests/fixtures/`
 for `pkexec` with the helper behind it, which takes a scenario where the
 helper's path goes, and for the Guardian's Steam client, over a stand-in
 process list. `pkexec-family` stands in for `pkexec` as the Guardian
@@ -237,6 +271,10 @@ tool uses it: like pkexec, it refuses a command that is not there with
 answers as `CAIRN_TEST_SCENARIO` says: each of the command's refusal
 words, pkexec's own 126 and 127, answers that cannot be read, or waiting
 like an open password box, and writes down the arguments it was given.
+Its `save-*` scenarios answer `save-games` in many lines, as the real
+command does: every game given, a child held by a word, games left out,
+a copy still running, or a run cut off before `done`; `save-done` also
+writes each child's list into the folder `CAIRN_TEST_GAMES` names.
 The Guardian tool's tests give the page a table of accounts in place of
 the system's, so they cover the order, who is left out, the login names,
 every check before a change, one change at a time, trying an add again
@@ -245,6 +283,9 @@ focus after each answer, with no root and no real account.
 The Games page's tests write their own full games list, children's
 lists and stand-in pictures into a temporary folder, and replace the
 start of the Steam window with one that writes down what it was asked.
+They cover turning games for two children and saving once, the exact
+arguments pkexec is given, a child held or a game left out, every
+refusal keeping the changes, and every control waiting while a Save runs.
 Setting `CAIRN_SCREENSHOT=/path/family.png` when running
 `tst_familywindow` saves pictures of both pages beside that path.
 
@@ -272,7 +313,8 @@ What the stand-ins cannot show was run in the VM (`docs/research/steam-visit.md`
 - The Guardian's own Steam, started again by the window, runs in the
   window's own systemd unit, which then stays until Steam ends.
 - Neither `cairn-family` nor the Guardian tool has run in the VM yet.
-- The Guardian tool cannot copy Steam games to a new child yet: its
-  Games page only shows each child's list, and the family set-up script
-  still copies every game (ADR-0033) until ADR-0041's step 4. Nor can it
-  reset a child, set a PIN, or make an existing account a child (#113).
+- The Games page cannot log out a child who is logged in: their new
+  games wait until they log out and the parent presses Save again
+  (ADR-0041's next step).
+- The Guardian tool cannot reset a child, set a PIN, or make an existing
+  account a child (#113).

@@ -77,8 +77,19 @@ class FamilyStepsTest(unittest.TestCase):
         steps = set(main_steps(FAMILY))
         self.assertEqual(steps & MACHINE_STEPS, set())
         for step in ("ensure_guardian", "make_children", "make_steam_entries",
-                     "make_shared_library", "make_game_tiles", "copy_games", "install_flatpaks"):
+                     "make_shared_library", "make_game_tiles", "install_flatpaks"):
             self.assertIn(step, steps)
+
+    def test_copies_no_games_to_any_child(self):
+        # Each child gets the games on their own list, from the Guardian
+        # tool's Save (ADR-0041); the kids' laptop keeps copy_games.
+        self.assertNotIn("copy_games", main_steps(FAMILY))
+        self.assertIn("copy_games", main_steps(HERE / "cairn-provision.sh"))
+        self.assertNotIn("--all", FAMILY.read_text())
+
+    def test_says_where_the_games_are_chosen(self):
+        text = FAMILY.read_text()
+        self.assertIn("open Family from the menu, then its Games page, and press Save", text)
 
     def test_children_come_from_the_images_command(self):
         # cairn-family makes the children and their entries (ADR-0039), not
@@ -100,10 +111,9 @@ class FamilyStepsTest(unittest.TestCase):
                       "check_children_are_cairns", "check_checkout", "check_guardian_number"):
             self.assertLess(steps.index(check), first_change, check)
 
-    def test_the_tiles_come_before_the_copies_and_the_flatpaks_last(self):
+    def test_the_full_list_comes_after_the_folder_and_the_flatpaks_last(self):
         steps = main_steps(FAMILY)
         self.assertLess(steps.index("make_shared_library"), steps.index("make_game_tiles"))
-        self.assertLess(steps.index("make_game_tiles"), steps.index("copy_games"))
         changes = [s for s in steps if not s.startswith(("set ", "echo ", "parse_", "check_", "["))]
         self.assertEqual(changes[-1], "install_flatpaks")
 
@@ -113,6 +123,33 @@ class FamilyStepsTest(unittest.TestCase):
         self.assertIn("\nSHARE=/usr/share/cairn\n", text)
         self.assertIn('\nGROUP_NUMBERS="$IMAGE_MARK"\n', text)
         self.assertIn('\nFAMILY_COMMAND="$PREFIX/libexec/cairn/cairn-family"\n', text)
+
+
+class FamilyTilesNoteTest(unittest.TestCase):
+    """make_game_tiles is shared with the kids' laptop, but on the image
+    each child's tiles come from their own list (ADR-0041), so its notes
+    name what the family's setup really keeps."""
+
+    def test_a_link_names_the_games_page(self):
+        with tempfile.TemporaryDirectory() as folder:
+            library = pathlib.Path(folder)
+            (library / "steamapps").symlink_to(folder)
+            code, output, _ = run_steps(
+                f"SHARED_LIBRARY={shlex.quote(folder)}\nmake_game_tiles", script=FAMILY)
+        self.assertEqual(code, 0, output)
+        self.assertIn(
+            f"note: {library}/steamapps is a link, which Cairn does not follow, so the list of shared "
+            "games was not made again; the Games page in Family shows the one from the last run, and "
+            "each child keeps the games on their own list.", output)
+        said = "\n".join(line for line in output.splitlines() if not line.startswith("+"))
+        self.assertNotIn("the children keep the ones from the last run", said)
+
+    def test_a_failed_list_names_the_games_page(self):
+        code, output, _ = run_steps('echo "said: $TILES_NOT_MADE"', script=FAMILY)
+        self.assertEqual(code, 0, output)
+        self.assertIn(
+            "said: the list of shared games could not be made again; the Games page in Family shows "
+            "the one from the last run, and each child keeps the games on their own list.", output)
 
 
 class FamilyGuardTest(Scenario):

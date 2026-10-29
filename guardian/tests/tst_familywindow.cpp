@@ -91,8 +91,11 @@ public:
     // each with a picture but the last, Ada with three on her list, Ben
     // with none and Cy with two, one of them no longer shared. Its Steam
     // window start answers as `steamStarts` says, and is written down in
-    // startedSteam().
-    Q_INVOKABLE GamesPage* gamesPage(bool withChildren, bool withGames, bool steamStarts = true) {
+    // startedSteam(). Its Save runs the stand-ins, which answer as
+    // `scenario` says, when one is given, and write the children's lists
+    // into its folder.
+    Q_INVOKABLE GamesPage* gamesPage(bool withChildren, bool withGames, bool steamStarts = true,
+                                     const QString& scenario = QString()) {
         const QDir files(m_files.path());
         QJsonArray shared;
         const QStringList titles{"Putt-Putt Joins the Parade",
@@ -146,7 +149,13 @@ public:
                 {.uid = 1003, .groups = {"cy", "cairn-l1"}, .login = "cy", .fullName = "Cy"});
         }
         m_startedSteam.clear();
+        if (!scenario.isEmpty()) {
+            qputenv("CAIRN_TEST_SCENARIO", scenario.toLocal8Bit());
+        }
+        qputenv("CAIRN_TEST_GAMES", files.filePath("games").toLocal8Bit());
         GamesPage::Setup setup;
+        setup.pkexec = QStringLiteral(FIXTURES "/pkexec-family");
+        setup.command = QStringLiteral(FIXTURES "/cairn-family");
         setup.catalogue = files.filePath("games.json");
         setup.childLists = files.filePath("games");
         setup.steamFor = "/usr/bin/cairn-steam-for";

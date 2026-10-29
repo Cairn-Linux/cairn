@@ -3,8 +3,19 @@
 # The launcher as the kiosk session starts it, made by CMake from
 # launcher/bin/cairn-launcher.in (ADR-0038). Provisioning writes its own.
 set -ouex pipefail
+# Each child's own list of games, which the Guardian tool's Save writes
+# (ADR-0041). The login comes from the account database, never from the
+# environment, and names the file only when it follows cairn-family's rule
+# for a login, so no name can lead out of the folder. A child with no list
+# has no game tiles, and no Steam at login. No login must never mean no
+# tiles.
+login="$(id -un 2> /dev/null)" || login=""
+games=()
+if [[ "$login" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]]; then
+    games=(--games "/var/lib/cairn/games/$login.json")
+fi
 launcher=(@CAIRN_FULL_LIBEXECDIR@/cairn-launcher --manifest @CAIRN_FULL_DATADIR@/manifest.json
-    --games /var/lib/cairn/games.json --log-out @CMAKE_INSTALL_FULL_BINDIR@/cairn-log-out
+    "${games[@]}" --log-out @CMAKE_INSTALL_FULL_BINDIR@/cairn-log-out
     --scope-apps --start-steam "$@")
 # The launcher's notes for a grown-up go to the journal under their own name
 # (#122): journalctl -t cairn-launcher. No journal must never mean no tiles.

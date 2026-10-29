@@ -29,7 +29,8 @@ GamesSave::Outcome GamesSave::run(const QStringList& arguments, const Say& say) 
     if (request.refusal) {
         return {.refusal = request.refusal, .asked = {}, .children = {}};
     }
-    const QString asked = QStringLiteral("save-games ") + request.logins().join(QLatin1Char(' '));
+    const QString asked =
+        (QStringList{QStringLiteral("save-games")} + request.logins()).join(QLatin1Char(' '));
 
     // Every name is a child Cairn made, before anything changes.
     std::vector<Account> children;
@@ -49,6 +50,9 @@ GamesSave::Outcome GamesSave::run(const QStringList& arguments, const Say& say) 
         return {.refusal = Refusal::Busy, .asked = asked, .children = {}};
     }
 
+    // The first line comes before the slow part, so the window knows the
+    // password was accepted while the pictures and the full list are made.
+    say(QStringLiteral("looking"));
     const CatalogueRefresh::Result made = CatalogueRefresh::run(m_setup.catalogue, caller.home);
     say(made.picturesMade ? QStringLiteral("pictures made") : QStringLiteral("pictures kept"));
     say(made.catalogueMade ? QStringLiteral("catalogue made") : QStringLiteral("catalogue kept"));

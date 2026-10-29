@@ -12,10 +12,11 @@
 // The games a Guardian saved for each child, read from cairn-family's
 // arguments (ADR-0041):
 //
-//   save-games LOGIN=APPID,APPID... [LOGIN=...]
+//   save-games [LOGIN=APPID,APPID...]...
 //
 // Each argument is one child's whole new list, never a change to it, so
-// `ben=` means ben has no games. A child not named is left alone. Every
+// `ben=` means ben has no games. A child not named is left alone, so
+// `save-games` alone changes no child's list and only looks for new games. Every
 // value is checked here, before anything looks at an account, because each
 // goes into a file name or the copy helper's arguments.
 struct GamesRequest {
