@@ -6,6 +6,8 @@
 #include "GameChoices.h"
 #include "GameShelf.h"
 #include "GamesSaving.h"
+#include "LogOutQuestion.h"
+#include "LoginSessions.h"
 #include "SteamWindowStart.h"
 #include "WaitingGames.h"
 
@@ -24,9 +26,11 @@
 // shared folder with the games on that child's list marked. The parent
 // puts games on and takes them off, for one child or several, and Save
 // gives each changed child their whole new list with one run of
-// cairn-family save-games through pkexec. It also opens a child's own
-// Steam with the window the "Steam for <child>" menu entries open
-// (ADR-0032).
+// cairn-family save-games through pkexec. When a child with new games to
+// copy is logged in, Save first asks whether to log them out now or copy
+// their games later, and that one run says whom to log out. It also opens
+// a child's own Steam with the window the "Steam for <child>" menu entries
+// open (ADR-0032).
 class GamesPage : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -71,9 +75,11 @@ class GamesPage : public QObject {
     Q_PROPERTY(bool canSave READ canSave NOTIFY changed)
     // Whether "Put back as saved" would change the picked child's list now.
     Q_PROPERTY(bool canPutBack READ canPutBack NOTIFY changed)
-    // A Save, or a look for new games, is running; every control waits.
+    // A Save, or a look for new games, is running, or the question before
+    // a Save is open; every other control waits.
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
     Q_PROPERTY(GamesSaving* saving READ saving CONSTANT)
+    Q_PROPERTY(LogOutQuestion* question READ question CONSTANT)
 
 public:
     // The picked child's own list, as GameShelf reads it.
@@ -92,6 +98,8 @@ public:
         std::function<std::vector<Account>()> accounts = listAccounts;
         // Starts a program on its own, so it outlives this window.
         SteamWindowStart::Start start = SteamWindowStart::startOnItsOwn;
+        // The accounts logged in now, read without root.
+        LogOutQuestion::LoggedIn loggedIn = LoginSessions::loggedInNow;
     };
 
     explicit GamesPage(Setup setup, QObject* parent = nullptr);
@@ -114,6 +122,7 @@ public:
     bool canPutBack() const;
     bool busy() const;
     GamesSaving* saving() const;
+    LogOutQuestion* question() const;
 
     // Picking a child, turning a game and putting a list back each end the
     // last Save's outcome, which was about the page as it was then.
@@ -126,7 +135,8 @@ public:
     Q_INVOKABLE void turn(const QString& appId);
     // The picked child's list goes back to how it is saved.
     Q_INVOKABLE void putBack();
-    // Saves every child's changed list, with one password.
+    // Saves every child's changed list, with one password, once the
+    // question about any child logged in is answered.
     Q_INVOKABLE void save();
     // Makes the full games list and the pictures again, with one password,
     // so a game just installed shows. It names no child, so it changes no
@@ -147,11 +157,11 @@ signals:
     void changed();
 
 private:
-    const ListedChild* child(const QString& login) const;
     void readShelf();
 
     Setup m_setup;
     GamesSaving* m_saving;
+    LogOutQuestion* m_question;
     WaitingGames* m_lists;
     std::vector<ListedChild> m_children;
     QString m_chosen;

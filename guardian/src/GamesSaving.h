@@ -30,7 +30,7 @@ class GamesSaving : public QObject {
     Q_PROPERTY(Kind kind READ kind NOTIFY changed)
     Q_PROPERTY(Reason reason READ reason NOTIFY changed)
     Q_PROPERTY(Progress progress READ progress NOTIFY changed)
-    // The name of the child being copied or waited for, or "".
+    // The name of the child being copied, logged out or waited for, or "".
     Q_PROPERTY(QString progressName READ progressName NOTIFY changed)
     // Each child the command answered for, as a map: login, name, added,
     // removed, held (a Held), later, when their new games are copied at
@@ -71,7 +71,8 @@ public:
         Looking,
         Writing,
         CopyingGames,
-        WaitingForLogout
+        WaitingForLogout,
+        LoggingOut,
     };
     Q_ENUM(Progress)
     // A child's held word (ADR-0041).
@@ -91,6 +92,7 @@ public:
         CopyStopped, // failed
         NotStarted,
         NotWritten,
+        Stuck,
         OtherHold,
     };
     Q_ENUM(Held)

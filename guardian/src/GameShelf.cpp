@@ -104,6 +104,11 @@ int GameShelf::onListCount() const {
         std::ranges::count_if(m_games, [](const Game& game) { return game.onList; }));
 }
 
+int GameShelf::countAmong(const QStringList& appIds) const {
+    return static_cast<int>(std::ranges::count_if(
+        m_games, [&appIds](const Game& game) { return appIds.contains(game.appId); }));
+}
+
 int GameShelf::sharedCount() const {
     return static_cast<int>(
         std::ranges::count_if(m_games, [](const Game& game) { return game.shared; }));

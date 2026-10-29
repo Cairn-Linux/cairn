@@ -33,7 +33,9 @@ Text {
     font.pixelSize: Tokens.bodySize
     lineHeight: Tokens.bodyLineHeight
     color: Tokens.paperLabel
-    text: note.reason() + " " + qsTr("%1's new games are copied the next time %1 logs out. You do not need to do anything else. The games taken off are already gone from %1's list.").arg(note.name)
+    // A log-out a program outlived needs a restart, so it is never
+    // "nothing else to do".
+    text: note.held === GamesSaving.Stuck ? qsTr("One of %1's programs would not close. Restart the computer. %1's new games are copied the next time %1 logs out.").arg(note.name) : note.reason() + " " + qsTr("%1's new games are copied the next time %1 logs out. You do not need to do anything else. The games taken off are already gone from %1's list.").arg(note.name)
     Accessible.role: Accessible.AlertMessage
     Accessible.name: text
 }

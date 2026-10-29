@@ -49,6 +49,32 @@ private slots:
         QCOMPARE(report.current(), QString());
     }
 
+    // A child the parent chose to log out: logging out, then copying as
+    // soon as they are logged out.
+    void aLogOutThenItsCopy() {
+        SaveReport report({QStringLiteral("ada")});
+        report.take(QStringLiteral("logging-out ada"));
+        QCOMPARE(report.stage(), SaveReport::Stage::LoggingOut);
+        QCOMPARE(report.current(), QStringLiteral("ada"));
+        report.take(QStringLiteral("logged-out ada"));
+        QCOMPARE(report.stage(), SaveReport::Stage::Copying);
+        QCOMPARE(report.current(), QStringLiteral("ada"));
+        report.take(QStringLiteral("logging-out ben"));
+        report.take(QStringLiteral("logging-out"));
+        report.take(QStringLiteral("logging-out ada ben"));
+        QCOMPARE(report.stage(), SaveReport::Stage::Copying);
+        QCOMPARE(report.current(), QStringLiteral("ada"));
+    }
+
+    // A log-out a program outlived.
+    void aStuckLogOut() {
+        const SaveReport report =
+            reportOf({"logging-out ada", "child ada added 0 removed 0 held stuck", "later ada"});
+        QCOMPARE(report.stage(), SaveReport::Stage::Writing);
+        QCOMPARE(report.children().constFirst().held, std::optional<QString>("stuck"));
+        QVERIFY(report.children().constFirst().later);
+    }
+
     void eachChildsCounts() {
         const SaveReport report =
             reportOf({"child ben added 0 removed 2", "child ada added 3 removed 1"});

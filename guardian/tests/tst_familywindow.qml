@@ -22,7 +22,7 @@ TestCase {
         const given = options === undefined ? {} : options;
         const properties = {
             "page": standIns.page(scenario, given.withChildren !== false, given.withOlderChild === true),
-            "gamesPage": standIns.gamesPage(given.withChildren !== false, given.withGames !== false, given.steamStarts !== false, given.gamesScenario === undefined ? "" : given.gamesScenario),
+            "gamesPage": standIns.gamesPage(given.withChildren !== false, given.withGames !== false, given.steamStarts !== false, given.gamesScenario === undefined ? "" : given.gamesScenario, given.loggedIn === undefined ? [] : given.loggedIn),
             "height": 1400
         };
         const window = createTemporaryObject(windowComponent, testCase, properties);
@@ -672,6 +672,187 @@ TestCase {
             wait(300);
             grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-games-later.png"));
         }
+    }
+
+    // ---- a child who is logged in when the parent presses Save ----
+
+    // Presses a button of the question once it is laid out.
+    function answer(window, button) {
+        const item = findChild(window, button);
+        tryVerify(() => item.visible);
+        waitForPolish(window);
+        mouseClick(item);
+    }
+
+    // Before any password: Ada is logged in, so the page asks first, and
+    // every other control waits.
+    function test_aLoggedInChildIsAskedAboutFirst() {
+        const window = makeWindow("done", {
+            "gamesScenario": "asking",
+            "loggedIn": ["ada", "guardian"]
+        });
+        showGames(window);
+        mouseClick(card(window, 1));
+        mouseClick(findChild(window, "saveButton"));
+        const box = findChild(window, "logOutChoice");
+        verify(box.visible);
+        compare(box.Accessible.name, "Ada is logged in");
+        verify(findChild(window, "logOutQuestion").visible);
+        verify(!findChild(window, "logOutWarning").visible);
+        compare(findChild(window, "logOutQuestion").text, "Ada is logged in. Ada's new games can be copied now, which logs Ada out, or the next time Ada logs out.");
+        compare(findChild(window, "logOutQuestion").Accessible.name, findChild(window, "logOutQuestion").text);
+        const now = findChild(window, "logOutNow");
+        compare(now.text, "Log Ada out now");
+        compare(now.Accessible.name, "Log Ada out now");
+        compare(findChild(window, "later").text, "Later");
+        compare(findChild(window, "later").Accessible.name, "Later: copy Ada's new games the next time Ada logs out");
+        tryCompare(now, "activeFocus", true);
+        // No password box yet, and nothing else answers.
+        compare(window.gamesPage.saving.step, GamesSaving.Ready);
+        compare(standIns.savedArguments(), "");
+        verify(!findChild(window, "saveButton").enabled);
+        verify(!findChild(window, "putBack").enabled);
+        verify(!findChild(window, "lookForGames").enabled);
+        verify(!findChild(window, "openSteam").enabled);
+        verify(!card(window, 2).enabled);
+        verify(!findChild(window, "unsavedSentence").visible);
+        if (standIns.screenshotPath() !== "") {
+            wait(300);
+            grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-games-log-out.png"));
+        }
+    }
+
+    // "Later" closes the question and saves, logging nobody out.
+    function test_laterSavesWithoutALogOut() {
+        const window = makeWindow("done", {
+            "gamesScenario": "save-held-later",
+            "loggedIn": ["ada"]
+        });
+        showGames(window);
+        mouseClick(card(window, 1));
+        mouseClick(findChild(window, "saveButton"));
+        answer(window, "later");
+        verify(!findChild(window, "logOutChoice").visible);
+        tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
+        compare(standIns.savedArguments(), "run\nsave-games\nada=1001,1003,1004,1002\n");
+        verify(laterNote(window, 0).visible);
+    }
+
+    // "Log Ada out now" warns first, with focus on "Not now", which goes
+    // back to the choice.
+    function test_logOutNowWarnsFirst() {
+        const window = makeWindow("done", {
+            "gamesScenario": "asking",
+            "loggedIn": ["ada"]
+        });
+        showGames(window);
+        mouseClick(card(window, 1));
+        mouseClick(findChild(window, "saveButton"));
+        answer(window, "logOutNow");
+        const box = findChild(window, "logOutChoice");
+        compare(box.Accessible.name, "Log Ada out now?");
+        const warning = findChild(window, "logOutWarning");
+        verify(warning.visible);
+        verify(!findChild(window, "logOutQuestion").visible);
+        compare(warning.text, "Log Ada out now? Anything Ada has not saved in a game may be lost. Steam is asked to save first. Ada's new games are copied straight after, and Ada can log in again when that ends.");
+        compare(warning.Accessible.name, warning.text);
+        compare(findChild(window, "confirmLogOut").text, "Log Ada out");
+        compare(findChild(window, "confirmLogOut").Accessible.name, "Log Ada out");
+        const notNow = findChild(window, "notNow");
+        compare(notNow.text, "Not now");
+        compare(notNow.Accessible.name, "Not now: go back to the choice for Ada");
+        tryCompare(notNow, "activeFocus", true);
+        compare(standIns.savedArguments(), "");
+        answer(window, "notNow");
+        verify(findChild(window, "logOutQuestion").visible);
+        tryCompare(findChild(window, "logOutNow"), "activeFocus", true);
+        compare(standIns.savedArguments(), "");
+    }
+
+    // With the keyboard, a second Enter lands on "Not now", so it never
+    // logs a child out by itself.
+    function test_twoEntersNeverLogAChildOut() {
+        const window = makeWindow("done", {
+            "gamesScenario": "asking",
+            "loggedIn": ["ada"]
+        });
+        showGames(window);
+        mouseClick(card(window, 1));
+        mouseClick(findChild(window, "saveButton"));
+        tryCompare(findChild(window, "logOutNow"), "activeFocus", true);
+        keyClick(Qt.Key_Return);
+        tryCompare(findChild(window, "notNow"), "activeFocus", true);
+        keyClick(Qt.Key_Return);
+        tryCompare(findChild(window, "logOutNow"), "activeFocus", true);
+        compare(window.gamesPage.question.step, LogOutQuestion.Choosing);
+        compare(standIns.savedArguments(), "");
+    }
+
+    // "Log Ada out": one Save, with one password, that names Ada to log
+    // out, and the page says so while it runs.
+    function test_logOutIsOneSave() {
+        const window = makeWindow("done", {
+            "gamesScenario": "save-done",
+            "loggedIn": ["ada"]
+        });
+        showGames(window);
+        mouseClick(card(window, 1));
+        mouseClick(findChild(window, "saveButton"));
+        answer(window, "logOutNow");
+        answer(window, "confirmLogOut");
+        verify(!findChild(window, "logOutChoice").visible);
+        tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
+        compare(standIns.savedArguments(), "run\nsave-games\n--log-out=ada\nada=1001,1003,1004,1002\n");
+        compare(saveOutcome(window), "Saved. Each child sees their games the next time they log in.");
+        compare(result(window, 0).text, "Ada's list is saved. Added: 4. Taken off: 0.");
+    }
+
+    function test_aLogOutInProgressSaysWhose() {
+        const window = makeWindow("done", {
+            "gamesScenario": "save-logging-out",
+            "loggedIn": ["ada"]
+        });
+        showGames(window);
+        mouseClick(card(window, 1));
+        mouseClick(findChild(window, "saveButton"));
+        answer(window, "logOutNow");
+        answer(window, "confirmLogOut");
+        tryCompare(window.gamesPage.saving, "progress", GamesSaving.LoggingOut);
+        compare(saveOutcome(window), "Logging Ada out. Steam gets a moment to save.");
+    }
+
+    // A program of Ada's would not close: restart the computer, and the
+    // games still come at Ada's next logout.
+    function test_aStuckLogOutSaysRestart() {
+        const window = makeWindow("done", {
+            "gamesScenario": "save-stuck",
+            "loggedIn": ["ada"]
+        });
+        showGames(window);
+        mouseClick(card(window, 1));
+        mouseClick(findChild(window, "saveButton"));
+        answer(window, "logOutNow");
+        answer(window, "confirmLogOut");
+        tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
+        const note = laterNote(window, 0);
+        verify(note.visible);
+        compare(note.text, "One of Ada's programs would not close. Restart the computer. Ada's new games are copied the next time Ada logs out.");
+        compare(note.Accessible.name, note.text);
+        verify(!findChild(window, "saveButton").enabled);
+    }
+
+    // A child who is not logged in is not asked about.
+    function test_noQuestionWhenNobodyIsLoggedIn() {
+        const window = makeWindow("done", {
+            "gamesScenario": "save-done",
+            "loggedIn": ["ben", "guardian"]
+        });
+        showGames(window);
+        mouseClick(card(window, 1));
+        mouseClick(findChild(window, "saveButton"));
+        verify(!findChild(window, "logOutChoice").visible);
+        tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
+        compare(standIns.savedArguments(), "run\nsave-games\nada=1001,1003,1004,1002\n");
     }
 
     // Coming back to a child whose games wait: the note, the marks, and

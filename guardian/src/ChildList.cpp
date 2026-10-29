@@ -48,6 +48,11 @@ bool sameLoginsAndNames(const std::vector<ListedChild>& one,
     });
 }
 
+const ListedChild* childWithLogin(const std::vector<ListedChild>& children, const QString& login) {
+    const auto found = std::ranges::find(children, login, &ListedChild::login);
+    return found == children.end() ? nullptr : &*found;
+}
+
 QString namesInWords(const std::vector<ListedChild>& children, const QStringList& logins) {
     QStringList names;
     for (const ListedChild& child : children) {

@@ -63,8 +63,14 @@ void GameChoices::putBack(const QString& login) {
     m_wanted.remove(login);
 }
 
-QStringList GameChoices::saveArguments(const QStringList& logins) const {
+// cairn-family takes every --log-out before the first list.
+QStringList GameChoices::saveArguments(const QStringList& logins, const QStringList& logOut) const {
     QStringList arguments{QStringLiteral("save-games")};
+    for (const QString& login : logins) {
+        if (m_wanted.contains(login) && logOut.contains(login)) {
+            arguments.append(QStringLiteral("--log-out=") + login);
+        }
+    }
     for (const QString& login : logins) {
         if (m_wanted.contains(login)) {
             arguments.append(login + QLatin1Char('=') +

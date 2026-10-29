@@ -29,7 +29,10 @@ ChildSave::Ended ChildSave::run(const Shared& shared, const Account& child,
     CopyJob::Result copy;
     if (!plan.toCopy.isEmpty()) {
         say(QStringLiteral("copying %1").arg(child.login));
-        copy = CopyJob::run(shared.copy, child.login, child.uid, plan.toCopy, say);
+        const CopyJob::IfLoggedIn ifLoggedIn = shared.logOut.contains(child.login)
+                                                   ? CopyJob::IfLoggedIn::LogOut
+                                                   : CopyJob::IfLoggedIn::Hold;
+        copy = CopyJob::run(shared.copy, child.login, child.uid, plan.toCopy, ifLoggedIn, say);
     }
 
     ChildGameList::NewList list = ChildGameList::result(before.old, ticked, copy.copied, catalogue);

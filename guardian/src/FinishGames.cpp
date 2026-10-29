@@ -72,6 +72,8 @@ FinishGames::Outcome FinishGames::finish(const Account& child) const {
         .copy = m_setup.copy,
         .file = ChildGamesFile(m_setup.gamesFolder, m_setup.owner, m_setup.restorecon),
         .catalogue = CatalogueRefresh::read(m_setup.gamesFile),
+        // The child has just logged out, and nobody chose to log them out.
+        .logOut = {},
     };
     // Only the lines the window reads back: no copying or waiting.
     QStringList lines;

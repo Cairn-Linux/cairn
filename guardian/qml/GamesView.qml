@@ -164,6 +164,15 @@ Column {
         }
     }
 
+    // Before a Save, for each child with new games who is logged in.
+    LogOutChoice {
+        id: logOutChoice
+
+        objectName: "logOutChoice"
+        width: view.width
+        question: view.page.question
+    }
+
     Words {
         objectName: "unsavedSentence"
         visible: view.hasChildren && view.page.unsavedNames !== "" && !view.busy
@@ -234,6 +243,19 @@ Column {
             }
         }
         view.outcomeShown();
+    }
+
+    // Focus follows the question's steps, and goes back to Save, which
+    // waits while the Save runs, once every child is answered.
+    Connections {
+        target: view.page.question
+
+        function onChanged() {
+            if (view.page.question.step === LogOutQuestion.NotAsking)
+                saveButton.forceActiveFocus();
+            else
+                Qt.callLater(logOutChoice.focusStep);
+        }
     }
 
     Connections {

@@ -33,6 +33,8 @@ GamesSaving::Progress GamesSaving::progress() const {
         return Progress::CopyingGames;
     case SaveReport::Stage::Waiting:
         return Progress::WaitingForLogout;
+    case SaveReport::Stage::LoggingOut:
+        return Progress::LoggingOut;
     case SaveReport::Stage::Starting:
         break;
     }
@@ -146,6 +148,7 @@ GamesSaving::Held GamesSaving::heldFor(const QString& word) {
         {QStringLiteral("failed"), Held::CopyStopped},
         {QStringLiteral("not-started"), Held::NotStarted},
         {QStringLiteral("not-written"), Held::NotWritten},
+        {QStringLiteral("stuck"), Held::Stuck},
     };
     return held.value(word, Held::OtherHold);
 }

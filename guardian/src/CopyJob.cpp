@@ -24,11 +24,12 @@ bool isCondition(const QString& line) {
 }
 
 // The helper's refusals a parent can act on. Any other means a mistake, and
-// is held as `failed`.
+// is held as `failed`. `stuck` comes only from a log-out.
 bool isHoldingRefusal(const QString& word) {
     static const QStringList words{
         QStringLiteral("logged-in"),     QStringLiteral("busy"),    QStringLiteral("copying"),
         QStringLiteral("still-running"), QStringLiteral("stopped"), QStringLiteral("not-set-up"),
+        QStringLiteral("stuck"),
     };
     return words.contains(word);
 }
@@ -55,10 +56,15 @@ CopyJob::CopyJob(QString login, QStringList appIds, Say say)
 // --pipe hands the service this program's pipe, so the helper's lines come
 // straight back, and --wait waits for the service to end. --collect lets a
 // failed job's name be used again.
+// The helper takes --log-out straight after --copy-games.
 CopyJob::Result CopyJob::run(const Setup& setup, const QString& login, unsigned int uid,
-                             const QStringList& appIds, const Say& say) {
+                             const QStringList& appIds, IfLoggedIn ifLoggedIn, const Say& say) {
     if (appIds.isEmpty()) {
         return {};
+    }
+    QStringList helper{setup.visitHelper, QStringLiteral("--copy-games")};
+    if (ifLoggedIn == IfLoggedIn::LogOut) {
+        helper.append(QStringLiteral("--log-out"));
     }
     QProcess process;
     prepare(process);
@@ -69,9 +75,8 @@ CopyJob::Result CopyJob::run(const Setup& setup, const QString& login, unsigned 
             QStringLiteral("--pipe"), QStringLiteral("--no-ask-password"),
             QStringLiteral("--service-type=exec"), QStringLiteral("--expand-environment=no"),
             QStringLiteral("--unit=cairn-copy-games-%1").arg(uid),
-            QStringLiteral("--description=Cairn copies games to a child"), QStringLiteral("--"),
-            setup.visitHelper, QStringLiteral("--copy-games"), login} +
-            appIds);
+            QStringLiteral("--description=Cairn copies games to a child"), QStringLiteral("--")} +
+            helper + QStringList{login} + appIds);
 
     CopyJob job(login, appIds, say);
     job.read(process);
@@ -123,8 +128,9 @@ void CopyJob::take(const QString& line) {
         QStringLiteral("^skipped ([1-9][0-9]{0,9}) ([a-z-]{1,32})$"));
     static const QRegularExpression ending(
         QStringLiteral("^(finished|failed|refused [a-z-]{1,32})$"));
-    if (line == QStringLiteral("waiting")) {
-        m_say(QStringLiteral("waiting %1").arg(m_login));
+    if (line == QStringLiteral("waiting") || line == QStringLiteral("logging-out") ||
+        line == QStringLiteral("logged-out")) {
+        m_say(QStringLiteral("%1 %2").arg(line, m_login));
     } else if (const QRegularExpressionMatch match = game.match(line);
                match.hasMatch() && m_appIds.contains(match.captured(2))) {
         m_say(QStringLiteral("%1 %2 %3").arg(match.captured(1), m_login, match.captured(2)));

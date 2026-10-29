@@ -12,10 +12,11 @@ namespace {
 class CopyJobTest : public QObject {
     Q_OBJECT
 
-    CopyJob::Result run(const QStringList& appIds) {
+    CopyJob::Result run(const QStringList& appIds,
+                        CopyJob::IfLoggedIn ifLoggedIn = CopyJob::IfLoggedIn::Hold) {
         const CopyJob::Setup setup{.systemdRun = path("systemd-run"),
                                    .visitHelper = path("cairn-steam-visit")};
-        return CopyJob::run(setup, "ada", 1002, appIds,
+        return CopyJob::run(setup, "ada", 1002, appIds, ifLoggedIn,
                             [this](const QString& line) { m_said.append(line); });
     }
 
@@ -81,9 +82,44 @@ private slots:
         }
     }
 
-    // Nothing to copy starts nothing.
+    // A child the parent chose to log out: --log-out goes straight after
+    // --copy-games, and nowhere else.
+    void logsOutWhenAsked() {
+        give("lines-ada", "logging-out\nlogged-out\ncopied 620\nfinished\n");
+        const CopyJob::Result result = run({"620"}, CopyJob::IfLoggedIn::LogOut);
+        QCOMPARE(lines("systemd-run-calls"),
+                 QStringList({"--quiet --collect --wait --pipe --no-ask-password "
+                              "--service-type=exec --expand-environment=no "
+                              "--unit=cairn-copy-games-1002 "
+                              "--description=Cairn copies games to a child -- " +
+                              path("cairn-steam-visit") + " --copy-games --log-out ada 620"}));
+        QCOMPARE(lines("helper-calls"), QStringList({"--copy-games --log-out ada 620"}));
+        QCOMPARE(m_said, QStringList({"logging-out ada", "logged-out ada", "copied ada 620"}));
+        QCOMPARE(result.copied, QStringList({"620"}));
+        QVERIFY(!result.held.has_value());
+    }
+
+    // A program of the child's outlived the log-out: held as `stuck`.
+    void stuckLogOut() {
+        give("lines-ada", "logging-out\nrefused stuck\n");
+        give("status-ada", "1");
+        const CopyJob::Result result = run({"620"}, CopyJob::IfLoggedIn::LogOut);
+        QCOMPARE(m_said, QStringList({"logging-out ada"}));
+        QVERIFY(result.copied.isEmpty());
+        QCOMPARE(result.held, std::optional<QString>("stuck"));
+    }
+
+    // Nothing to copy starts nothing, and logs nobody out.
+    void nothingToCopy_data() {
+        QTest::addColumn<bool>("logOut");
+        QTest::newRow("hold") << false;
+        QTest::newRow("log out") << true;
+    }
+
     void nothingToCopy() {
-        const CopyJob::Result result = run({});
+        QFETCH(const bool, logOut);
+        const CopyJob::Result result =
+            run({}, logOut ? CopyJob::IfLoggedIn::LogOut : CopyJob::IfLoggedIn::Hold);
         QVERIFY(!QFile::exists(path("systemd-run-calls")));
         QVERIFY(result.copied.isEmpty());
         QVERIFY(!result.held.has_value());
@@ -154,6 +190,7 @@ private slots:
             << QByteArray("waiting\nrefused still-running\n") << "still-running";
         QTest::newRow("stopped") << QByteArray("refused stopped\n") << "stopped";
         QTest::newRow("not set up") << QByteArray("refused not-set-up\n") << "not-set-up";
+        QTest::newRow("stuck") << QByteArray("logging-out\nrefused stuck\n") << "stuck";
         QTest::newRow("a refusal that is a mistake")
             << QByteArray("refused not-for-pkexec\n") << "failed";
         QTest::newRow("failed") << QByteArray("copied 620\nfailed\n") << "failed";
