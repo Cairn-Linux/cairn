@@ -88,7 +88,7 @@ std::optional<RootFolder::File> RootFolder::read(const QString& folder, unsigned
     }
     struct stat status{};
     if (fstat(descriptor, &status) != 0 || !S_ISREG(status.st_mode) || status.st_uid != owner ||
-        status.st_size > largest) {
+        (status.st_mode & (S_IWGRP | S_IWOTH)) != 0 || status.st_size > largest) {
         return std::nullopt;
     }
     File read{.bytes = file.read(largest + 1), .modified = {}};

@@ -11,6 +11,7 @@
 #include <QTest>
 #include <QThread>
 
+#include <sys/stat.h>
 #include <memory>
 #include <unistd.h>
 
@@ -249,6 +250,24 @@ private slots:
         QCOMPARE(lines("games-finished/ada"),
                  QStringList({"skipped ada 999 not-shared", "copied ada 12",
                               "child ada added 1 removed 1"}));
+    }
+
+    void aFinishedWriteThatFailsKeepsTheChildWaiting() {
+        give("games-waiting/ada", "ada=620,12\n");
+        QVERIFY(QDir().mkpath(path("games-finished/ada")));
+        const FinishGames::Outcome outcome = run({"finish-games", "1002"});
+        QVERIFY(!outcome.refusal);
+        QVERIFY(outcome.notes.join(' ').contains("could not be written down"));
+        QCOMPARE(read("games-waiting/ada"), QByteArray("ada=620,12\n"));
+    }
+
+    void aWritableWaitingFileIsRemovedAndNeverCopied() {
+        give("games-waiting/ada", "ada=620,12\n");
+        QVERIFY(chmod(QFile::encodeName(path("games-waiting/ada")).constData(), 0666) == 0);
+        const FinishGames::Outcome outcome = run({"finish-games", "1002"});
+        QVERIFY(outcome.notes.join(' ').contains("failed a check"));
+        QVERIFY(!QFile::exists(path("games-waiting/ada")));
+        QVERIFY(!QFile::exists(path("systemd-run-calls")));
     }
 
     // A waiting file that fails a check is removed and never copied.

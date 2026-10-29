@@ -89,10 +89,15 @@ FinishGames::Outcome FinishGames::finish(const Account& child) const {
     }
 
     Outcome outcome{.refusal = std::nullopt, .notes = {at + ended.line}};
-    waiting.remove(child.login);
     if (!FinishedSave(m_setup.finishedFolder, m_setup.owner, m_setup.restorecon)
              .write(child.login, lines)) {
-        outcome.notes.append(at + QStringLiteral("how it ended could not be written down"));
+        outcome.notes.append(
+            at + QStringLiteral("how it ended could not be written down, so it waits for "
+                                "the next logout"));
+        return outcome;
+    }
+    if (!waiting.remove(child.login)) {
+        outcome.notes.append(at + QStringLiteral("the waiting list could not be removed"));
     }
     return outcome;
 }

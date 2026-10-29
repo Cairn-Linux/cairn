@@ -24,11 +24,12 @@ QString ChildGamesFile::path(const QString& login) const {
 }
 
 QList<QJsonObject> ChildGamesFile::read(const QString& login) const {
-    QFile file(path(login));
-    if (!file.open(QIODevice::ReadOnly) || file.size() > largestFile) {
+    const std::optional<RootFolder::File> file =
+        RootFolder::read(m_folder, m_owner, login + QStringLiteral(".json"), largestFile);
+    if (!file) {
         return {};
     }
-    const std::optional<GameCatalogue> catalogue = GameCatalogue::fromJson(file.readAll());
+    const std::optional<GameCatalogue> catalogue = GameCatalogue::fromJson(file->bytes);
     if (!catalogue) {
         return {};
     }

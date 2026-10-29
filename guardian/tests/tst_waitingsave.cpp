@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
+#include "FinishedSave.h"
 #include "WaitingSave.h"
 
 #include <QDir>
@@ -171,6 +172,34 @@ private slots:
         QCOMPARE(waiting().read(adaAccount()).found, WaitingSave::Found::Refused);
         QVERIFY(!waiting().write("ada", {"570"}));
         QVERIFY(!waiting().remove("ada"));
+    }
+
+    void refusesAWritableFileAndRepairsItOnWrite() {
+        give("ada", "ada=620\n");
+        const QString file = QDir(m_folder).filePath("ada");
+        for (mode_t mode : {mode_t{0664}, mode_t{0666}}) {
+            QVERIFY(chmod(QFile::encodeName(file).constData(), mode) == 0);
+            QCOMPARE(waiting().read(adaAccount()).found, WaitingSave::Found::Refused);
+        }
+        QVERIFY(waiting().write("ada", {"620"}));
+        QCOMPARE(modeOf(file), mode_t{0644});
+        QCOMPARE(waiting().read(adaAccount()).found, WaitingSave::Found::Waiting);
+    }
+
+    void finishedRefusesWritableAndLinkedFiles() {
+        QVERIFY(QDir().mkpath(path("games-finished")));
+        const FinishedSave finished(path("games-finished"), getuid(), path("restorecon"));
+        QVERIFY(finished.write("ada", {"child ada added 1 removed 0"}));
+        const QString file = QDir(path("games-finished")).filePath("ada");
+        QVERIFY(chmod(QFile::encodeName(file).constData(), 0666) == 0);
+        QVERIFY(!finished.read("ada"));
+        QVERIFY(chmod(QFile::encodeName(file).constData(), 0644) == 0);
+        QVERIFY(finished.read("ada"));
+        const QString elsewhere = path("elsewhere-finished");
+        QVERIFY(QFile::copy(file, elsewhere));
+        QVERIFY(QFile::remove(file));
+        QVERIFY(QFile::link(elsewhere, file));
+        QVERIFY(!finished.read("ada"));
     }
 
     void refusesWhatIsNotAFile() {

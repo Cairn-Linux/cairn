@@ -321,6 +321,30 @@ private slots:
         QVERIFY(read("games/ada.json").contains("\"620\""));
     }
 
+    // A finished record that cannot be removed holds only that child:
+    // nothing for it is mutated or copied, and the next child completes.
+    void aFinishedRecordThatCannotBeRemovedHoldsOnlyThatChild() {
+        leaveEarlierFiles();
+        give("games/ada.json", adaHasPortal);
+        // A folder in the finished record's place cannot be unlinked.
+        QVERIFY(QFile::remove(path("games-finished/ada")));
+        QVERIFY(QDir().mkpath(path("games-finished/ada")));
+        const GamesSave::Outcome outcome = run({"save-games", "ada=620", "ben=620"});
+        QVERIFY(!outcome.refusal.has_value());
+        QCOMPARE(m_said,
+                 QStringList({"looking", "pictures made", "catalogue made",
+                              "child ada added 0 removed 0 held not-written", "copying ben",
+                              "copied ben 620", "child ben added 1 removed 0"}));
+        QCOMPARE(outcome.children,
+                 QStringList({"child ada added 0 removed 0 held not-written",
+                              "child ben added 1 removed 0"}));
+        QCOMPARE(read("games/ada.json"), QByteArray(adaHasPortal));
+        QCOMPARE(read("games-waiting/ada"), QByteArray("ada=504230\n"));
+        QVERIFY(QDir(path("games-finished/ada")).exists());
+        QCOMPARE(lines("helper-calls"), QStringList({"--copy-games ben 620"}));
+        QVERIFY(read("games/ben.json").contains("\"620\""));
+    }
+
     // One child's file that cannot be written does not stop the others.
     void aFailedWriteHoldsOnlyThatChild() {
         QVERIFY(QDir().mkpath(path("games/ada.json")));

@@ -38,8 +38,9 @@ struct File {
 };
 
 // The file's bytes, when the folder is safe and the file, never followed
-// through a link, is a regular file that belongs to `owner` and holds at
-// most `largest` bytes. Nothing otherwise, or when there is no file.
+// through a link, is a regular file that belongs to `owner`, that no one
+// else may write, and holds at most `largest` bytes. Nothing otherwise,
+// or when there is no file.
 std::optional<File> read(const QString& folder, unsigned int owner, const QString& name,
                          qint64 largest);
 

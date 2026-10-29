@@ -255,7 +255,7 @@ target_compile_definitions(tst_childgamesfile PRIVATE FIXTURES="${guardian_fixtu
 add_test(NAME childgamesfile COMMAND tst_childgamesfile)
 
 qt_add_executable(tst_waitingsave tests/tst_waitingsave.cpp src/WaitingSave.h
-    src/WaitingSave.cpp src/GamesRequest.h src/GamesRequest.cpp src/Refusal.h src/Refusal.cpp
+    src/WaitingSave.cpp src/FinishedSave.h src/FinishedSave.cpp src/GamesRequest.h src/GamesRequest.cpp src/Refusal.h src/Refusal.cpp
     src/ReadableFile.h src/ReadableFile.cpp src/RootFolder.h src/RootFolder.cpp src/SystemTool.h
     src/SystemTool.cpp)
 target_include_directories(tst_waitingsave PRIVATE src)
