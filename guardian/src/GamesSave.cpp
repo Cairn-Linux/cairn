@@ -47,8 +47,13 @@ GamesSave::Outcome GamesSave::run(const QStringList& arguments, const Say& say) 
     if (request.refusal) {
         return {.refusal = request.refusal, .asked = {}, .children = {}};
     }
-    const QString asked =
+    // A log-out the parent chose goes in the journal with the Save.
+    QString asked =
         (QStringList{QStringLiteral("save-games")} + request.logins()).join(QLatin1Char(' '));
+    if (!request.logOut.isEmpty()) {
+        asked += QStringLiteral(", logging out ") + request.logOut.join(QLatin1Char(' ')) +
+                 QStringLiteral(" if logged in");
+    }
 
     // Every name is a child Cairn made, before anything changes.
     std::vector<Account> children;
@@ -80,6 +85,7 @@ GamesSave::Outcome GamesSave::run(const QStringList& arguments, const Say& say) 
         .file = ChildGamesFile(m_setup.gamesFolder, m_setup.gamesFolderOwner,
                                m_setup.catalogue.restorecon),
         .catalogue = made.catalogue,
+        .logOut = request.logOut,
     };
     const WaitingSave waiting(m_setup.waitingFolder, m_setup.gamesFolderOwner,
                               m_setup.catalogue.restorecon);

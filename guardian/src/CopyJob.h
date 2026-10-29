@@ -4,6 +4,7 @@
 #include <QString>
 #include <QStringList>
 
+#include <cstdint>
 #include <functional>
 #include <optional>
 
@@ -17,6 +18,9 @@ class QProcess;
 //
 // It waits as long as the copy takes, with no time limit, and never kills
 // it: a copy cut off holds the child's login until its helper ends.
+//
+// For a child the parent chose to log out now, the helper is given
+// `--log-out`, and logs the child out first when they are logged in.
 class CopyJob {
 public:
     using Say = std::function<void(const QString&)>;
@@ -26,19 +30,24 @@ public:
         QString visitHelper;
     };
 
+    // What the copy does when the child is logged in: holds their games
+    // until they log out, or logs them out first.
+    enum class IfLoggedIn : std::uint8_t { Hold, LogOut };
+
     struct Result {
         // The games the copy reported as copied or already there.
         QStringList copied;
         // Why the child's new games were held back, as one word: the
-        // helper's refusal or condition, `failed`, or `not-started`.
+        // helper's refusal or condition, `failed`, or `not-started`. A
+        // log-out that a program of the child's outlived is `stuck`.
         std::optional<QString> held;
     };
 
     // Says each of the helper's lines as it comes, with the child's login
     // put in from `login`, never from the helper. Only lines about the games
-    // in `appIds` are said.
+    // in `appIds` are said, and `logging-out` and `logged-out`.
     static Result run(const Setup& setup, const QString& login, unsigned int uid,
-                      const QStringList& appIds, const Say& say);
+                      const QStringList& appIds, IfLoggedIn ifLoggedIn, const Say& say);
 
     // The most lines read from one copy; the rest are drained unread.
     static constexpr int mostLines = 4000;

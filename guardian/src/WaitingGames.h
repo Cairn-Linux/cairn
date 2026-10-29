@@ -46,6 +46,8 @@ public:
     // the list their file holds.
     QStringList baseline(const QString& login) const;
     bool isWaiting(const QString& login) const;
+    // The list the child's own file holds now: the games they have.
+    QStringList saved(const QString& login) const;
 
     // The page's games, as GameShelf gives them, for the child: saved is
     // true for a game on the baseline, and waiting for one that waits for

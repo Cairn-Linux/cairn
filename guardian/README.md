@@ -97,7 +97,27 @@ for Ada to log out", a note says they are copied at the next logout, and
 Save stays off until something changes. Once the copy at the logout has
 run, a note says it worked, with its date, or what stopped it, until the
 next Save for that child. An open page follows both as they happen.
-Buttons to log a child out from the page come in step 5c.
+
+Before the password box opens, the page asks systemd-logind, without
+root, who is logged in (ADR-0041, step 5c). For each child with a new
+game to copy who is logged in, one at a time, it offers **Log Ada out
+now** or **Later**, and every other control waits. **Log Ada out now**
+first warns that anything Ada has not saved in a game may be lost, with
+**Log Ada out** and **Not now**, which goes back to the choice. Focus
+goes to **Not now**, so a second Enter never logs a child out. Once
+every child is answered, Save runs once, with one password, and names
+the children to log out with `--log-out=LOGIN`. While it runs the page
+says "Logging Ada out. Steam gets a moment to save.", then that it is
+copying. If one of the child's programs will not close, the page says
+to restart the computer, and the games are copied at the child's next
+logout. A child whose change only takes games off is never asked about,
+and when logind cannot be asked, nobody counts as logged in, so the
+games wait as for **Later**. The question comes only before a Save: the
+waiting and finished notes have no **Log Ada out now** button. A child
+whose games already wait gets them at their next logout, or after the
+parent changes their list again and answers **Log Ada out now**. A child
+is only still logged in if they walked away and the computer slept, so
+this is rare; a button can come later if families ask for it.
 
 The window's notes and the error output of `cairn-family`'s tools go to
 the journal:
@@ -139,7 +159,7 @@ the Guardian has read it.
 ```sh
 cairn-family create-child LOGIN LEVEL [--full-name NAME]
 cairn-family set-level LOGIN LEVEL
-cairn-family save-games LOGIN=APPID,APPID... [LOGIN=...]
+cairn-family save-games [--log-out=LOGIN]... LOGIN=APPID,APPID... [LOGIN=...]
 cairn-family finish-games UID
 ```
 
@@ -172,7 +192,9 @@ It answers in one line: `done`, or `refused` and one of `not-root`,
 Save runs it. Each argument is one
 child's whole new list, so `ben=` means no games, and a child not named
 is left alone. With no child named it only makes the pictures and the
-full games list again: the page's Look for new games.
+full games list again: the page's Look for new games. `--log-out=ada`
+says the parent chose to log Ada out for her copy; every `--log-out`
+comes before the lists, once, for a child whose list the Save gives.
 
 - It checks the caller, every value and that every name is a child
   Cairn made before anything changes, and holds a lock for the whole
@@ -188,7 +210,9 @@ full games list again: the page's Look for new games.
 - For each child it copies the games newly ticked with
   `cairn-steam-visit --copy-games CHILD APPID...`, run as a system job
   with `systemd-run`, outside the Guardian's session, and waited for with
-  no time limit. A Guardian who logs out mid-copy ends this command and
+  no time limit. A child named with `--log-out` gets
+  `--copy-games --log-out CHILD APPID...`, which logs them out first
+  when they are logged in; any other logged-in child is held. A Guardian who logs out mid-copy ends this command and
   not the copy.
 - It then writes that child's file again, the launcher's games file,
   with the games still ticked that the child had and the ones the copy
@@ -198,14 +222,15 @@ full games list again: the page's Look for new games.
   their whole new list, such as `ada=570,620`, to
   `/var/lib/cairn/games-waiting/<login>`, and removes
   `/var/lib/cairn/games-finished/<login>`. When the copy is held as
-  `logged-in`, `still-running`, `stopped` or `not-started`, which a
-  logout settles, the file stays and it says `later LOGIN`; any other
+  `logged-in`, `still-running`, `stopped`, `not-started` or `stuck`,
+  which a logout or a restart settles, the file stays and it says `later LOGIN`; any other
   ending removes it.
 
 It answers line by line as it goes, with fixed words, checked logins and
 appids: `looking` (the password was accepted and the work starts),
 `pictures made|kept`, `catalogue made|kept`, `copying LOGIN`,
-`waiting LOGIN`, `copied|have LOGIN APPID`, `skipped LOGIN APPID REASON`,
+`waiting LOGIN`, `logging-out LOGIN`, `logged-out LOGIN`,
+`copied|have LOGIN APPID`, `skipped LOGIN APPID REASON`,
 then `child LOGIN added N removed N`, with `held WORD` when the child's
 new games could not all be given, and `later LOGIN` when they wait for
 the child's next logout. It ends with `done`, or `refused` and a
@@ -249,6 +274,8 @@ QML draws, C++ decides (ADR-0002):
 | `src/FamilyChange` | Runs `pkexec` with `cairn-family`, one change at a time, and reads its one-line answer, or pkexec's own exit code. |
 | `src/ChildrenPage` | What the Children page shows and what its buttons do: the list, the checks before a change, and why a change was refused. Its account database is in its `Setup`, so a test can replace it. |
 | `src/GamesPage` | What the Games page shows and does: the children, the one picked, the games with each marked when it is on that child's list as saved and as wanted, turning a game, Save, and opening a child's Steam window. Its files, accounts, commands and program start are in its `Setup`, so a test can replace them. |
+| `src/LoginSessions` | Who is logged in, from systemd-logind's `ListSessions` on the system bus through Qt D-Bus, without root, counted by the visit helper's own rule. |
+| `src/LogOutQuestion` | The question before a Save: which children to ask about, and the steps of the choice and the warning for each, then whom the Save logs out. |
 | `src/WaitingGames` | Each child's list as saved, their waiting list, which is the page's starting point for them, and the copy at their last logout, read without root and watched for changes. |
 | `src/SteamWindowStart` | Starts a child's Steam window as a program of its own, and notes in the journal when it cannot. |
 | `src/SaveResults` | One child's result, from a Save or from the copy at their logout, as the map the page's QML reads, and whether every child got every new game. |
@@ -262,18 +289,19 @@ QML draws, C++ decides (ADR-0002):
 | `qml/FamilyWindow.qml`, `qml/ChildrenView.qml`, `qml/GamesView.qml` | The Guardian tool's window with its switch between pages, its Children page with the sentence for every answer, and its Games page. |
 | `qml/ChildChoice.qml`, `qml/GameCard.qml`, `qml/SaveOutcome.qml` | A child to pick on the Games page, one game in its grid, and the sentences for a Save. |
 | `qml/LaterNote.qml`, `qml/WaitingNote.qml` | After a Save, why a child's games wait and that they come at their next logout; on the page, that they still wait, or how the copy at the logout went. |
+| `qml/LogOutChoice.qml` | The question before a Save about a child who is logged in: **Log Ada out now** or **Later**, then the warning. |
 | `qml/ChildRow.qml`, `qml/AddChildForm.qml`, `qml/LabelledField.qml`, `qml/LevelChoice.qml` | A child on the list, the Add form, a text field with its label, and one level to pick. |
 | `qml/TextButton.qml` | The button both windows use. |
 | `src/FamilyCommand` | `cairn-family create-child` and `set-level`: which accounts it may change, and the steps for each. Everything it reads from or does to the machine is in its `Setup`, so a test can replace it. |
 | `src/Caller` | Who started `cairn-family`: root, and through pkexec an administrator, with their home from the account database. |
 | `src/GamesSave` | `cairn-family save-games`: the checks, the lock, the pictures and full list, then each child in turn. Its `Setup` holds everything it reads from or does to the machine. |
-| `src/GamesRequest` | Each child's new list, read from the arguments and checked before anything looks at an account. |
+| `src/GamesRequest` | Each child's new list, and the children to log out, read from the arguments and checked before anything looks at an account. |
 | `src/CatalogueRefresh` | Runs the picture step and kidscan, and writes kidscan's list into `/var/lib/cairn/games.json`. |
 | `src/GameCatalogue` | A games file: reading it, each game by its appid with the launcher's rule, and writing one. `cairn-family` and the Games page both use it. |
 | `src/ChildGameList` | The rule for a child's new list, with nothing read or written. |
 | `src/ChildGamesFile` | A child's own games file: reading it, and writing it into place in a folder only root may change. |
 | `src/ReadableFile` | Writes a file every account may read, renamed into place. |
-| `src/CopyJob` | Runs a child's copy as a system job with `systemd-run`, waits for it, and passes on only the helper's own lines. |
+| `src/CopyJob` | Runs a child's copy as a system job with `systemd-run`, with `--log-out` for a child the parent chose to log out, waits for it, and passes on only the helper's own lines. |
 | `src/ChildSave` | One child's part of a Save: their file without the games taken off, then the copy, their file again and their line. |
 | `src/WaitingSave` | A child's waiting list: writing it, reading it back with every check, removing it, and which held words keep it. |
 | `src/FinishedSave` | How the copy at a child's logout ended: the lines, dated by the file. |
@@ -319,7 +347,10 @@ command does: every game given, a child held by a word, games left out,
 a copy still running, or a run cut off before `done`; `save-done` also
 writes each child's list into the folder `CAIRN_TEST_GAMES` names, and
 `save-held-later` holds each child as logged in, says `later` and writes
-their waiting list into the folder `CAIRN_TEST_WAITING` names.
+their waiting list into the folder `CAIRN_TEST_WAITING` names. A child
+named with `--log-out` is logged out first in `save-done`, held as
+`stuck` and left waiting in `save-stuck`, and `save-logging-out` stays
+logging the first child out.
 The Guardian tool's tests give the page a table of accounts in place of
 the system's, so they cover the order, who is left out, the login names,
 every check before a change, one change at a time, trying an add again
@@ -332,7 +363,12 @@ They cover turning games for two children and saving once, the exact
 arguments pkexec is given, a child held or a game left out, every
 refusal keeping the changes, every control waiting while a Save runs, a
 waiting list as the child's starting point, an open page following the
-files root writes, and the dated note after a copy at a logout.
+files root writes, the dated note after a copy at a logout, and the
+question about a logged-in child: who is asked about, the choice, the
+warning and its focus, and exactly one Save naming the children to log
+out. `loginsessions` checks the rule for a login, and asks the test
+machine's own logind when it has one; `logoutquestion` covers whom the
+page asks about and every step of the question.
 Setting `CAIRN_SCREENSHOT=/path/family.png` when running
 `tst_familywindow` saves pictures of both pages beside that path.
 
@@ -366,8 +402,8 @@ What the stand-ins cannot show was run in the VM (`docs/research/steam-visit.md`
 - The Guardian's own Steam, started again by the window, runs in the
   window's own systemd unit, which then stays until Steam ends.
 - Neither `cairn-family` nor the Guardian tool has run in the VM yet.
-- The Games page cannot log out a child who is logged in: their new
-  games wait until they log out (ADR-0041, step 5c).
+- Logging a child out from the Games page has not run in the VM yet
+  (ADR-0041, step 6).
 - The copy at a child's logout has not run in the VM yet (ADR-0041,
   step 6).
 - The Guardian tool cannot reset a child, set a PIN, or make an existing

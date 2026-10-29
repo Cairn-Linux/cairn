@@ -94,10 +94,12 @@ public:
     // with none and Cy with two, one of them no longer shared. Its Steam
     // window start answers as `steamStarts` says, and is written down in
     // startedSteam(). Its Save runs the stand-ins, which answer as
-    // `scenario` says, when one is given, and write the children's lists
-    // into its folder.
+    // `scenario` says, when one is given, write the children's lists into
+    // its folder, and write down their arguments for savedArguments().
+    // The children in `loggedIn` count as logged in.
     Q_INVOKABLE GamesPage* gamesPage(bool withChildren, bool withGames, bool steamStarts = true,
-                                     const QString& scenario = QString()) {
+                                     const QString& scenario = QString(),
+                                     const QStringList& loggedIn = {}) {
         const QDir files(m_files.path());
         QJsonArray shared;
         const QStringList titles{"Putt-Putt Joins the Parade",
@@ -162,6 +164,8 @@ public:
         }
         qputenv("CAIRN_TEST_GAMES", files.filePath("games").toLocal8Bit());
         qputenv("CAIRN_TEST_WAITING", files.filePath("games-waiting").toLocal8Bit());
+        QFile::remove(files.filePath("arguments"));
+        qputenv("CAIRN_TEST_ARGUMENTS", files.filePath("arguments").toLocal8Bit());
         GamesPage::Setup setup;
         setup.pkexec = QStringLiteral(FIXTURES "/pkexec-family");
         setup.command = QStringLiteral(FIXTURES "/cairn-family");
@@ -176,6 +180,7 @@ public:
             m_startedSteam.append(program + " " + arguments.join(' '));
             return steamStarts;
         };
+        setup.loggedIn = [loggedIn] { return QSet<QString>(loggedIn.begin(), loggedIn.end()); };
         auto* page = new GamesPage(setup);
         QQmlEngine::setObjectOwnership(page, QQmlEngine::JavaScriptOwnership);
         return page;
@@ -193,6 +198,13 @@ public:
         return !modified.isValid() ||
                (file.open(QIODevice::ReadWrite) &&
                 file.setFileTime(modified, QFileDevice::FileModificationTime));
+    }
+
+    // Each run of cairn-family since the Games page was made, as "run" and
+    // then its arguments, a line each.
+    Q_INVOKABLE QString savedArguments() const {
+        QFile file(QDir(m_files.path()).filePath("arguments"));
+        return file.open(QIODevice::ReadOnly) ? QString::fromUtf8(file.readAll()) : QString();
     }
 
     Q_INVOKABLE QStringList startedSteam() const {

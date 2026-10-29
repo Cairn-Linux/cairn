@@ -65,14 +65,22 @@ games on their list.**
   `.set-level` and `.save-games`, all on `cairn-family`'s path and all
   `auth_admin`.
   A Save asks "A grown-up's password is needed to change which games a
-  child has."; the other two keep ADR-0039's message.
+  child has. It also logs out a child you chose to log out."; the other
+  two keep ADR-0039's message.
+  The second sentence came with step 5c, when one Save's password came
+  to cover logging a child out too.
   Every action names its first argument, so pkexec never picks one by the
   path alone, whatever order polkit lists them in.
   Any other first argument falls back to pkexec's own action, which also
   asks for an administrator, and `cairn-family` refuses it.
-- `cairn-family save-games [LOGIN=APPID,APPID...]...` takes each
-  named child's whole new list, never a change to it: `ben=` means no
-  games, and a child not named is left alone.
+- `cairn-family save-games [--log-out=LOGIN]... [LOGIN=APPID,APPID...]...`
+  takes each named child's whole new list, never a change to it: `ben=`
+  means no games, and a child not named is left alone.
+  `--log-out=ada` says the parent chose to log Ada out for her copy, when
+  she is logged in (step 5c).
+  Every `--log-out` comes before the lists, once for each child, and
+  names a child whose list the same Save gives, or the Save refuses
+  `usage`; a login that breaks the rule is `bad-name`.
   With no child named it only remakes the pictures and the full games
   list: the window's Look for new games.
   It never passes `--all`, so a child can never get every game this way.
@@ -158,6 +166,8 @@ a Steam name or a path:
 | `catalogue made` or `catalogue kept` | The full games list is new, or the old one stays |
 | `copying LOGIN` | The child's copy starts |
 | `waiting LOGIN` | The child's last login is still ending |
+| `logging-out LOGIN` | The parent chose to log the child out, and they were logged in: Steam is asked to save, then the child is logged out |
+| `logged-out LOGIN` | The child is logged out, and their copy goes on at once |
 | `copied LOGIN APPID`, `have LOGIN APPID` | The child has the game now |
 | `skipped LOGIN APPID REASON` | The game is left out, for REASON: `not-shared`, or `no-catalogue` when no full games list could be read, so whether it is shared is not known, or one of the copy step's own reasons, passed on as it says them: `unreadable`, `appid`, `installdir`, `beta-branch`, `not-installed`, `downloading`, `no-folder`, `folder-without-manifest`, `changed`, `copy-failed` or `unreadable-files` (`provision/cairn-copy-games.py` says what each means) |
 | `child LOGIN added N removed N [held WORD]` | The child's list is written, and the counts say what it holds now; `held` says why their new games are not all given |
@@ -167,8 +177,10 @@ a Steam name or a path:
 
 `held` is one of `logged-in`, `busy` (a visit), `copying`, `still-running`,
 `stopped`, `not-set-up`, `no-library`, `no-shared`, `lists-shared`,
-`unreadable-config`, `no-reflink`, `failed`, `not-started` (the job could
-not start) or `not-written` (the child's list could not be written
+`unreadable-config`, `no-reflink`, `failed`, `stuck` (a program of the
+child's would not close when the Save logged them out, so the computer
+needs a restart), `not-started` (the job could not start) or
+`not-written` (the child's list could not be written
 after the copy, so it holds none of the new games: only the games taken
 off are gone, when that first write worked, and the counts say so).
 A list that is in place but could not be labelled again for SELinux
@@ -203,8 +215,8 @@ The maintainer settled how on 2026-10-28.
   A Save that names no child, a refused Save, and a Save that does not
   name the child leave it alone.
 - **Which endings keep it.** A child held as `logged-in`,
-  `still-running`, `stopped` or `not-started` keeps waiting, because a
-  logout settles each; the Save says `later LOGIN` after their line.
+  `still-running`, `stopped`, `not-started` or `stuck` keeps waiting,
+  because a logout, or for `stuck` a restart, settles each; the Save says `later LOGIN` after their line.
   Any other ending, a clean one included, removes it, and `busy`,
   `copying`, `failed`, `not-set-up` and `not-written` keep their "press
   Save again" sentences.
@@ -349,21 +361,66 @@ It moves to per-child lists when it is reinstalled from the image.
      for a child the Save names to log out, and never otherwise.
      Landed 2026-10-28, with tests; nothing passes it yet.
    - **5c, "Log them out now".** One password, with the choice before
-     Save.
-     Before it runs `pkexec`, the window checks without root whether each
-     changed child is logged in, and asks "Log Ada out now" or "Later"
-     first.
-     It then runs one `cairn-family save-games` through `pkexec`, which
-     also says which children to log out, so one password box, with the
-     games message, covers the whole Save.
-     Its form, the window's confirmation that unsaved progress in a game
-     may be lost, and the `stuck` sentence are settled there.
+     Save, which the maintainer chose on 2026-10-28 over a second
+     password and polkit action of its own.
+     Before it runs `pkexec`, the window asks systemd-logind on the
+     system bus, without root, who is logged in, and counts a login by
+     the visit helper's own rule: every session but the service
+     manager's and a Steam visit's.
+     It asks only about a child with a change to save and a game to
+     copy: a game on their new list that the shared folder has and their
+     own list does not.
+     A child whose change only takes games off is never asked about.
+     For each such child who is logged in, one at a time, the page says
+     "Ada is logged in. Ada's new games can be copied now, which logs
+     Ada out, or the next time Ada logs out.", with **Log Ada out now**
+     and **Later**.
+     **Log Ada out now** warns first: "Log Ada out now? Anything Ada has
+     not saved in a game may be lost. Steam is asked to save first.
+     Ada's new games are copied straight after, and Ada can log in again
+     when that ends.", with **Log Ada out** and **Not now**, which goes
+     back to the choice.
+     Focus goes to **Not now**, so a second Enter never logs a child out.
+     **Later** logs nobody out, and the Save goes on as in 5a.
+     Every other control waits while the question is open.
+     Once every child is answered, the window runs one `cairn-family
+     save-games --log-out=ada ... ada=...` through `pkexec`, so one
+     password covers the whole Save, and the polkit message says that it
+     also logs out a child the parent chose.
+     That Save passes `--log-out` to the visit helper for those children
+     only, which logs them out only when they are still logged in.
+     While it runs the page says "Logging Ada out. Steam gets a moment
+     to save.", then "Copying games for Ada…".
+     When a program of Ada's would not close, the copy is held as
+     `stuck`, her games wait, and the page says "One of Ada's programs
+     would not close. Restart the computer. Ada's new games are copied
+     the next time Ada logs out."
+     When logind cannot be asked, nobody counts as logged in: the journal
+     says so, and a logged-in child's games wait as for **Later**.
+     The window can only ask; root checks every `--log-out` again, and
+     the helper checks the login itself.
+     The question comes only before a Save, so the plan's **Log Ada out
+     now** button on the waiting and finished notes is dropped.
+     A child whose games are already waiting gets them at their next
+     logout, or after the parent changes their list again and answers
+     **Log Ada out now**.
+     The maintainer chose this on 2026-10-29: a child's session can only
+     still be open while a parent uses the window if the child walked
+     away and the computer slept, which is rare.
+     If families report it, a button on the waiting note can come later.
+     Landed 2026-10-29, with tests.
 6. **Checks in the cairn-iso VM**, with two children at different
    levels: one password per Save, with the games message, while adding a
    child still shows the account message, each child sees only their own
    tiles,
    a Save while a child is logged in, a Guardian logout mid-copy, and a
    game taken off and put back with its saves.
+   For 5c: **Log Ada out now** with Steam and a game running, then the
+   new tiles at Ada's next login; one password box, with the games
+   message and its log-out sentence, for a Save that logs a child out;
+   **Later** then the copy at Ada's logout; a Guardian who logs out
+   during a log-out; and a program that will not close giving `stuck`
+   and the restart sentence.
    For 5a: the drop-in fires on Bazzite's systemd under SELinux;
    `finish-games` can write `/var/lib/cairn` and run `restorecon` from a
    system unit; a shutdown with a child waiting does not hang; a logout
@@ -402,8 +459,18 @@ It moves to per-child lists when it is reinstalled from the image.
   one for each subcommand.
   `finish-games` is a subcommand with no polkit action, guarded like the
   visit helper's copy.
+  `save-games` also logs out a child the parent chose (step 5c), with no
+  action of its own, so its message says so.
 - **ADR-0040** is amended: the Games page goes beside Children, with a
   way to move between them.
+- One password covers a Save that logs a child out.
+  The password box cannot name the child: it says only that the Save
+  also logs out a child the parent chose.
+  Which child, and that anything unsaved in a game may be lost, are said
+  on the page before the box opens.
+- A child logged out with **Log them out now** sees their screen go back
+  to the login screen, with no warning inside their session; a notice
+  there would need a new channel from root to the launcher.
 - **Known limit: the list holds only at L1 and L2.** The shared folder is readable by
   every account, and children keep copies of games taken off their list.
   At L1 and L2 a child reaches games only through their tiles, so the

@@ -48,6 +48,10 @@ bool WaitingGames::isWaiting(const QString& login) const {
     return m_files.value(login).waiting.has_value();
 }
 
+QStringList WaitingGames::saved(const QString& login) const {
+    return m_files.value(login).saved;
+}
+
 QVariantList WaitingGames::marked(const QVariantList& games, const QString& login) const {
     const Files files = m_files.value(login);
     QVariantList marked;

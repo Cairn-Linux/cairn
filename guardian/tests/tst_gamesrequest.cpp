@@ -39,6 +39,22 @@ private slots:
         QVERIFY(request.logins().isEmpty());
     }
 
+    // The children to log out come first, each once, and each has a list.
+    void readsTheChildrenToLogOut() {
+        const GamesRequest request = GamesRequest::fromArguments(
+            {"save-games", "--log-out=ben", "--log-out=ada", "ada=620", "ben=12", "cy=7"});
+        QVERIFY(!request.refusal.has_value());
+        QCOMPARE(request.logOut, QStringList({"ben", "ada"}));
+        QCOMPARE(request.logins(), QStringList({"ada", "ben", "cy"}));
+    }
+
+    // Without --log-out, nobody is logged out.
+    void nobodyToLogOut() {
+        const GamesRequest request = GamesRequest::fromArguments({"save-games", "ada=620"});
+        QVERIFY(!request.refusal.has_value());
+        QVERIFY(request.logOut.isEmpty());
+    }
+
     void refuses_data() {
         QTest::addColumn<QStringList>("arguments");
         QTest::addColumn<QString>("word");
@@ -69,6 +85,29 @@ private slots:
             << QStringList{"save-games", QStringLiteral("ada=６２０")} << "bad-appid";
         QTest::newRow("a second equals sign")
             << QStringList{"save-games", "ada=620=12"} << "bad-appid";
+        QTest::newRow("log-out after a list")
+            << QStringList{"save-games", "ada=620", "--log-out=ada"} << "usage";
+        QTest::newRow("log-out between lists")
+            << QStringList{"save-games", "ben=12", "--log-out=ada", "ada=620"} << "usage";
+        QTest::newRow("log-out twice")
+            << QStringList{"save-games", "--log-out=ada", "--log-out=ada", "ada=620"} << "usage";
+        QTest::newRow("log-out of a child with no list")
+            << QStringList{"save-games", "--log-out=ben", "ada=620"} << "usage";
+        QTest::newRow("log-out alone") << QStringList{"save-games", "--log-out=ada"} << "usage";
+        QTest::newRow("log-out with no name")
+            << QStringList{"save-games", "--log-out=", "ada=620"} << "bad-name";
+        QTest::newRow("log-out of a path")
+            << QStringList{"save-games", "--log-out=../ada", "ada=620"} << "bad-name";
+        QTest::newRow("log-out of capitals")
+            << QStringList{"save-games", "--log-out=Ada", "Ada=620"} << "bad-name";
+        QTest::newRow("log-out as its own word")
+            << QStringList{"save-games", "--log-out", "ada", "ada=620"} << "usage";
+        QTest::newRow("log-out with a space")
+            << QStringList{"save-games", "--log-out", "ada=620"} << "usage";
+        QTest::newRow("a log-out spelled another way")
+            << QStringList{"save-games", "--logout=ada", "ada=620"} << "bad-name";
+        QTest::newRow("33 log-outs")
+            << QStringList{"save-games"} + many("--log-out=c%1", 33) + many("c%1=", 33) << "usage";
         QTest::newRow("33 children") << QStringList{"save-games"} + many("c%1=", 33) << "usage";
         QTest::newRow("1001 games")
             << QStringList{"save-games", "ada=" + many("%1", 1001).join(',')} << "usage";
@@ -82,12 +121,17 @@ private slots:
         QVERIFY(request.refusal.has_value());
         QCOMPARE(refusalWord(request.refusal.value_or(Refusal::Failed)), word);
         QVERIFY(request.children.isEmpty());
+        QVERIFY(request.logOut.isEmpty());
     }
 
     // The limits themselves are allowed.
     void takesTheMost() {
         QVERIFY(!GamesRequest::fromArguments(QStringList{"save-games"} + many("c%1=", 32))
                      .refusal.has_value());
+        const GamesRequest everyone = GamesRequest::fromArguments(
+            QStringList{"save-games"} + many("--log-out=c%1", 32) + many("c%1=", 32));
+        QVERIFY(!everyone.refusal.has_value());
+        QCOMPARE(everyone.logOut.size(), 32);
         const GamesRequest request =
             GamesRequest::fromArguments({"save-games", "ada=" + many("%1", 1000).join(',')});
         QVERIFY(!request.refusal.has_value());

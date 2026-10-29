@@ -56,6 +56,8 @@ public:
     List list() const;
     // How many of games() are on the child's list.
     int onListCount() const;
+    // How many of games() are among these appids.
+    int countAmong(const QStringList& appIds) const;
     // How many of games() are in the shared folder.
     int sharedCount() const;
     // The appids of those.

@@ -192,11 +192,12 @@ private slots:
     // ending, a clean one included, ends the wait.
     void keepsOnlyForWhatALogoutSettles() {
         for (const QString& word :
-             {"logged-in", "still-running", "stopped", "not-started", "stuck"}) {
+             QStringList{"logged-in", "still-running", "stopped", "not-started", "stuck"}) {
             QVERIFY2(WaitingSave::keeps(word), qPrintable(word));
         }
-        for (const QString& word : {"busy", "copying", "failed", "not-set-up", "not-written",
-                                    "no-library", "no-reflink", "lists-shared"}) {
+        for (const QString& word :
+             QStringList{"busy", "copying", "failed", "not-set-up", "not-written", "no-library",
+                         "no-reflink", "lists-shared"}) {
             QVERIFY2(!WaitingSave::keeps(word), qPrintable(word));
         }
         QVERIFY(!WaitingSave::keeps(std::nullopt));

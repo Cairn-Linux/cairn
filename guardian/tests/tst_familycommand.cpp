@@ -283,8 +283,9 @@ private slots:
     void aNewChildStartsWithNoOldGames() {
         StandIns standIns;
         standIns.setAccounts({});
-        for (const QString& name : {"games/ada.json", "games-waiting/ada", "games-finished/ada",
-                                    "games/ben.json", "games-waiting/ben"}) {
+        for (const QString& name :
+             QStringList{"games/ada.json", "games-waiting/ada", "games-finished/ada",
+                         "games/ben.json", "games-waiting/ben"}) {
             standIns.leave(name);
         }
         QCOMPARE(standIns.run({"create-child", "ada", "1"}), std::nullopt);

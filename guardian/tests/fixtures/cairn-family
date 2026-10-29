@@ -14,7 +14,10 @@
 # save-looking says its first line, then makes the pictures for a long
 # time. save-held-later holds each child as logged in and says `later`,
 # and writes their waiting list into the folder CAIRN_TEST_WAITING names,
-# when it names one, as the real command does.
+# when it names one, as the real command does. A child named with
+# --log-out=LOGIN is logged out first in save-done, and in save-stuck one
+# of their programs will not close, so they are held as stuck and wait.
+# save-logging-out stays logging the first child out.
 set -u
 scenario="${CAIRN_TEST_SCENARIO:-}"
 if [ -n "${CAIRN_TEST_ARGUMENTS:-}" ]; then
@@ -38,7 +41,7 @@ write_list() {
 
 # Each child of a save-games run, in turn, as the scenario says.
 save_games() {
-    local argument login ids id count
+    local argument login ids id count log_out=" "
     echo "looking"
     if [ "$scenario" = save-looking ]; then
         exec sleep 30
@@ -46,6 +49,12 @@ save_games() {
     echo "pictures made"
     echo "catalogue made"
     for argument in "${@:2}"; do
+        case "$argument" in
+            --log-out=*)
+                log_out+="${argument#--log-out=} "
+                continue
+                ;;
+        esac
         login="${argument%%=*}"
         ids="${argument#*=}"
         count=0
@@ -53,9 +62,28 @@ save_games() {
             count=$((count + 1))
         done
         case "$scenario" in
+            save-stuck)
+                if [ "${log_out#* "$login" }" != "$log_out" ]; then
+                    echo "copying $login"
+                    echo "logging-out $login"
+                    echo "child $login added 0 removed 0 held stuck"
+                    if [ -n "${CAIRN_TEST_WAITING:-}" ]; then
+                        mkdir -p "$CAIRN_TEST_WAITING"
+                        echo "$argument" > "$CAIRN_TEST_WAITING/$login"
+                    fi
+                    echo "later $login"
+                else
+                    write_list "$login" "$ids"
+                    echo "child $login added $count removed 0"
+                fi
+                ;;
             save-done)
                 if [ -n "$ids" ]; then
                     echo "copying $login"
+                    if [ "${log_out#* "$login" }" != "$log_out" ]; then
+                        echo "logging-out $login"
+                        echo "logged-out $login"
+                    fi
                     for id in ${ids//,/ }; do
                         echo "copied $login $id"
                     done
@@ -83,6 +111,11 @@ save_games() {
                 ;;
             save-copying)
                 echo "copying $login"
+                exec sleep 30
+                ;;
+            save-logging-out)
+                echo "copying $login"
+                echo "logging-out $login"
                 exec sleep 30
                 ;;
             save-cut-off)

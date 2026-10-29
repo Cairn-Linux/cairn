@@ -76,6 +76,18 @@ private slots:
                  QStringList({"save-games", "ada=", "ben=1003,1001"}));
     }
 
+    // Every --log-out comes first, in the children's order, and only for a
+    // child whose list the Save gives.
+    void theChildrenToLogOutComeFirst() {
+        GameChoices choices = family();
+        choices.turn("ben", "1003");
+        choices.turn("ada", "1001");
+        QCOMPARE(choices.saveArguments({"ada", "ben", "cy"}, {"ben", "cy", "ada"}),
+                 QStringList({"save-games", "--log-out=ada", "--log-out=ben", "ada=1002,1001",
+                              "ben=1003"}));
+        QCOMPARE(family().saveArguments({"ada", "ben"}, {"ada"}), QStringList({"save-games"}));
+    }
+
     void noChangeGivesOnlyTheSubcommand() {
         QCOMPARE(family().saveArguments({"ada", "ben"}), QStringList({"save-games"}));
     }

@@ -26,6 +26,9 @@ struct Shared {
     // The full games list; nothing when none could be read, and then no
     // game can be added.
     std::optional<GameCatalogue> catalogue;
+    // The children the parent chose to log out before their copy, when
+    // they are logged in. Any other child who is logged in is held.
+    QStringList logOut;
 };
 
 // A child's list as it was before the Save.

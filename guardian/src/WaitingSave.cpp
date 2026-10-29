@@ -46,7 +46,8 @@ bool WaitingSave::remove(const QString& login) const {
     return RootFolder::remove(m_folder, m_owner, login);
 }
 
-// `stuck` comes from the visit helper's log-out, a later step of ADR-0041.
+// `stuck` comes from a log-out the parent chose: a restart or a logout
+// settles it.
 bool WaitingSave::keeps(const std::optional<QString>& held) {
     static const QStringList waitsForALogout{
         QStringLiteral("logged-in"),   QStringLiteral("still-running"), QStringLiteral("stopped"),

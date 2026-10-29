@@ -26,6 +26,10 @@
 // changed. A child whose games cannot all be given now is a `held` word on
 // their own line, and the next child goes ahead.
 //
+// A child the parent chose to log out now (`--log-out=LOGIN`) is logged
+// out by the copy helper before their copy, when they are logged in; any
+// other child who is logged in is held, as for "Later".
+//
 // Before anything changes for a child with games to copy, their whole new
 // list is written down as waiting for their next logout. When their copy
 // is held for a reason a logout settles, it stays, and the Save says

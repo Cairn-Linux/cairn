@@ -25,6 +25,9 @@ struct ListedChild {
 // accounts in no level group are left out.
 std::vector<ListedChild> childrenAmong(std::vector<Account> accounts);
 
+// The child with this login among them, or nullptr.
+const ListedChild* childWithLogin(const std::vector<ListedChild>& children, const QString& login);
+
 // Their logins, in the same order.
 QStringList loginsOf(const std::vector<ListedChild>& children);
 

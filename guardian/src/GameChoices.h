@@ -32,10 +32,11 @@ public:
     void putBack(const QString& login);
 
     // cairn-family's arguments for a Save of every child with a change,
-    // in the order of `logins`: save-games, then each child's whole new
-    // list, such as ada=620,1001 or ben= for no games.
+    // in the order of `logins`: save-games, then --log-out=LOGIN for each
+    // of them in `logOut`, then each child's whole new list, such as
+    // ada=620,1001 or ben= for no games.
     // With no change, save-games alone, which changes no child's list.
-    QStringList saveArguments(const QStringList& logins) const;
+    QStringList saveArguments(const QStringList& logins, const QStringList& logOut = {}) const;
 
     // After the lists are read again: keeps changes only for the children in
     // `logins`, and only games still on their saved list or in `shared`,
