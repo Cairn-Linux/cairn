@@ -41,21 +41,21 @@ bool makeList(const CatalogueRefresh::Setup& setup) {
     return written != ReadableFile::Written::Failed;
 }
 
-std::optional<GameCatalogue> readList(const QString& path) {
-    QFile file(path);
+} // namespace
+
+std::optional<GameCatalogue> CatalogueRefresh::read(const QString& gamesFile) {
+    QFile file(gamesFile);
     if (!file.open(QIODevice::ReadOnly) || file.size() > largestList) {
         return std::nullopt;
     }
     return GameCatalogue::fromJson(file.readAll());
 }
 
-} // namespace
-
 CatalogueRefresh::Result CatalogueRefresh::run(const Setup& setup,
                                                const std::optional<QString>& home) {
     Result result;
     result.picturesMade = home && makePictures(setup, *home);
     result.catalogueMade = makeList(setup);
-    result.catalogue = readList(setup.gamesFile);
+    result.catalogue = read(setup.gamesFile);
     return result;
 }

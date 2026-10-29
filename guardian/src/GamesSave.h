@@ -25,6 +25,11 @@
 // goes, and ends with `done` or `refused WORD`. A refusal means nothing
 // changed. A child whose games cannot all be given now is a `held` word on
 // their own line, and the next child goes ahead.
+//
+// Before anything changes for a child with games to copy, their whole new
+// list is written down as waiting for their next logout. When their copy
+// is held for a reason a logout settles, it stays, and the Save says
+// `later LOGIN`; cairn-family finish-games then copies it at that logout.
 class GamesSave {
 public:
     using Say = CopyJob::Say;
@@ -43,6 +48,10 @@ public:
         // Each child's own games file, and the uid that folder belongs to.
         QString gamesFolder = QStringLiteral("/var/lib/cairn/games");
         unsigned int gamesFolderOwner = 0;
+        // The games waiting for each child's next logout, and how the last
+        // copy at a logout ended, in folders of the same owner.
+        QString waitingFolder = QStringLiteral("/var/lib/cairn/games-waiting");
+        QString finishedFolder = QStringLiteral("/var/lib/cairn/games-finished");
         // Held for the whole Save, so two Saves never write one child's
         // list in turn.
         QString lock = QStringLiteral("/run/lock/cairn-save-games");
@@ -51,7 +60,7 @@ public:
     struct Outcome {
         std::optional<Refusal> refusal;
         // For the journal, only values already checked: what was asked, and
-        // each child's last line.
+        // each child's last line, and their `later` line.
         QString asked;
         QStringList children;
     };

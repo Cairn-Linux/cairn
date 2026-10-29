@@ -2,6 +2,7 @@
 #include "FamilyCommand.h"
 
 #include "FamilyRole.h"
+#include "RootFolder.h"
 #include "SteamEntry.h"
 #include "SystemTool.h"
 
@@ -55,7 +56,12 @@ FamilyCommand::Outcome FamilyCommand::run(const QStringList& arguments) const {
 
 // The level group comes with the account, so a run cut off after useradd
 // leaves a child the next run can finish, never an account it would refuse.
+// Games files of an account removed outside cairn-family go first: a
+// waiting list would otherwise copy games no parent chose for this child.
 std::optional<Refusal> FamilyCommand::makeChild(const FamilyRequest& request) const {
+    if (!removeOldGames(request.login)) {
+        return Refusal::Failed;
+    }
     QStringList arguments{QStringLiteral("--create-home")};
     if (request.fullName) {
         arguments << QStringLiteral("--comment") << *request.fullName;
@@ -67,6 +73,13 @@ std::optional<Refusal> FamilyCommand::makeChild(const FamilyRequest& request) co
         return Refusal::Failed;
     }
     return writeEntry(request.login, request.fullName.value_or(request.login));
+}
+
+bool FamilyCommand::removeOldGames(const QString& login) const {
+    return RootFolder::remove(m_setup.gamesFolder, m_setup.gamesOwner,
+                              login + QStringLiteral(".json")) &&
+           RootFolder::remove(m_setup.waitingFolder, m_setup.gamesOwner, login) &&
+           RootFolder::remove(m_setup.finishedFolder, m_setup.gamesOwner, login);
 }
 
 std::optional<Refusal> FamilyCommand::changeChild(const Account& child,

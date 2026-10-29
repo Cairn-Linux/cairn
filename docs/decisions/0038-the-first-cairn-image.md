@@ -82,6 +82,7 @@ packager can move one.
 | `/usr/lib/sddm/sddm.conf.d/zz-cairn.conf` | SDDM's settings for Cairn | SDDM's folder for packaged settings |
 | `/usr/lib/systemd/logind.conf.d` | The power button | logind's folder for packaged settings |
 | `/usr/share/polkit-1/` | The level rules and the visit's action | polkit's folders for packaged rules and actions |
+| `/usr/lib/systemd/system` | `cairn-finish-games@.service`, and `user-runtime-dir@.service.d/50-cairn-games.conf` (ADR-0041) | systemd's folder for packaged units and drop-ins |
 | `/etc/pam.d`, `/etc/security/faillock.conf`, `/etc/sddm.conf.d/zz-cairn-no-autologin.conf` | PAM, faillock, no autologin | Only these must be in `/etc` |
 
 The QML modules stay in Cairn's own folder, not in Qt's
@@ -122,6 +123,16 @@ inherit it.
 
 The Guardian's window names the root helper it asks `pkexec` to run. That
 path now comes from the build.
+
+The image's first systemd unit came with ADR-0041:
+`cairn-finish-games@.service`, which runs `cairn-family finish-games`
+when a child logs out, and a drop-in on systemd's own
+`user-runtime-dir@.service` that starts it. Both are installed with
+`cairn_install_file`, under `CAIRN_SYSTEMD_UNITDIR`, `lib/systemd/system`,
+so the unit's `ExecStart` names `/usr/libexec/cairn/cairn-family`, as the
+polkit actions do. The drop-in changes nothing of the upstream unit but
+adds one `ExecStopPost`, so a systemd update keeps working under it.
+Nothing enables the unit; only the drop-in starts it.
 
 ### What the image does itself (slice 3)
 

@@ -4,10 +4,13 @@
 
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QHash>
 #include <QRegularExpression>
 #include <QTemporaryDir>
 #include <QTest>
+
+#include <unistd.h>
 
 namespace {
 
@@ -60,6 +63,10 @@ public:
         setup.restorecon = m_folder.filePath("restorecon");
         setup.applications = applications();
         setup.steamFor = QString::fromLatin1(steamFor);
+        setup.gamesFolder = m_folder.filePath("games");
+        setup.waitingFolder = m_folder.filePath("games-waiting");
+        setup.finishedFolder = m_folder.filePath("games-finished");
+        setup.gamesOwner = getuid();
         setup.euid = 0;
         setup.pkexecUid = std::nullopt;
         const QHash<QString, Account> accounts = m_accounts;
@@ -104,6 +111,18 @@ public:
 
     QString applications() const {
         return m_folder.filePath("applications");
+    }
+
+    QString path(const QString& name) const {
+        return m_folder.filePath(name);
+    }
+
+    // A file an earlier account of the same login left behind.
+    void leave(const QString& name) const {
+        QVERIFY(QDir().mkpath(QFileInfo(path(name)).path()));
+        QFile file(path(name));
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write("ada=620\n");
     }
 
     QString entry(const QString& login) const {
@@ -256,6 +275,44 @@ private slots:
         QCOMPARE(QFile::permissions(SteamEntry::path(standIns.applications(), "ada")),
                  QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ReadUser |
                      QFileDevice::WriteUser | QFileDevice::ReadGroup | QFileDevice::ReadOther);
+    }
+
+    // A new child never starts with an old account's games, waiting list
+    // or finished copy, so a copy at their first logout gives them nothing
+    // no parent chose. The other children's files stay.
+    void aNewChildStartsWithNoOldGames() {
+        StandIns standIns;
+        standIns.setAccounts({});
+        for (const QString& name : {"games/ada.json", "games-waiting/ada", "games-finished/ada",
+                                    "games/ben.json", "games-waiting/ben"}) {
+            standIns.leave(name);
+        }
+        QCOMPARE(standIns.run({"create-child", "ada", "1"}), std::nullopt);
+        QVERIFY(!QFile::exists(standIns.path("games/ada.json")));
+        QVERIFY(!QFile::exists(standIns.path("games-waiting/ada")));
+        QVERIFY(!QFile::exists(standIns.path("games-finished/ada")));
+        QVERIFY(QFile::exists(standIns.path("games/ben.json")));
+        QVERIFY(QFile::exists(standIns.path("games-waiting/ben")));
+    }
+
+    // An old waiting list that cannot be removed would copy games to the
+    // new child, so no account is made.
+    void anOldWaitingListThatStaysMakesNoChild() {
+        StandIns standIns;
+        standIns.setAccounts({});
+        QVERIFY(QDir().mkpath(standIns.path("games-waiting/ada")));
+        QCOMPARE(standIns.run({"create-child", "ada", "1"}), Refusal::Failed);
+        QCOMPARE(standIns.calls(), QStringList());
+    }
+
+    // A child already there keeps their games: create-child only finishes
+    // their account.
+    void anExistingChildKeepsTheirGames() {
+        const StandIns standIns;
+        standIns.writeEntry("ada", SteamEntry::text("ada", "Ada", steamFor));
+        standIns.leave("games-waiting/ada");
+        QCOMPARE(standIns.run({"create-child", "ada", "1"}), std::nullopt);
+        QVERIFY(QFile::exists(standIns.path("games-waiting/ada")));
     }
 
     void aNewChildWithAFullName() {

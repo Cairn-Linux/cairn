@@ -39,4 +39,8 @@ struct Result {
 // sudo, the pictures stay as they are.
 Result run(const Setup& setup, const std::optional<QString>& home);
 
+// The games file as it is, with nothing made again; nothing when it cannot
+// be read.
+std::optional<GameCatalogue> read(const QString& gamesFile);
+
 } // namespace CatalogueRefresh

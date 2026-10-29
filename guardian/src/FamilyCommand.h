@@ -36,6 +36,13 @@ public:
         // name; main() gives where this build puts them.
         QString applications;
         QString steamFor;
+        // Each child's games files (ADR-0041), in folders that belong to
+        // `gamesOwner`: a new child never inherits an old account's of the
+        // same name.
+        QString gamesFolder = QStringLiteral("/var/lib/cairn/games");
+        QString waitingFolder = QStringLiteral("/var/lib/cairn/games-waiting");
+        QString finishedFolder = QStringLiteral("/var/lib/cairn/games-finished");
+        unsigned int gamesOwner = 0;
         unsigned int euid = Caller::effectiveUid();
         // PKEXEC_UID, when pkexec started the command.
         std::optional<QString> pkexecUid = Caller::pkexecUidFromEnvironment();
@@ -57,6 +64,7 @@ public:
 
 private:
     std::optional<Refusal> makeChild(const FamilyRequest& request) const;
+    bool removeOldGames(const QString& login) const;
     std::optional<Refusal> changeChild(const Account& child, const FamilyRequest& request) const;
     std::optional<Refusal> setLevel(const Account& child, int level) const;
     std::optional<Refusal> writeEntry(const QString& login, const QString& name) const;

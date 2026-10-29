@@ -8,6 +8,7 @@
 #include <QTemporaryDir>
 #include <QTest>
 
+#include <sys/stat.h>
 #include <unistd.h>
 
 namespace {
@@ -88,6 +89,8 @@ class GamesSaveTest : public QObject {
         setup.copy.visitHelper = path("cairn-steam-visit");
         setup.gamesFolder = path("games");
         setup.gamesFolderOwner = getuid();
+        setup.waitingFolder = path("games-waiting");
+        setup.finishedFolder = path("games-finished");
         setup.lock = path("lock");
         return GamesSave(setup).run(arguments,
                                     [this](const QString& line) { m_said.append(line); });
@@ -98,6 +101,15 @@ class GamesSaveTest : public QObject {
         QVERIFY(!QFile::exists(path("systemd-run-calls")));
         QVERIFY(!QFile::exists(path("games.json")));
         QVERIFY(QDir(path("games")).isEmpty());
+        QVERIFY(!QFile::exists(path("games-waiting")));
+    }
+
+    // A waiting list and a finished copy from an earlier Save for ada.
+    void leaveEarlierFiles() const {
+        QVERIFY(QDir().mkpath(path("games-waiting")));
+        QVERIFY(QDir().mkpath(path("games-finished")));
+        give("games-waiting/ada", "ada=504230\n");
+        give("games-finished/ada", "child ada added 1 removed 0\n");
     }
 
     QString path(const QString& name) const {
@@ -236,16 +248,17 @@ private slots:
     }
 
     // A logged-in child loses the game taken off at once and gets the new
-    // one later; the next child still goes ahead.
+    // one at their next logout; the next child still goes ahead.
     void aLoggedInChildIsHeld() {
         give("games/ada.json", adaHasPortal);
         give("lines-ada", "refused logged-in\n");
         give("status-ada", "1");
         const GamesSave::Outcome outcome = run({"save-games", "ada=12", "ben=620"});
         QVERIFY(!outcome.refusal.has_value());
-        QCOMPARE(m_said.mid(3),
-                 QStringList({"copying ada", "child ada added 0 removed 1 held logged-in",
-                              "copying ben", "copied ben 620", "child ben added 1 removed 0"}));
+        QCOMPARE(
+            m_said.mid(3),
+            QStringList({"copying ada", "child ada added 0 removed 1 held logged-in", "later ada",
+                         "copying ben", "copied ben 620", "child ben added 1 removed 0"}));
         QVERIFY(!read("games/ada.json").contains("\"620\""));
         QVERIFY(!read("games/ada.json").contains("\"12\""));
     }

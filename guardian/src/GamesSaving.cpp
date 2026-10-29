@@ -2,9 +2,8 @@
 #include "GamesSaving.h"
 
 #include "GamesRequest.h"
+#include "SaveResults.h"
 #include "SaveRun.h"
-
-#include <QVariantMap>
 
 GamesSaving::GamesSaving(const QString& pkexec, const QString& command, QObject* parent)
     : QObject(parent), m_run(new SaveRun(pkexec, command, this)) {
@@ -47,24 +46,13 @@ QString GamesSaving::progressName() const {
 QVariantList GamesSaving::results() const {
     QVariantList results;
     for (const SaveReport::Child& child : m_report.children()) {
-        QVariantList skipped;
-        for (const SaveReport::Skip& skip : child.skipped) {
-            skipped.append(QVariantMap{
-                {QStringLiteral("appId"), skip.appId},
-                {QStringLiteral("title"), m_titles.value(skip.appId)},
-                {QStringLiteral("reason"), static_cast<int>(skipFor(skip.reason))},
-            });
-        }
-        results.append(QVariantMap{
-            {QStringLiteral("login"), child.login},
-            {QStringLiteral("name"), nameOf(child.login)},
-            {QStringLiteral("added"), child.added.value_or(-1)},
-            {QStringLiteral("removed"), child.removed.value_or(-1)},
-            {QStringLiteral("held"), static_cast<int>(heldFor(child.held.value_or(QString())))},
-            {QStringLiteral("skipped"), skipped},
-        });
+        results.append(SaveResults::forChild(child, nameOf(child.login), m_titles));
     }
     return results;
+}
+
+bool GamesSaving::allGiven() const {
+    return SaveResults::allGiven(m_report.children());
 }
 
 bool GamesSaving::catalogueKept() const {
@@ -90,10 +78,7 @@ bool GamesSaving::start(Kind kind, const QStringList& arguments,
     for (const ListedChild& child : children) {
         m_names.insert(child.login, child.name);
     }
-    m_titles.clear();
-    for (const GameShelf::Game& game : games) {
-        m_titles.insert(game.appId, game.title);
-    }
+    m_titles = SaveResults::titlesOf(games);
     m_report = SaveReport(request.logins());
     if (request.refusal) {
         m_step = Step::NotSaved;

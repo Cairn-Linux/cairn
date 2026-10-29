@@ -29,8 +29,6 @@ public:
     bool write(const QString& login, const QList<QJsonObject>& entries) const;
 
 private:
-    bool folderIsReady() const;
-
     QString m_folder;
     unsigned int m_owner;
     QString m_restorecon;

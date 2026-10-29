@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "GamesPage.h"
 
+#include <QDateTime>
 #include <QDir>
 #include <QFile>
 #include <QJsonArray>
@@ -13,6 +14,7 @@
 #include <QVariantMap>
 
 #include <memory>
+#include <unistd.h>
 
 namespace {
 
@@ -64,7 +66,10 @@ class GamesPageTest : public QObject {
         setup.pkexec = FIXTURES "/pkexec-family";
         setup.command = FIXTURES "/cairn-family";
         setup.catalogue = path("games.json");
-        setup.childLists = path("games");
+        setup.lists = {.childLists = path("games"),
+                       .waiting = path("games-waiting"),
+                       .finished = path("games-finished"),
+                       .owner = getuid()};
         setup.steamFor = "/usr/bin/cairn-steam-for";
         setup.accounts = [this] { return m_accounts; };
         setup.start = [this, starts](const QString& program, const QStringList& arguments) {
@@ -109,11 +114,13 @@ class GamesPageTest : public QObject {
         qputenv("CAIRN_TEST_SCENARIO", scenario.toLocal8Bit());
         qputenv("CAIRN_TEST_ARGUMENTS", path("arguments").toLocal8Bit());
         qputenv("CAIRN_TEST_GAMES", path("games").toLocal8Bit());
+        qputenv("CAIRN_TEST_WAITING", path("games-waiting").toLocal8Bit());
         QSignalSpy ended(page.saving(), &GamesSaving::ended);
         look ? page.lookForGames() : page.save();
         const bool answered = !ended.isEmpty() || ended.wait(kAnswerMilliseconds);
         qunsetenv("CAIRN_TEST_ARGUMENTS");
         qunsetenv("CAIRN_TEST_GAMES");
+        qunsetenv("CAIRN_TEST_WAITING");
         if (!answered) {
             return QStringLiteral("no answer");
         }
@@ -132,8 +139,29 @@ private slots:
         m_started.clear();
         write(path("games.json"), gamesFile({game("1001", "Game one"), game("1002", "Game two"),
                                              game("1003", "Game three")}));
-        QVERIFY(QDir().mkpath(path("games")));
+        for (const char* folder : {"games", "games-waiting", "games-finished"}) {
+            QVERIFY(QDir().mkpath(path(folder)));
+        }
         write(path("games/ada.json"), gamesFile({game("1002", "Game two")}));
+    }
+
+    // Whether the card for a game says it waits for the child's logout.
+    static bool waits(const GamesPage& page, const QString& appId) {
+        for (const QVariant& value : page.games()) {
+            const QVariantMap game = value.toMap();
+            if (game.value("appId").toString() == appId) {
+                return game.value("waiting").toBool();
+            }
+        }
+        return false;
+    }
+
+    // How the copy at a child's last logout ended, dated.
+    void finish(const QString& login, const QByteArray& lines, const QDateTime& when) {
+        write(path("games-finished/" + login), lines);
+        QFile file(path("games-finished/" + login));
+        QVERIFY(file.open(QIODevice::ReadWrite));
+        QVERIFY(file.setFileTime(when, QFileDevice::FileModificationTime));
     }
 
     void cleanup() {
@@ -427,10 +455,120 @@ private slots:
         QCOMPARE(ada.value("added").toInt(), 2);
         QCOMPARE(ada.value("removed").toInt(), 0);
         QCOMPARE(ada.value("held").toInt(), static_cast<int>(GamesSaving::Held::NotHeld));
+        QCOMPARE(ada.value("later").toBool(), false);
+        QVERIFY(page->saving()->allGiven());
     }
 
-    // A child who is logged in gets only the games taken off; their new
-    // games stay chosen, so Save can give them later.
+    // ---- games waiting for a child's next logout ----
+
+    // A child's waiting list is the page's starting point for them: Save
+    // stays off until the parent changes something, and the games not
+    // copied yet are marked as waiting.
+    void aWaitingListIsTheBaseline() {
+        write(path("games-waiting/ada"), "ada=1002,1003\n");
+        const auto page = makePage();
+        QVERIFY(page->chosenWaiting());
+        QCOMPARE(page->wanted(), QStringList({"1002", "1003"}));
+        QCOMPARE(states(*page), QStringList({"1001=off", "1002=on", "1003=on"}));
+        QVERIFY(waits(*page, "1003"));
+        QVERIFY(!waits(*page, "1002"));
+        QVERIFY(!waits(*page, "1001"));
+        QVERIFY(!page->canSave());
+        QVERIFY(page->unsavedLogins().isEmpty());
+        page->choose("ben");
+        QVERIFY(!page->chosenWaiting());
+    }
+
+    // Taking a waiting game off and saving sends the new whole list, and
+    // Put back as saved returns to the waiting list.
+    void aWaitingGameCanBeTakenOff() {
+        write(path("games-waiting/ada"), "ada=1002,1003\n");
+        const auto page = makePage();
+        page->turn("1003");
+        QCOMPARE(states(*page), QStringList({"1001=off", "1002=on", "1003=taken"}));
+        QVERIFY(page->canSave());
+        page->putBack();
+        QCOMPARE(page->wanted(), QStringList({"1002", "1003"}));
+        QVERIFY(!page->canSave());
+        page->turn("1003");
+        QCOMPARE(saveWith(*page, "done"), QStringLiteral("run\nsave-games\nada=1002\n"));
+    }
+
+    // A waiting file that fails a check is no starting point.
+    void aWaitingFileThatFailsACheckIsLeftOut() {
+        write(path("games-waiting/ada"), "ben=1003\n");
+        const auto page = makePage();
+        QVERIFY(!page->chosenWaiting());
+        QCOMPARE(page->wanted(), QStringList({"1002"}));
+    }
+
+    // An open page follows the files root writes at a logout.
+    void anOpenPageFollowsTheFiles() {
+        const auto page = makePage();
+        QVERIFY(!page->chosenWaiting());
+        write(path("games-waiting/ada"), "ada=1002,1003\n");
+        QTRY_VERIFY_WITH_TIMEOUT(page->chosenWaiting(), kAnswerMilliseconds);
+        QVERIFY(QFile::remove(path("games-waiting/ada")));
+        finish("ada", "copied ada 1003\nchild ada added 1 removed 0\n",
+               QDateTime::currentDateTime());
+        QTRY_VERIFY_WITH_TIMEOUT(!page->finished().isEmpty(), kAnswerMilliseconds);
+        QVERIFY(!page->chosenWaiting());
+    }
+
+    // A clean finish, dated by the file, until the next Save for the child.
+    void aCleanFinishIsDated() {
+        const QDateTime when(QDate(2026, 10, 20), QTime(17, 30));
+        finish("ada", "copied ada 1003\nchild ada added 1 removed 0\n", when);
+        const auto page = makePage();
+        const QVariantMap finished = page->finished();
+        QCOMPARE(finished.value("when").toDateTime(), when);
+        QCOMPARE(finished.value("clean").toBool(), true);
+        const QVariantMap result = finished.value("result").toMap();
+        QCOMPARE(result.value("name").toString(), "Ada");
+        QCOMPARE(result.value("added").toInt(), 1);
+        QCOMPARE(result.value("held").toInt(), static_cast<int>(GamesSaving::Held::NotHeld));
+        page->choose("ben");
+        QVERIFY(page->finished().isEmpty());
+    }
+
+    void aFinishThatGaveNotEverything() {
+        finish("ada", "skipped ada 1003 downloading\nchild ada added 0 removed 0 held failed\n",
+               QDateTime::currentDateTime());
+        const auto page = makePage();
+        const QVariantMap finished = page->finished();
+        QCOMPARE(finished.value("clean").toBool(), false);
+        const QVariantMap result = finished.value("result").toMap();
+        QCOMPARE(result.value("held").toInt(), static_cast<int>(GamesSaving::Held::CopyStopped));
+        const QVariantMap skip = result.value("skipped").toList().constFirst().toMap();
+        QCOMPARE(skip.value("title").toString(), "Game three");
+    }
+
+    // Only the command's own lines about this child count.
+    void aFinishedFileWithoutTheChildsLineShowsNothing() {
+        finish("ada", "child ben added 1 removed 0\nit went fine\n", QDateTime::currentDateTime());
+        QVERIFY(makePage()->finished().isEmpty());
+    }
+
+    // The Save says `later`: the child's games are written down for their
+    // next logout, so the page starts from them, and nothing is left to
+    // save.
+    void aSaveWhoseGamesWaitForALogout() {
+        const auto page = makePage();
+        page->turn("1001");
+        saveWith(*page, "save-held-later");
+        QCOMPARE(page->saving()->step(), GamesSaving::Step::Saved);
+        QVERIFY(!page->saving()->allGiven());
+        const QVariantMap ada = page->saving()->results().constFirst().toMap();
+        QCOMPARE(ada.value("held").toInt(), static_cast<int>(GamesSaving::Held::LoggedIn));
+        QCOMPARE(ada.value("later").toBool(), true);
+        QVERIFY(page->chosenWaiting());
+        QVERIFY(!page->canSave());
+        QCOMPARE(states(*page), QStringList({"1001=on", "1002=on", "1003=off"}));
+        QVERIFY(waits(*page, "1001"));
+    }
+
+    // A child who is logged in gets only the games taken off; with no
+    // `later`, their new games stay chosen, so Save can give them later.
     void aLoggedInChildIsHeld() {
         const auto page = makePage();
         page->turn("1001");
@@ -438,6 +576,7 @@ private slots:
         QCOMPARE(page->saving()->step(), GamesSaving::Step::Saved);
         const QVariantMap ada = page->saving()->results().constFirst().toMap();
         QCOMPARE(ada.value("held").toInt(), static_cast<int>(GamesSaving::Held::LoggedIn));
+        QVERIFY(!page->saving()->allGiven());
         QCOMPARE(page->unsavedLogins(), QStringList({"ada"}));
         QVERIFY(page->canSave());
         QCOMPARE(states(*page), QStringList({"1001=added", "1002=on", "1003=off"}));
@@ -597,7 +736,7 @@ private slots:
         setup.pkexec = FIXTURES "/pkexec-family";
         setup.command = FIXTURES "/no-such-cairn-family";
         setup.catalogue = path("games.json");
-        setup.childLists = path("games");
+        setup.lists.childLists = path("games");
         setup.accounts = [this] { return m_accounts; };
         GamesPage page(setup);
         page.turn("1001");

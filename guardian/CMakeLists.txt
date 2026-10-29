@@ -42,7 +42,8 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/bin/cairn-steam-for" DESTINATION "${C
 
 # cairn-family: no window, only Qt Core, run as root by pkexec or sudo.
 # create-child and set-level change accounts (ADR-0039); save-games gives
-# children their games (ADR-0041).
+# children their games, and finish-games, which only systemd starts at a
+# child's logout, copies the games a Save left waiting (ADR-0041).
 set(family_sources
     src/Refusal.h src/Refusal.cpp
     src/Caller.h src/Caller.cpp
@@ -50,18 +51,22 @@ set(family_sources
     src/SystemTool.h src/SystemTool.cpp
     src/PasswordLock.h src/PasswordLock.cpp
     src/SteamEntry.h src/SteamEntry.cpp
+    src/ReadableFile.h src/ReadableFile.cpp
+    src/RootFolder.h src/RootFolder.cpp
     src/FamilyCommand.h src/FamilyCommand.cpp
 )
 set(games_save_sources
     src/GamesRequest.h src/GamesRequest.cpp
     src/GameCatalogue.h src/GameCatalogue.cpp
-    src/ReadableFile.h src/ReadableFile.cpp
     src/CatalogueRefresh.h src/CatalogueRefresh.cpp
     src/ChildGameList.h src/ChildGameList.cpp
     src/ChildGamesFile.h src/ChildGamesFile.cpp
+    src/WaitingSave.h src/WaitingSave.cpp
+    src/FinishedSave.h src/FinishedSave.cpp
     src/CopyJob.h src/CopyJob.cpp
     src/ChildSave.h src/ChildSave.cpp
     src/GamesSave.h src/GamesSave.cpp
+    src/FinishGames.h src/FinishGames.cpp
 )
 qt_add_executable(cairn-family src/familymain.cpp ${family_sources} ${games_save_sources})
 target_include_directories(cairn-family PRIVATE src)
@@ -100,8 +105,16 @@ set(family_window_sources
     src/GameShelf.h src/GameShelf.cpp
     src/GamesRequest.h src/GamesRequest.cpp
     src/GameChoices.h src/GameChoices.cpp
+    src/SystemTool.h src/SystemTool.cpp
+    src/ReadableFile.h src/ReadableFile.cpp
+    src/RootFolder.h src/RootFolder.cpp
+    src/WaitingSave.h src/WaitingSave.cpp
+    src/FinishedSave.h src/FinishedSave.cpp
+    src/WaitingGames.h src/WaitingGames.cpp
+    src/SteamWindowStart.h src/SteamWindowStart.cpp
     src/SaveRun.h src/SaveRun.cpp
     src/SaveReport.h src/SaveReport.cpp
+    src/SaveResults.h src/SaveResults.cpp
     src/GamesSaving.h src/GamesSaving.cpp
     src/GamesPage.h src/GamesPage.cpp
 )
@@ -112,6 +125,8 @@ set(family_window_qml_files
     qml/ChildChoice.qml
     qml/GameCard.qml
     qml/SaveOutcome.qml
+    qml/LaterNote.qml
+    qml/WaitingNote.qml
     qml/ChildRow.qml
     qml/AddChildForm.qml
     qml/LabelledField.qml
@@ -233,11 +248,20 @@ add_test(NAME childgamelist COMMAND tst_childgamelist)
 
 qt_add_executable(tst_childgamesfile tests/tst_childgamesfile.cpp src/ChildGamesFile.h
     src/ChildGamesFile.cpp src/GameCatalogue.h src/GameCatalogue.cpp src/ReadableFile.h
-    src/ReadableFile.cpp src/SystemTool.h src/SystemTool.cpp)
+    src/ReadableFile.cpp src/RootFolder.h src/RootFolder.cpp src/SystemTool.h src/SystemTool.cpp)
 target_include_directories(tst_childgamesfile PRIVATE src)
 target_link_libraries(tst_childgamesfile PRIVATE Qt6::Core Qt6::Test)
 target_compile_definitions(tst_childgamesfile PRIVATE FIXTURES="${guardian_fixtures}")
 add_test(NAME childgamesfile COMMAND tst_childgamesfile)
+
+qt_add_executable(tst_waitingsave tests/tst_waitingsave.cpp src/WaitingSave.h
+    src/WaitingSave.cpp src/GamesRequest.h src/GamesRequest.cpp src/Refusal.h src/Refusal.cpp
+    src/ReadableFile.h src/ReadableFile.cpp src/RootFolder.h src/RootFolder.cpp src/SystemTool.h
+    src/SystemTool.cpp)
+target_include_directories(tst_waitingsave PRIVATE src)
+target_link_libraries(tst_waitingsave PRIVATE Qt6::Core Qt6::Test cairn-accounts)
+target_compile_definitions(tst_waitingsave PRIVATE FIXTURES="${guardian_fixtures}")
+add_test(NAME waitingsave COMMAND tst_waitingsave)
 
 qt_add_executable(tst_cataloguerefresh tests/tst_cataloguerefresh.cpp src/CatalogueRefresh.h
     src/CatalogueRefresh.cpp src/GameCatalogue.h src/GameCatalogue.cpp src/ReadableFile.h
@@ -258,6 +282,13 @@ target_include_directories(tst_gamessave PRIVATE src)
 target_link_libraries(tst_gamessave PRIVATE Qt6::Core Qt6::Test cairn-accounts)
 target_compile_definitions(tst_gamessave PRIVATE FIXTURES="${guardian_fixtures}")
 add_test(NAME gamessave COMMAND tst_gamessave)
+
+qt_add_executable(tst_finishgames tests/tst_finishgames.cpp ${family_sources}
+    ${games_save_sources})
+target_include_directories(tst_finishgames PRIVATE src)
+target_link_libraries(tst_finishgames PRIVATE Qt6::Core Qt6::Test cairn-accounts)
+target_compile_definitions(tst_finishgames PRIVATE FIXTURES="${guardian_fixtures}")
+add_test(NAME finishgames COMMAND tst_finishgames)
 
 qt_add_executable(tst_steamentry tests/tst_steamentry.cpp src/SteamEntry.h src/SteamEntry.cpp)
 target_include_directories(tst_steamentry PRIVATE src)
@@ -346,8 +377,8 @@ add_test(NAME familywindow COMMAND tst_familywindow
     -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/tst_familywindow.qml")
 
 set_tests_properties(steamvisit ownsteam screenlockwatch steamforchild steamwindow familycommand
-    caller gamesrequest childgamelist childgamesfile cataloguerefresh copyjob gamessave
-    steamentry loginname childlist familychange saverun savereport gamechoices childrenpage
+    caller gamesrequest childgamelist childgamesfile waitingsave cataloguerefresh copyjob gamessave
+    finishgames steamentry loginname childlist familychange saverun savereport gamechoices childrenpage
     gamepicture gameshelf gamespage familywindow PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QML_IMPORT_PATH=${QT_QML_OUTPUT_DIRECTORY}"
 )

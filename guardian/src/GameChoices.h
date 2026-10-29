@@ -23,6 +23,8 @@ public:
     // Whether the child's list has a change that is not saved.
     bool changed(const QString& login) const;
     bool anyChanged() const;
+    // The children among `logins` with a change, in that order.
+    QStringList changedAmong(const QStringList& logins) const;
 
     // Puts a game on the child's list, or takes it off.
     void turn(const QString& login, const QString& appId);

@@ -28,6 +28,7 @@ void SaveReport::take(const QString& line) {
     static const QRegularExpression step(pattern(QStringLiteral("(copying|waiting) ") + loginWord));
     static const QRegularExpression skipped(
         pattern(QStringLiteral("skipped ") + loginWord + ' ' + appIdWord + ' ' + reasonWord));
+    static const QRegularExpression later(pattern(QStringLiteral("later ") + loginWord));
     static const QRegularExpression counted(
         pattern(QStringLiteral("child ") + loginWord +
                 QStringLiteral(" added ([0-9]{1,4}) removed ([0-9]{1,4})(?: held ") + reasonWord +
@@ -62,6 +63,9 @@ void SaveReport::take(const QString& line) {
         }
         m_stage = Stage::Writing;
         m_current.clear();
+    } else if (const QRegularExpressionMatch match = later.match(line);
+               match.hasMatch() && m_logins.contains(match.captured(1))) {
+        child(match.captured(1)).later = true;
     }
 }
 
@@ -90,6 +94,7 @@ SaveReport::Child& SaveReport::child(const QString& login) {
     if (found != m_children.end()) {
         return *found;
     }
-    m_children.append(Child{.login = login, .added = {}, .removed = {}, .held = {}, .skipped = {}});
+    m_children.append(Child{
+        .login = login, .added = {}, .removed = {}, .held = {}, .later = false, .skipped = {}});
     return m_children.last();
 }

@@ -12,7 +12,9 @@
 # their new list, and writes their list into the folder
 # CAIRN_TEST_GAMES names, when it names one, with an entry for each game.
 # save-looking says its first line, then makes the pictures for a long
-# time.
+# time. save-held-later holds each child as logged in and says `later`,
+# and writes their waiting list into the folder CAIRN_TEST_WAITING names,
+# when it names one, as the real command does.
 set -u
 scenario="${CAIRN_TEST_SCENARIO:-}"
 if [ -n "${CAIRN_TEST_ARGUMENTS:-}" ]; then
@@ -60,6 +62,15 @@ save_games() {
                 fi
                 write_list "$login" "$ids"
                 echo "child $login added $count removed 0"
+                ;;
+            save-held-later)
+                echo "copying $login"
+                echo "child $login added 0 removed 0 held logged-in"
+                if [ -n "${CAIRN_TEST_WAITING:-}" ]; then
+                    mkdir -p "$CAIRN_TEST_WAITING"
+                    echo "$argument" > "$CAIRN_TEST_WAITING/$login"
+                fi
+                echo "later $login"
                 ;;
             save-held-*)
                 echo "child $login added 0 removed 0 held ${scenario#save-held-}"

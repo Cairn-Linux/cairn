@@ -56,8 +56,14 @@ Rectangle {
         return "";
     }
 
+    // A Save that could not give every child every new game never opens
+    // by saying that each child sees their games.
     function savedSentence() {
-        const said = box.saving.kind === GamesSaving.Look ? qsTr("The shared folder was read again. Every game in it shows below.") : qsTr("Saved. Each child sees their games the next time they log in.");
+        let said = qsTr("Saved. Each child sees their games the next time they log in.");
+        if (box.saving.kind === GamesSaving.Look)
+            said = qsTr("The shared folder was read again. Every game in it shows below.");
+        else if (!box.saving.allGiven)
+            said = qsTr("Saved, but not every new game could be given. The sentences below say what each child has now, and what comes next.");
         if (!box.saving.catalogueKept)
             return said;
         return said + " " + qsTr("The list of shared games could not be made again, so the page shows the one from before. The reason is in the system log. In a terminal: journalctl -t cairn-family");
@@ -188,7 +194,9 @@ Rectangle {
             else
                 said.push(qsTr("%1's list is saved. Added: %2. Taken off: %3.").arg(result.name).arg(result.added).arg(result.removed));
         }
-        const held = box.heldSentence(result.held, result.name);
+        // A child whose games wait for their logout gets the LaterNote
+        // instead.
+        const held = result.later ? "" : box.heldSentence(result.held, result.name);
         if (held !== "")
             said.push(held);
         for (let i = 0; i < result.skipped.length; ++i)
@@ -215,12 +223,28 @@ Rectangle {
             objectName: "saveResults"
             model: box.saving.step === GamesSaving.Saved || box.saving.step === GamesSaving.NotSaved ? box.saving.results : []
 
-            Sentence {
+            Column {
+                id: result
+
                 required property var modelData
 
                 objectName: "result_" + modelData.login
-                text: box.resultSentence(modelData)
-                visible: text !== ""
+                width: column.width
+                spacing: Tokens.bodySize / 2
+
+                Sentence {
+                    objectName: "resultSentence"
+                    text: box.resultSentence(result.modelData)
+                    visible: text !== ""
+                }
+
+                LaterNote {
+                    objectName: "laterNote"
+                    width: column.width
+                    visible: result.modelData.later === true
+                    held: result.modelData.held
+                    name: result.modelData.name
+                }
             }
         }
     }
