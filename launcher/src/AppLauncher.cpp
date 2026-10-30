@@ -3,6 +3,7 @@
 
 #include "AppScope.h"
 
+#include <QDateTime>
 #include <QDebug>
 
 namespace {
@@ -213,17 +214,43 @@ void AppLauncher::windowOpened(const QString& identifier, const QString& appId,
         // Each window that comes up while the app is opening gets the whole
         // steady wait, so a splash's last moment does not open the app.
         m_steadyTimer.stop();
+        noteSteamUpdating();
     }
     m_windows.opened(identifier, name, hidden, belongsTo);
+    hideIfSteamUpdater(identifier);
     update();
 }
 
 void AppLauncher::windowChanged(const QString& identifier, bool hidden, const QString& belongsTo) {
     if (m_windows.hidden(identifier) && !hidden) {
         m_steadyTimer.stop();
+        noteSteamUpdating();
     }
     m_windows.changed(identifier, hidden, belongsTo);
+    hideIfSteamUpdater(identifier);
     update();
+}
+
+void AppLauncher::noteSteamUpdating() {
+    // While a program other than a Steam game is launched, opening or open,
+    // a new window may be its own, such as a dialog with no parent; hiding
+    // that would leave the app stuck behind a window the child cannot see.
+    // So its windows are decided as before (ADR-0028). A Steam game draws
+    // none while Steam updates itself, so a window during its launch is the
+    // updater's.
+    const bool otherAppLaunched = m_windows.launching() && !m_steamGame.steamGame();
+    m_windows.steamUpdating(!otherAppLaunched &&
+                            m_steamStartup.updatingItself(QDateTime::currentDateTime()));
+}
+
+void AppLauncher::hideIfSteamUpdater(const QString& identifier) {
+    if (!m_windows.steamUpdaterOnScreen(identifier)) {
+        return;
+    }
+    qInfo().noquote() << QStringLiteral(
+                             "Steam is updating itself; its window %1 is hidden from the child.")
+                             .arg(m_windows.name(identifier));
+    emit windowToHide(identifier);
 }
 
 void AppLauncher::windowClosed(const QString& identifier) {
