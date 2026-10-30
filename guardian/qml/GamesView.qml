@@ -33,6 +33,8 @@ Column {
         font.pixelSize: Tokens.bodySize
         lineHeight: Tokens.bodyLineHeight
         color: Tokens.text
+        // Plain text, so a game name from Steam shows exactly as written.
+        textFormat: Text.PlainText
         Accessible.role: Accessible.StaticText
         Accessible.name: text
     }

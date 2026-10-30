@@ -105,16 +105,15 @@ std::optional<KeyValues> KeyValues::readFile(const QString& path) {
     if (descriptor < 0) {
         return std::nullopt;
     }
-    struct stat details{};
-    if (::fstat(descriptor, &details) != 0 || !S_ISREG(details.st_mode) ||
-        details.st_size > kFileLimit) {
-        ::close(descriptor);
-        return std::nullopt;
-    }
-    // The QFile closes the descriptor from here on.
+    // The QFile owns the descriptor from here on and closes it on return.
     QFile file;
     if (!file.open(descriptor, QIODevice::ReadOnly, QFileDevice::AutoCloseHandle)) {
         ::close(descriptor);
+        return std::nullopt;
+    }
+    struct stat details{};
+    if (::fstat(file.handle(), &details) != 0 || !S_ISREG(details.st_mode) ||
+        details.st_size > kFileLimit) {
         return std::nullopt;
     }
     // The file may have grown since it was measured.
