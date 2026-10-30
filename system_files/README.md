@@ -26,8 +26,9 @@ Only a file the image needs and provisioning does not belongs here:
   image's icons, which Plasma cannot tell on its own.
 - `etc/xdg/plasma-workspace/env/cairn-guardian-icons.sh`: puts
   `/usr/share/cairn/guardian-desktop`, Cairn's own icons for the
-  Guardian's desktop, first in `XDG_DATA_DIRS` at login, so its
-  `start-here` is the Cairn mark (#166). `build_files/guardian-desktop.sh`
+  Guardian's desktop, first in `XDG_DATA_DIRS` at every Plasma login
+  (the Guardian's and an L3 or L4 child's), so its `start-here` is the
+  Cairn mark (#166). `build_files/guardian-desktop.sh`
   fills the folder.
 
 Packages, fonts among them, are installed by dnf in

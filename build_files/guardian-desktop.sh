@@ -9,7 +9,7 @@
 # which name-and-logos.sh already leads to the mark. A Guardian whose
 # button names `start-here` would get generic-logos' plain icon, a file
 # Cairn leaves as the package shipped it (ADR-0038). So Cairn keeps its
-# own small hicolor folder, which the Guardian's Plasma reads first
+# own small hicolor folder, which every Plasma login reads first
 # (system_files/etc/xdg/plasma-workspace/env/cairn-guardian-icons.sh).
 # The wallpaper, colours, splash and lock screen are later steps.
 

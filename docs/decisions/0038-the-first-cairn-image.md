@@ -8,9 +8,7 @@ and P1-3
 **Amended by:** ADR-0041, proposed (the family's setup makes no child's
 copy of the games; a Guardian's Save on the Games page does);
 ADR-0044, proposed (the image builds its own initramfs, with Cairn's
-boot screen);
-#166's first step, 2026-10-30 (the mark under `start-here` in a folder
-of Cairn's own that the Guardian's Plasma reads first; see slice 5)
+boot screen)
 
 ## Context
 
@@ -520,8 +518,10 @@ line too.
   (2026-10-30), `build_files/guardian-desktop.sh` leaves that file as
   the package shipped it and puts the mark under `start-here` in a
   hicolor folder of Cairn's own, `/usr/share/cairn/guardian-desktop`,
-  which a script in `/etc/xdg/plasma-workspace/env/` puts first in the
-  Guardian's `XDG_DATA_DIRS` at login, so existing accounts get it too.
+  which a script in `/etc/xdg/plasma-workspace/env/` puts first in
+  `XDG_DATA_DIRS` at every Plasma login, so existing accounts get it
+  too. That is the Guardian's login and an L3 or L4 child's, and both
+  should see the mark.
   The VM showed the mark on the button on 2026-10-30 for an existing
   Guardian, with the button set to either name, and for a new one.
   A Guardian who resets the button to Plasma's default gets KDE's own

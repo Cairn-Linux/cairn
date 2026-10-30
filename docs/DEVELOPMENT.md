@@ -212,8 +212,8 @@ and `rpm -V` lists hundreds of files whose times the base changed.
 The grown-up's start-menu button shows the Cairn mark (#166, first
 step). Valve's look names `distributor-logo-steamdeck`, which slice 5
 leads to the mark. `build_files/guardian-desktop.sh` adds the mark under
-`start-here` in `/usr/share/cairn/guardian-desktop`, which the
-Guardian's Plasma reads before the system's icons, and
+`start-here` in `/usr/share/cairn/guardian-desktop`, which every
+Plasma login reads before the system's icons, and
 `build_files/check-guardian-desktop.sh` asks KDE's own icon loader which
 file each name finds. To ask it yourself:
 
