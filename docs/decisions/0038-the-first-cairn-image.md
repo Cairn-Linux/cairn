@@ -522,6 +522,8 @@ line too.
   hicolor folder of Cairn's own, `/usr/share/cairn/guardian-desktop`,
   which a script in `/etc/xdg/plasma-workspace/env/` puts first in the
   Guardian's `XDG_DATA_DIRS` at login, so existing accounts get it too.
+  The VM showed the mark on the button on 2026-10-30 for an existing
+  Guardian, with the button set to either name, and for a new one.
   A Guardian who resets the button to Plasma's default gets KDE's own
   `start-here-kde` from Breeze, which is KDE's and stays.
   `mark-currentcolor.svg` is not used, because
