@@ -8,7 +8,9 @@ and P1-3
 **Amended by:** ADR-0041, proposed (the family's setup makes no child's
 copy of the games; a Guardian's Save on the Games page does);
 ADR-0044, proposed (the image builds its own initramfs, with Cairn's
-boot screen)
+boot screen);
+#166's first step, 2026-10-30 (the mark under `start-here` in a folder
+of Cairn's own that the Guardian's Plasma reads first; see slice 5)
 
 ## Context
 
@@ -445,7 +447,8 @@ cache included, so nothing would see that the icons changed. The build runs
 `gtk-update-icon-cache` so the cache lists the new names. Plasma also
 keeps a cache of icons it has drawn in each account, which survived
 every image switch in the VM. The build writes a fingerprint of every
-icon file and link to `/usr/share/cairn/icons.sum`. A short script in
+icon file and link, Cairn's own folder of icons for the Guardian's
+desktop included (#166), to `/usr/share/cairn/icons.sum`. A short script in
 `/etc/xdg/plasma-workspace/env/` removes the account's
 `icon-cache.kcache` at login when the fingerprint differs from the one it
 saw last.
@@ -512,9 +515,16 @@ line too.
   mark nearly vanishes; a Guardian never opens it that way.
   The splash ground is Splash.qml's black, not Ink, and #166 owns
   Splash.qml. Valve's previews and `deck_icon.png` are Valve's and stay.
-  A Guardian who resets the panel or picks a Fedora look gets
-  generic-logos' plain `start-here` icon, not the mark; overwriting it
-  waits for `cairn-logos`. `mark-currentcolor.svg` is not used, because
+  A Guardian who picks a Fedora look got generic-logos' plain
+  `start-here` icon, not the mark. Since #166's first step
+  (2026-10-30), `build_files/guardian-desktop.sh` leaves that file as
+  the package shipped it and puts the mark under `start-here` in a
+  hicolor folder of Cairn's own, `/usr/share/cairn/guardian-desktop`,
+  which a script in `/etc/xdg/plasma-workspace/env/` puts first in the
+  Guardian's `XDG_DATA_DIRS` at login, so existing accounts get it too.
+  A Guardian who resets the button to Plasma's default gets KDE's own
+  `start-here-kde` from Breeze, which is KDE's and stays.
+  `mark-currentcolor.svg` is not used, because
   Plasma recolours only its own colour classes, not `currentColor`.
 - **#167, the Guardian tool.** Fedora's guidelines also ask for a notice
   where the system names itself: not provided or supported by the Fedora
