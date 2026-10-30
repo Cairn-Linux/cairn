@@ -182,7 +182,7 @@ locked icon, nothing to probe.
 | Permissions | Per-child app allowlist, game allowlist, browser access |
 | Time | Schedules and daily limits |
 | System | OS updates and rollback (§10), Wi-Fi, printers |
-| Games | Run the scanner, choose each child's own games (ADR-0041), assign categories, manage tiles (§8.7) |
+| Games | Run the scanner, choose each child's own games from the Guardian's own Steam (ADR-0041, ADR-0042), assign categories, manage tiles (§8.7) |
 | Data | Reset a child account; export creations (§11) |
 
 #### Two access paths
@@ -667,6 +667,11 @@ Every title is a `games` tile unless a Guardian says otherwise (ADR-0024),
 and the launcher reads kidscan's output as it stands.
 Filters out Proton, Steam Linux Runtimes, and Steamworks Redistributables so
 they don't appear as games.
+On the image the Guardian tool's Games page uses it twice: as root over
+the family's shared Steam folder for the children's tiles (ADR-0033), and
+as the Guardian over their own Steam, so a game the parent installed
+anywhere can be picked; Save moves a picked game into the shared folder
+before copying it to each child (ADR-0042, proposed).
 
 Not yet built: a GUI for category assignment (a parent should never edit
 appids), pictures for tiles other than games (§14; games have theirs,

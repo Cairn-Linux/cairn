@@ -7,7 +7,10 @@ bullet of the Decision.
 **Closes:** (none) — addresses #130 and #24's question of where game tiles
 live; once accepted, amends ADR-0024
 **Amended by:** ADR-0041, proposed (on the image a child gets copies of
-the games on their own list, not of every game)
+the games on their own list, not of every game); ADR-0042, proposed
+(on the image Cairn moves a game the parent picks from their own Steam
+into the shared folder, and adds that folder to their Steam itself,
+instead of the Settings › Storage step)
 
 ## Context
 

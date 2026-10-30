@@ -7,6 +7,9 @@ of the Decision.
 **Closes:** (none) — the Games page of issue #167; part of ROADMAP P1-5.
 Once accepted, amends ADR-0033, ADR-0032, ADR-0035, ADR-0038, ADR-0039
 and ADR-0040.
+**Amended by:** ADR-0042, proposed (the Games page lists every game in
+the Guardian's own Steam, and Save moves a picked game into the shared
+folder before copying it, with new answer lines)
 
 ## Context
 
