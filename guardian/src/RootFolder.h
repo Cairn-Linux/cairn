@@ -2,17 +2,12 @@
 #pragma once
 
 #include <QByteArray>
-#include <QDateTime>
 #include <QString>
 
-#include <optional>
-
 // A folder under /var/lib/cairn that only root may change and every account
-// may read, and the small files in it (ADR-0041): each child's games list,
-// the games waiting for a child to log out, and how the last copy at a
-// logout ended. Every check is made on the folder itself, never through a
-// link, so a file is only ever trusted in a folder its owner alone can
-// change.
+// may read, and the small files in it (ADR-0041): each child's games list.
+// Every check is made on the folder itself, never through a link, so a file
+// is only ever trusted in a folder its owner alone can change.
 namespace RootFolder {
 
 // Whether `folder` is a plain folder, not a link, that belongs to `owner`
@@ -31,20 +26,6 @@ bool make(const QString& folder, unsigned int owner, const QString& restorecon);
 // True once the file is in place, even when labelling it fails.
 bool write(const QString& folder, unsigned int owner, const QString& restorecon,
            const QString& name, const QByteArray& bytes);
-
-struct File {
-    QByteArray bytes;
-    QDateTime modified;
-};
-
-// The file's bytes, when the folder is safe and the file, never followed
-// through a link, is a regular file that belongs to `owner` and holds at
-// most `largest` bytes. Nothing otherwise, or when there is no file.
-std::optional<File> read(const QString& folder, unsigned int owner, const QString& name,
-                         qint64 largest);
-
-// Whether the folder has anything of that name, a link included.
-bool holds(const QString& folder, const QString& name);
 
 // Removes the file from a safe folder. True when it is gone, or was never
 // there, folder and all.

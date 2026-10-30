@@ -60,7 +60,7 @@ bool SaveRun::start(const QStringList& arguments) {
     // As for FamilyChange: pkexec gives the same 127 for a missing command
     // as for a refused password, so the window checks first.
     if (!QFileInfo(m_command).isExecutable()) {
-        qWarning("cairn-guardian: %s is not there to run, so nothing was saved.",
+        qWarning("cairn-guardian: %s is not there to run, so nothing was done.",
                  qUtf8Printable(m_command));
         m_commandMissing = true;
         QTimer::singleShot(0, this, [this] {
@@ -123,7 +123,7 @@ void SaveRun::ended(int exitCode, QProcess::ExitStatus status) {
 void SaveRun::notStarted(QProcess::ProcessError error) {
     if (error == QProcess::FailedToStart) {
         // The page sends the parent to this line in the system log.
-        qWarning("cairn-guardian: %s could not be started, so nothing was saved.",
+        qWarning("cairn-guardian: %s could not be started, so nothing was done.",
                  qUtf8Printable(m_pkexec));
         finish(notStartedWord());
     }

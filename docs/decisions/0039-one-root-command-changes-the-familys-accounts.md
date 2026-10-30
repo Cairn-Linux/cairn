@@ -135,18 +135,13 @@ ADR-0041 (proposed) gives each subcommand an action of its own, by the
 command's first argument, so a Save of a child's games has its own
 message.
 
-ADR-0041's step 5c lets a Save log out a child the parent chose, with
-`save-games --log-out=LOGIN`, under the same action and password, so
-the Save's message gained a second sentence: "It also logs out a child
-you chose to log out."
-There is no fourth action.
-
-ADR-0041's `finish-games`, which copies a child's waiting games at
-their logout, is a subcommand with no polkit action: only a systemd unit
-starts it, as root. It is guarded as the visit helper's copy is: it
-refuses `not-for-pkexec` whenever `PKEXEC_UID` is set, so no password box
-can start it, and `not-root` without root. pkexec's own fallback action
-asks for an administrator first anyway.
+ADR-0041 adds a fourth action, `com.cairnlinux.family.log-out`, for
+`cairn-family log-out LOGIN`, which logs a logged-in child out before a
+grown-up chooses their games. Its message is "A grown-up's password is
+needed to log a child out." A Save's message is one sentence again.
+ADR-0041's first version had a Save log a child out under the Save's own
+action, and a `finish-games` subcommand that a systemd unit started at a
+child's logout; both went on 2026-10-29.
 
 ### The window
 

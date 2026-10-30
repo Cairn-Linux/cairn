@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "FamilyCommand.h"
-#include "FinishGames.h"
 #include "GamesSave.h"
+#include "LogOutCommand.h"
 
 #include <QCoreApplication>
 
@@ -46,21 +46,20 @@ int saveGames(const QStringList& arguments) {
     return outcome.refusal ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
-// Only systemd starts it, at a child's logout, so its notes are for the
-// journal, and nothing to do writes none.
-int finishGames(const QStringList& arguments) {
+// A grown-up logs a child out before choosing their games. The logout runs
+// as a system job, so it goes on to its end even if this program does not.
+int logOutChild(const QStringList& arguments) {
     std::signal(SIGPIPE, SIG_IGN);
-    FinishGames::Setup setup;
-    setup.copy.visitHelper = QStringLiteral(CAIRN_STEAM_VISIT);
-    const FinishGames::Outcome outcome = FinishGames(setup).run(arguments);
+    LogOutCommand::Setup setup;
+    setup.visitHelper = QStringLiteral(CAIRN_STEAM_VISIT);
+    const LogOutCommand::Outcome outcome = LogOutCommand(setup).run(arguments, sayLine);
 
     const QString answer = answerFor(outcome.refusal);
     sayLine(answer);
-    if (outcome.refusal) {
-        note(true, QStringLiteral("finish-games: ") + answer);
-    }
-    for (const QString& line : outcome.notes) {
-        note(false, line);
+    note(outcome.refusal.has_value(),
+         outcome.asked.isEmpty() ? answer : outcome.asked + QStringLiteral(": ") + answer);
+    if (!outcome.ended.isEmpty()) {
+        note(false, outcome.ended);
     }
     return outcome.refusal ? EXIT_FAILURE : EXIT_SUCCESS;
 }
@@ -94,8 +93,8 @@ int main(int argc, char* argv[]) {
     int status = EXIT_FAILURE;
     if (subcommand == QStringLiteral("save-games")) {
         status = saveGames(arguments);
-    } else if (subcommand == QStringLiteral("finish-games")) {
-        status = finishGames(arguments);
+    } else if (subcommand == QStringLiteral("log-out")) {
+        status = logOutChild(arguments);
     } else {
         status = changeAccount(arguments);
     }

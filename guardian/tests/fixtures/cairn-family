@@ -12,14 +12,13 @@
 # their new list, and writes their list into the folder
 # CAIRN_TEST_GAMES names, when it names one, with an entry for each game.
 # save-looking says its first line, then makes the pictures for a long
-# time. save-held-later holds each child as logged in and says `later`,
-# and writes their waiting list into the folder CAIRN_TEST_WAITING names,
-# when it names one, as the real command does. A child named with
-# --log-out=LOGIN is logged out first in save-done, and in save-stuck one
-# of their programs will not close, so they are held as stuck and wait.
-# save-logging-out stays logging the first child out. The save-held-*
-# scenarios count the games taken off against the child's list in
+# time. The save-held-* scenarios count the games taken off against the child's list in
 # CAIRN_TEST_GAMES, as the real command does, and write nothing there.
+#
+# The log-out-* scenarios answer `log-out LOGIN`: log-out-done logs the
+# child out, log-out-held-WORD says why it did not, and log-out-running
+# says its first line and then takes a long time. When CAIRN_TEST_LOGGED_IN
+# names a file, log-out-done empties it, as the child's sessions end.
 set -u
 scenario="${CAIRN_TEST_SCENARIO:-}"
 if [ -n "${CAIRN_TEST_ARGUMENTS:-}" ]; then
@@ -59,7 +58,7 @@ taken_off() {
 
 # Each child of a save-games run, in turn, as the scenario says.
 save_games() {
-    local argument login ids id count log_out=" "
+    local argument login ids id count
     echo "looking"
     if [ "$scenario" = save-looking ]; then
         exec sleep 30
@@ -67,12 +66,6 @@ save_games() {
     echo "pictures made"
     echo "catalogue made"
     for argument in "${@:2}"; do
-        case "$argument" in
-            --log-out=*)
-                log_out+="${argument#--log-out=} "
-                continue
-                ;;
-        esac
         login="${argument%%=*}"
         ids="${argument#*=}"
         count=0
@@ -80,43 +73,15 @@ save_games() {
             count=$((count + 1))
         done
         case "$scenario" in
-            save-stuck)
-                if [ "${log_out#* "$login" }" != "$log_out" ]; then
-                    echo "copying $login"
-                    echo "logging-out $login"
-                    echo "child $login added 0 removed 0 held stuck"
-                    if [ -n "${CAIRN_TEST_WAITING:-}" ]; then
-                        mkdir -p "$CAIRN_TEST_WAITING"
-                        echo "$argument" > "$CAIRN_TEST_WAITING/$login"
-                    fi
-                    echo "later $login"
-                else
-                    write_list "$login" "$ids"
-                    echo "child $login added $count removed 0"
-                fi
-                ;;
             save-done)
                 if [ -n "$ids" ]; then
                     echo "copying $login"
-                    if [ "${log_out#* "$login" }" != "$log_out" ]; then
-                        echo "logging-out $login"
-                        echo "logged-out $login"
-                    fi
                     for id in ${ids//,/ }; do
                         echo "copied $login $id"
                     done
                 fi
                 write_list "$login" "$ids"
                 echo "child $login added $count removed 0"
-                ;;
-            save-held-later)
-                echo "copying $login"
-                echo "child $login added 0 removed $(taken_off "$login" "$ids") held logged-in"
-                if [ -n "${CAIRN_TEST_WAITING:-}" ]; then
-                    mkdir -p "$CAIRN_TEST_WAITING"
-                    echo "$argument" > "$CAIRN_TEST_WAITING/$login"
-                fi
-                echo "later $login"
                 ;;
             save-held-*)
                 echo "child $login added 0 removed $(taken_off "$login" "$ids") held ${scenario#save-held-}"
@@ -131,9 +96,10 @@ save_games() {
                 echo "copying $login"
                 exec sleep 30
                 ;;
-            save-logging-out)
+            save-copied-then-copying)
                 echo "copying $login"
-                echo "logging-out $login"
+                echo "copied $login 1001"
+                echo "have $login 1002"
                 exec sleep 30
                 ;;
             save-cut-off)
@@ -144,8 +110,24 @@ save_games() {
     echo "done"
 }
 
+# A child's logout, as the scenario says.
+log_out() {
+    local login="${2:-}"
+    echo "logging-out $login"
+    case "$scenario" in
+        log-out-done)
+            [ -z "${CAIRN_TEST_LOGGED_IN:-}" ] || : > "$CAIRN_TEST_LOGGED_IN"
+            echo "logged-out $login"
+            ;;
+        log-out-held-*) echo "held $login ${scenario#log-out-held-}" ;;
+        log-out-running) exec sleep 30 ;;
+    esac
+    echo "done"
+}
+
 case "$scenario" in
     save-*) save_games "$@" ;;
+    log-out-*) log_out "$@" ;;
     done) echo "done" ;;
     refused-*) echo "refused ${scenario#refused-}"; exit 1 ;;
     # pkexec's own: the box was dismissed, or the password not accepted.

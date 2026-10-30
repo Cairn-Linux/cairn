@@ -131,6 +131,7 @@ source "$HELPER"
 RUN_DIR="$STATE/run/cairn"
 VISITS="$RUN_DIR/steam-visits"
 COPYING="$RUN_DIR/steam-copy"
+LOGGING_OUT="$RUN_DIR/steam-logout"
 RUNTIME_ROOT="$STATE/run/user"
 X11_DIR="$STATE/tmp"
 STEAM_SECONDS=3
@@ -189,6 +190,10 @@ class Scenario:
     def marker(self):
         return self.state / "run" / "cairn" / "steam-copy"
 
+    @property
+    def logout_marker(self):
+        return self.state / "run" / "cairn" / "steam-logout"
+
     def set(self, name, text):
         (self.state / name).write_text(text + "\n" if text else "")
 
@@ -199,21 +204,19 @@ class Scenario:
         (self.state / name).unlink(missing_ok=True)
 
     def run(self, child="ada", stdin="done\n", keep_stdin_open=False, signal_after_open=None, copy=False,
-            appids=(), log_out=False, arguments=None):
+            appids=(), arguments=None):
         """Run the helper once. With keep_stdin_open, nothing is written and
         stdin stays open until the helper ends by itself. With
         signal_after_open, that signal is sent once it says its first line
         ("open" for a visit), and then the "signalled" file is made. With
         copy, it runs as provisioning's copy of the games, of `appids`
-        ("--all" for every game), and with log_out as a copy that logs the
-        child out first. A child of None passes no child at all.
+        ("--all" for every game). A child of None passes no child at all.
         `arguments` replaces all of that with exactly these words."""
         for name in ("calls", "terminated", "signalled"):
             self.unflag(name)
         named = [] if child is None else [child]
         if arguments is None:
-            first = ["--copy-games", "--log-out"] if log_out else ["--copy-games"]
-            arguments = [*first, *named, *appids] if copy else named
+            arguments = ["--copy-games", *named, *appids] if copy else named
         with open(self.state / "trace", "w") as trace:
             process = subprocess.Popen(
                 ["bash", "-c", RUN, "cairn-steam-visit", *arguments],
@@ -724,37 +727,61 @@ class SteamVisitTest(unittest.TestCase):
         self.scenario.marker.write_text("ben\n")
         self.assertEqual(self.scenario.run().said, ["open", "closing", "closed"])
 
-    # --- "Log them out now": a copy that logs the child out (ADR-0041) ---------
+    # --- A copy never logs a child out (ADR-0041) -------------------------------
 
     def child_logs_in(self):
         self.scenario.set("child-sessions", "c3")
         self.scenario.set("session-class", "user")
         self.scenario.set("session-service", "sddm")
 
-    def log_out(self, appids=("620",), **arguments):
-        return self.copy(appids=appids, log_out=True, **arguments)
+    def test_a_copy_for_a_logged_in_child_never_logs_them_out(self):
+        # The window logs a child out on its own, before a Save; a copy
+        # only refuses.
+        self.child_logs_in()
+        run = self.copy()
+        self.assertCopyRefused(run, "logged-in")
+        self.assertFalse(run.called("loginctl terminate-user"))
+        for arguments in (
+            ["--copy-games", "--log-out", "ada", "620"],
+            ["--copy-games", "ada", "--log-out", "620"],
+        ):
+            with self.subTest(arguments=arguments):
+                run = self.scenario.run(arguments=arguments)
+                self.assertNotIn("logging-out", run.said)
+                self.assertFalse(run.called("loginctl terminate-user"))
+                self.assertFalse(self.scenario.visits.exists())
+
+    # --- Logging a child out for a grown-up (ADR-0041) -------------------------
+
+    def log_out(self, child="ada", **arguments):
+        """The Games page's logout, as cairn-family's system job runs it."""
+        self.scenario.env.pop("PKEXEC_UID", None)
+        return self.scenario.run(arguments=["--log-out", child], **arguments)
 
     def assertLetIn(self):
         self.assertFalse(self.scenario.visits.exists(), "the child can log in again")
-        self.assertFalse(self.scenario.marker.exists(), "the marker goes")
+        self.assertFalse(self.scenario.marker.exists())
+        self.assertFalse(self.scenario.logout_marker.exists())
 
-    def test_a_logout_ends_the_childs_login_then_copies(self):
+    def assertLogOutRefused(self, run, reason):
+        self.assertEqual(run.said, [f"refused {reason}"])
+        self.assertEqual(run.code, 1)
+        self.assertFalse(run.called("loginctl terminate-user"), "nobody is logged out")
+
+    def test_a_logout_ends_the_childs_login(self):
         self.child_logs_in()
-        run = self.log_out(appids=("620", "294690"))
+        run = self.log_out()
         self.assertEqual(run.said, ["logging-out", "logged-out", "finished"])
         self.assertEqual(run.code, 0)
         self.assertEqual(run.called("loginctl terminate-user"), ["loginctl terminate-user ada"])
-        [copy] = run.called("setpriv")
-        self.assertTrue(copy.endswith(" -I /usr/local/libexec/cairn/cairn-copy-games --only 620 294690"), copy)
-        self.assertLess(run.calls.index("loginctl terminate-user ada"), run.calls.index(copy))
+        self.assertFalse(run.called("setpriv"), "nothing is copied")
         self.assertLetIn()
 
-    def test_the_child_is_listed_before_they_are_logged_out(self):
-        # PAM refuses them from the logout to the end of the copy.
+    def test_the_child_is_listed_while_they_are_logged_out(self):
+        # PAM refuses a new login of theirs halfway through.
         self.child_logs_in()
         self.log_out()
         self.assertEqual((self.scenario.state / "listed-at-terminate").read_text(), "ada\n")
-        self.assertEqual((self.scenario.state / "listed-during-copy").read_text(), "ada\n")
 
     def test_steam_saves_before_the_child_is_logged_out(self):
         self.child_logs_in()
@@ -770,7 +797,6 @@ class SteamVisitTest(unittest.TestCase):
     def test_a_logout_never_starts_a_steam_that_is_not_running(self):
         self.child_logs_in()
         run = self.log_out()
-        self.assertEqual(run.said, ["logging-out", "logged-out", "finished"])
         self.assertFalse([c for c in run.calls if "steam -shutdown" in c])
 
     def test_a_logout_kills_what_will_not_end_after_end_seconds(self):
@@ -784,27 +810,18 @@ class SteamVisitTest(unittest.TestCase):
         # The tests run with END_SECONDS=3, one second at a time.
         self.assertEqual(run.calls[ended:killed].count("sleep 1"), 3)
 
-    def test_a_child_who_is_not_logged_in_is_not_logged_out(self):
+    def test_a_child_who_is_not_logged_in_is_already_logged_out(self):
         run = self.log_out()
-        self.assertEqual(run.said, ["finished"])
+        self.assertEqual(run.said, ["logged-out", "finished"])
+        self.assertEqual(run.code, 0)
         self.assertFalse(run.called("loginctl terminate-user"))
         self.assertFalse(run.called("timeout"), "Steam is not asked to shut down")
-        self.assertTrue(run.called("setpriv"))
-        self.assertLetIn()
-
-    def test_an_empty_list_logs_nobody_out(self):
-        self.child_logs_in()
-        run = self.log_out(appids=())
-        self.assertEqual(run.said, ["finished"])
-        self.assertEqual(run.code, 0)
-        self.assertFalse(run.called("loginctl"), "nobody is asked about")
-        self.assertFalse(run.called("setpriv"))
         self.assertLetIn()
 
     def test_the_visits_polkit_action_cannot_log_a_child_out(self):
         self.child_logs_in()
-        run = self.scenario.run(copy=True, log_out=True, appids=("620",))
-        self.assertCopyRefused(run, "not-for-pkexec")
+        run = self.scenario.run(arguments=["--log-out", "ada"])
+        self.assertLogOutRefused(run, "not-for-pkexec")
         self.assertFalse(run.called("loginctl"))
         self.assertFalse(self.scenario.visits.exists())
 
@@ -815,21 +832,17 @@ class SteamVisitTest(unittest.TestCase):
         self.assertEqual(run.said, ["logging-out", "refused stuck"])
         self.assertEqual(run.code, 1)
         self.assertIn("pkill --signal KILL --uid %d" % ME, run.calls)
-        self.assertFalse(run.called("setpriv"), "nothing is copied")
         self.assertLetIn()
         self.assertEqual(self.notes(run), [
-            "logging ada out to copy their games",
+            "logging ada out for a grown-up",
             "ada could not be logged out: a program of theirs would not end; restart the computer",
-            "no games were copied for ada: refused stuck",
+            "ada was not logged out: refused stuck",
         ])
 
-    def test_a_login_that_closes_soon_lets_the_copy_go_ahead(self):
+    def test_a_login_that_closes_soon_is_logged_out(self):
         self.child_logs_in()
         self.scenario.set("closing", "3")
-        run = self.log_out()
-        self.assertEqual(run.said, ["logging-out", "logged-out", "finished"])
-        self.assertTrue(run.called("setpriv"))
-        self.assertLetIn()
+        self.assertEqual(self.log_out().said, ["logging-out", "logged-out", "finished"])
 
     def test_a_login_that_does_not_close_is_refused(self):
         self.child_logs_in()
@@ -837,7 +850,6 @@ class SteamVisitTest(unittest.TestCase):
         run = self.log_out()
         self.assertEqual(run.said, ["logging-out", "refused logged-in"])
         self.assertEqual(run.code, 1)
-        self.assertFalse(run.called("setpriv"))
         self.assertLetIn()
 
     def test_a_signal_mid_logout_stops_and_lets_the_child_in(self):
@@ -850,43 +862,91 @@ class SteamVisitTest(unittest.TestCase):
                 self.assertEqual(run.said, ["logging-out", "refused stopped"])
                 self.assertEqual(run.code, 1)
                 self.assertFalse(run.called("loginctl terminate-user"), "the child is not logged out")
-                self.assertFalse(run.called("setpriv"))
                 self.assertLetIn()
 
     def test_a_signal_before_the_logout_logs_nobody_out(self):
         self.child_logs_in()
         self.scenario.flag("stop-early")
-        run = self.log_out()
-        self.assertCopyRefused(run, "stopped")
-        self.assertFalse(run.called("loginctl terminate-user"))
-        self.assertFalse(self.scenario.visits.exists())
+        self.assertLogOutRefused(self.log_out(), "stopped")
+        self.assertLetIn()
 
-    def test_log_out_goes_once_straight_after_copy_games_and_never_with_all(self):
+    def test_a_logout_takes_exactly_one_child(self):
         self.child_logs_in()
         self.scenario.env.pop("PKEXEC_UID")
         for arguments in (
-            ["--copy-games", "ada", "--log-out", "620"],
-            ["--copy-games", "ada", "620", "--log-out"],
-            ["--copy-games", "--log-out", "ada", "--all"],
-            ["--copy-games", "--log-out", "ada", "620", "--all"],
-            ["--copy-games", "--log-out", "--log-out", "ada", "620"],
-            ["--copy-games", "--log-out"],
-            ["--log-out", "--copy-games", "ada", "620"],
+            ["--log-out"],
+            ["--log-out", "ada", "620"],
+            ["--log-out", "--copy-games", "ada"],
+            ["--log-out", "ada", "--all"],
             ["ada", "--log-out"],
         ):
             with self.subTest(arguments=arguments):
                 run = self.scenario.run(arguments=arguments)
-                self.assertCopyRefused(run, "usage")
+                self.assertLogOutRefused(run, "usage")
                 self.assertFalse(run.called("loginctl"))
                 self.assertFalse(self.scenario.visits.exists())
+
+    def test_a_logout_is_only_for_a_child(self):
+        self.child_logs_in()
+        self.assertLogOutRefused(self.log_out(child="../ada"), "not-a-child")
+        self.scenario.set("child-groups", "ada cairn-l1 wheel")
+        self.assertLogOutRefused(self.log_out(), "not-a-child")
+
+    def test_no_logout_during_a_visit(self):
+        self.child_logs_in()
+        self.scenario.visits.write_text("ben\n")
+        self.assertLogOutRefused(self.log_out(), "busy")
+        self.assertEqual(self.scenario.visits.read_text(), "ben\n", "the visit's list stays")
+
+    def test_a_logout_during_a_visit_leaves_no_marker_of_its_own(self):
+        self.child_logs_in()
+        self.scenario.visits.write_text("ben\n")
+        self.assertLogOutRefused(self.log_out(), "busy")
+        self.assertFalse(self.scenario.logout_marker.exists())
+
+    def test_no_logout_during_another_logout(self):
+        self.child_logs_in()
+        self.scenario.visits.write_text("ben\n")
+        self.scenario.logout_marker.write_text("ben\n")
+        self.assertLogOutRefused(self.log_out(), "logging-out")
+        self.assertEqual(self.scenario.visits.read_text(), "ben\n", "the other logout's list stays")
+        self.assertTrue(self.scenario.logout_marker.exists(), "and so does its marker")
+
+    def test_a_copy_during_a_logout_says_a_child_is_being_logged_out(self):
+        # Not "busy", which the Games page would read as a visit to close.
+        self.scenario.visits.write_text("ben\n")
+        self.scenario.logout_marker.write_text("ben\n")
+        self.assertCopyRefused(self.copy(), "logging-out")
+        self.assertFalse(self.scenario.marker.exists(), "the copy takes its own marker away")
+        self.assertTrue(self.scenario.logout_marker.exists(), "and leaves the logout's")
+
+    def test_a_visit_during_a_logout_says_a_child_is_being_logged_out(self):
+        self.scenario.visits.write_text("ben\n")
+        self.scenario.logout_marker.write_text("ben\n")
+        self.assertRefused(self.scenario.run(), "logging-out")
+        self.assertEqual(self.scenario.visits.read_text(), "ben\n", "the logout's list stays")
+
+    def test_no_logout_during_a_copy(self):
+        self.child_logs_in()
+        self.scenario.visits.write_text("ben\n")
+        self.scenario.marker.write_text("ben\n")
+        self.assertLogOutRefused(self.log_out(), "copying")
+        self.assertTrue(self.scenario.marker.exists(), "the copy's marker stays")
+
+    def test_a_logout_needs_the_label_a_visit_needs(self):
+        self.child_logs_in()
+        self.scenario.flag("selinux")
+        self.assertLogOutRefused(self.log_out(), "not-set-up")
+        self.assertLetIn()
 
     def test_a_logout_keeps_a_record_in_the_journal(self):
         self.child_logs_in()
         self.assertEqual(self.notes(self.log_out()), [
-            "logging ada out to copy their games",
-            "copying ada's games",
-            "finished copying ada's games",
+            "logging ada out for a grown-up",
+            "logged ada out for a grown-up",
         ])
+        self.scenario.set("child-sessions", "")
+        self.assertEqual(self.notes(self.log_out()), ["ada was not logged in"])
 
     def test_a_logout_removes_the_childs_leftover_x11_files(self):
         # They would mislead the next shut_down_steam into a stale display.

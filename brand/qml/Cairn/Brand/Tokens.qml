@@ -35,6 +35,10 @@ QtObject {
     readonly property color machine: fjord
     readonly property color gamesEdge: line  // a games tile is a quiet card, so it carries a hairline edge
     readonly property int strokeHairline: 2
+    readonly property color scrim: ink  // behind a box that must be answered first, at scrimOpacity
+    readonly property real scrimOpacity: 0.45
+    readonly property real coveredOpacity: 0.35  // what waits under a cover, also where blur cannot be drawn
+    readonly property int blurMax: 32
     // Label pair comments are measured contrast ratios against each ground.
     readonly property color makeLabel: ink  // 5.69:1
     readonly property color practiceLabel: ink  // 4.01:1

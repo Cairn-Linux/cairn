@@ -2,7 +2,8 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!--
   cairn-family's subcommands (ADR-0039, ADR-0041): making a child's account,
-  changing a child's level, and saving a child's games. The Guardian's tool
+  changing a child's level, saving a child's games, and logging a child out
+  before a grown-up chooses their games. The Guardian's tool
   runs cairn-family through pkexec, which finds the action by the command's
   path and its first argument, and asks for an administrator's password, or
   a fingerprint, for every change, with the message of that subcommand.
@@ -44,7 +45,7 @@
   </action>
   <action id="com.cairnlinux.family.save-games">
     <description>Change which games a child has</description>
-    <message>A grown-up's password is needed to change which games a child has. It also logs out a child you chose to log out.</message>
+    <message>A grown-up's password is needed to change which games a child has.</message>
     <defaults>
       <allow_any>no</allow_any>
       <allow_inactive>no</allow_inactive>
@@ -52,5 +53,16 @@
     </defaults>
     <annotate key="org.freedesktop.policykit.exec.path">/usr/local/libexec/cairn/cairn-family</annotate>
     <annotate key="org.freedesktop.policykit.exec.argv1">save-games</annotate>
+  </action>
+  <action id="com.cairnlinux.family.log-out">
+    <description>Log a child out</description>
+    <message>A grown-up's password is needed to log a child out.</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/local/libexec/cairn/cairn-family</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">log-out</annotate>
   </action>
 </policyconfig>

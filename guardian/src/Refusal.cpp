@@ -25,8 +25,6 @@ QString refusalWord(Refusal refusal) {
         return QStringLiteral("bad-appid");
     case Refusal::Busy:
         return QStringLiteral("busy");
-    case Refusal::NotForPkexec:
-        return QStringLiteral("not-for-pkexec");
     }
     return QStringLiteral("failed");
 }

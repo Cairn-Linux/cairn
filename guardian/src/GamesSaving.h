@@ -8,7 +8,6 @@
 #include <QHash>
 #include <QObject>
 #include <QQmlEngine>
-#include <QSet>
 #include <QString>
 #include <QStringList>
 #include <QVariantList>
@@ -31,13 +30,16 @@ class GamesSaving : public QObject {
     Q_PROPERTY(Kind kind READ kind NOTIFY changed)
     Q_PROPERTY(Reason reason READ reason NOTIFY changed)
     Q_PROPERTY(Progress progress READ progress NOTIFY changed)
-    // The name of the child being copied, logged out or waited for, or "".
+    // The name of the child being copied or waited for, or "".
     Q_PROPERTY(QString progressName READ progressName NOTIFY changed)
+    // Each game copied so far, or found already there, as a map: login,
+    // name, appId, title (or "") and had, true for a game already there.
+    // For the progress window while the copies run.
+    Q_PROPERTY(QVariantList copiedSoFar READ copiedSoFar NOTIFY changed)
     // Each child the command answered for, as a map: login, name, added,
-    // removed, held (a Held), later, when their new games are copied at
-    // their next logout, and skipped, a list of maps with appId, title and
-    // reason (a Skip). added and removed are -1 when the child's list was
-    // not written.
+    // removed, held (a Held), and skipped, a list of maps with appId,
+    // title and reason (a Skip). added and removed are -1 when the child's
+    // list was not written.
     Q_PROPERTY(QVariantList results READ results NOTIFY changed)
     // No child the command answered for was held or had a game left out.
     Q_PROPERTY(bool allGiven READ allGiven NOTIFY changed)
@@ -73,7 +75,6 @@ public:
         Writing,
         CopyingGames,
         WaitingForLogout,
-        LoggingOut,
     };
     Q_ENUM(Progress)
     // A child's held word (ADR-0041).
@@ -82,6 +83,7 @@ public:
         LoggedIn,
         VisitOpen,        // busy
         CopyStillRunning, // copying
+        ChildLoggingOut,  // logging-out
         StillRunning,
         Stopped,
         NotSetUp,
@@ -93,7 +95,6 @@ public:
         CopyStopped, // failed
         NotStarted,
         NotWritten,
-        Stuck,
         OtherHold,
     };
     Q_ENUM(Held)
@@ -123,6 +124,7 @@ public:
     Reason reason() const;
     Progress progress() const;
     QString progressName() const;
+    QVariantList copiedSoFar() const;
     QVariantList results() const;
     bool allGiven() const;
     bool catalogueKept() const;
@@ -138,15 +140,8 @@ public:
     // The last Save's outcome stops showing, because the page has changed
     // since it ended. Nothing while a Save runs.
     void clearOutcome();
-    // The children whose new games the last Save left for their next
-    // logout, while its outcome shows, but for those settled since.
-    QStringList laterLogins() const;
-    // The child's wait, which the last Save left for their next logout,
-    // has ended, so the outcome no longer speaks for them: it leaves them
-    // out, and ends once no child is left for it to speak for. Nothing for
-    // a child it did not leave waiting.
-    void settle(const QString& login);
-    bool settled(const QString& login) const;
+    // The progress window's Close: the same, once the Save has ended.
+    Q_INVOKABLE void close();
 
     static Reason reasonFor(const QString& answer);
 
@@ -159,9 +154,6 @@ private:
     void lineRead(const QString& line);
     void finished(const QString& answer);
     QString nameOf(const QString& login) const;
-    // The children the outcome speaks for: all it answered for but the
-    // settled.
-    QList<SaveReport::Child> shownChildren() const;
 
     SaveRun* m_run;
     SaveReport m_report;
@@ -170,5 +162,4 @@ private:
     Reason m_reason = Reason::NoReason;
     QHash<QString, QString> m_names;
     QHash<QString, QString> m_titles;
-    QSet<QString> m_settled;
 };

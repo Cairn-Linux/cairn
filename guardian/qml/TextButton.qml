@@ -50,7 +50,10 @@ Rectangle {
         color: button.quiet || !button.enabled ? Tokens.paperLabel : Tokens.machineLabel
     }
 
+    // The press is the button's alone, so nothing under it, such as the
+    // backdrop of a box that must be answered first, takes the tap away.
     TapHandler {
+        gesturePolicy: TapHandler.ReleaseWithinBounds
         onTapped: {
             button.forceActiveFocus(Qt.MouseFocusReason);
             button.activated();
