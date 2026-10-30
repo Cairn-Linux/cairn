@@ -219,6 +219,8 @@ A launch that has put nothing on the screen when its wait ends (15 s), or
 whose program runs past the settle window and quits without a window, is a
 failed launch too (ADR-0030, #139): the grown-up screen says the tile did
 not start. Back at the tiles a child would press it again, and again.
+The screen gives no reason, but when the launcher knows what will help it
+adds one line saying so (ADR-0045).
 Until Back, a window that comes late is still the app's and takes over.
 A program whose window came and went returns to the tiles without comment.
 The launcher runs one program at a time; a second Enter while one is
@@ -270,6 +272,11 @@ If Steam could not be started again, the stall comes back, or the new
 client does not take the tap, the wait ends at the next look, and the
 journal says to log the child out and back in.
 A later tap on a game Steam keeps stuck ends at its first look (ADR-0036).
+Either way the grown-up screen adds "Log out and back in, then try it
+again." under the sentence that names the tile, unless Steam's logs gave
+another reason, such as a refused sign-in or a question (ADR-0045).
+`AppLauncher.grownUpStep` says which line, if any; `GrownUpScreen.qml`
+draws it.
 With `--scope-apps`, which the kiosk wrapper passes, every program starts
 in a systemd user scope of its own, `cairn-app-<launcher pid>-<n>.scope`,
 so the grown-up's give-up key can end it and whatever it started
@@ -376,7 +383,9 @@ To compare what the launcher shows with UPower's own reading, run
   `Tokens.machine` / `Tokens.machineLabel` from
   `../brand/qml/Cairn/Brand/Tokens.qml`, never a literal.
 - Watches launches. Slow or failed launches show "Something needs a
-  grown-up", never whatever the app or Steam decided to display.
+  grown-up", never whatever the app or Steam decided to display, and at
+  most one line saying what will help when the launcher knows it
+  (ADR-0045).
 - Keyboard and mouse both work fully. A child typing at one character per
   five seconds is expected.
 - Motion only says something true (ADR-0028): the rows sliding into view,

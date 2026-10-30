@@ -1391,6 +1391,7 @@ private slots:
         QCOMPARE(linesOf(started), SteamAtLogin::command().mid(1));
         // "Getting it ready" from the first look until the game.
         QCOMPARE(ready.count(), 2);
+        QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::None);
         launcher.giveUp();
         forgetSteamsLogs();
         qputenv("PATH", path);
@@ -1431,6 +1432,7 @@ private slots:
                   "AppID 292780 scheduler finished : removed from schedule (result Suspended, "
                   "state 0xc) ");
         QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
+        QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::LogOutAndBackIn);
         QCOMPARE(linesOf(runs).count(QStringLiteral("-shutdown")), 1);
         QCOMPARE(linesOf(dir.filePath(QStringLiteral("started"))).count(QStringLiteral("--user")),
                  1);
@@ -1464,6 +1466,7 @@ private slots:
         launcher.launch(QStringLiteral("Pajama Sam 2"), pajamaSam2());
         steamStopsPartWay(70);
         QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
+        QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::LogOutAndBackIn);
         QCOMPARE(linesOf(dir.filePath(QStringLiteral("runs"))).count(QStringLiteral("-shutdown")),
                  0);
         QVERIFY(!QFileInfo::exists(dir.filePath(QStringLiteral("started"))));
@@ -1501,8 +1504,10 @@ private slots:
         launcher.launch(QStringLiteral("Pajama Sam 2"), pajamaSam2());
         steamStopsPartWay(70);
         QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
+        QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::LogOutAndBackIn);
         launcher.dismiss();
         QCOMPARE(launcher.state(), AppLauncher::State::Idle);
+        QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::None);
 
         QElapsedTimer sinceTap;
         sinceTap.start();
@@ -1511,6 +1516,7 @@ private slots:
         QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
         // At the first look, not after a wait.
         QVERIFY(sinceTap.elapsed() < 2000);
+        QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::LogOutAndBackIn);
         QCOMPARE(linesOf(dir.filePath(QStringLiteral("runs"))).count(QStringLiteral("-shutdown")),
                  0);
         launcher.dismiss();
@@ -1543,7 +1549,47 @@ private slots:
         QTest::qWait(300);
         steamLogs(QStringLiteral("console_log.txt"), 0, "LogonFailure Access Denied");
         QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
+        QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::None);
         launcher.dismiss();
+        forgetSteamsLogs();
+        qputenv("PATH", path);
+    }
+
+    // The line is only for a launch Steam stopped on part-way (ADR-0045):
+    // never for another failure, nor for a window that opened on its own.
+    void aFailedLaunchWithoutAStallAddsNoLine() {
+        const QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        installStandIns(dir, "active");
+        const QByteArray path = qgetenv("PATH");
+        qputenv("PATH", dir.path().toUtf8() + ':' + path);
+        forgetSteamsLogs();
+
+        AppLauncher launcher(this);
+        launcher.setLaunchGraceMilliseconds(200);
+        QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::None);
+        QTest::ignoreMessage(QtWarningMsg, "Nothing of Draw came on the screen in time.");
+        launcher.launch(QStringLiteral("Draw"),
+                        {shell(), QStringLiteral("-c"), QStringLiteral("exit 0")});
+        QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
+        QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::None);
+        launcher.dismiss();
+
+        QTest::ignoreMessage(QtWarningMsg, "Nothing of Pajama Sam 2 came on the screen in time.");
+        launcher.launch(QStringLiteral("Pajama Sam 2"), pajamaSam2());
+        QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
+        QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::None);
+        launcher.dismiss();
+
+        launcher.setSteadyMilliseconds(0);
+        QTest::ignoreMessage(QtWarningMsg, "Steam opened a window on its own.");
+        launcher.windowOpened(QStringLiteral("w1"), QStringLiteral("steam"),
+                              QStringLiteral("Steam"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Interrupted);
+        QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::None);
+        launcher.windowClosed(QStringLiteral("w1"));
+        QCOMPARE(linesOf(dir.filePath(QStringLiteral("runs"))).count(QStringLiteral("-shutdown")),
+                 0);
         forgetSteamsLogs();
         qputenv("PATH", path);
     }

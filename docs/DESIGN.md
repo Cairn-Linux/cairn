@@ -609,7 +609,9 @@ Mechanism:
   A game that has put nothing on the screen when the
   wait ends, such as one Steam holds behind a dialog the kiosk hides, ends
   on the grown-up screen, and its window still takes over if it comes late
-  (ADR-0030).
+  (ADR-0030). If starting Steam again does not bring the game, the
+  grown-up screen adds one line: "Log out and back in, then try it again."
+  (ADR-0045).
 - Proton work happens in the background; the game comes up fullscreen.
 
 **Known failure modes.** Steam forces its window open for client updates, game
@@ -623,7 +625,8 @@ updates, login expiry, Steam Guard prompts, and cloud save conflicts. Mitigation
 2. The launcher watches for failed or slow launches and shows a plain
    "something needs a grown-up" screen rather than leaving the child staring at
    whatever Steam decided to display. **Graceful failure matters more at this age
-   than at any other.**
+   than at any other.** When the launcher knows what will help, the screen
+   adds one short line saying it, never a reason (ADR-0045).
 3. The kiosk compositor enforces containment. Window rules keep Steam's own
    windows (main client, login, update progress, Steam Guard) minimised or off
    the screen, and the compositor's foreign-toplevel protocol tells the launcher

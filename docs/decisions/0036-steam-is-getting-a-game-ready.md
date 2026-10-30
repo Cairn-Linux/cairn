@@ -290,6 +290,9 @@ the grown-up screen at the next look after any of these:
 A game that still never comes after a good second tap ends by the 2-minute
 rule after the last work, as before. Steam takes a later tap on a game it
 keeps stuck without writing a word, so that tap ends at its first look.
+Each of these ends with one more line on the grown-up screen, under "…
+did not start.": "Log out and back in, then try it again." (ADR-0045),
+unless Steam's logs gave another reason.
 
 The journal says:
 

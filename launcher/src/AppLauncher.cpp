@@ -70,6 +70,11 @@ QString AppLauncher::title() const {
     return m_title;
 }
 
+AppLauncher::GrownUpStep AppLauncher::grownUpStep() const {
+    const bool logOut = m_state == State::Failed && m_steamGame.logOutWouldHelp();
+    return logOut ? GrownUpStep::LogOutAndBackIn : GrownUpStep::None;
+}
+
 bool AppLauncher::gettingReady() const {
     return m_gettingReady;
 }

@@ -227,9 +227,10 @@ themselves.
   launcher starts the child's Steam again by itself and taps the game
   again; the child keeps seeing "Getting it ready", and the game comes a
   minute or two later. The journal says "Steam stopped getting … ready;
-  starting Steam again." If the game still does not start, the journal
-  says "Steam stopped getting … ready, so … did not start." Log the child
-  out, log them back in, and tap the game again. If the journal also says
+  starting Steam again." If the game still does not start, the screen
+  adds "Log out and back in, then try it again." and the journal says
+  "Steam stopped getting … ready, so … did not start." Log the child out,
+  log them back in, and tap the game again. If the journal also says
   "Steam did not stop when asked", "Steam could not be started again" or
   "Steam is not running as the launcher started it", please report it.
 - Right after a child logs in, Steam sometimes updates itself, which can

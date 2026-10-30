@@ -30,7 +30,8 @@
 // (ADR-0036). A tap Steam lost while it updated itself is sent again once the
 // new client has started (ADR-0037). A Steam that cannot sign in ends the
 // wait sooner, and the journal says why (#182). A Steam that stopped part-way
-// through getting the game ready is started again once (SteamRestart, #206).
+// through getting the game ready is started again once (SteamRestart, #206);
+// if that does not help, the grown-up screen says what will (ADR-0045).
 // While Steam updates itself, its updater's windows are neither the app's nor
 // on their own, and the launcher asks for each to be hidden, so its Cancel
 // button is out of the child's reach (#183). A launch that has put
@@ -54,6 +55,9 @@ class AppLauncher : public QObject {
     // The tile that was launched last, or the window that opened on its own,
     // for the one sentence on the grown-up screen that names it.
     Q_PROPERTY(QString title READ title NOTIFY titleChanged)
+    // In Failed, the one line the grown-up screen adds when the launcher
+    // knows what will help (ADR-0045). None in every other state.
+    Q_PROPERTY(GrownUpStep grownUpStep READ grownUpStep NOTIFY stateChanged)
     // While Starting: a grace has ended and Steam's log said it was still
     // working on the game, so the starting screen says it is getting ready
     // (ADR-0036). False in every other state.
@@ -86,12 +90,17 @@ class AppLauncher : public QObject {
 public:
     enum class State : std::uint8_t { Idle, Starting, Running, Failed, Interrupted, ComingSoon };
     Q_ENUM(State)
+    // Nothing to add, or Steam stopped part-way through getting the game
+    // ready and logging the child out and back in will help (#206).
+    enum class GrownUpStep : std::uint8_t { None, LogOutAndBackIn };
+    Q_ENUM(GrownUpStep)
 
     explicit AppLauncher(QObject* parent = nullptr);
 
     State state() const;
     bool needsGrownUp() const;
     QString title() const;
+    GrownUpStep grownUpStep() const;
     bool gettingReady() const;
     int settleMilliseconds() const;
     void setSettleMilliseconds(int milliseconds);
