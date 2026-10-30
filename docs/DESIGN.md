@@ -594,7 +594,11 @@ Mechanism:
   This can take a few minutes." (ADR-0036). Steam starting, or installing an
   update of its own client, counts as getting the game ready too, by Steam's
   update log; a tap the client lost when it restarted after its update is
-  sent again, once (ADR-0037). A Steam that cannot sign in is not getting
+  sent again, once (ADR-0037). While Steam updates itself, at login or
+  later, its updater's windows are neither the game's nor windows on their
+  own: the launcher asks the compositor to hide them, so the child sees the
+  tiles or the starting screen, never Steam's Cancel button (ADR-0037,
+  #183). A Steam that cannot sign in is not getting
   the game ready: when its sign-in was turned down the wait ends at the
   next grace, and when it cannot reach its servers after a minute
   (ADR-0036, #182). A game that has put nothing on the screen when the

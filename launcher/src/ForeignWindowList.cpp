@@ -51,6 +51,13 @@ QString ForeignWindowList::ownAppId() const {
     return m_ownAppId;
 }
 
+void ForeignWindowList::minimize(const QString& identifier) {
+    if (m_list == nullptr || !m_available) {
+        return;
+    }
+    m_list->minimize(identifier);
+}
+
 void ForeignWindowList::onActiveChanged() {
     const bool active = m_list->isActive();
     if (active == m_available) {

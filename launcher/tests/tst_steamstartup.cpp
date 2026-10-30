@@ -67,10 +67,10 @@ private slots:
         append(logs.bootstrap,
                line(3, "Shutdown") + line(3, "Startup - updater built Oct 13 2026 18:44:25") +
                    line(3, "Verifying installation...") + line(2, "Verification complete"));
-        QCOMPARE(logs.now(), Now::Starting);
+        QCOMPARE(logs.now(), Now::Restarting);
         append(logs.console, line(1, "Waiting for compat in post-logon took: 4.822680s") +
                                  line(1, "System startup time: 16.79 seconds"));
-        QCOMPARE(logs.now(), Now::Starting);
+        QCOMPARE(logs.now(), Now::Restarting);
         append(logs.console, line(0, ownStart()));
         QCOMPARE(logs.now(), Now::Ready);
     }
@@ -124,6 +124,92 @@ private slots:
         QCOMPARE(logs.now(), Now::Ready);
     }
 
+    // The dev PC's Steam on 2026-10-27, 23:05 to 23:08: it installed an
+    // update it had downloaded, restarted to check itself, was started again
+    // by its start script, downloaded more, installed a second update of
+    // 424,455 KB and restarted twice more. Its updater's windows are up all
+    // the while (#183); the kids' laptop did the same at a login that day.
+    void twoUpdatesInARowAreUpdatingUntilTheClientStarts() {
+        const Logs logs;
+        append(logs.console, line(7200, ownStart()));
+        append(logs.bootstrap,
+               line(160, "Startup - updater built Sep  3 2026 01:31:48") +
+                   line(160, "Startup - Steam Client launched with: "
+                             "'/var/home/child/.local/share/Steam/ubuntu12_32/steam' "
+                             "'-srt-logger-opened'") +
+                   line(160, "Found pending update") + line(160, "Installing update...") +
+                   line(160, "Extracting package...") + line(150, "Installing update...") +
+                   line(149, "Cleaning up..."));
+        QCOMPARE(logs.now(), Now::Updating);
+        QVERIFY(SteamStartup(logs.bootstrap, logs.console)
+                    .updatingItself(QDateTime::currentDateTime()));
+        append(logs.bootstrap,
+               line(149, "Update complete, launching Steam...") + line(149, "Shutdown") +
+                   line(149, "Startup - updater built Sep  3 2026 01:31:48") +
+                   line(149, "Verifying installation...") + line(149, "Verifying file sizes only") +
+                   line(142, "Verification complete"));
+        QCOMPARE(logs.now(), Now::Restarting);
+        // Started again by Steam's start script, 18 s later, with no Shutdown.
+        append(logs.bootstrap,
+               line(131, "Startup - updater built Sep  3 2026 01:31:48") +
+                   line(131, "Checking for update on startup") +
+                   line(131, "Checking for available updates...") +
+                   line(131, "Downloading manifest: "
+                             "https://client-update.akamai.steamstatic.com/steam_client_ubuntu12"));
+        QCOMPARE(logs.now(), Now::Restarting);
+        append(logs.bootstrap,
+               line(130, "Downloaded new manifest: /steam_client_ubuntu12 version 1792618285, "
+                         "installed version 1788652215, existing pending version 0") +
+                   line(130, "Package file strings_en_all.zip.e716a67d7fa91ba70490a6417e25d45c"
+                             "5435e393 missing or incorrect size"));
+        QCOMPARE(logs.now(), Now::Updating);
+        append(logs.bootstrap, line(77, "Found pending update") + line(77, "Installing update...") +
+                                   line(60, "Update complete, launching Steam...") +
+                                   line(60, "Shutdown") +
+                                   line(55, "Startup - updater built Oct 21 2026 21:09:45") +
+                                   line(55, "Verifying installation..."));
+        QCOMPARE(logs.now(), Now::Restarting);
+        append(logs.bootstrap,
+               line(55, "Downloading update...") + line(55, "Checking for available updates...") +
+                   line(35, "Downloading update (416,268 of 424,455 KB)...") +
+                   line(34, "Download complete.") + line(34, "Extracting package..."));
+        QCOMPARE(logs.now(), Now::Updating);
+        append(logs.bootstrap, line(17, "Update complete, launching Steam...") +
+                                   line(17, "Shutdown") +
+                                   line(17, "Startup - updater built Oct 21 2026 21:09:45") +
+                                   line(17, "Verification complete"));
+        QCOMPARE(logs.now(), Now::Restarting);
+        append(logs.bootstrap, line(0, "Startup - updater built Oct 21 2026 21:09:45") +
+                                   line(0, "Checking for update on startup") +
+                                   line(0, "Download skipped: /steam_client_steamrt64 version "
+                                           "1792618285, installed version 1792618285, existing "
+                                           "pending version 0") +
+                                   line(0, "Nothing to do"));
+        QCOMPARE(logs.now(), Now::Restarting);
+        append(logs.console, line(0, ownStart()));
+        QCOMPARE(logs.now(), Now::Ready);
+        QVERIFY(!SteamStartup(logs.bootstrap, logs.console)
+                     .updatingItself(QDateTime::currentDateTime()));
+    }
+
+    // A start a few minutes after an update is a start of its own: the dev
+    // PC's Steam was started again at 23:12, four minutes after its last
+    // update, and updated nothing.
+    void aStartMinutesAfterAnUpdateIsOnlyStarting() {
+        const Logs logs;
+        append(logs.console, line(7200, ownStart()));
+        append(logs.bootstrap,
+               line(250, "Update complete, launching Steam...") + line(250, "Shutdown") +
+                   line(250, "Startup - updater built Oct 21 2026 21:09:45") +
+                   line(233, "Startup - updater built Oct 21 2026 21:09:45") +
+                   line(233, "Nothing to do") +
+                   line(5, "Startup - updater built Oct 21 2026 21:09:45") +
+                   line(5, "Checking for update on startup") + line(5, "Nothing to do"));
+        QCOMPARE(logs.now(), Now::Starting);
+        QVERIFY(!SteamStartup(logs.bootstrap, logs.console)
+                     .updatingItself(QDateTime::currentDateTime()));
+    }
+
     void noLogsIsReady() {
         const Logs logs;
         QCOMPARE(logs.now(), Now::Ready);
@@ -141,7 +227,7 @@ private slots:
         append(logs.bootstrap, filler + line(2, "Update complete, launching Steam...") +
                                    line(2, "Shutdown") +
                                    line(1, "Startup - updater built Oct 13 2026 18:44:25"));
-        QCOMPARE(logs.now(), Now::Starting);
+        QCOMPARE(logs.now(), Now::Restarting);
     }
 
     void theLogIsInTheChildsSteamFolder() {
