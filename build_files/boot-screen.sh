@@ -35,24 +35,38 @@ dracut_modules() {
 dracut_modules "${initramfs}" >/tmp/base-dracut-modules
 [[ -s /tmp/base-dracut-modules ]]
 
-# Plymouth's text in the initramfs has one font: the one fc-match names
-# with no family asked for, as dracut runs (plymouth-populate-initrd).
-# Fontconfig is pointed at the brand's typeface only while dracut runs,
-# so the password prompt is in Atkinson Hyperlegible Next without
-# changing the font any other program gets.
+# Plymouth's text in the initramfs uses two fonts: the one fc-match
+# names with no family asked for, and the one it names for "monospace",
+# as dracut runs (plymouth-populate-initrd). Fontconfig is pointed at the
+# brand's two typefaces only while dracut runs, so the password prompt is
+# in Atkinson Hyperlegible Next and fixed-width text in Atkinson
+# Hyperlegible Mono, without changing the font any other program gets.
+# This file reads none of the system's rules, so it says itself which
+# family answers "monospace".
 cat >/tmp/boot-screen-fonts.conf <<'EOF'
 <?xml version="1.0"?>
 <!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
 <fontconfig>
   <dir>/usr/share/fonts/atkinson-hyperlegible-next-fonts</dir>
+  <dir>/usr/share/fonts/atkinson-hyperlegible-mono-fonts</dir>
+  <alias>
+    <family>sans-serif</family>
+    <prefer><family>Atkinson Hyperlegible Next</family></prefer>
+  </alias>
+  <alias>
+    <family>monospace</family>
+    <prefer><family>Atkinson Hyperlegible Mono</family></prefer>
+  </alias>
   <cachedir>/tmp/boot-screen-fontconfig</cachedir>
 </fontconfig>
 EOF
 
 # /root is a link to /var/roothome, which only a deployed computer has.
-# dracut copies the link and the folder into the initramfs, as the base's
-# has them, so the folder is lent for the build and taken away again,
-# since an image may not ship anything in /var.
+# dracut copies the link and its folder into the initramfs, as the base's
+# has them, and dracut-install will not copy a link whose target is
+# missing ("ERROR: installing '/root'"). So the folder is lent for the
+# build and taken away again, since an image may not ship anything in
+# /var.
 roothome_lent=false
 if [[ -L /root && ! -e /var/roothome ]]; then
     install -d -m 0700 /var/roothome

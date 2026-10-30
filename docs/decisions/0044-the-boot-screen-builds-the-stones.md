@@ -31,8 +31,9 @@ Plymouth's modules to draw them. Checked in the image on 2026-10-29:
   It can fade an image in and out, and it draws any words the script
   gives it. It cannot draw a shape, only images, and it cannot translate.
 - In the initramfs, Plymouth draws text with its FreeType plugin, which
-  reads one font file: whatever `fc-match` named, with no family asked
-  for, when dracut ran. For the base that is Noto Sans.
+  reads two font files: whatever `fc-match` named, with no family asked
+  for and for `monospace`, when dracut ran. For the base those are Noto
+  Sans and Noto Sans Mono.
 - No SVG renderer is in the build container (`rsvg-convert` is not;
   ImageMagick is, through Bazzite).
 
@@ -76,14 +77,15 @@ again with it.**
 - **The image builds the initramfs again,** last in `build.sh`, with the
   base's own dracut arguments, and stops if it lacks any dracut module
   the base's had. While dracut runs, fontconfig sees only the brand's
-  typeface, so the initramfs's one font is Atkinson Hyperlegible Next
-  and no other program's font changes. dracut runs with
-  `DRACUT_NO_XATTR`, because a rootless build cannot copy SELinux labels
-  and the initramfs keeps none, and `/var/roothome` is lent to it for
-  the build, so the rebuilt initramfs has exactly the base's files apart
-  from the theme and the font. `check-boot-screen.sh` stops the
-  build if the theme, its font or Cairn's `initrd-release` is missing
-  from the initramfs.
+  two typefaces, so the initramfs's fonts are Atkinson Hyperlegible Next
+  and Atkinson Hyperlegible Mono, and no other program's font changes.
+  dracut runs with `DRACUT_NO_XATTR`, because a rootless build cannot
+  copy SELinux labels and the initramfs keeps none. `/var/roothome` is
+  lent to it for the build, because dracut copies the `/root` link and
+  its folder, as the base's initramfs has them, and will not copy a link
+  whose target is missing. `check-boot-screen.sh` stops the build if the theme,
+  its script module, the text plugin, its fonts or Cairn's
+  `initrd-release` is missing from the initramfs.
 
 ## Consequences
 
@@ -100,7 +102,9 @@ again with it.**
   but technical prompt.
 - The screen jumps from the firmware's black to Sand at power-on, and
   from Sand to the login screen's Ink. The brand guide called boot a dark
-  surface; the issue asked for the launcher's Sand, which this follows.
+  surface ("Boot splash is the mark alone, centered on Ink"), which no
+  longer holds; the issue asked for the launcher's Sand, which this
+  follows.
   Ink with Sand stones is a change of two semantic names in
   `boot_screen.py` (`ground` and `text` for `dark-ground` and `on.ink`)
   if the maintainer prefers it.
