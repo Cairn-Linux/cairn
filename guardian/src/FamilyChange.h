@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+#include <QByteArray>
 #include <QObject>
 #include <QProcess>
 #include <QString>
@@ -21,8 +22,10 @@ public:
     bool running() const;
     // Starts the command with these arguments. False, and nothing starts,
     // while a change is still running. When the command is not there, it
-    // answers "unknown" without running pkexec.
-    bool start(const QStringList& arguments);
+    // answers "unknown" without running pkexec. Any `input`, such as a new
+    // password, goes to the command's standard input, never into its
+    // arguments, and the input then ends.
+    bool start(const QStringList& arguments, const QByteArray& input = {});
 
 signals:
     // "done"; the command's own word after "refused", such as "taken";

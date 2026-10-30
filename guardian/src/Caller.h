@@ -24,6 +24,9 @@ struct Caller {
     // never from $HOME, which the caller sets. Nothing under sudo, or when
     // the grown-up has no home.
     std::optional<QString> home;
+    // Through pkexec only: the grown-up's login name, from the account
+    // database. Nothing under sudo.
+    std::optional<QString> login;
 
     static Caller check(unsigned int euid, const std::optional<QString>& pkexecUid,
                         const LookUpUid& lookUpUid, const LookUpHome& lookUpHome);

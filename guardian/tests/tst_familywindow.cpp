@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
+#include "AccountPage.h"
 #include "ChildrenPage.h"
 #include "GamesPage.h"
 
@@ -179,6 +180,36 @@ public:
             return steamStarts;
         };
         auto* page = new GamesPage(setup);
+        QQmlEngine::setObjectOwnership(page, QQmlEngine::JavaScriptOwnership);
+        return page;
+    }
+
+    // The window's AccountPage, for the Guardian of page(), with three
+    // stand-in pictures of Plasma's. It has no bus, so a picture chosen is
+    // never taken; its password runs the stand-ins as page()'s scenario
+    // says.
+    Q_INVOKABLE AccountPage* accountPage() {
+        const QDir files(m_files.path());
+        files.mkpath(QStringLiteral("avatars"));
+        const QStringList names{"Artist Konqi", "Bookworm Konqi", "Katie"};
+        for (int i = 0; i < names.size(); ++i) {
+            makePicture(files.filePath("avatars/" + names.at(i) + ".png"), names.at(i), i * 3);
+        }
+        AccountPage::Setup setup;
+        setup.pkexec = QStringLiteral(FIXTURES "/pkexec-family");
+        setup.command = QStringLiteral(FIXTURES "/cairn-family");
+        setup.uid = 1000;
+        setup.lookUpUid = [](unsigned int uid) -> std::optional<Account> {
+            if (uid != 1000) {
+                return std::nullopt;
+            }
+            return Account{.uid = 1000,
+                           .groups = {"guardian", "wheel", "cairn-guardian"},
+                           .login = "guardian",
+                           .fullName = "Guardian"};
+        };
+        setup.stockPictures = files.filePath(QStringLiteral("avatars"));
+        auto* page = new AccountPage(setup);
         QQmlEngine::setObjectOwnership(page, QQmlEngine::JavaScriptOwnership);
         return page;
     }

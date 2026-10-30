@@ -43,6 +43,7 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/bin/cairn-steam-for" DESTINATION "${C
 # cairn-family: no window, only Qt Core, run as root by pkexec or sudo.
 # create-child and set-level change accounts (ADR-0039); save-games gives
 # children their games, and log-out logs a child out first (ADR-0041).
+# set-own-password changes the grown-up's own password (ADR-0043).
 set(family_sources
     src/Refusal.h src/Refusal.cpp
     src/Caller.h src/Caller.cpp
@@ -53,6 +54,8 @@ set(family_sources
     src/ReadableFile.h src/ReadableFile.cpp
     src/RootFolder.h src/RootFolder.cpp
     src/FamilyCommand.h src/FamilyCommand.cpp
+    src/NewPassword.h src/NewPassword.cpp
+    src/OwnPasswordCommand.h src/OwnPasswordCommand.cpp
 )
 set(games_save_sources
     src/GamesRequest.h src/GamesRequest.cpp
@@ -92,7 +95,8 @@ install(TARGETS cairn-family RUNTIME DESTINATION "${CAIRN_LIBEXECDIR}")
 # stays as it is. It shares the Steam window's button, and checks what it
 # asks for with cairn-family's own rule before it asks for a password.
 # Qt's D-Bus module asks logind, without root, which children are logged
-# in, and listens for logins coming and going (ADR-0041).
+# in, and listens for logins coming and going (ADR-0041), and asks
+# AccountsService for the grown-up's own picture (ADR-0043).
 set(family_window_sources
     src/Refusal.h src/Refusal.cpp
     src/FamilyRequest.h src/FamilyRequest.cpp
@@ -118,6 +122,10 @@ set(family_window_sources
     src/LoginWatch.h src/LoginWatch.cpp
     src/ChildLogOut.h src/ChildLogOut.cpp
     src/GamesPage.h src/GamesPage.cpp
+    src/NewPassword.h src/NewPassword.cpp
+    src/AccountPicture.h src/AccountPicture.cpp
+    src/PictureFile.h src/PictureFile.cpp
+    src/AccountPage.h src/AccountPage.cpp
 )
 set(family_window_qml_files
     qml/FamilyWindow.qml
@@ -135,6 +143,10 @@ set(family_window_qml_files
     qml/LabelledField.qml
     qml/LevelChoice.qml
     qml/TextButton.qml
+    qml/AccountView.qml
+    qml/PasswordForm.qml
+    qml/PictureTile.qml
+    qml/OutcomeBox.qml
 )
 foreach(file IN LISTS family_window_qml_files)
     cmake_path(GET file FILENAME name)
@@ -164,6 +176,11 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/bin/cairn-guardian" DESTINATION "${CM
 configure_file(applications/cairn-guardian.desktop.in applications/cairn-guardian.desktop @ONLY)
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/applications/cairn-guardian.desktop"
     DESTINATION "${CMAKE_INSTALL_DATADIR}/applications")
+# The same program as "Family" in System Settings (ADR-0043).
+configure_file(applications/cairn-guardian-settings.desktop.in
+    applications/cairn-guardian-settings.desktop @ONLY)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/applications/cairn-guardian-settings.desktop"
+    DESTINATION "${CMAKE_INSTALL_DATADIR}/plasma/systemsettings/externalmodules")
 
 qt_add_lupdate(
     SOURCE_TARGETS cairn-steam-for cairn-family cairn-guardian
@@ -354,7 +371,7 @@ add_test(NAME gamechoices COMMAND tst_gamechoices)
 
 qt_add_executable(tst_childrenpage tests/tst_childrenpage.cpp ${family_window_sources})
 target_include_directories(tst_childrenpage PRIVATE src)
-target_link_libraries(tst_childrenpage PRIVATE Qt6::Qml Qt6::DBus Qt6::Test cairn-accounts)
+target_link_libraries(tst_childrenpage PRIVATE Qt6::Qml Qt6::Gui Qt6::DBus Qt6::Test cairn-accounts)
 target_compile_definitions(tst_childrenpage PRIVATE FIXTURES="${guardian_fixtures}")
 add_test(NAME childrenpage COMMAND tst_childrenpage)
 
@@ -372,7 +389,7 @@ add_test(NAME gameshelf COMMAND tst_gameshelf)
 
 qt_add_executable(tst_gamespage tests/tst_gamespage.cpp ${family_window_sources})
 target_include_directories(tst_gamespage PRIVATE src)
-target_link_libraries(tst_gamespage PRIVATE Qt6::Qml Qt6::DBus Qt6::Test cairn-accounts)
+target_link_libraries(tst_gamespage PRIVATE Qt6::Qml Qt6::Gui Qt6::DBus Qt6::Test cairn-accounts)
 target_compile_definitions(tst_gamespage PRIVATE FIXTURES="${guardian_fixtures}")
 add_test(NAME gamespage COMMAND tst_gamespage)
 
@@ -394,11 +411,42 @@ target_compile_definitions(tst_familywindow PRIVATE
 add_test(NAME familywindow COMMAND tst_familywindow
     -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/tst_familywindow.qml")
 
+# A grown-up's own password and picture (ADR-0043): the rule, the root
+# side with stand-ins for chpasswd and the input, the picture made small,
+# and the page, with a stand-in AccountsService on a session bus of its own.
+qt_add_executable(tst_newpassword tests/tst_newpassword.cpp src/NewPassword.h src/NewPassword.cpp)
+target_include_directories(tst_newpassword PRIVATE src)
+target_link_libraries(tst_newpassword PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME newpassword COMMAND tst_newpassword)
+
+qt_add_executable(tst_ownpasswordcommand tests/tst_ownpasswordcommand.cpp ${family_sources})
+target_include_directories(tst_ownpasswordcommand PRIVATE src)
+target_link_libraries(tst_ownpasswordcommand PRIVATE Qt6::Core Qt6::Test cairn-accounts)
+target_compile_definitions(tst_ownpasswordcommand PRIVATE FIXTURES="${guardian_fixtures}")
+add_test(NAME ownpasswordcommand COMMAND tst_ownpasswordcommand)
+
+qt_add_executable(tst_picturefile tests/tst_picturefile.cpp src/PictureFile.h src/PictureFile.cpp)
+target_include_directories(tst_picturefile PRIVATE src)
+target_link_libraries(tst_picturefile PRIVATE Qt6::Gui Qt6::Test)
+add_test(NAME picturefile COMMAND tst_picturefile)
+
+qt_add_executable(tst_accountpage tests/tst_accountpage.cpp ${family_window_sources})
+target_include_directories(tst_accountpage PRIVATE src)
+target_link_libraries(tst_accountpage PRIVATE Qt6::Qml Qt6::Gui Qt6::DBus Qt6::Test cairn-accounts)
+target_compile_definitions(tst_accountpage PRIVATE FIXTURES="${guardian_fixtures}")
+add_test(NAME accountpage COMMAND "${DBUS_RUN_SESSION}" -- $<TARGET_FILE:tst_accountpage>)
+
+# The image's Kiosk line that hides Plasma's Users page (ADR-0043).
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+add_test(NAME hideuserspage
+    COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_hide_users_page.py")
+
 set_tests_properties(steamvisit ownsteam screenlockwatch steamforchild steamwindow familycommand
     caller gamesrequest childgamelist childgamesfile cataloguerefresh copyjob logoutcommand gamessave
     steamentry
     loginname childlist familychange saverun savereport loginsessions loginwatch childlogout
     gamechoices childrenpage
-    gamepicture gameshelf gamespage familywindow PROPERTIES
+    gamepicture gameshelf gamespage familywindow
+    newpassword ownpasswordcommand picturefile accountpage PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QML_IMPORT_PATH=${QT_QML_OUTPUT_DIRECTORY}"
 )

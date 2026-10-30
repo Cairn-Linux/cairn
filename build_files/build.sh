@@ -13,6 +13,10 @@ set -ouex pipefail
 find /ctx/system_files -mindepth 1 -maxdepth 1 ! -name README.md \
     -exec cp -avf {} / \;
 
+# Plasma's Users page is hidden, so the family's accounts are changed in
+# Cairn's Family app, which System Settings lists in its place (ADR-0043).
+/ctx/hide-users-page.sh /etc/xdg/kdeglobals
+
 # SDDM is the login screen (ADR-0016). Plasma Login Manager goes first,
 # because both claim display-manager.service and only one may hold it.
 systemctl disable plasmalogin.service

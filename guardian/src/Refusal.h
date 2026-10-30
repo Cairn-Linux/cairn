@@ -32,6 +32,9 @@ enum class Refusal : std::uint8_t {
     BadAppId,
     // save-games: another Save is still running.
     Busy,
+    // set-own-password: no new password on standard input, or one the
+    // rule in NewPassword does not take (ADR-0043).
+    BadPassword,
 };
 
 QString refusalWord(Refusal refusal);

@@ -44,6 +44,7 @@ private slots:
         const Caller caller = check(0, std::nullopt);
         QVERIFY(!caller.refusal.has_value());
         QVERIFY(!caller.home.has_value());
+        QVERIFY(!caller.login.has_value());
     }
 
     // An administrator, by either group, with the home the database gives.
@@ -52,6 +53,7 @@ private slots:
             const Caller caller = check(0, QString::number(uid));
             QVERIFY(!caller.refusal.has_value());
             QCOMPARE(caller.home, home(uid));
+            QCOMPARE(caller.login, account(uid).value_or(Account{}).login);
         }
     }
 

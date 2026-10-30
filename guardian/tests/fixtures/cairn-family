@@ -15,6 +15,10 @@
 # time. The save-held-* scenarios count the games taken off against the child's list in
 # CAIRN_TEST_GAMES, as the real command does, and write nothing there.
 #
+# For set-own-password, when CAIRN_TEST_INPUT names a file, what came on
+# standard input is written to it, as the real command reads the new
+# password there (ADR-0043). Other subcommands never read it.
+#
 # The log-out-* scenarios answer `log-out LOGIN`: log-out-done logs the
 # child out, log-out-held-WORD says why it did not, and log-out-running
 # says its first line and then takes a long time. When CAIRN_TEST_LOGGED_IN
@@ -23,6 +27,9 @@ set -u
 scenario="${CAIRN_TEST_SCENARIO:-}"
 if [ -n "${CAIRN_TEST_ARGUMENTS:-}" ]; then
     { echo run; printf '%s\n' "$@"; } >> "$CAIRN_TEST_ARGUMENTS"
+fi
+if [ "${1:-}" = set-own-password ] && [ -n "${CAIRN_TEST_INPUT:-}" ]; then
+    cat > "$CAIRN_TEST_INPUT"
 fi
 
 # A child's list as the launcher's games file.

@@ -46,7 +46,7 @@ bool FamilyChange::running() const {
     return m_process != nullptr || m_commandMissing;
 }
 
-bool FamilyChange::start(const QStringList& arguments) {
+bool FamilyChange::start(const QStringList& arguments, const QByteArray& input) {
     if (running()) {
         return false;
     }
@@ -72,6 +72,13 @@ bool FamilyChange::start(const QStringList& arguments) {
     connect(m_process, &QProcess::finished, this, &FamilyChange::ended);
     connect(m_process, &QProcess::errorOccurred, this, &FamilyChange::notStarted);
     m_process->start(m_pkexec, QStringList{m_command} + arguments);
+    // pkexec hands its standard input on to the command, and asks for the
+    // password in Plasma's own box, so the input waits in the pipe until
+    // the command reads it. Only the command can read it.
+    if (!input.isEmpty()) {
+        m_process->write(input);
+        m_process->closeWriteChannel();
+    }
     return true;
 }
 
