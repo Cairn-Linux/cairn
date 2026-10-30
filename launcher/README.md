@@ -243,6 +243,10 @@ reads the last part of Steam's `bootstrap_log.txt` and `console_log.txt`. A
 tap made during an update is lost when Steam restarts, so once a client
 started after the tap has run its own start command without taking it, the
 launcher runs the tile's command again, once (ADR-0037).
+While Steam updates itself, at login or after a tap, its updater puts up
+windows of its own, such as "Progress" with a Cancel button. `SteamStartup`
+says when Steam is updating or has just restarted after an update, and
+those windows are hidden, not the grown-up screen (below, #183).
 A Steam that cannot sign in never takes a tap up. `SteamSignIn` reads
 Steam's `LogonFailure` lines: while Steam's log says nothing about the
 game, a refused sign-in such as `Access Denied` ends the wait at the next
@@ -275,6 +279,12 @@ says and never from a window's name:
   one of the app's, such as a dialog, is the app's too. While one is on the
   screen the launcher is Running; when the last one leaves, the tiles are
   back.
+- While Steam is updating itself, a window that comes on the screen is its
+  updater's, unless a program other than a Steam game is opening. It keeps
+  no launch waiting and brings up no grown-up screen, and the launcher asks
+  the compositor to minimise it, again if it comes back, so its Cancel
+  button is out of the child's reach (ADR-0037, #183). The journal says
+  "Steam is updating itself; its window … is hidden from the child."
 - Any other window on the screen opened on its own: a stray dialog, a
   browser a game opened. The grown-up screen names it ("Steam opened on its
   own.") with no Back tile, and the tiles return when it closes.
