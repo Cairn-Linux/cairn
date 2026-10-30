@@ -127,6 +127,12 @@ void installStandIns(const QTemporaryDir& dir, const QByteArray& unitState) {
     unit.write(unitState + '\n');
 }
 
+// The launcher's own SteamRestart, a child of it, whose finished signal says
+// Steam was stopped and started again.
+const SteamRestart* restartOf(const AppLauncher& launcher) {
+    return launcher.findChild<SteamRestart*>();
+}
+
 // The lines of a file a stand-in wrote, or none.
 QStringList linesOf(const QString& path) {
     QFile file(path);
@@ -1364,6 +1370,7 @@ private slots:
         launcher.setSteadyMilliseconds(0);
         launcher.setLaunchGraceMilliseconds(200);
         const QSignalSpy ready(&launcher, &AppLauncher::gettingReadyChanged);
+        const QSignalSpy restarted(restartOf(launcher), &SteamRestart::finished);
         QTest::ignoreMessage(QtInfoMsg, "Steam stopped getting Pajama Sam 2 ready; starting Steam "
                                         "again.");
         QTest::ignoreMessage(QtInfoMsg, "Steam is getting Pajama Sam 2 ready before it starts.");
@@ -1373,8 +1380,9 @@ private slots:
         launcher.launch(QStringLiteral("Pajama Sam 2"), pajamaSam2());
         steamStopsPartWay(70);
         QTRY_COMPARE(linesOf(runs).count(QStringLiteral("-shutdown")), 1);
-        QTRY_VERIFY(QFileInfo::exists(started));
-        QTest::qWait(300);
+        // The new client's lines count once Steam has been started again.
+        QTRY_COMPARE(restarted.count(), 1);
+        QVERIFY(QFileInfo::exists(started));
         QCOMPARE(launcher.state(), AppLauncher::State::Starting);
         QVERIFY(launcher.gettingReady());
         steamLogs(QStringLiteral("console_log.txt"), 5, steamStartsItself());
@@ -1410,6 +1418,7 @@ private slots:
 
         AppLauncher launcher(this);
         launcher.setLaunchGraceMilliseconds(200);
+        const QSignalSpy restarted(restartOf(launcher), &SteamRestart::finished);
         QTest::ignoreMessage(QtInfoMsg, "Steam stopped getting Pajama Sam 2 ready; starting Steam "
                                         "again.");
         QTest::ignoreMessage(QtInfoMsg, "Steam is getting Pajama Sam 2 ready before it starts.");
@@ -1422,8 +1431,7 @@ private slots:
         QTest::ignoreMessage(QtWarningMsg, "Nothing of Pajama Sam 2 came on the screen in time.");
         launcher.launch(QStringLiteral("Pajama Sam 2"), pajamaSam2());
         steamStopsPartWay(70);
-        QTRY_VERIFY(QFileInfo::exists(dir.filePath(QStringLiteral("started"))));
-        QTest::qWait(300);
+        QTRY_COMPARE(restarted.count(), 1);
         steamLogs(QStringLiteral("console_log.txt"), 5, steamStartsItself());
         QTRY_COMPARE(linesOf(runs).count(QStringLiteral("-applaunch 292780")), 2);
         steamLogs(QStringLiteral("console_log.txt"), 0, pajamaSam2Taken());
@@ -1536,6 +1544,7 @@ private slots:
 
         AppLauncher launcher(this);
         launcher.setLaunchGraceMilliseconds(200);
+        const QSignalSpy restarted(restartOf(launcher), &SteamRestart::finished);
         QTest::ignoreMessage(QtInfoMsg, "Steam stopped getting Pajama Sam 2 ready; starting Steam "
                                         "again.");
         QTest::ignoreMessage(QtInfoMsg, "Steam is getting Pajama Sam 2 ready before it starts.");
@@ -1545,8 +1554,7 @@ private slots:
         QTest::ignoreMessage(QtWarningMsg, "Nothing of Pajama Sam 2 came on the screen in time.");
         launcher.launch(QStringLiteral("Pajama Sam 2"), pajamaSam2());
         steamStopsPartWay(70);
-        QTRY_VERIFY(QFileInfo::exists(dir.filePath(QStringLiteral("started"))));
-        QTest::qWait(300);
+        QTRY_COMPARE(restarted.count(), 1);
         steamLogs(QStringLiteral("console_log.txt"), 0, "LogonFailure Access Denied");
         QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
         QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::None);
