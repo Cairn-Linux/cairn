@@ -47,7 +47,8 @@ Files:
   runtime, Wine's prefix and Mesa's cache, lets any child change a game,
   and shares saves, which the games keep inside their own folder. Leads to
   ADR-0033 (proposed), a copy of every game for every child, and ends with
-  the checks still to run on the laptop.
+  the checks still to run on the laptop. A section from 2026-10-29 covers
+  moving a game between libraries by hand, for ADR-0042 (proposed).
 
 - `malcontent-plasma.md` — 2026-09-06 P0-7 check in the VM: malcontent 0.14
   blocks a blocklisted Flatpak and user installs under Plasma, and its

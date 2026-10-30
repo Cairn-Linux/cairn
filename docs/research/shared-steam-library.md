@@ -1,8 +1,9 @@
 # One Steam library for several accounts
 
 **Date:** 2026-10-12; laptop checks, saves, the move and new checks
-2026-10-13
-**For:** issue #130, ADR-0032 (proposed) and ADR-0033 (proposed)
+2026-10-13; a game moved between libraries 2026-10-29
+**For:** issue #130, ADR-0032 (proposed), ADR-0033 (proposed) and
+ADR-0042 (proposed)
 **Result:** Desk research, a probe on the development PC, and read-only
 checks on the kids' laptop on 2026-10-13. The same day, with the
 maintainer's go, the laptop moved to a copy of each game for every child,
@@ -753,6 +754,87 @@ in. Only Putt-Putt 6 and the Activity Pack were started, because their
   windows, or a visit, which the laptop's build lacks), 16 (a visit) and
   18 (an update waiting).
 
+## A game moved between libraries with Steam closed
+
+Added 2026-10-29 for ADR-0042, which has Cairn move a game from the
+Guardian's own Steam library into the shared folder itself.
+Desk research only, and the VM's facts from the same day.
+Valve documents none of it.
+
+- **What the VM showed on 2026-10-29.** The maintainer installed three
+  games in the Guardian's Steam on the cairn-iso VM. They landed in
+  `~/.local/share/Steam`, Steam's own folder and its default library.
+  He moved them with Steam's own Storage › Move, and they arrived in
+  `/var/lib/cairn/steam-library`. A Save on the Guardian tool's Games
+  page then copied Arthur's Birthday (138 MiB) to the test child `ada`
+  by reflink, with 0 bytes extra. So a reflink from `/var/lib/cairn` to
+  `/var/home` works on the image. `ada`'s Steam had never been signed
+  in, so whether that copy starts is still unchecked.
+- **A manifest is what makes a game installed.** Steam knows a library's
+  games from its `appmanifest_<appid>.acf` files, whose `installdir`
+  names the folder under `common/` ("How Steam keeps its list of
+  libraries", above). Forum answers say the manifest "is the only thing
+  that tells Steam that the game is installed, where it is, what version
+  it is", and that a game folder moved without it is not recognised.
+  steamlocate reads the manifests "to get an up-to-date list of apps
+  since the values in `libraryfolders.vdf` may be stale". The
+  find-steam-app package says the list "syncs only on start". A game's
+  manifest names no library: the copy step writes the shared manifest,
+  unchanged, into a child's library.
+- **The `"apps"` map is not needed for a game to load, in Steam's own
+  folder.** The copy step puts a manifest and its folder into a child's
+  own library, entry `"0"`, and never touches the child's
+  `libraryfolders.vdf`. Steam showed the copy as installed and started
+  it, with no download (check 7). At its next start each Steam also
+  wrote back its own library list (check 5). Whether a new entry other
+  than `"0"`, with an `"apps"` map that lacks a game, loads that game the
+  same way is still untested. So is what Steam does with a stale entry
+  in the old library's map, though the parsers above say Steam itself
+  treats the map as a cache.
+- **A hand-written entry has worked.** On the kids' laptop on
+  2026-10-07 a script wrote the shared folder into each account's
+  `steamapps/libraryfolders.vdf` as entry `"1"`, with an `"apps"` map
+  of every manifest, and wrote a `libraryfolder.vdf` marker in the
+  shared folder with the same `contentid`. Every account's Steam then
+  loaded the folder's 17 apps and downloaded nothing ("What the laptop
+  has", above). LostDragonist's steam-library-setup-tool writes a new
+  entry as `path`, `label` `""`, `contentid` (taken from the folder's
+  `libraryfolder.vdf` marker, or a random unused number), `totalsize`
+  `"0"`, `mounted` `"1"` and an empty `"apps"` map, into both the
+  `config/` and `steamapps/` copies. It reads the marker and never
+  writes one.
+- **One appid in two libraries.** No source says which copy Steam uses
+  when two libraries it lists both hold a manifest for one game.
+  Forum reports of two libraries on one drive describe games in the
+  library Steam does not use becoming unplayable. Check 1 asked the
+  same question on the laptop and was not answered. A copy is the case
+  to avoid: Steam would update one and could leave the other stale.
+- **Where Steam keeps the default library.** Steam's Storage page has
+  Make Default. No source names the file or key it writes. Older
+  clients kept `BaseInstallFolder_N` keys in `config/config.vdf`, and
+  forum posts still edit them; the development PC's `config/` has no
+  such key, and its one library has no default flag. A 2023 forum
+  thread has the install dialog forgetting the default after games were
+  moved by hand, cured by removing every entry but `"0"` and adding the
+  libraries again in Storage. So Cairn should not try to set the
+  default.
+- **Steam closed.** Every guide that edits these files starts with Steam
+  closed, since Steam writes the library list itself and overwrites
+  edits made while it runs (steam-for-linux#7954).
+- **The same filesystem, not the same subvolume.** On Bazzite `/var` and
+  `/var/home` are separate btrfs subvolumes (#130). `rename(2)` refuses
+  to move a file between subvolumes (`EXDEV`), so a move from a home to
+  the shared folder is a reflink copy and then a removal of the
+  original, which takes no extra disk. A library on another drive, or
+  on a filesystem that cannot reflink, could only be moved by a full
+  copy.
+- **What a move leaves behind.** A Windows game's Wine prefix is in its
+  library's `compatdata/<appid>`, and its shader cache in
+  `shadercache/<appid>`; Steam makes new ones in the library the game is
+  in (ADR-0033). Workshop items are in `workshop/content/<appid>`, with
+  `workshop/appworkshop_<appid>.acf`. Whether Steam's own Move takes
+  these along is not documented.
+
 ## Sources
 
 Valve:
@@ -775,6 +857,10 @@ Valve:
   https://gitlab.steamos.cloud/steamrt/steam-runtime-tools
 - Steam client strings, as extracted by SteamTracking:
   https://github.com/SteamTracking/SteamTracking/blob/master/ClientExtracted/public/steamui_english.txt
+- Steam forum, Help and Tips, on manifests and moved games:
+  steamcommunity.com, forum 1, 4300317606645707498 and
+  1651043320668253452; on the default library: 3790379982481677575 and
+  3165461141521444201 (2026-10-29).
 - Steam client beta discussion on steamcmd and `libraryfolders.vdf`
   (2024-09-30), steamcommunity.com, SteamClientBeta discussion
   4840896974232786377.
@@ -827,7 +913,10 @@ Community (the AI-assisted ones are marked in the text):
   off) and 1850323802572223463 (the cloud switch).
 - https://github.com/thojo0/steam-multiuser-compatdata-fix
 - https://github.com/kookiebiz/steamshare
-- Parsers: https://github.com/WilliamVenner/steamlocate-rs,
+- Parsers: https://github.com/WilliamVenner/steamlocate-rs (its
+  `src/library.rs`, read 2026-10-29),
+  https://www.npmjs.com/package/@ciberus/find-steam-app,
+  https://github.com/LostDragonist/steam-library-setup-tool,
   https://github.com/erri120/GameFinder,
   https://github.com/aitiotekt/steamos-mount, and
   https://github.com/lutris/lutris/blob/master/docs/steam.rst
