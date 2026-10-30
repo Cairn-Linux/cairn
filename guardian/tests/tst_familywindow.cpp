@@ -9,6 +9,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QLocale>
 #include <QPainter>
 #include <QQmlContext>
 #include <QQmlEngine>
@@ -212,6 +213,10 @@ class Setup : public QObject {
 
 public slots:
     void qmlEngineAvailable(QQmlEngine* engine) {
+        // The sentences under test are English, whatever the machine's
+        // locale: an image build has none set, and Qt's own "C" joins names
+        // with commas.
+        QLocale::setDefault(QLocale(QLocale::English, QLocale::UnitedStates));
         engine->rootContext()->setContextProperty(QStringLiteral("standIns"),
                                                   new StandInPages(engine));
     }
