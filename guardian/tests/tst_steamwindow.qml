@@ -59,7 +59,8 @@ TestCase {
 
     // Everything the window says, heading first, as one string.
     function words(window) {
-        return [heading(window)].concat(window.paragraphs()).join(" ");
+        const paragraphs = Array.from(findChild(window, "content").children).filter(item => item.objectName === "paragraph");
+        return [heading(window)].concat(paragraphs.map(item => item.text)).join(" ");
     }
 
     // Each piece of the window that is shown, and its edges in the window.
@@ -97,9 +98,11 @@ TestCase {
     // the smallest screen.
     function verifyFits(window, picture) {
         const step = window.visit.step;
-        // The column places its pieces when the window next draws.
+        // The column places its pieces when the window next draws. Under
+        // KWin the window can take its new height a moment after that.
         waitForPolish(findChild(window, "content"));
         waitForPolish(window.contentItem);
+        tryVerify(() => cutOff(window).length === 0, 2000);
         compare(cutOff(window), [], "Cut off in step " + step);
         const last = pieces(window).pop();
         verify(window.height >= last.bottom + window.margin, "No margin under the last piece in step " + step);
@@ -346,6 +349,29 @@ TestCase {
         compare(window.visit.reason, SteamForChild.NoPassword);
         box.destroy();
         verifyFits(window, "grows-3-no-password");
+    }
+
+    // #172 as KWin can cause it: the window is given the height it had for
+    // the short message while the password box was up, after it has grown
+    // for the longer one. The window puts its own height back.
+    function test_itPutsItsHeightBackAfterAStaleResize() {
+        const window = makeWindow("dismissed-slowly", true);
+        standIns.ownSteamWillNotQuit(true);
+        pressMainButton(window);
+        tryCompare(window.visit, "step", SteamForChild.NotOpened);
+        standIns.ownSteamWillNotQuit(false);
+        pressMainButton(window);
+        tryCompare(window.visit, "step", SteamForChild.Asking);
+        waitForPolish(findChild(window, "content"));
+        const askingHeight = window.height;
+        tryCompare(window.visit, "step", SteamForChild.NotOpened);
+        waitForPolish(findChild(window, "content"));
+        verify(window.height > askingHeight, "No taller after the box closed: " + window.height);
+        standIns.resizeFromOutside(window, window.width, askingHeight);
+        tryCompare(window, "height", window.wordsHeight);
+        verifyFits(window);
+        standIns.resizeFromOutside(window, window.width, window.wordsHeight + 100);
+        tryCompare(window, "height", window.wordsHeight);
     }
 
     // When the child's Steam does not open, the window comes in front of

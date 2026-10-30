@@ -6,6 +6,7 @@
 #include <QQmlContext>
 #include <QQmlEngine>
 #include <QTemporaryDir>
+#include <QWindow>
 #include <QtQuickTest/quicktest.h>
 
 #include <unistd.h>
@@ -62,6 +63,12 @@ public:
         } else {
             QFile::remove(path);
         }
+    }
+
+    // Resizes the window as the compositor does, not as the window's own
+    // QML would, so its height bindings are left as they were.
+    Q_INVOKABLE static void resizeFromOutside(QWindow* window, int width, int height) {
+        window->resize(width, height);
     }
 
     // Where to save a picture of each step of the window, when pictures
