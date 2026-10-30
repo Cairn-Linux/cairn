@@ -11,7 +11,10 @@ import json
 import re
 import sys
 import textwrap
+import zlib
 from pathlib import Path
+
+import boot_screen
 
 HERE = Path(__file__).resolve().parent
 MINIMUM_LABEL_CONTRAST = 3.0
@@ -235,7 +238,7 @@ def render_css(tokens):
 {motion_css(tokens)}
 }}
 
-/* Dark surfaces (terminal, login, boot): the only dark ground is Ink. */
+/* Dark surfaces (terminal, login): the only dark ground is Ink. */
 .cairn-on-ink {{
   background: var(--cairn-ink);
   color: var(--cairn-on-ink);
@@ -508,22 +511,38 @@ def render_outputs(tokens):
     }
     outputs.update(render_marks(tokens))
     outputs.update(render_image_files(tokens))
+    outputs.update(boot_screen.render_boot_screen(tokens))
     return outputs
+
+
+def output_bytes(contents):
+    if isinstance(contents, bytes):
+        return contents
+    return contents.encode("utf-8")
 
 
 def write_outputs(outputs):
     for relative_path, contents in outputs.items():
         destination = HERE / relative_path
         destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_text(contents, encoding="utf-8", newline="\n")
+        destination.write_bytes(output_bytes(contents))
+
+
+def same_output(relative_path, existing, expected):
+    """Text must match byte for byte; a PNG must hold the same pixels."""
+    if relative_path.suffix != ".png":
+        return existing == expected
+    try:
+        return boot_screen.png_image(existing) == boot_screen.png_image(expected)
+    except (ValueError, zlib.error):
+        return False
 
 
 def check_outputs(outputs):
     for relative_path, contents in outputs.items():
         destination = HERE / relative_path
-        if (
-            not destination.exists()
-            or destination.read_bytes() != contents.encode("utf-8")
+        if not destination.exists() or not same_output(
+            relative_path, destination.read_bytes(), output_bytes(contents)
         ):
             raise BuildError(f"generated brand output differs: {relative_path}")
 
@@ -558,7 +577,10 @@ def main(argv=None):
             print("brand tokens and generated outputs are current")
         else:
             write_outputs(outputs)
-            print("wrote CSS, QML module files, 5 SVGs and the console colour")
+            print(
+                "wrote CSS, QML module files, 5 SVGs, the console colour "
+                "and the boot screen"
+            )
     except BuildError as error:
         print(error, file=sys.stderr)
         return 1
