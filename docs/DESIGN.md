@@ -592,10 +592,12 @@ Mechanism:
   This can take a few minutes." (ADR-0036). Steam starting, or installing an
   update of its own client, counts as getting the game ready too, by Steam's
   update log; a tap the client lost when it restarted after its update is
-  sent again, once (ADR-0037). A game that has put nothing on the screen
-  when the wait ends, such as one Steam holds behind a dialog the kiosk
-  hides, ends on the grown-up screen, and its window still takes over if it
-  comes late (ADR-0030).
+  sent again, once (ADR-0037). A Steam that cannot sign in is not getting
+  the game ready: when its sign-in was turned down the wait ends at once,
+  and when it cannot reach its servers after a minute (ADR-0036, #182). A
+  game that has put nothing on the screen when the wait ends, such as one
+  Steam holds behind a dialog the kiosk hides, ends on the grown-up screen,
+  and its window still takes over if it comes late (ADR-0030).
 - Proton work happens in the background; the game comes up fullscreen.
 
 **Known failure modes.** Steam forces its window open for client updates, game

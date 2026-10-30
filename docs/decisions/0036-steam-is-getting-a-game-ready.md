@@ -6,7 +6,8 @@ taken over from it.
 **Date:** 2026-10-20
 **Closes:** (none) — amends ADR-0029 and ADR-0030; part of ROADMAP P1-13
 **Amended by:** ADR-0037 (Steam updating itself is work too; a tap lost to
-its restart is sent again)
+its restart is sent again); the section "A Steam that cannot sign in"
+below (2026-10-29, #182)
 
 ## Context
 
@@ -113,3 +114,64 @@ Steam session.
   Others run a download, then a cloud question or a refusal, to the
   grown-up screen, each with its journal line. In QML, the
   sentence shows only while the game is getting ready.
+
+## A Steam that cannot sign in (2026-10-29, #182)
+
+On the kids' laptop on 2026-10-27 a tap came while the tester account's
+Steam was starting. Steam's servers turned its saved sign-in down, and the
+client waited for a person to sign in on a window the kiosk hides. It never
+took the tap. Because it never finished starting, ADR-0037 counted it as
+work, and the starting screen said "Getting it ready" for 10 minutes.
+
+Steam writes each try to sign in to `console_log.txt`, and the line it
+writes once it has signed in:
+
+```
+[2026-10-27 23:12:03] LogonFailure Access Denied
+[2026-10-27 23:13:07] LogonFailure No Connection
+[2026-10-28 13:14:59] Waiting for compat in post-logon took: 0.096359s
+```
+
+Its connection log says which failures it tries again by itself, every 20
+to 70 s: `No Connection`, also `Service Unavailable`, `Try another CM`,
+`Timeout` and a bare `Failure`. After `Access Denied` it says `Do not
+reconnect`, and its later tries, made without an account, all fail with `No
+Connection`. Other refusals in Steam's list, such as `Invalid Password` or
+`Account Logon Denied`, also need a person.
+
+`SteamSignIn` reads the lines of the client that runs now: those since the
+updater last started it and since the client last wrote `Client version:`.
+A refusal counts until Steam next signs in. A run of failures Steam tries
+again counts as no connection.
+
+**While Steam's log says nothing about the game since the tap:**
+
+- **A refused sign-in ends the wait** at the end of the grace it is seen
+  in. The grown-up screen comes, as for any launch that shows nothing.
+  The journal says "Steam could not sign in, so Putt-Putt Travels Through
+  Time did not start. Steam needs to be signed in again."
+- **No connection gets a short wait**, one minute from the tap, so Steam
+  can try once or twice. Then the grown-up screen comes. The journal says
+  "Steam could not reach the internet, so … did not start."
+- Neither counts as work, so neither shows "Getting it ready". Neither
+  sends the tap again.
+
+Once Steam's log names the game, its sign-in no longer decides. Steam
+starts games while it cannot reach its servers, as on 2026-10-28 on the
+development laptop, and ADR-0030's offline cloud question still comes as
+before.
+
+The grown-up screen still does not say why (ADR-0030). Whether it gets a
+short line for the grown-up, such as "Steam needs to be signed in again.",
+is left open: the child reads that screen too, and the line could live in
+the Guardian tool instead. Signing a child's Steam in again is #131.
+
+Tested in C++ with lines from the kids' laptop and the development laptop.
+A refusal counts through the `No Connection` lines after it and ends when
+Steam signs in. No connection lasts until Steam signs in. Lines from an
+earlier client do not count, nor do a client's old lines while the updater
+installs a new one. Each reason is sorted. A refusal ends the wait with
+no sentence and no second tap. No connection gets the short wait, ends
+sooner if Steam signs in, and never stops a game Steam has in hand. An
+`AppLauncher` test runs the evening of #182 to the grown-up screen with its
+journal line.
