@@ -15,12 +15,16 @@ bool SteamAtLogin::wanted(const QList<TileModel::Tile>& tiles) {
     });
 }
 
+QString SteamAtLogin::unit() {
+    return QStringLiteral("cairn-steam");
+}
+
 QStringList SteamAtLogin::command() {
     // A --setenv with no value copies the variable from the launcher, which
     // labwc started on the child's display.
     return {QStringLiteral("systemd-run"),
             QStringLiteral("--user"),
-            QStringLiteral("--unit=cairn-steam"),
+            QStringLiteral("--unit=") + unit(),
             QStringLiteral("--collect"),
             QStringLiteral("--quiet"),
             QStringLiteral("--setenv=DISPLAY"),

@@ -601,7 +601,12 @@ Mechanism:
   #183). A Steam that cannot sign in is not getting
   the game ready: when its sign-in was turned down the wait ends at the
   next grace, and when it cannot reach its servers after a minute
-  (ADR-0036, #182). A game that has put nothing on the screen when the
+  (ADR-0036, #182). A new child's first Linux game can stop part-way:
+  Steam takes the game off its download schedule while its launch still
+  says it is downloading, and nothing more happens. A minute later the
+  launcher starts the child's Steam again, once per tap, and sends the tap
+  again, while the child still sees "Getting it ready" (ADR-0036, #206).
+  A game that has put nothing on the screen when the
   wait ends, such as one Steam holds behind a dialog the kiosk hides, ends
   on the grown-up screen, and its window still takes over if it comes late
   (ADR-0030).

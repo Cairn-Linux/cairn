@@ -26,13 +26,15 @@ constexpr int defaultSteadyMilliseconds = 3000;
 
 AppLauncher::AppLauncher(QObject* parent)
     : QObject(parent), m_settleTimer(this), m_launchGraceTimer(this), m_exitGraceTimer(this),
-      m_steadyTimer(this) {
+      m_steadyTimer(this), m_steamRestart(this) {
     m_settleTimer.setSingleShot(true);
     m_settleTimer.setInterval(defaultSettleMilliseconds);
     connect(&m_settleTimer, &QTimer::timeout, this, [this] { m_settled = true; });
     m_launchGraceTimer.setSingleShot(true);
     m_launchGraceTimer.setInterval(defaultLaunchGraceMilliseconds);
     connect(&m_launchGraceTimer, &QTimer::timeout, this, &AppLauncher::onLaunchGraceTimeout);
+    connect(&m_steamRestart, &SteamRestart::finished, this,
+            [this](bool started) { m_steamGame.steamRestarted(started); });
     m_steadyTimer.setSingleShot(true);
     m_steadyTimer.setInterval(defaultSteadyMilliseconds);
     connect(&m_steadyTimer, &QTimer::timeout, this, [this] {
@@ -438,6 +440,11 @@ void AppLauncher::onLaunchGraceTimeout() {
         startProgram(m_launchExec);
         m_launchGraceTimer.start();
         return;
+    }
+    if (stillComing && !m_windows.appWasOnScreen() && m_steamGame.restartSteam()) {
+        qInfo().noquote() << QStringLiteral("Steam stopped getting %1 ready; starting Steam again.")
+                                 .arg(m_launchTitle);
+        m_steamRestart.start();
     }
     if (stillComing) {
         // Steam is still starting, or has the game in hand: wait another grace

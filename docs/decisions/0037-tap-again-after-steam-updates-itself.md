@@ -7,6 +7,9 @@ which Steam updates itself has kept the tiles on the screen with Steam's
 updater window hidden (#183).
 **Date:** 2026-10-20; the at-login section 2026-10-30
 **Closes:** (none) — amends ADR-0029 and ADR-0036; part of ROADMAP P1-13
+**Amended by:** ADR-0036's section "Steam stops part-way on a new child's
+first Linux game" (2026-10-30, #206): a Steam the launcher started again
+counts as a new tap, so the tap is sent again once more.
 
 ## Context
 

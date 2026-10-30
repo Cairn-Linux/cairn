@@ -4,6 +4,7 @@
 #include "TileModel.h"
 
 #include <QList>
+#include <QString>
 #include <QStringList>
 
 // When a child who has Steam games logs in, the Steam client starts in the
@@ -14,6 +15,9 @@ namespace SteamAtLogin {
 
 // True when any tile runs a Steam game, `steam -applaunch <appid>`.
 bool wanted(const QList<TileModel::Tile>& tiles);
+
+// The name of the service the client runs as in the child's own systemd.
+QString unit();
 
 // Starts the client as a service of the child's own systemd, cairn-steam,
 // with the display it needs, never inside a game's scope (ADR-0025). A second

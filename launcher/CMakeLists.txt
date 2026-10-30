@@ -36,7 +36,10 @@ set(launcher_model_sources
     src/SteamContentLog.h src/SteamContentLog.cpp
     src/SteamGameWait.h src/SteamGameWait.cpp
     src/SteamLaunchLog.h src/SteamLaunchLog.cpp
+    src/SteamReapers.h src/SteamReapers.cpp
+    src/SteamRestart.h src/SteamRestart.cpp
     src/SteamSignIn.h src/SteamSignIn.cpp
+    src/SteamStall.h src/SteamStall.cpp
     src/SteamStartup.h src/SteamStartup.cpp
     src/GridScroller.h src/GridScroller.cpp
     src/CloseRequest.h src/CloseRequest.cpp
@@ -112,10 +115,22 @@ add_test(NAME launchwindows COMMAND tst_launchwindows)
 
 qt_add_executable(tst_steamgamewait tests/tst_steamgamewait.cpp src/SteamGameWait.h src/SteamGameWait.cpp
     src/SteamLaunchLog.h src/SteamLaunchLog.cpp src/SteamSignIn.h src/SteamSignIn.cpp
-    src/SteamStartup.h src/SteamStartup.cpp)
+    src/SteamStartup.h src/SteamStartup.cpp src/SteamContentLog.h src/SteamContentLog.cpp
+    src/SteamStall.h src/SteamStall.cpp src/SteamReapers.h src/SteamReapers.cpp)
 target_include_directories(tst_steamgamewait PRIVATE src)
 target_link_libraries(tst_steamgamewait PRIVATE Qt6::Core Qt6::Test)
 add_test(NAME steamgamewait COMMAND tst_steamgamewait)
+
+qt_add_executable(tst_steamreapers tests/tst_steamreapers.cpp src/SteamReapers.h src/SteamReapers.cpp)
+target_include_directories(tst_steamreapers PRIVATE src)
+target_link_libraries(tst_steamreapers PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME steamreapers COMMAND tst_steamreapers)
+
+qt_add_executable(tst_steamstall tests/tst_steamstall.cpp src/SteamStall.h src/SteamStall.cpp
+    src/SteamContentLog.h src/SteamContentLog.cpp src/SteamLaunchLog.h src/SteamLaunchLog.cpp)
+target_include_directories(tst_steamstall PRIVATE src)
+target_link_libraries(tst_steamstall PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME steamstall COMMAND tst_steamstall)
 
 qt_add_executable(tst_steamlaunchlog tests/tst_steamlaunchlog.cpp src/SteamLaunchLog.h src/SteamLaunchLog.cpp)
 target_include_directories(tst_steamlaunchlog PRIVATE src)
@@ -149,6 +164,13 @@ qt_add_executable(tst_steamatlogin tests/tst_steamatlogin.cpp ${launcher_model_s
 target_include_directories(tst_steamatlogin PRIVATE src)
 target_link_libraries(tst_steamatlogin PRIVATE Qt6::Qml Qt6::Test)
 add_test(NAME steamatlogin COMMAND tst_steamatlogin)
+
+# Against stand-ins for steam, systemctl and systemd-run on PATH, so the test
+# never stops or starts a real Steam.
+qt_add_executable(tst_steamrestart tests/tst_steamrestart.cpp ${launcher_model_sources})
+target_include_directories(tst_steamrestart PRIVATE src)
+target_link_libraries(tst_steamrestart PRIVATE Qt6::Qml Qt6::Test)
+add_test(NAME steamrestart COMMAND tst_steamrestart)
 
 qt_add_executable(tst_appscope tests/tst_appscope.cpp src/AppScope.h src/AppScope.cpp)
 target_include_directories(tst_appscope PRIVATE src)
@@ -250,6 +272,6 @@ target_compile_definitions(tst_navigation PRIVATE
 )
 add_test(NAME navigation COMMAND tst_navigation)
 
-set_tests_properties(tilemodel manifest tilefiles applauncher appscope launchwindows giveupwatch steamatlogin gridscroller closerequest logout batterylook upowerdevice foreignwindowlist tokens_loaded doorsfromtiles navigation PROPERTIES
+set_tests_properties(tilemodel manifest tilefiles applauncher appscope launchwindows giveupwatch steamatlogin steamrestart gridscroller closerequest logout batterylook upowerdevice foreignwindowlist tokens_loaded doorsfromtiles navigation PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QML_IMPORT_PATH=${QT_QML_OUTPUT_DIRECTORY}"
 )

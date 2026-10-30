@@ -3,6 +3,7 @@
 
 #include "LaunchWindows.h"
 #include "SteamGameWait.h"
+#include "SteamRestart.h"
 #include "SteamStartup.h"
 
 #include <QObject>
@@ -28,10 +29,11 @@
 // it is working on the game, the starting screen says it is getting ready
 // (ADR-0036). A tap Steam lost while it updated itself is sent again once the
 // new client has started (ADR-0037). A Steam that cannot sign in ends the
-// wait sooner, and the journal says why (#182). While Steam updates itself,
-// its updater's windows are neither the app's nor on their own, and the
-// launcher asks for each to be hidden, so its Cancel button is out of the
-// child's reach (#183). A launch that has put
+// wait sooner, and the journal says why (#182). A Steam that stopped part-way
+// through getting the game ready is started again once (SteamRestart, #206).
+// While Steam updates itself, its updater's windows are neither the app's nor
+// on their own, and the launcher asks for each to be hidden, so its Cancel
+// button is out of the child's reach (#183). A launch that has put
 // nothing on the screen when the grace timer ends, or when its program exits
 // after the settle window, is Failed (ADR-0030), and its window counts as the
 // app's if it comes late; one whose window came and went returns to Idle. A
@@ -177,6 +179,7 @@ private:
     LaunchWindows m_windows;
     SteamGameWait m_steamGame;
     SteamStartup m_steamStartup;
+    SteamRestart m_steamRestart;
     State m_state = State::Idle;
     QString m_title;
     QString m_launchTitle;

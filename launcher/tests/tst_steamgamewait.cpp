@@ -51,6 +51,58 @@ QByteArray ownStart() {
            "steam' '-srt-logger-opened' '-silent'\"";
 }
 
+QStringList pajamaSam2() {
+    return {QStringLiteral("steam"), QStringLiteral("-applaunch"), QStringLiteral("292780")};
+}
+
+// Steam taking a tap on Pajama Sam 2.
+QByteArray pajamaSam2Taken() {
+    return "ExecCommandLine: \"'~/.steam/root/ubuntu12_32/steam' '-applaunch' '292780'\"";
+}
+
+// A launch step for Pajama Sam 2, as Steam writes it now.
+void pajamaSam2Says(const QString& path, const QByteArray& says) {
+    steamLine(path, 0, "GameAction [AppID 292780, ActionID 1] : LaunchApp " + says);
+}
+
+// The test VM's stuck run (#206): Steam took the tap, fetched scout, and
+// took the game off its schedule `secondsAgo`, with the launch still at
+// DownloadingDepots.
+void stuckRun(const QString& console, const QString& content, qint64 secondsAgo) {
+    steamLine(console, secondsAgo + 22, pajamaSam2Taken());
+    steamLine(console, secondsAgo + 20,
+              "GameAction [AppID 292780, ActionID 1] : LaunchApp changed task to "
+              "DownloadingDepots with \"\"");
+    steamLine(content, secondsAgo + 20,
+              "AppID 292780 scheduler update : Priority First, not played for 7421 seconds, "
+              "update disabled for 0 seconds");
+    steamLine(content, secondsAgo + 20,
+              "AppID 1070560 scheduler update : Priority First, not played for 1 seconds, "
+              "update disabled for 0 seconds");
+    steamLine(content, secondsAgo + 20,
+              "AppID 1070560 update started : download 0/75258128, store 0/0, reuse 0/0, delta "
+              "0/0, stage 0/223012461 ");
+    steamLine(content, secondsAgo,
+              "AppID 1070560 finished update, 1 mounted depots (BuildID 26115262) : 1070561 "
+              "(8475493586714137016),");
+    steamLine(content, secondsAgo,
+              "AppID 1070560 scheduler finished : removed from schedule (result No Error, state "
+              "0xc) ");
+    steamLine(content, secondsAgo,
+              "AppID 292780 scheduler finished : removed from schedule (result Suspended, state "
+              "0xc) ");
+}
+
+// The stuck run seen and Steam started again for it, as AppLauncher does
+// when restartSteam() says so.
+void restartedAfterAStall(SteamGameWait& wait, const QString& console, const QString& content) {
+    wait.startLaunch(pajamaSam2());
+    stuckRun(console, content, 90);
+    QVERIFY(wait.stillComing());
+    QVERIFY(wait.restartSteam());
+    wait.steamRestarted(true);
+}
+
 // The cases without a log of their own read one in a folder of the test's,
 // never the Steam log of whoever runs the tests.
 const QTemporaryDir& dataHome() {
@@ -507,6 +559,215 @@ private slots:
         }
         wait.stillComing();
         QCOMPARE(wait.journalNote(QStringLiteral("Ada's game")), note);
+    }
+
+    // #206 on the test VM: Steam took the game off its schedule a minute
+    // and a half ago and the launch still says it is downloading. The launch
+    // waits, getting ready, and Steam is started again once.
+    void aStalledLaunchIsWaitedForAndRestartedOnce() {
+        const QTemporaryDir root;
+        const QString log = root.filePath(QStringLiteral("console_log.txt"));
+        const QString content = root.filePath(QStringLiteral("content_log.txt"));
+        SteamGameWait wait(root.path(), log, root.filePath(QStringLiteral("bootstrap_log.txt")),
+                           content);
+        wait.startLaunch(pajamaSam2());
+        QVERIFY(!wait.restartSteam());
+        stuckRun(log, content, 90);
+        QVERIFY(wait.stillComing());
+        QVERIFY(wait.steamWorking());
+        QVERIFY(wait.logOutWouldHelp());
+        QVERIFY(wait.restartSteam());
+        QVERIFY(!wait.restartSteam());
+        QVERIFY(wait.stillComing());
+        QVERIFY(wait.steamWorking());
+        QVERIFY(!wait.restartSteam());
+        QVERIFY(!wait.sendAgain());
+    }
+
+    // While Steam stops and starts again the child still sees "Getting it
+    // ready"; once the new client has started without the game, the tap is
+    // sent again, once.
+    void theWaitGoesOnWhileSteamStartsAgain() {
+        const QTemporaryDir root;
+        const QString log = root.filePath(QStringLiteral("console_log.txt"));
+        const QString content = root.filePath(QStringLiteral("content_log.txt"));
+        SteamGameWait wait(root.path(), log, root.filePath(QStringLiteral("bootstrap_log.txt")),
+                           content);
+        wait.startLaunch(pajamaSam2());
+        stuckRun(log, content, 90);
+        QVERIFY(wait.stillComing());
+        QVERIFY(wait.restartSteam());
+        // The old client is told to shut down and fails the launch.
+        steamLine(log, 0, "ExecCommandLine: \"'~/.steam/root/ubuntu12_32/steam' '-shutdown'\"");
+        pajamaSam2Says(log, "changed task to Failed with \"\"");
+        QVERIFY(wait.stillComing());
+        QVERIFY(wait.steamWorking());
+        QVERIFY(!wait.sendAgain());
+        wait.steamRestarted(true);
+        QVERIFY(wait.stillComing());
+        QVERIFY(wait.steamWorking());
+        QVERIFY(!wait.sendAgain());
+        steamLine(log, 5, ownStart());
+        QVERIFY(wait.stillComing());
+        QVERIFY(wait.steamWorking());
+        QVERIFY(wait.sendAgain());
+        QVERIFY(wait.stillComing());
+        QVERIFY(!wait.sendAgain());
+        steamLine(log, 0, pajamaSam2Taken());
+        pajamaSam2Says(log, "changed task to DownloadingDepots with \"\"");
+        QVERIFY(wait.stillComing());
+        QVERIFY(wait.steamWorking());
+        QCOMPARE(wait.lastStep(), SteamLaunchLog::Step::Working);
+        QVERIFY(!wait.restartSteam());
+    }
+
+    // The restarted Steam took the tap and stopped the same way: the wait
+    // ends at once, with no second restart, and logging out is what helps.
+    void aStallAfterTheRestartEndsTheWait() {
+        const QTemporaryDir root;
+        const QString log = root.filePath(QStringLiteral("console_log.txt"));
+        const QString content = root.filePath(QStringLiteral("content_log.txt"));
+        SteamGameWait wait(root.path(), log, root.filePath(QStringLiteral("bootstrap_log.txt")),
+                           content);
+        restartedAfterAStall(wait, log, content);
+        steamLine(log, 5, ownStart());
+        QVERIFY(wait.stillComing());
+        QVERIFY(wait.sendAgain());
+        steamLine(log, 0, pajamaSam2Taken());
+        pajamaSam2Says(log, "changed task to DownloadingDepots with \"\"");
+        QVERIFY(wait.stillComing());
+        steamLine(content, 65,
+                  "AppID 292780 scheduler finished : removed from schedule (result Suspended, "
+                  "state 0xc) ");
+        QVERIFY(!wait.stillComing());
+        QVERIFY(!wait.restartSteam());
+        QVERIFY(!wait.sendAgain());
+        QVERIFY(wait.logOutWouldHelp());
+        QCOMPARE(wait.journalNote(QStringLiteral("Pajama Sam 2")),
+                 QStringLiteral("Steam stopped getting Pajama Sam 2 ready, so Pajama Sam 2 did not "
+                                "start. Log the child out and back in, then try it again."));
+    }
+
+    void aRestartThatFailedEndsTheWait() {
+        const QTemporaryDir root;
+        const QString log = root.filePath(QStringLiteral("console_log.txt"));
+        const QString content = root.filePath(QStringLiteral("content_log.txt"));
+        SteamGameWait wait(root.path(), log, root.filePath(QStringLiteral("bootstrap_log.txt")),
+                           content);
+        wait.startLaunch(pajamaSam2());
+        stuckRun(log, content, 90);
+        QVERIFY(wait.stillComing());
+        QVERIFY(wait.restartSteam());
+        // What the old client wrote as it stopped is not Steam's reason.
+        pajamaSam2Says(log, "changed task to Failed with \"\"");
+        wait.steamRestarted(false);
+        QVERIFY(!wait.stillComing());
+        QVERIFY(wait.logOutWouldHelp());
+        QCOMPARE(wait.journalNote(QStringLiteral("Pajama Sam 2")),
+                 QStringLiteral("Steam stopped getting Pajama Sam 2 ready, so Pajama Sam 2 did not "
+                                "start. Log the child out and back in, then try it again."));
+    }
+
+    // A Steam that is updating itself, cannot reach its servers, or has
+    // started the game after all is not started again.
+    void aStallIsNotRestartedWhenSteamCannotTakeATap_data() {
+        QTest::addColumn<QString>("why");
+        QTest::newRow("updating itself") << QStringLiteral("update");
+        QTest::newRow("no connection") << QStringLiteral("offline");
+        QTest::newRow("a new reaper") << QStringLiteral("reaper");
+    }
+
+    void aStallIsNotRestartedWhenSteamCannotTakeATap() {
+        QFETCH(const QString, why);
+        const QTemporaryDir root;
+        const QString log = root.filePath(QStringLiteral("console_log.txt"));
+        const QString bootstrap = root.filePath(QStringLiteral("bootstrap_log.txt"));
+        const QString content = root.filePath(QStringLiteral("content_log.txt"));
+        SteamGameWait wait(root.path(), log, bootstrap, content);
+        wait.startLaunch(pajamaSam2());
+        stuckRun(log, content, 90);
+        if (why == QStringLiteral("update")) {
+            steamLine(bootstrap, 10, "Startup - updater built Oct 21 2026 21:09:45");
+            steamLine(bootstrap, 10, "Found pending update");
+            steamLine(bootstrap, 10, "Installing update...");
+        } else if (why == QStringLiteral("offline")) {
+            steamLine(log, 0, "LogonFailure No Connection");
+        } else {
+            addProcess(root, QStringLiteral("8447"), "reaper",
+                       {"reaper", "SteamLaunch", "AppId=292780"});
+        }
+        QVERIFY(wait.stillComing());
+        QVERIFY(!wait.restartSteam());
+    }
+
+    // After a stall, the restarted Steam asked a question on a window the
+    // kiosk hides. The journal says so, and logging out is not the answer.
+    void theOtherReasonsComeFirstInTheJournal() {
+        const QTemporaryDir root;
+        const QString log = root.filePath(QStringLiteral("console_log.txt"));
+        const QString content = root.filePath(QStringLiteral("content_log.txt"));
+        SteamGameWait wait(root.path(), log, root.filePath(QStringLiteral("bootstrap_log.txt")),
+                           content);
+        restartedAfterAStall(wait, log, content);
+        steamLine(log, 5, ownStart());
+        QVERIFY(wait.stillComing());
+        QVERIFY(wait.sendAgain());
+        steamLine(log, 0, pajamaSam2Taken());
+        pajamaSam2Says(log, "changed task to SynchronizingCloud with \"\"");
+        pajamaSam2Says(log, "waiting for user response to SynchronizingCloud \"syncfailed\"");
+        QVERIFY(!wait.stillComing());
+        QCOMPARE(wait.journalNote(QStringLiteral("Pajama Sam 2")),
+                 QStringLiteral("Steam is waiting for an answer about Pajama Sam 2 on a window "
+                                "the kiosk hides."));
+        QVERIFY(!wait.logOutWouldHelp());
+    }
+
+    // The restarted Steam cannot reach its servers for a moment: it gets the
+    // offline wait of its own, not what is left of the tap's.
+    void aRestartedSteamGetsAnOfflineWaitOfItsOwn() {
+        const QTemporaryDir root;
+        const QString log = root.filePath(QStringLiteral("console_log.txt"));
+        const QString content = root.filePath(QStringLiteral("content_log.txt"));
+        SteamGameWait wait(root.path(), log, root.filePath(QStringLiteral("bootstrap_log.txt")),
+                           content);
+        wait.setOfflineLimitMilliseconds(400);
+        wait.startLaunch(pajamaSam2());
+        stuckRun(log, content, 90);
+        QVERIFY(wait.stillComing());
+        QVERIFY(wait.restartSteam());
+        QTest::qWait(500); // past the offline limit counted from the tap.
+        wait.steamRestarted(true);
+        steamLine(log, 0, "LogonFailure No Connection");
+        QVERIFY(wait.stillComing());
+        QCOMPARE(wait.signIn(), SteamSignIn::Now::NoConnection);
+        QVERIFY(!wait.sendAgain());
+        steamLine(log, 0, "Waiting for compat in post-logon took: 0.098334s");
+        steamLine(log, 5, ownStart());
+        QVERIFY(wait.stillComing());
+        QCOMPARE(wait.signIn(), SteamSignIn::Now::Fine);
+        QVERIFY(wait.sendAgain());
+        QVERIFY(wait.stillComing());
+        QVERIFY(!wait.sendAgain());
+    }
+
+    // A Steam started again may install an update of itself first. That is
+    // work under the work limit, not the time a started client gets to take
+    // the tap.
+    void aSteamUpdatingItselfAfterTheRestartIsStillWaitedFor() {
+        const QTemporaryDir root;
+        const QString log = root.filePath(QStringLiteral("console_log.txt"));
+        const QString bootstrap = root.filePath(QStringLiteral("bootstrap_log.txt"));
+        const QString content = root.filePath(QStringLiteral("content_log.txt"));
+        SteamGameWait wait(root.path(), log, bootstrap, content);
+        wait.setRetakeLimitMilliseconds(200);
+        restartedAfterAStall(wait, log, content);
+        steamLine(bootstrap, 10, "Startup - updater built Oct 21 2026 21:09:45");
+        steamLine(bootstrap, 10, "Found pending update");
+        steamLine(bootstrap, 10, "Installing update...");
+        QTest::qWait(300);
+        QVERIFY(wait.stillComing());
+        QVERIFY(wait.steamWorking());
+        QVERIFY(!wait.sendAgain());
     }
 
     void notASteamGameIsNeverSentAgain() {
