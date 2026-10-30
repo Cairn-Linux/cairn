@@ -6,7 +6,7 @@ import QtQuick
 // Import with `import Cairn.Brand` (QML import path: brand/qml).
 QtObject {
     // ---- palette ----
-    readonly property color ink: "#1C333C"  // Text, the mark, the only dark ground (terminal, login, boot)
+    readonly property color ink: "#1C333C"  // Text, the mark, the only dark ground (terminal, login)
     readonly property color fjord: "#2E6276"  // Accent, links, machine tiles
     readonly property color sky: "#A5C8D6"  // Tints, selection, focus ring, hint text on Ink, the system's name on dark consoles
     readonly property color ochre: "#D9A03C"  // Make tiles (draw, music, build). Large fills only, never text

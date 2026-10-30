@@ -22,8 +22,8 @@ QByteArray readAll(const QString& path) {
 } // namespace
 
 SteamGameWait::SteamGameWait(QString processRoot, QString steamLog, QString steamStartupLog)
-    : m_processRoot(std::move(processRoot)), m_log(steamLog),
-      m_startup(std::move(steamStartupLog), std::move(steamLog)) {}
+    : m_processRoot(std::move(processRoot)), m_log(steamLog), m_startup(steamStartupLog, steamLog),
+      m_signIn(std::move(steamLog), std::move(steamStartupLog)) {}
 
 void SteamGameWait::steamStartedAtLogin() {
     m_sinceSteamStarted.start();
@@ -35,6 +35,7 @@ void SteamGameWait::startLaunch(const QStringList& exec) {
     m_log.startLaunch(m_appId);
     m_lastStep = SteamLaunchLog::Step::Nothing;
     m_steamNow = SteamStartup::Now::Ready;
+    m_signInNow = SteamSignIn::Now::Fine;
     m_sentAgain = false;
     m_sinceLaunch.start();
     m_sinceWork.start();
@@ -50,6 +51,16 @@ bool SteamGameWait::stillComing() {
     }
     m_lastStep = m_log.read();
     m_steamNow = m_startup.read(QDateTime::currentDateTime());
+    // Once Steam has the game in hand, its sign-in no longer matters: it
+    // starts games while it cannot reach its servers.
+    m_signInNow =
+        m_lastStep == SteamLaunchLog::Step::Nothing ? m_signIn.read() : SteamSignIn::Now::Fine;
+    if (m_signInNow == SteamSignIn::Now::Refused) {
+        return false;
+    }
+    if (m_signInNow == SteamSignIn::Now::NoConnection) {
+        return m_sinceLaunch.elapsed() < m_offlineLimitMilliseconds;
+    }
     if (steamWorking() && m_sinceLaunch.elapsed() < m_workLimitMilliseconds) {
         m_sinceWork.start();
         return true;
@@ -66,6 +77,9 @@ bool SteamGameWait::stillComing() {
 }
 
 bool SteamGameWait::steamWorking() const {
+    if (m_signInNow != SteamSignIn::Now::Fine) {
+        return false;
+    }
     // A client started since the tap that has not taken it yet is about to
     // be asked again, or has just been.
     const bool tapToTake = m_log.steamStartedAt().has_value() && !m_log.reachedSteam();
@@ -74,7 +88,8 @@ bool SteamGameWait::steamWorking() const {
 }
 
 bool SteamGameWait::sendAgain() {
-    if (m_appId.isEmpty() || m_sentAgain || m_log.reachedSteam()) {
+    if (m_appId.isEmpty() || m_sentAgain || m_log.reachedSteam() ||
+        m_signInNow != SteamSignIn::Now::Fine) {
         return false;
     }
     const std::optional<QDateTime> started = m_log.steamStartedAt();
@@ -89,6 +104,35 @@ bool SteamGameWait::sendAgain() {
 
 SteamLaunchLog::Step SteamGameWait::lastStep() const {
     return m_lastStep;
+}
+
+SteamSignIn::Now SteamGameWait::signIn() const {
+    return m_signInNow;
+}
+
+QString SteamGameWait::journalNote(const QString& title) const {
+    if (m_signInNow == SteamSignIn::Now::Refused) {
+        return QStringLiteral("Steam could not sign in, so %1 did not start. "
+                              "Steam needs to be signed in again.")
+            .arg(title);
+    }
+    if (m_signInNow == SteamSignIn::Now::NoConnection) {
+        return QStringLiteral("Steam could not reach the internet, so %1 did not start.")
+            .arg(title);
+    }
+    if (m_lastStep == SteamLaunchLog::Step::WaitingForAnswer) {
+        return QStringLiteral(
+                   "Steam is waiting for an answer about %1 on a window the kiosk hides.")
+            .arg(title);
+    }
+    if (m_lastStep == SteamLaunchLog::Step::Refused) {
+        return QStringLiteral("Steam refused to start %1.").arg(title);
+    }
+    return {};
+}
+
+void SteamGameWait::setOfflineLimitMilliseconds(int milliseconds) {
+    m_offlineLimitMilliseconds = milliseconds;
 }
 
 void SteamGameWait::setStartupMilliseconds(int milliseconds) {

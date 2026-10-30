@@ -209,6 +209,40 @@ installed. The third lists `kcm-about-distrorc` and the two splash
 `kicker-extra-favoritesrc`, which Bazzite changed. Leave out `--nomtime`
 and `rpm -V` lists hundreds of files whose times the base changed.
 
+The boot screen is Cairn's stones building (ADR-0044, #165).
+`brand/build.py` draws the Plymouth theme into `brand/image/plymouth/`,
+and `build_files/boot-screen.sh` installs it, makes it the default and
+builds the initramfs again, so the theme, its font and Cairn's
+`initrd-release` are in it. That takes about a minute.
+`build_files/check-boot-screen.sh` stops the build if any of it is
+missing. To look yourself:
+
+```sh
+podman run --rm localhost/cairn:dev plymouth-set-default-theme
+podman run --rm localhost/cairn:dev sh -c 'lsinitrd -f usr/lib/initrd-release /usr/lib/modules/*/initramfs.img'
+```
+
+The first prints `cairn`, the second Cairn Linux's `os-release` with
+`(Initramfs)` after its name. To see the screen without restarting a VM
+that runs the image, stop the login screen and show it by hand, then
+take a screenshot from the host:
+
+```sh
+ssh cairn-min 'sudo systemctl stop sddm && sudo plymouthd --mode=boot --attach-to-session=no && sudo plymouth show-splash'
+virsh -c qemu:///system screenshot cairn-min boot.ppm
+ssh -f cairn-min 'sudo plymouth ask-for-password --prompt=test >/dev/null'
+virsh -c qemu:///system send-key cairn-min KEY_A KEY_ENTER
+ssh cairn-min 'sudo plymouth quit && sudo systemctl start sddm'
+```
+
+The password box takes what `send-key` types, and Enter ends it. Asked
+twice with the same prompt, the second time says the password did not
+work. That checks the screen as Plymouth draws it after the real root is
+mounted, with Pango. The prompt for an encrypted disk comes from the
+initramfs, where Plymouth draws with FreeType; to see it, give the VM a
+small LUKS disk and add `rd.luks.uuid=` with its UUID to the kernel
+arguments (`rpm-ostree kargs --append`), then restart.
+
 To boot it, switch a VM that runs stock Bazzite to it. The VM should never
 have been provisioned, because provisioning's changes to `/etc` would
 override the image's. Copy the image in as an archive and switch to it:
@@ -243,13 +277,16 @@ only an active session at the computer.
 Some tests need what a container build does not have, so they skip
 themselves there: two give-up tests need user namespaces or a systemd user
 manager, seven `copy_games` tests need a folder that can reflink
-(btrfs or XFS), one `provision` test reads `system_files/`, which
-the build stage does not copy, and one `polkit_rules` test runs the
+(btrfs or XFS), one `provision` test reads `sysusers.d` and
+`build_files/`, which the build stage does not copy, and one `polkit_rules` test runs the
 levels rule with `node`, which the build stage does not install. The build log lists every skip under
 "Tests skipped in the build stage". Run `ctest` on the host before
 building an image; it is the only place those tests run.
 
-The build stage copies only what CMake reads. `.containerignore` keeps
+The build stage copies only what CMake and the tests read. From
+`system_files/` that is one file, `usr/lib/tmpfiles.d/cairn.conf`, which a
+`family_setup` test reads; copying only that file means editing the rest of
+`system_files/` does not force a full recompile. `.containerignore` keeps
 build folders, keys, tool caches, `.git` and `.claude/` out of the build
 context at any depth, so a build folder or a key anywhere in the checkout
 does not reach podman's storage.

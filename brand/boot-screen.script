@@ -1,0 +1,220 @@
+# SPDX-License-Identifier: Apache-2.0
+# The boot screen (ADR-0044), in Plymouth's script language. brand/build.py
+# puts the numbers from tokens.json above this and writes the theme to
+# brand/image/plymouth/. It shows from power-on to the login screen, and
+# again at shutdown and restart.
+#
+# The mark builds itself as on the launcher's starting screen (ADR-0028):
+# the bottom stone fades in, then each stone above it, one every
+# frames_per_step, until the mark is whole. The whole mark stays for one
+# step, fades for one, and the building starts again from the bottom.
+#
+# When the computer asks for the disk's password, nothing is working while
+# it waits for a person, so the mark stands whole and still above one plain
+# sentence and the box the password goes in.
+
+Window.SetBackgroundTopColor(ground.red, ground.green, ground.blue);
+Window.SetBackgroundBottomColor(ground.red, ground.green, ground.blue);
+Plymouth.SetRefreshRate(refresh_rate);
+
+screen_width = Window.GetWidth();
+screen_height = Window.GetHeight();
+
+# Plymouth's own text, as plain as the launcher's. Its script language has
+# no way to translate (ADR-0044).
+password_words = "Type the password to start this computer.";
+retry_words = "That password did not work. Type it again.";
+caps_lock_words = "Caps Lock is on.";
+
+# ---- the mark ----
+
+# A name used at the top level is shared with every function, so the
+# loops that would need one run inside functions.
+fun make_stones()
+  {
+    for (i = 0; i < stone_count; i++)
+      {
+        # stone-1.png is the bottom stone.
+        global.stone[i] = Sprite(Image("stone-" + (i + 1) + ".png"));
+        global.stone[i].SetOpacity(0);
+        global.stone_shown[i] = 0;
+      }
+  }
+
+make_stones();
+
+fun place_mark(top)
+  {
+    for (i = 0; i < stone_count; i++)
+      stone[i].SetPosition(Math.Int((screen_width - mark_width) / 2), top, 1);
+  }
+
+place_mark(Math.Int((screen_height - mark_height) / 2));
+
+# ---- the password box, hidden until the computer asks ----
+
+entry_image = Image("entry.png");
+entry = Sprite(entry_image);
+entry.SetOpacity(0);
+bullet_image = Image("bullet.png");
+bullet_count = 0;
+words = Sprite();
+caps_lock = Sprite(Image.Text(caps_lock_words, ink.red, ink.green, ink.blue, 1, text_font));
+caps_lock.SetOpacity(0);
+typed = Sprite();
+asking = 0;
+# The prompt being answered, and the last one answered. systemd asks
+# again with the same prompt only when the password did not open the
+# disk; a second disk has a prompt of its own.
+asked_prompt = "";
+answered_prompt = "";
+
+# How many stones the step shows: one more each step until the mark is
+# whole, the whole mark for a step, then none.
+fun stones_up(step)
+  {
+    if (step < stone_count)
+      return step + 1;
+    if (step == stone_count)
+      return stone_count;
+    return 0;
+  }
+
+frame = 0;
+
+fun refresh()
+  {
+    if (global.asking)
+      {
+        if (Plymouth.GetCapslockState())
+          global.caps_lock.SetOpacity(1);
+        else
+          global.caps_lock.SetOpacity(0);
+        return;
+      }
+    step = Math.Int(global.frame / frames_per_step) % (stone_count + 2);
+    up = stones_up(step);
+    for (i = 0; i < stone_count; i++)
+      {
+        target = 0;
+        if (i < up)
+          target = 1;
+        shown = global.stone_shown[i];
+        if (shown < target)
+          shown = Math.Min(target, shown + 1 / frames_per_step);
+        if (shown > target)
+          shown = Math.Max(target, shown - 1 / frames_per_step);
+        global.stone_shown[i] = shown;
+        global.stone[i].SetOpacity(shown);
+      }
+    global.frame++;
+  }
+
+Plymouth.SetRefreshFunction(refresh);
+
+# ---- asking for the password ----
+
+fun centred_x(width)
+  {
+    return Math.Int((global.screen_width - width) / 2);
+  }
+
+# Lays out the mark, the sentence, the box and the Caps Lock line as one
+# column in the middle of the screen, as the login screen does.
+fun show_asking(sentence)
+  {
+    global.asking = 1;
+    for (i = 0; i < stone_count; i++)
+      {
+        global.stone_shown[i] = 1;
+        global.stone[i].SetOpacity(1);
+      }
+    words_image = Image.Text(sentence, ink.red, ink.green, ink.blue, 1, text_font);
+    global.words.SetImage(words_image);
+    entry_height = global.entry_image.GetHeight();
+    caps_height = global.caps_lock.GetImage().GetHeight();
+    column_height = mark_height + gap + words_image.GetHeight() + gap + entry_height + gap + caps_height;
+    top = Math.Int((global.screen_height - column_height) / 2);
+    place_mark(top);
+    top += mark_height + gap;
+    global.words.SetPosition(centred_x(words_image.GetWidth()), top, 1);
+    global.words.SetOpacity(1);
+    top += words_image.GetHeight() + gap;
+    global.entry_top = top;
+    global.entry.SetPosition(centred_x(global.entry_image.GetWidth()), top, 1);
+    global.entry.SetOpacity(1);
+    top += entry_height + gap;
+    global.caps_lock.SetPosition(centred_x(global.caps_lock.GetImage().GetWidth()), top, 1);
+  }
+
+# One dot for each letter typed, in a row in the middle of the box, as
+# many as fit.
+fun show_bullets(count)
+  {
+    spacing = Math.Int(bullet_size / 2);
+    room = global.entry_image.GetWidth() - 2 * gap;
+    fit = Math.Int((room + spacing) / (bullet_size + spacing));
+    count = Math.Min(count, fit);
+    row_width = count * bullet_size + Math.Max(0, count - 1) * spacing;
+    left = centred_x(row_width);
+    top = global.entry_top + Math.Int((global.entry_image.GetHeight() - bullet_size) / 2);
+    for (i = 0; i < global.bullet_count || i < count; i++)
+      {
+        if (i >= global.bullet_count)
+          global.bullet[i] = Sprite(global.bullet_image);
+        global.bullet[i].SetPosition(left + i * (bullet_size + spacing), top, 2);
+        if (i < count)
+          global.bullet[i].SetOpacity(1);
+        else
+          global.bullet[i].SetOpacity(0);
+      }
+    global.bullet_count = Math.Max(global.bullet_count, count);
+  }
+
+fun display_password(prompt, bullets)
+  {
+    # systemd's prompt names the disk in words a child does not need; the
+    # sentence says what to do instead. Plymouth calls this again for
+    # every letter typed, with the same prompt.
+    global.asked_prompt = prompt;
+    if (prompt == global.answered_prompt)
+      show_asking(retry_words);
+    else
+      show_asking(password_words);
+    global.typed.SetOpacity(0);
+    show_bullets(bullets);
+  }
+
+# Anything else the computer asks before the login screen, such as a disk
+# check's question, keeps the system's own words and shows what is typed.
+fun display_question(prompt, entry_text)
+  {
+    show_asking(prompt);
+    show_bullets(0);
+    global.typed.SetOpacity(0);
+    if (entry_text == "")
+      return;
+    typed_image = Image.Text(entry_text, ink.red, ink.green, ink.blue, 1, text_font);
+    global.typed.SetImage(typed_image);
+    global.typed.SetPosition(centred_x(typed_image.GetWidth()),
+                             global.entry_top + Math.Int((global.entry_image.GetHeight() - typed_image.GetHeight()) / 2),
+                             2);
+    global.typed.SetOpacity(1);
+  }
+
+fun display_normal()
+  {
+    if (global.asking)
+      global.answered_prompt = global.asked_prompt;
+    global.asking = 0;
+    global.words.SetOpacity(0);
+    global.entry.SetOpacity(0);
+    global.caps_lock.SetOpacity(0);
+    global.typed.SetOpacity(0);
+    show_bullets(0);
+    place_mark(Math.Int((global.screen_height - mark_height) / 2));
+  }
+
+Plymouth.SetDisplayPasswordFunction(display_password);
+Plymouth.SetDisplayQuestionFunction(display_question);
+Plymouth.SetDisplayNormalFunction(display_normal);

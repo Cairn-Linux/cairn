@@ -6,7 +6,9 @@ login screen, a child reached the tiles, and a Guardian reached Plasma.
 **Closes:** (none) — the first slice of issue #164; part of ROADMAP P1-2
 and P1-3
 **Amended by:** ADR-0041, proposed (the family's setup makes no child's
-copy of the games; a Guardian's Save on the Games page does)
+copy of the games; a Guardian's Save on the Games page does);
+ADR-0044, proposed (the image builds its own initramfs, with Cairn's
+boot screen)
 
 ## Context
 
@@ -495,6 +497,9 @@ line too.
   the VM: `hostnamectl` should then report `cairn` with source "default".
   The new kernel image set also makes libostree write new boot entries,
   so upgraded computers get "Cairn Linux" titles then.
+  ADR-0044 did it, and the VM showed both on 2026-10-29: after one
+  update from a slice 5 image, the computer was called `cairn` and both
+  boot entries read "Cairn Linux".
 - **#166, the Guardian's desktop.** The start-menu button and the splash
   now show the Sand mark, chosen because Vapor's panel and the splash are
   dark. `LOGO` names it too, because the About page is drawn in Vapor's

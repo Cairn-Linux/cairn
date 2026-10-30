@@ -2,8 +2,10 @@
 
 **Status:** proposed. It becomes accepted when a tap made while Steam
 installs an update of itself has shown the starting screen on the kids'
-laptop until the game, with no grown-up screen between.
-**Date:** 2026-10-20
+laptop until the game, with no grown-up screen between, and a login during
+which Steam updates itself has kept the tiles on the screen with Steam's
+updater window hidden (#183).
+**Date:** 2026-10-20; the at-login section 2026-10-30
 **Closes:** (none) — amends ADR-0029 and ADR-0036; part of ROADMAP P1-13
 
 ## Context
@@ -121,3 +123,123 @@ started again without taking Arthur's Reading Race; asking again."
   tap, the second tap and the game's window, with the sentence up
   throughout. Another has the game's window up, and nothing is sent
   again.
+
+## Amendment: Steam updating itself at login, with no tap (#183)
+
+### Context
+
+On 2026-10-27 a child logged in on the kids' laptop. Before any tap, Steam
+installed an update of itself that it had downloaded earlier, restarted,
+and downloaded another 424 MB. Its updater put up windows of its own,
+"Progress", "Steam setup" and "Steam", with a Cancel button. No launch was
+under way, so `LaunchWindows` decided each had opened on its own, and the
+launcher showed "Something needs a grown-up" with Steam's box on top. That
+lasted about 13 minutes, and the child could press Cancel.
+
+The window rules in `session/labwc/rc.xml` did not hide these windows,
+though they hide every window whose X11 instance is `steam` or
+`steamwebhelper`. Which instance the updater's windows carry is not known:
+none was captured on the laptop. The dev PC's own Steam did the same pair
+of updates the same evening, and its `bootstrap_log.txt` showed two things
+the first version of this ADR missed:
+
+```
+[2026-10-27 23:06:09] Update complete, launching Steam...
+[2026-10-27 23:06:09] Shutdown
+[2026-10-27 23:06:09] Startup - updater built Sep  3 2026 01:31:48
+[2026-10-27 23:06:09] Verifying installation...
+[2026-10-27 23:06:16] Verification complete
+[2026-10-27 23:06:27] Startup - updater built Sep  3 2026 01:31:48
+[2026-10-27 23:06:27] Checking for update on startup
+[2026-10-27 23:06:28] Downloaded new manifest: /steam_client_ubuntu12 version 1792618285, ...
+[2026-10-27 23:07:21] Found pending update
+```
+
+- After an update the updater starts again at once to check itself, and
+  Steam's start script starts it once more 17 or 18 s later, with no
+  `Shutdown` between.
+- A download at startup can write `Downloaded new manifest` and then
+  nothing for almost a minute; another wrote `Downloading update...` in
+  lower case.
+
+### Decision
+
+**While Steam is updating itself, a window that comes on the screen is its
+updater's. It is neither the app's nor on its own, and the launcher asks
+the compositor to hide it.**
+
+- `SteamStartup` reads Steam as updating itself when its last start has
+  written a line about downloading or installing an update (now also
+  `Downloaded new manifest:` and `Downloading update...`), or when that
+  start came no more than a minute after `Update complete, launching`.
+  The second is a new state, Restarting. Either way it holds only until
+  the client runs its own start command, as before. A start minutes after
+  an update is plain Starting.
+- `LaunchWindows` decides such a window is Steam's updater's. It keeps no
+  launch waiting, opens no app, and brings up no grown-up screen. It stays
+  Steam's until it closes, even if it is shown again after the update.
+- The launcher asks the compositor to minimise it, through the same
+  `wlr-foreign-toplevel-management` protocol it already listens to, and asks
+  again if Steam shows it again. labwc honours the request. The window
+  stays in the compositor's list, hidden, as a window rule's `Iconify`
+  leaves it. The journal says "Steam is updating itself; its window
+  Progress is hidden from the child."
+- While a program other than a Steam game is launched, opening or open,
+  the rule is off and its windows are decided as before. While it opens it
+  owns every window on the screen, as ADR-0028 says. Once it is open, a
+  dialog that belongs to one of its windows is its own, and a new window
+  with no parent opened on its own and brings up the grown-up screen. A
+  drawing app tapped during Steam's update is never hidden, so it can never
+  sit stuck behind a dialog the child cannot see. A Steam game cannot draw
+  a window while Steam updates itself, so during its launch the rule holds;
+  even then a dialog that belongs to the game's window stays the game's.
+
+So at login the child sees the tiles. A game tapped during the update
+waits on the starting screen with "Getting it ready", as the first part of
+this ADR says.
+
+A window rule would hide the window before it is ever drawn, and would be
+the plainer upstream mechanism. It is not used yet because the updater's
+X11 instance is not known, and a rule matching titles such as "Progress"
+would hide any program's window of that name. If a later update shows its
+instance, a rule for it can join the two in `rc.xml`, and this part stays
+as the fallback.
+
+### Consequences
+
+- At a login during which Steam updates itself the child sees the tiles,
+  not the grown-up screen, and cannot reach Steam's Cancel button.
+- The window is drawn for a moment, until the launcher hears of it and the
+  compositor hides it. That moment was not measured; under nested labwc
+  on the dev PC a screenshot 3 s after each window opened showed only the
+  tiles. labwc's `ignoreFocusRequest` rule already stops it taking focus
+  by asking.
+- A window from anything else that opens with no launch, or during a Steam
+  game's launch, while Steam updates itself is hidden too. Nothing else
+  opens windows unasked in a child's session in those minutes.
+- While a drawing app or another program that is not a Steam game is
+  launched, a new window of the updater's is not hidden: with no way to
+  tell it from the app's own window with no parent, the grown-up screen
+  comes up for it, as before this amendment. A window of the updater's
+  that was hidden before the tap stays the updater's and is hidden again
+  if it comes back. An error box from Steam's updater is hidden
+  as well; if the update fails, a game tapped afterwards ends on the
+  grown-up screen when its wait ends, and the journal has the window's
+  name.
+- If Valve changed the wording of the client's start command, Restarting
+  would last until the 20-minute limit, and a game's window in that time
+  after an update would be hidden as the updater's. A changed wording
+  already stops the tap being sent again, so both would show at once.
+- Tested in C++. `SteamStartup` runs the dev PC's two updates in a row line
+  by line, and a start minutes after an update. `LaunchWindows` has the
+  three windows from the laptop's journal at the tiles, an updater window
+  during a launch, and a window hidden during the update and shown after.
+  `AppLauncher` has the login with no tap (the tiles stay, each window is
+  asked to be hidden, again when shown again, and a window after the update
+  still brings the grown-up screen), a Steam game tapped during the update
+  (the starting screen and the sentence), and a drawing app tapped during
+  it (its window is the app's). Checked by hand under nested labwc on the
+  dev PC with a made-up `bootstrap_log.txt`: a Wayland window and an X11
+  window, titled "Progress" and "Steam setup", were hidden and the tiles
+  stayed; after the update a window opened on its own brought the grown-up
+  screen. Not yet seen on a real Steam update in the kiosk.

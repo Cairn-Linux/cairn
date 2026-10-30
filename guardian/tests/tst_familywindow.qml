@@ -901,6 +901,9 @@ TestCase {
             wait(300);
             grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-games-log-out.png"));
         }
+        // The buttons appear together; until the row is laid out, Log Ada
+        // out sits where Not now is.
+        waitForPolish(window);
         mouseClick(findChild(window, "confirmLogOut"));
         tryVerify(() => !window.gamesPage.chosenLoggedIn);
         verify(!findChild(window, "loggedInCover").visible);
