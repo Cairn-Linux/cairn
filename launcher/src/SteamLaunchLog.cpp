@@ -18,6 +18,7 @@ SteamLaunchLog::SteamLaunchLog(QString path) : m_path(std::move(path)) {}
 void SteamLaunchLog::startLaunch(const QString& appId) {
     m_appId = appId;
     m_step = Step::Nothing;
+    m_downloading = false;
     m_reached = false;
     m_steamStartedAt.reset();
     const QFile log(m_path);
@@ -37,6 +38,7 @@ SteamLaunchLog::Step SteamLaunchLog::read() {
         // Steam started again and began a new log; all of it is new.
         m_offset = 0;
         m_step = Step::Nothing;
+        m_downloading = false;
     }
     const qint64 from = std::max(m_offset, size - mostReadAtOnce);
     if (!log.seek(from)) {
@@ -52,6 +54,7 @@ SteamLaunchLog::Step SteamLaunchLog::read() {
         const Step step = stepOf(line, m_appId);
         if (step != Step::Nothing) {
             m_step = step;
+            m_downloading = line.contains("changed task to DownloadingDepots ");
         }
         if (!line.contains("ExecCommandLine: ")) {
             continue;
@@ -72,6 +75,14 @@ bool SteamLaunchLog::reachedSteam() const {
 
 std::optional<QDateTime> SteamLaunchLog::steamStartedAt() const {
     return m_steamStartedAt;
+}
+
+SteamLaunchLog::Step SteamLaunchLog::step() const {
+    return m_step;
+}
+
+bool SteamLaunchLog::downloading() const {
+    return m_downloading;
 }
 
 SteamLaunchLog::Step SteamLaunchLog::stepOf(const QByteArray& line, const QString& appId) {

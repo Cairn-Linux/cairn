@@ -33,6 +33,7 @@ set(launcher_model_sources
     src/LaunchWindows.h src/LaunchWindows.cpp
     src/GiveUpWatch.h src/GiveUpWatch.cpp
     src/SteamAtLogin.h src/SteamAtLogin.cpp
+    src/SteamContentLog.h src/SteamContentLog.cpp
     src/SteamGameWait.h src/SteamGameWait.cpp
     src/SteamLaunchLog.h src/SteamLaunchLog.cpp
     src/SteamSignIn.h src/SteamSignIn.cpp
@@ -120,6 +121,12 @@ qt_add_executable(tst_steamlaunchlog tests/tst_steamlaunchlog.cpp src/SteamLaunc
 target_include_directories(tst_steamlaunchlog PRIVATE src)
 target_link_libraries(tst_steamlaunchlog PRIVATE Qt6::Core Qt6::Test)
 add_test(NAME steamlaunchlog COMMAND tst_steamlaunchlog)
+
+qt_add_executable(tst_steamcontentlog tests/tst_steamcontentlog.cpp src/SteamContentLog.h
+    src/SteamContentLog.cpp src/SteamLaunchLog.h src/SteamLaunchLog.cpp)
+target_include_directories(tst_steamcontentlog PRIVATE src)
+target_link_libraries(tst_steamcontentlog PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME steamcontentlog COMMAND tst_steamcontentlog)
 
 qt_add_executable(tst_steamstartup tests/tst_steamstartup.cpp src/SteamStartup.h src/SteamStartup.cpp
     src/SteamLaunchLog.h src/SteamLaunchLog.cpp)

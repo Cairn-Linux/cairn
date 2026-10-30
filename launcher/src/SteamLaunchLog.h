@@ -23,6 +23,9 @@
 // writes `ExecCommandLine: "'.../steam' '-applaunch' '2471160'"` the moment
 // it does. A tap made while Steam installs an update of itself is lost when
 // it restarts, and the new client then writes only its own start command.
+//
+// A launch whose last step is still DownloadingDepots after Steam took the
+// game off its download schedule has stopped part-way (#206, SteamStall).
 class SteamLaunchLog {
 public:
     enum class Step : std::uint8_t {
@@ -53,6 +56,11 @@ public:
     // command, as of the last read(), or nothing. Steam takes any tap it held
     // in the same second.
     std::optional<QDateTime> steamStartedAt() const;
+    // Where the launch had got to at the last read().
+    Step step() const;
+    // The last step about the game since the tap was DownloadingDepots, as
+    // of the last read().
+    bool downloading() const;
 
     // What one line of the log says about the game, or Nothing when the
     // line is not about it.
@@ -68,6 +76,7 @@ private:
     QString m_appId;
     qint64 m_offset = 0;
     Step m_step = Step::Nothing;
+    bool m_downloading = false;
     bool m_reached = false;
     std::optional<QDateTime> m_steamStartedAt;
 };
