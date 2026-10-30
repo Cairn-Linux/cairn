@@ -22,6 +22,10 @@ class ForeignToplevelList // NOLINT(misc-multiple-inheritance)
 public:
     explicit ForeignToplevelList(QObject* parent);
 
+    // Asks the compositor to hide a window, as a minimise button would. The
+    // compositor may refuse; whatever it does arrives as a change.
+    void minimize(const QString& identifier);
+
 signals:
     void windowOpened(const QString& identifier, const QString& appId, const QString& title,
                       bool hidden, const QString& belongsTo);
