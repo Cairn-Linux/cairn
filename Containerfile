@@ -91,9 +91,12 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=tmpfs,dst=/tmp \
     /ctx/build.sh
 
-# The image must say Cairn, not Bazzite or Fedora (slice 5).
+# The image must say Cairn, not Bazzite or Fedora (slice 5), from the
+# boot screen on (#165).
 RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
-    /ctx/check-name-and-logos.sh
+    --mount=type=tmpfs,dst=/tmp \
+    /ctx/check-name-and-logos.sh && \
+    /ctx/check-boot-screen.sh
 
 # Any lint warning stops the build.
 RUN bootc container lint --fatal-warnings

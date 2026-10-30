@@ -8,8 +8,8 @@
 # installs without asking.
 #
 # The hostname is a default the family can change in the installer. It is
-# written to /etc/hostname, because until #165 the initramfs would
-# otherwise name the computer "bazzite".
+# written to /etc/hostname. Since #165 the initramfs would also name the
+# computer "cairn" on its own (ADR-0044).
 #
 # image-template's `bootc switch` line is left out: it points the computer
 # at a registry for updates, and Cairn's image is in no registry yet

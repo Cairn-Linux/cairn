@@ -22,7 +22,7 @@ TestCase {
         const given = options === undefined ? {} : options;
         const properties = {
             "page": standIns.page(scenario, given.withChildren !== false, given.withOlderChild === true),
-            "gamesPage": standIns.gamesPage(given.withChildren !== false, given.withGames !== false, given.steamStarts !== false, given.gamesScenario === undefined ? "" : given.gamesScenario, given.loggedIn === undefined ? [] : given.loggedIn),
+            "gamesPage": standIns.gamesPage(given.withChildren !== false, given.withGames !== false, given.steamStarts !== false, given.gamesScenario === undefined ? "" : given.gamesScenario, given.loggedIn === undefined ? [] : given.loggedIn, given.withOwnSteamGames === true),
             "accountPage": standIns.accountPage(),
             "height": 1400
         };
@@ -505,6 +505,7 @@ TestCase {
         compare(findChild(findChild(window, "gameCards").itemAt(1), "onListLabel").text, "Not on the list");
         verify(!findChild(window, "noGames").visible);
         verify(!findChild(window, "noChildrenForGames").visible);
+        verify(!findChild(window, "ownSteamGames").visible);
         compare(findChild(window, "openSteam").text, "Open Steam for Ada");
         if (standIns.screenshotPath() !== "") {
             wait(300);
@@ -615,6 +616,26 @@ TestCase {
         verify(!findChild(window, "gameGrid").visible);
         verify(!findChild(window, "listSentence").visible);
         verify(findChild(window, "openSteam").visible);
+    }
+
+    // Games in the Guardian's own Steam are named, with how to move them;
+    // Steam's runtime is not.
+    function test_gamesInTheGuardiansOwnSteam() {
+        const window = makeWindow("done", {
+            "withOwnSteamGames": true
+        });
+        showGames(window);
+        const note = findChild(window, "ownSteamGames");
+        verify(note.visible);
+        verify(note.text.startsWith("In your own Steam library, not the shared folder: Celeste and Portal 2."));
+        verify(note.text.indexOf("Runtime") < 0);
+        verify(note.text.indexOf("Storage") >= 0);
+        verify(note.text.indexOf("/var/lib/cairn/steam-library") >= 0);
+        compare(note.Accessible.name, note.text);
+        if (standIns.screenshotPath() !== "") {
+            wait(300);
+            grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-games-own-steam.png"));
+        }
     }
 
     function test_noChildrenForGames() {

@@ -11,8 +11,9 @@ set(guardian_sources
     src/ScreenLockWatch.h src/ScreenLockWatch.cpp
     src/SteamForChild.h src/SteamForChild.cpp
 )
-set(guardian_qml_files qml/Main.qml qml/TextButton.qml)
+set(guardian_qml_files qml/Main.qml qml/SteamForWords.qml qml/TextButton.qml)
 set_source_files_properties(qml/Main.qml PROPERTIES QT_RESOURCE_ALIAS Main.qml)
+set_source_files_properties(qml/SteamForWords.qml PROPERTIES QT_RESOURCE_ALIAS SteamForWords.qml)
 set_source_files_properties(qml/TextButton.qml PROPERTIES QT_RESOURCE_ALIAS TextButton.qml)
 
 qt_add_executable(cairn-steam-for src/main.cpp)
@@ -121,6 +122,9 @@ set(family_window_sources
     src/LoginSessions.h src/LoginSessions.cpp
     src/LoginWatch.h src/LoginWatch.cpp
     src/ChildLogOut.h src/ChildLogOut.cpp
+    src/KeyValues.h src/KeyValues.cpp
+    src/SteamManifest.h src/SteamManifest.cpp
+    src/OwnSteamGames.h src/OwnSteamGames.cpp
     src/GamesPage.h src/GamesPage.cpp
     src/NewPassword.h src/NewPassword.cpp
     src/AccountPicture.h src/AccountPicture.cpp
@@ -388,6 +392,30 @@ target_include_directories(tst_gameshelf PRIVATE src)
 target_link_libraries(tst_gameshelf PRIVATE Qt6::Core Qt6::Test)
 add_test(NAME gameshelf COMMAND tst_gameshelf)
 
+# Steam's own files, and the games in a Guardian's own Steam, read from
+# fixture libraries, with kidscan's rule beside the one here.
+qt_add_executable(tst_keyvalues tests/tst_keyvalues.cpp src/KeyValues.h src/KeyValues.cpp)
+target_include_directories(tst_keyvalues PRIVATE src)
+target_link_libraries(tst_keyvalues PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME keyvalues COMMAND tst_keyvalues)
+
+qt_add_executable(tst_steammanifest tests/tst_steammanifest.cpp src/SteamManifest.h
+    src/SteamManifest.cpp src/KeyValues.h src/KeyValues.cpp)
+target_include_directories(tst_steammanifest PRIVATE src)
+target_link_libraries(tst_steammanifest PRIVATE Qt6::Core Qt6::Test)
+target_compile_definitions(tst_steammanifest PRIVATE
+    KIDSCAN="${PROJECT_SOURCE_DIR}/tools/kidscan/kidscan.py"
+)
+add_test(NAME steammanifest COMMAND tst_steammanifest)
+
+qt_add_executable(tst_ownsteamgames tests/tst_ownsteamgames.cpp src/OwnSteamGames.h
+    src/OwnSteamGames.cpp src/SteamManifest.h src/SteamManifest.cpp src/KeyValues.h
+    src/KeyValues.cpp)
+target_include_directories(tst_ownsteamgames PRIVATE src)
+target_link_libraries(tst_ownsteamgames PRIVATE Qt6::Core Qt6::Test)
+target_compile_definitions(tst_ownsteamgames PRIVATE FIXTURES="${guardian_fixtures}")
+add_test(NAME ownsteamgames COMMAND tst_ownsteamgames)
+
 qt_add_executable(tst_gamespage tests/tst_gamespage.cpp ${family_window_sources})
 target_include_directories(tst_gamespage PRIVATE src)
 target_link_libraries(tst_gamespage PRIVATE Qt6::Qml Qt6::Gui Qt6::DBus Qt6::Test cairn-accounts)
@@ -447,7 +475,7 @@ set_tests_properties(steamvisit ownsteam screenlockwatch steamforchild steamwind
     steamentry
     loginname childlist familychange saverun savereport loginsessions loginwatch childlogout
     gamechoices childrenpage
-    gamepicture gameshelf gamespage familywindow
+    gamepicture gameshelf keyvalues steammanifest ownsteamgames gamespage familywindow
     newpassword ownpasswordcommand picturefile accountpage PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QML_IMPORT_PATH=${QT_QML_OUTPUT_DIRECTORY}"
 )

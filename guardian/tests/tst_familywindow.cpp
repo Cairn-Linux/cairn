@@ -97,10 +97,13 @@ public:
     // startedSteam(). Its Save runs the stand-ins, which answer as
     // `scenario` says, when one is given, and write the children's lists
     // into its folder. The children in `loggedIn` are logged in, until a
-    // logout the stand-ins run, or setLoggedIn(), says otherwise.
+    // logout the stand-ins run, or setLoggedIn(), says otherwise. With
+    // `withOwnSteamGames`, the Guardian's own Steam has two games and a
+    // runtime outside the shared folder.
     Q_INVOKABLE GamesPage* gamesPage(bool withChildren, bool withGames, bool steamStarts = true,
                                      const QString& scenario = QString(),
-                                     const QStringList& loggedIn = QStringList()) {
+                                     const QStringList& loggedIn = QStringList(),
+                                     bool withOwnSteamGames = false) {
         const QDir files(m_files.path());
         setLoggedIn(loggedIn);
         QJsonArray shared;
@@ -166,6 +169,8 @@ public:
         setup.catalogue = files.filePath("games.json");
         setup.childLists = files.filePath("games");
         setup.steamFor = "/usr/bin/cairn-steam-for";
+        setup.steamHome = ownSteamHome(withOwnSteamGames);
+        setup.sharedLibrary = files.filePath("steam-library");
         setup.accounts = [accounts] { return accounts; };
         setup.loggedIn = [this] {
             QFile file(loggedInFile());
@@ -231,6 +236,28 @@ public:
     }
 
 private:
+    // A home whose own Steam library has games in it, or "" for none.
+    QString ownSteamHome(bool withGames) const {
+        const QDir files(m_files.path());
+        const QString steamapps = files.filePath("home/.local/share/Steam/steamapps");
+        QDir(files.filePath("home")).removeRecursively();
+        if (!withGames) {
+            return {};
+        }
+        files.mkpath(steamapps);
+        const QStringList manifests{
+            R"("AppState" { "appid" "620" "name" "Portal 2" "installdir" "Portal 2" })",
+            R"("AppState" { "appid" "504230" "name" "Celeste" "installdir" "Celeste" })",
+            R"m("AppState" { "appid" "1628350" "name" "Steam Linux Runtime 3.0 (sniper)"
+                            "installdir" "SteamLinuxRuntime_sniper" })m",
+        };
+        for (const QString& manifest : manifests) {
+            const QString appId = manifest.section(u'"', 5, 5);
+            writeFile(steamapps + "/appmanifest_" + appId + ".acf", manifest.toUtf8());
+        }
+        return files.filePath("home");
+    }
+
     QString loggedInFile() const {
         return QDir(m_files.path()).filePath("logged-in");
     }
