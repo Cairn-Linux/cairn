@@ -19,13 +19,19 @@ constexpr qint64 lastPartBytes = qint64{256} * 1024;
 // stopped or crashed. A first install of the client took 15 minutes on the
 // kids' laptop's Wi-Fi.
 constexpr qint64 longestStartSeconds = qint64{20} * 60;
+// After an update the updater starts again at once to verify itself, and
+// Steam's start script starts it once more 17 or 18 s later (dev PC,
+// 2026-10-27). A start a few minutes on is a later start of its own.
+constexpr qint64 restartSeconds = 60;
 
 // A line the updater writes while it downloads or installs an update of the
-// client before starting it. A download while the client runs writes others.
+// client before starting it. It writes some of these while the client runs
+// too, but by then the client has run its own start command.
 bool isUpdating(const QByteArray& line) {
     static const QList<QByteArray> says = {
-        "] Found pending update", "] Downloading Update...", "] Downloading update (",
-        "] Applying update...",   "] Extracting package...", "] Installing update...",
+        "] Found pending update",     "] Downloading Update...", "] Downloading update",
+        "] Downloaded new manifest:", "] Applying update...",    "] Extracting package...",
+        "] Installing update...",
     };
     return std::ranges::any_of(says, [&line](const QByteArray& s) { return line.contains(s); });
 }
@@ -36,11 +42,16 @@ SteamStartup::SteamStartup(QString bootstrapLog, QString consoleLog)
 
 SteamStartup::Now SteamStartup::read(const QDateTime& now) const {
     std::optional<QDateTime> started;
+    std::optional<QDateTime> updated;
     bool updating = false;
+    bool restarting = false;
     for (const QByteArray& line : lastLines(m_bootstrapLog)) {
         if (line.contains("] Startup - ")) {
             started = SteamLaunchLog::timeOf(line);
             updating = false;
+            restarting = updated && started && updated->secsTo(*started) <= restartSeconds;
+        } else if (line.contains("] Update complete, launching")) {
+            updated = SteamLaunchLog::timeOf(line);
         } else if (started && isUpdating(line)) {
             updating = true;
         }
@@ -59,7 +70,15 @@ SteamStartup::Now SteamStartup::read(const QDateTime& now) const {
             break;
         }
     }
-    return updating ? Now::Updating : Now::Starting;
+    if (updating) {
+        return Now::Updating;
+    }
+    return restarting ? Now::Restarting : Now::Starting;
+}
+
+bool SteamStartup::updatingItself(const QDateTime& now) const {
+    const Now steam = read(now);
+    return steam == Now::Updating || steam == Now::Restarting;
 }
 
 QList<QByteArray> SteamStartup::lastLines(const QString& path) {

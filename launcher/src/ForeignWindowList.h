@@ -25,6 +25,10 @@ public:
     bool available() const;
     QString ownAppId() const;
 
+    // Asks the compositor to hide one of the windows it reported, as a
+    // minimise button would. Nothing happens without a compositor.
+    Q_INVOKABLE void minimize(const QString& identifier);
+
 signals:
     void availableChanged();
     void windowOpened(const QString& identifier, const QString& appId, const QString& title,
