@@ -400,7 +400,7 @@ done, and what could sink it. Decisions that change the design get an ADR in
   account's Steam had its saved sign-in turned down. The starting screen
   said "Getting it ready" for 10 minutes and no game came. The launcher
   now reads Steam's `LogonFailure` lines while Steam's log says nothing
-  about the game: a refused sign-in ends the wait at the next look, and no
+  about the game: a refused sign-in ends the wait at the next grace, and no
   connection gets a minute. Both end on the grown-up screen, without
   "Getting it ready", and the journal says which it was. Tested in C++
   with lines from both laptops; not yet run on the kids' laptop. A line

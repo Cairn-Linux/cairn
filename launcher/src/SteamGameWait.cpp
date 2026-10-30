@@ -110,6 +110,27 @@ SteamSignIn::Now SteamGameWait::signIn() const {
     return m_signInNow;
 }
 
+QString SteamGameWait::journalNote(const QString& title) const {
+    if (m_signInNow == SteamSignIn::Now::Refused) {
+        return QStringLiteral("Steam could not sign in, so %1 did not start. "
+                              "Steam needs to be signed in again.")
+            .arg(title);
+    }
+    if (m_signInNow == SteamSignIn::Now::NoConnection) {
+        return QStringLiteral("Steam could not reach the internet, so %1 did not start.")
+            .arg(title);
+    }
+    if (m_lastStep == SteamLaunchLog::Step::WaitingForAnswer) {
+        return QStringLiteral(
+                   "Steam is waiting for an answer about %1 on a window the kiosk hides.")
+            .arg(title);
+    }
+    if (m_lastStep == SteamLaunchLog::Step::Refused) {
+        return QStringLiteral("Steam refused to start %1.").arg(title);
+    }
+    return {};
+}
+
 void SteamGameWait::setOfflineLimitMilliseconds(int milliseconds) {
     m_offlineLimitMilliseconds = milliseconds;
 }

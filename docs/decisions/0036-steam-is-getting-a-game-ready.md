@@ -132,9 +132,10 @@ writes once it has signed in:
 [2026-10-28 13:14:59] Waiting for compat in post-logon took: 0.096359s
 ```
 
-Its connection log says which failures it tries again by itself, every 20
-to 70 s: `No Connection`, also `Service Unavailable`, `Try another CM`,
-`Timeout` and a bare `Failure`. After `Access Denied` it says `Do not
+Its connection log says which failures it tries again by itself: `No
+Connection`, also `Service Unavailable`, `Try another CM`, `Timeout` and a
+bare `Failure`. Its first five tries come 8 to 90 s apart, and later ones 2
+to 14 minutes apart (development laptop, 2026-10-08 to 2026-10-28). After `Access Denied` it says `Do not
 reconnect`, and its later tries, made without an account, all fail with `No
 Connection`. Other refusals in Steam's list, such as `Invalid Password` or
 `Account Logon Denied`, also need a person.
@@ -150,8 +151,10 @@ again counts as no connection.
   in. The grown-up screen comes, as for any launch that shows nothing.
   The journal says "Steam could not sign in, so Putt-Putt Travels Through
   Time did not start. Steam needs to be signed in again."
-- **No connection gets a short wait**, one minute from the tap, so Steam
-  can try once or twice. Then the grown-up screen comes. The journal says
+- **No connection gets a short wait**, one minute from the tap. This is
+  a chosen wait, not a count of Steam's own tries: a Steam offline for a
+  while next tries minutes later, and a child should not watch a frozen
+  screen that long. Then the grown-up screen comes. The journal says
   "Steam could not reach the internet, so … did not start."
 - Neither counts as work, so neither shows "Getting it ready". Neither
   sends the tap again.
@@ -172,6 +175,6 @@ Steam signs in. No connection lasts until Steam signs in. Lines from an
 earlier client do not count, nor do a client's old lines while the updater
 installs a new one. Each reason is sorted. A refusal ends the wait with
 no sentence and no second tap. No connection gets the short wait, ends
-sooner if Steam signs in, and never stops a game Steam has in hand. An
-`AppLauncher` test runs the evening of #182 to the grown-up screen with its
-journal line.
+sooner if Steam signs in, and never stops a game Steam has in hand. Two
+`AppLauncher` tests run to the grown-up screen with the journal line: the
+evening of #182, and a Steam with no connection.

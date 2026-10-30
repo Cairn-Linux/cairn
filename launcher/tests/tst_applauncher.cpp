@@ -1085,6 +1085,47 @@ private slots:
         qputenv("PATH", path);
     }
 
+    // #182: Steam, starting at login, cannot reach its servers. The starting
+    // screen never says the game is getting ready; after the short wait the
+    // grown-up screen comes, and the journal says why.
+    void aSteamWithNoConnectionNeedsAGrownUpAndSaysSo() {
+        const QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        QFile fake(dir.filePath(QStringLiteral("steam")));
+        QVERIFY(fake.open(QIODevice::WriteOnly));
+        fake.write("#!/bin/sh\nexit 0\n");
+        fake.close();
+        QVERIFY(fake.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
+        const QByteArray path = qgetenv("PATH");
+        qputenv("PATH", dir.path().toUtf8() + ':' + path);
+
+        QFile::remove(dataHome().filePath(QStringLiteral("Steam/logs/console_log.txt")));
+        steamLogs(QStringLiteral("bootstrap_log.txt"), 30,
+                  "Startup - updater built Oct 13 2026 18:44:25");
+        steamLogs(QStringLiteral("console_log.txt"), 28, "Client version: 1792618285");
+        steamLogs(QStringLiteral("console_log.txt"), 10, "LogonFailure No Connection");
+        AppLauncher launcher(this);
+        launcher.setLaunchGraceMilliseconds(200);
+        launcher.setSteamOfflineLimitMilliseconds(500);
+        QTest::ignoreMessage(
+            QtWarningMsg,
+            "Steam could not reach the internet, so Putt-Putt Travels Through Time did not start.");
+        QTest::ignoreMessage(
+            QtWarningMsg, "Nothing of Putt-Putt Travels Through Time came on the screen in time.");
+        launcher.launch(
+            QStringLiteral("Putt-Putt Travels Through Time"),
+            {QStringLiteral("steam"), QStringLiteral("-applaunch"), QStringLiteral("294670")});
+        // Still waiting after the first grace, inside the short wait.
+        QTest::qWait(300);
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+        QVERIFY(!launcher.gettingReady());
+        QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
+        QVERIFY(!launcher.gettingReady());
+        QVERIFY(QFile::remove(dataHome().filePath(QStringLiteral("Steam/logs/bootstrap_log.txt"))));
+        QVERIFY(QFile::remove(dataHome().filePath(QStringLiteral("Steam/logs/console_log.txt"))));
+        qputenv("PATH", path);
+    }
+
     // The grown-up's key always brings the tiles back, whatever is still open.
     void giveUpAlwaysBringsTheTilesBack() {
         AppLauncher launcher(this);

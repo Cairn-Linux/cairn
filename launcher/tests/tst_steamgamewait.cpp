@@ -466,6 +466,49 @@ private slots:
         QCOMPARE(wait.signIn(), SteamSignIn::Now::Fine);
     }
 
+    // The journal says what Steam said last, sign-in first, for the grown-up.
+    void journalNoteSaysWhatSteamSaid_data() {
+        QTest::addColumn<QByteArray>("signInLine");
+        QTest::addColumn<QByteArray>("gameLine");
+        QTest::addColumn<QString>("note");
+        QTest::newRow("refused sign-in")
+            << QByteArray("LogonFailure Access Denied") << QByteArray()
+            << QStringLiteral("Steam could not sign in, so Ada's game did not start. Steam needs "
+                              "to be signed in again.");
+        QTest::newRow("no connection")
+            << QByteArray("LogonFailure No Connection") << QByteArray()
+            << QStringLiteral("Steam could not reach the internet, so Ada's game did not start.");
+        QTest::newRow("question")
+            << QByteArray()
+            << QByteArray("waiting for user response to SynchronizingCloud \"syncfailed\"")
+            << QStringLiteral(
+                   "Steam is waiting for an answer about Ada's game on a window the kiosk hides.");
+        QTest::newRow("refusal") << QByteArray() << QByteArray("failed with AppError_33 with \"\"")
+                                 << QStringLiteral("Steam refused to start Ada's game.");
+        QTest::newRow("nothing said") << QByteArray() << QByteArray() << QString();
+    }
+
+    void journalNoteSaysWhatSteamSaid() {
+        QFETCH(const QByteArray, signInLine);
+        QFETCH(const QByteArray, gameLine);
+        QFETCH(const QString, note);
+        const QTemporaryDir root;
+        const QString log = root.filePath(QStringLiteral("console_log.txt"));
+        const QString bootstrap = root.filePath(QStringLiteral("bootstrap_log.txt"));
+        SteamGameWait wait(root.path(), log, bootstrap);
+        steamLine(bootstrap, 30, "Startup - updater built Oct 13 2026 18:44:25");
+        steamLine(log, 28, "Client version: 1792618285");
+        wait.startLaunch(steamGame());
+        if (!signInLine.isEmpty()) {
+            steamLine(log, 0, signInLine);
+        }
+        if (!gameLine.isEmpty()) {
+            steamSays(log, gameLine);
+        }
+        wait.stillComing();
+        QCOMPARE(wait.journalNote(QStringLiteral("Ada's game")), note);
+    }
+
     void notASteamGameIsNeverSentAgain() {
         const QTemporaryDir root;
         const QString log = root.filePath(QStringLiteral("console_log.txt"));

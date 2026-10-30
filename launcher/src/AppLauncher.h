@@ -97,6 +97,9 @@ public:
     void setOwnAppId(const QString& appId);
     bool steamStartedAtLogin() const;
     void setSteamStartedAtLogin(bool started);
+    // Tests set this short: how long a Steam that cannot reach its servers
+    // is waited for (SteamGameWait).
+    void setSteamOfflineLimitMilliseconds(int milliseconds);
 
     // Ignored while a launch is in flight (Starting), an app's window is up
     // (Running), or a window that opened on its own is up (Interrupted). An

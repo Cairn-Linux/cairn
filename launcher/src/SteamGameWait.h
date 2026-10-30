@@ -33,9 +33,9 @@
 // client has started without taking the tap, the launcher sends it again.
 //
 // A Steam that cannot sign in never takes the tap up (#182). While Steam's
-// log says nothing about the game, a refused sign-in ends the wait at once,
-// and a Steam that cannot reach its servers gets a short wait to come back
-// first. Neither counts as work, so neither shows "Getting it ready".
+// log says nothing about the game, a refused sign-in ends the wait when the
+// grace it is seen in ends, and a Steam that cannot reach its servers gets a
+// short wait to come back first. Neither counts as work, so neither shows "Getting it ready".
 class SteamGameWait {
 public:
     explicit SteamGameWait(QString processRoot = QStringLiteral("/proc"),
@@ -73,6 +73,10 @@ public:
     // Whether Steam could sign in, at the last stillComing(), for the
     // journal. Fine whenever Steam's log says something about the game.
     SteamSignIn::Now signIn() const;
+    // The journal's sentence for a Steam game called `title` that put
+    // nothing on the screen, from what Steam said at the last stillComing(),
+    // or empty when Steam said nothing that explains it.
+    QString journalNote(const QString& title) const;
 
     // Tests set these short.
     void setStartupMilliseconds(int milliseconds);
@@ -118,9 +122,11 @@ private:
     // Wi-Fi (2026-10-20); a game update on a slow line takes minutes more.
     qint64 m_workLimitMilliseconds = 600000;
     // The longest a Steam game is waited for after the tap while Steam cannot
-    // reach its servers and has not taken the game up. Steam tries again
-    // every 20 to 70 s (connection_log.txt, 2026-10-28), so a minute gives it
-    // a try or two; the Wi-Fi coming back later is a grown-up's job.
+    // reach its servers and has not taken the game up. A chosen short wait,
+    // not a count of Steam's own retries: its connection log (2026-10-08 to
+    // 2026-10-28) shows its first five tries 8 to 90 s apart, then gaps of 2
+    // to 14 minutes. A child should not watch a frozen screen that long; the
+    // Wi-Fi coming back is a grown-up's job.
     qint64 m_offlineLimitMilliseconds = 60000;
     // How long a client that started after the tap gets to take it. On the
     // kids' laptop a held tap was taken in the same second as the client's
