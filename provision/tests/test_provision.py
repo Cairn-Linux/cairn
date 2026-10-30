@@ -1144,7 +1144,7 @@ class GroupNumbersTest(unittest.TestCase):
 
     @unittest.skipUnless(
         (SCRIPT.parents[1] / "system_files/usr/lib/sysusers.d/cairn.conf").exists(),
-        "the build stage copies no system_files",
+        "the build stage copies neither sysusers.d nor build_files",
     )
     def test_the_checkout_and_the_image_build_read_the_same_number(self):
         repo = SCRIPT.parents[1]

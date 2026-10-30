@@ -277,13 +277,16 @@ only an active session at the computer.
 Some tests need what a container build does not have, so they skip
 themselves there: two give-up tests need user namespaces or a systemd user
 manager, seven `copy_games` tests need a folder that can reflink
-(btrfs or XFS), one `provision` test reads `system_files/`, which
-the build stage does not copy, and one `polkit_rules` test runs the
+(btrfs or XFS), one `provision` test reads `sysusers.d` and
+`build_files/`, which the build stage does not copy, and one `polkit_rules` test runs the
 levels rule with `node`, which the build stage does not install. The build log lists every skip under
 "Tests skipped in the build stage". Run `ctest` on the host before
 building an image; it is the only place those tests run.
 
-The build stage copies only what CMake reads. `.containerignore` keeps
+The build stage copies only what CMake and the tests read. From
+`system_files/` that is one file, `usr/lib/tmpfiles.d/cairn.conf`, which a
+`family_setup` test reads; copying only that file means editing the rest of
+`system_files/` does not force a full recompile. `.containerignore` keeps
 build folders, keys, tool caches, `.git` and `.claude/` out of the build
 context at any depth, so a build folder or a key anywhere in the checkout
 does not reach podman's storage.

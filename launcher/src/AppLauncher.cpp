@@ -123,6 +123,10 @@ bool AppLauncher::steamStartedAtLogin() const {
     return m_steamStartedAtLogin;
 }
 
+void AppLauncher::setSteamOfflineLimitMilliseconds(int milliseconds) {
+    m_steamGame.setOfflineLimitMilliseconds(milliseconds);
+}
+
 void AppLauncher::setSteamStartedAtLogin(bool started) {
     if (started == m_steamStartedAtLogin) {
         return;
@@ -434,13 +438,9 @@ void AppLauncher::onLaunchGraceTimeout() {
     // Nothing came at all. Back at the tiles a child presses again, and again
     // (#139); the grown-up screen says the tile did not start (ADR-0030).
     // What Steam last said goes to the journal for the grown-up.
-    if (m_steamGame.lastStep() == SteamLaunchLog::Step::WaitingForAnswer) {
-        qWarning().noquote()
-            << QStringLiteral(
-                   "Steam is waiting for an answer about %1 on a window the kiosk hides.")
-                   .arg(m_launchTitle);
-    } else if (m_steamGame.lastStep() == SteamLaunchLog::Step::Refused) {
-        qWarning().noquote() << QStringLiteral("Steam refused to start %1.").arg(m_launchTitle);
+    const QString note = m_steamGame.journalNote(m_launchTitle);
+    if (!note.isEmpty()) {
+        qWarning().noquote() << note;
     }
     nothingCame();
 }
