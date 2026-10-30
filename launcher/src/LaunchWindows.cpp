@@ -109,12 +109,12 @@ QString LaunchWindows::name(const QString& identifier) const {
 }
 
 void LaunchWindows::decide(Window& window) {
-    if (m_steamUpdating) {
+    const auto parent = m_windows.constFind(window.belongsTo);
+    const bool belongsToTheApp = parent != m_windows.constEnd() && parent->owner == Owner::App;
+    if (m_steamUpdating && !(m_launching && belongsToTheApp)) {
         window.owner = Owner::SteamUpdater;
         return;
     }
-    const auto parent = m_windows.constFind(window.belongsTo);
-    const bool belongsToTheApp = parent != m_windows.constEnd() && parent->owner == Owner::App;
     if (m_launching && (m_opening || !appOnScreen() || belongsToTheApp)) {
         window.owner = Owner::App;
         m_appWasOnScreen = true;

@@ -1144,7 +1144,8 @@ private slots:
     }
 
     // Another tile tapped while Steam updates itself: a program that is
-    // opening owns every window on the screen, so its own is never hidden.
+    // opening owns every window on the screen, and once it is open its new
+    // windows are decided as before, so none of its own is ever hidden.
     void anotherAppsWindowWhileSteamUpdatesItselfIsTheApp() {
         QFile::remove(dataHome().filePath(QStringLiteral("Steam/logs/console_log.txt")));
         steamLogs(QStringLiteral("bootstrap_log.txt"), 10,
@@ -1160,12 +1161,19 @@ private slots:
                               QStringLiteral("Tux Paint"));
         QCOMPARE(launcher.state(), AppLauncher::State::Running);
         QCOMPARE(toHide.count(), 0);
-        // Once it is open, a window of the updater's is hidden, not the app's.
-        launcher.windowOpened(QStringLiteral("u1"), QStringLiteral("steam"),
-                              QStringLiteral("Progress"));
+        // Once it is open, its dialog is the app's and stays on the screen.
+        launcher.windowOpened(QStringLiteral("g2"), QStringLiteral("tuxpaint"),
+                              QStringLiteral("Save changes?"), false, QStringLiteral("g1"));
         QCOMPARE(launcher.state(), AppLauncher::State::Running);
-        QCOMPARE(toHide.count(), 1);
-        QCOMPARE(toHide.at(0).at(0).toString(), QStringLiteral("u1"));
+        QCOMPARE(toHide.count(), 0);
+        launcher.windowClosed(QStringLiteral("g2"));
+        // A window with no parent may be the app's too, so it is not hidden:
+        // the grown-up screen comes up, as for any window on its own.
+        QTest::ignoreMessage(QtWarningMsg, "Open opened a window on its own.");
+        launcher.windowOpened(QStringLiteral("g3"), QStringLiteral("xdg-desktop-portal-kde"),
+                              QStringLiteral("Open"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Interrupted);
+        QCOMPARE(toHide.count(), 0);
         launcher.giveUp();
         // Its program ends by itself, before the launcher goes.
         QTest::qWait(500);

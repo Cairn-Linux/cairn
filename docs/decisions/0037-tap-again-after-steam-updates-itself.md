@@ -184,10 +184,15 @@ the compositor to hide it.**
   stays in the compositor's list, hidden, as a window rule's `Iconify`
   leaves it. The journal says "Steam is updating itself; its window
   Progress is hidden from the child."
-- A program other than a Steam game that is still opening owns every window
-  on the screen, as ADR-0028 says, so a drawing app tapped during Steam's
-  update is never hidden. A Steam game cannot draw a window while Steam
-  updates itself, so during its launch the rule holds.
+- While a program other than a Steam game is launched, opening or open,
+  the rule is off and its windows are decided as before. While it opens it
+  owns every window on the screen, as ADR-0028 says. Once it is open, a
+  dialog that belongs to one of its windows is its own, and a new window
+  with no parent opened on its own and brings up the grown-up screen. A
+  drawing app tapped during Steam's update is never hidden, so it can never
+  sit stuck behind a dialog the child cannot see. A Steam game cannot draw
+  a window while Steam updates itself, so during its launch the rule holds;
+  even then a dialog that belongs to the game's window stays the game's.
 
 So at login the child sees the tiles. A game tapped during the update
 waits on the starting screen with "Getting it ready", as the first part of
@@ -209,9 +214,15 @@ as the fallback.
   on the dev PC a screenshot 3 s after each window opened showed only the
   tiles. labwc's `ignoreFocusRequest` rule already stops it taking focus
   by asking.
-- A window from anything else that opens with no launch while Steam updates
-  itself is hidden too. Nothing else opens windows unasked in a child's
-  session in those minutes. An error box from Steam's updater is hidden
+- A window from anything else that opens with no launch, or during a Steam
+  game's launch, while Steam updates itself is hidden too. Nothing else
+  opens windows unasked in a child's session in those minutes.
+- While a drawing app or another program that is not a Steam game is
+  launched, a new window of the updater's is not hidden: with no way to
+  tell it from the app's own window with no parent, the grown-up screen
+  comes up for it, as before this amendment. A window of the updater's
+  that was hidden before the tap stays the updater's and is hidden again
+  if it comes back. An error box from Steam's updater is hidden
   as well; if the update fails, a game tapped afterwards ends on the
   grown-up screen when its wait ends, and the journal has the window's
   name.

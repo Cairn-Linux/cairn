@@ -232,11 +232,14 @@ void AppLauncher::windowChanged(const QString& identifier, bool hidden, const QS
 }
 
 void AppLauncher::noteSteamUpdating() {
-    // A program other than a Steam game that is opening owns every window on
-    // the screen (ADR-0028). A Steam game draws none while Steam updates
-    // itself, so a window during its launch is the updater's.
-    const bool otherAppOpening = m_windows.opening() && !m_steamGame.steamGame();
-    m_windows.steamUpdating(!otherAppOpening &&
+    // While a program other than a Steam game is launched, opening or open,
+    // a new window may be its own, such as a dialog with no parent; hiding
+    // that would leave the app stuck behind a window the child cannot see.
+    // So its windows are decided as before (ADR-0028). A Steam game draws
+    // none while Steam updates itself, so a window during its launch is the
+    // updater's.
+    const bool otherAppLaunched = m_windows.launching() && !m_steamGame.steamGame();
+    m_windows.steamUpdating(!otherAppLaunched &&
                             m_steamStartup.updatingItself(QDateTime::currentDateTime()));
 }
 

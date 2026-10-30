@@ -280,7 +280,9 @@ says and never from a window's name:
   screen the launcher is Running; when the last one leaves, the tiles are
   back.
 - While Steam is updating itself, a window that comes on the screen is its
-  updater's, unless a program other than a Steam game is opening. It keeps
+  updater's, unless a program other than a Steam game is launched (opening
+  or open), or the window belongs to one of the app's, such as its dialog;
+  those are decided as below, so an app's own window is never hidden. It keeps
   no launch waiting and brings up no grown-up screen, and the launcher asks
   the compositor to minimise it, again if it comes back, so its Cancel
   button is out of the child's reach (ADR-0037, #183). The journal says

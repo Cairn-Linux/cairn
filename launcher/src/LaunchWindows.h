@@ -23,9 +23,10 @@
 // While Steam is updating itself, a window that comes on the screen is its
 // updater's, such as "Progress" with a Cancel button (#183). It is neither
 // the app's nor on its own: it keeps no launch waiting and brings up no
-// grown-up screen, and the launcher asks the compositor to hide it. Steam
-// draws no game while it updates itself, so this holds during a Steam
-// game's launch too; the launcher says when it holds (AppLauncher).
+// grown-up screen, and the launcher asks the compositor to hide it. A window
+// that belongs to one of the app's stays the app's, so a dialog is never
+// hidden. Steam draws no game while it updates itself, so this holds during
+// a Steam game's launch too; the launcher says when it holds (AppLauncher).
 class LaunchWindows {
 public:
     // A tile launched something: every window on the screen is the app's until

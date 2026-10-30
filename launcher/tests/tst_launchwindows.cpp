@@ -198,6 +198,22 @@ private slots:
         QCOMPARE(windows.unexpectedName(), QStringLiteral("Arthur's Reading Race"));
     }
 
+    // A dialog of an open app's while Steam updates itself is the app's,
+    // never one to hide: hidden, it would leave the app stuck behind it.
+    void anOpenAppsDialogWhileSteamUpdatesItselfIsTheApps() {
+        LaunchWindows windows;
+        windows.startLaunch();
+        windows.opened(QStringLiteral("g1"), QStringLiteral("Tux Paint"), false, {});
+        windows.appIsOpen();
+        windows.steamUpdating(true);
+        windows.opened(QStringLiteral("g2"), QStringLiteral("Save changes?"), false,
+                       QStringLiteral("g1"));
+        QVERIFY(!windows.steamUpdaterOnScreen(QStringLiteral("g2")));
+        QVERIFY(!windows.unexpectedOnScreen());
+        windows.closed(QStringLiteral("g1"));
+        QVERIFY(windows.appOnScreen());
+    }
+
     // A window hidden while Steam updated itself is decided when it is
     // first shown, by what holds then.
     void aHiddenWindowIsDecidedWhenShown() {
