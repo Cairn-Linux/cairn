@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma ComponentBehavior: Bound
-import QtCore
 import QtQuick
-import QtQuick.Dialogs
 import Cairn.Brand
 import Cairn.Family
 
@@ -14,7 +12,6 @@ Column {
     id: view
 
     required property AccountPage page
-    readonly property bool aboutPicture: view.page.step === AccountPage.SettingPicture || view.page.step === AccountPage.PictureChanged || view.page.step === AccountPage.PictureNotChanged
     readonly property bool aboutPassword: view.page.step === AccountPage.Asking || view.page.step === AccountPage.PasswordChanged || view.page.step === AccountPage.PasswordNotChanged
 
     // An outcome has changed: the box that says it, for the window to
@@ -22,20 +19,6 @@ Column {
     signal outcomeShown(Item box)
 
     spacing: Tokens.bodySize
-
-    function pictureOutcome() {
-        switch (view.page.step) {
-        case AccountPage.SettingPicture:
-            return qsTr("Saving the picture.");
-        case AccountPage.PictureChanged:
-            return qsTr("Your picture is changed.");
-        case AccountPage.PictureNotChanged:
-            if (view.page.reason === AccountPage.PictureUnreadable)
-                return qsTr("That file is not a picture this window can read, so your picture stays as it was. Choose a PNG or JPEG picture.");
-            return qsTr("Your picture stays as it was: the computer's account service did not take it. Trying again is safe. The reason is in the system log. In a terminal: journalctl -t cairn-guardian");
-        }
-        return "";
-    }
 
     function passwordOutcome() {
         switch (view.page.step) {
@@ -73,6 +56,13 @@ Column {
             return qsTr("Your password did not change. Trying again is safe. If it fails again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian");
         }
         return qsTr("Cairn's family command did not answer as expected, so it is not known whether your password changed. Try the new one the next time a box asks; if it is not accepted, the old one still works. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian");
+    }
+
+    // The picture section is a column of its own, so it is laid out
+    // first, or the window would scroll to where its box used to be.
+    function showOutcome() {
+        pictureSection.forceLayout();
+        view.outcomeShown(pictureSection.aboutPicture ? pictureSection.outcomeBox : passwordOutcomeBox);
     }
 
     Text {
@@ -128,64 +118,11 @@ Column {
         }
     }
 
-    Text {
+    PictureSection {
+        id: pictureSection
+
         width: view.width
-        wrapMode: Text.WordWrap
-        text: qsTr("Picture")
-        font.family: Tokens.fontFamily
-        font.pixelSize: Tokens.headingSize
-        font.weight: Tokens.weightBold
-        lineHeight: Tokens.headingLineHeight
-        color: Tokens.text
-        Accessible.role: Accessible.Heading
-        Accessible.name: text
-    }
-
-    Text {
-        width: view.width
-        wrapMode: Text.WordWrap
-        text: qsTr("Pick one of these, or a picture of your own. Plasma shows it on the lock screen.")
-        font.family: Tokens.fontFamily
-        font.pixelSize: Tokens.bodySize
-        lineHeight: Tokens.bodyLineHeight
-        color: Tokens.text
-        Accessible.role: Accessible.StaticText
-        Accessible.name: text
-    }
-
-    Flow {
-        objectName: "pictureChoices"
-        width: view.width
-        spacing: Tokens.bodySize / 2
-        enabled: !view.page.busy
-
-        Repeater {
-            objectName: "pictureTiles"
-            model: view.page.pictures
-
-            PictureTile {
-                required property var modelData
-
-                source: modelData.url
-                name: modelData.name
-                onChosen: view.page.choosePicture(modelData.url)
-            }
-        }
-    }
-
-    TextButton {
-        objectName: "ownPictureButton"
-        text: qsTr("Choose a picture of your own")
-        enabled: !view.page.busy
-        onActivated: fileDialog.open()
-    }
-
-    OutcomeBox {
-        id: pictureOutcomeBox
-
-        objectName: "pictureOutcome"
-        width: view.width
-        text: view.aboutPicture ? view.pictureOutcome() : ""
+        page: view.page
     }
 
     PasswordForm {
@@ -206,15 +143,6 @@ Column {
         text: view.aboutPassword ? view.passwordOutcome() : ""
     }
 
-    FileDialog {
-        id: fileDialog
-
-        title: qsTr("Choose a picture of your own")
-        currentFolder: StandardPaths.writableLocation(StandardPaths.PicturesLocation)
-        nameFilters: [qsTr("Pictures (*.png *.jpg *.jpeg *.webp *.bmp *.gif)")]
-        onAccepted: view.page.choosePicture(fileDialog.selectedFile)
-    }
-
     // Every control waits while a change runs, which takes focus away. A
     // new password is cleared once it is in place, and kept otherwise, so
     // a typing slip is mended without typing both again.
@@ -226,7 +154,7 @@ Column {
                 passwordForm.clear();
             if (view.page.step === AccountPage.PasswordChanged || view.page.step === AccountPage.PasswordNotChanged)
                 Qt.callLater(passwordForm.takeFocus);
-            Qt.callLater(view.outcomeShown, view.aboutPicture ? pictureOutcomeBox : passwordOutcomeBox);
+            Qt.callLater(view.showOutcome);
         }
     }
 }

@@ -144,6 +144,7 @@ set(family_window_qml_files
     qml/LevelChoice.qml
     qml/TextButton.qml
     qml/AccountView.qml
+    qml/PictureSection.qml
     qml/PasswordForm.qml
     qml/PictureTile.qml
     qml/OutcomeBox.qml

@@ -4,119 +4,78 @@
 <context>
     <name>AccountView</name>
     <message>
-        <location filename="../qml/AccountView.qml" line="29"/>
-        <source>Saving the picture.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/AccountView.qml" line="31"/>
-        <source>Your picture is changed.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/AccountView.qml" line="34"/>
-        <source>That file is not a picture this window can read, so your picture stays as it was. Choose a PNG or JPEG picture.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/AccountView.qml" line="35"/>
-        <source>Your picture stays as it was: the computer&apos;s account service did not take it. Trying again is safe. The reason is in the system log. In a terminal: journalctl -t cairn-guardian</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/AccountView.qml" line="43"/>
+        <location filename="../qml/AccountView.qml" line="26"/>
         <source>Type the password you use now in the box that opened.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AccountView.qml" line="45"/>
+        <location filename="../qml/AccountView.qml" line="28"/>
         <source>Your password is changed. Use the new one from now on: to log in, to unlock the screen and in every password box.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AccountView.qml" line="55"/>
+        <location filename="../qml/AccountView.qml" line="38"/>
         <source>Type the new password first.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AccountView.qml" line="57"/>
+        <location filename="../qml/AccountView.qml" line="40"/>
         <source>The two new passwords are not the same. Type the new password again in the second box.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AccountView.qml" line="59"/>
+        <location filename="../qml/AccountView.qml" line="42"/>
         <source>A password can be at most %1 characters long. Choose a shorter one.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AccountView.qml" line="62"/>
+        <location filename="../qml/AccountView.qml" line="45"/>
         <source>A password cannot hold a tab, a line break or another character that does not show. Type it again without them.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AccountView.qml" line="65"/>
+        <location filename="../qml/AccountView.qml" line="48"/>
         <source>Your password did not change. It needs the password you use now: the box was closed, or the password was not accepted.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AccountView.qml" line="67"/>
+        <location filename="../qml/AccountView.qml" line="50"/>
         <source>Your password did not change. Only a grown-up&apos;s account can change its password here.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AccountView.qml" line="69"/>
+        <location filename="../qml/AccountView.qml" line="52"/>
         <source>Cairn&apos;s family command did not get the rights it needs, so your password did not change. Close Family and open it again. If it happens again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AccountView.qml" line="71"/>
+        <location filename="../qml/AccountView.qml" line="54"/>
         <source>This window asked Cairn&apos;s family command for something it does not do, so your password did not change. The window and the command may come from different versions of Cairn. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AccountView.qml" line="73"/>
+        <location filename="../qml/AccountView.qml" line="56"/>
         <source>Your password did not change. Trying again is safe. If it fails again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AccountView.qml" line="75"/>
+        <location filename="../qml/AccountView.qml" line="58"/>
         <source>Cairn&apos;s family command did not answer as expected, so it is not known whether your password changed. Try the new one the next time a box asks; if it is not accepted, the old one still works. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AccountView.qml" line="82"/>
+        <location filename="../qml/AccountView.qml" line="72"/>
         <source>Your account</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AccountView.qml" line="104"/>
+        <location filename="../qml/AccountView.qml" line="94"/>
         <source>No picture yet</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AccountView.qml" line="104"/>
+        <location filename="../qml/AccountView.qml" line="94"/>
         <source>Your picture</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/AccountView.qml" line="134"/>
-        <source>Picture</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/AccountView.qml" line="147"/>
-        <source>Pick one of these, or a picture of your own. Plasma shows it on the lock screen.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/AccountView.qml" line="178"/>
-        <location filename="../qml/AccountView.qml" line="212"/>
-        <source>Choose a picture of your own</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/AccountView.qml" line="214"/>
-        <source>Pictures (*.png *.jpg *.jpeg *.webp *.bmp *.gif)</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -824,6 +783,50 @@
     <message>
         <location filename="../qml/PasswordForm.qml" line="81"/>
         <source>Change password</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>PictureSection</name>
+    <message>
+        <location filename="../qml/PictureSection.qml" line="23"/>
+        <source>Saving the picture.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PictureSection.qml" line="25"/>
+        <source>Your picture is changed.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PictureSection.qml" line="28"/>
+        <source>That file is not a picture this window can read, so your picture stays as it was. Choose a PNG or JPEG picture.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PictureSection.qml" line="29"/>
+        <source>Your picture stays as it was: the computer&apos;s account service did not take it. Trying again is safe. The reason is in the system log. In a terminal: journalctl -t cairn-guardian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PictureSection.qml" line="37"/>
+        <source>Picture</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PictureSection.qml" line="50"/>
+        <source>Pick one of these, or a picture of your own. Plasma shows it on the lock screen.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PictureSection.qml" line="81"/>
+        <location filename="../qml/PictureSection.qml" line="97"/>
+        <source>Choose a picture of your own</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PictureSection.qml" line="99"/>
+        <source>Pictures (*.png *.jpg *.jpeg *.webp *.bmp *.gif)</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
