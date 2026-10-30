@@ -901,6 +901,10 @@ TestCase {
             wait(300);
             grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-games-log-out.png"));
         }
+        // The warning's buttons are placed by their Flow at the next polish;
+        // until then Log out and Not now both sit at x 0, and a click there
+        // lands on Not now, which is drawn on top.
+        waitForPolish(window);
         mouseClick(findChild(window, "confirmLogOut"));
         tryVerify(() => !window.gamesPage.chosenLoggedIn);
         verify(!findChild(window, "loggedInCover").visible);
