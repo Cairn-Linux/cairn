@@ -6,6 +6,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QLocale>
 #include <QRegularExpression>
 #include <QSet>
 #include <QSignalSpy>
@@ -177,6 +178,12 @@ class GamesPageTest : public QObject {
     QString m_steamHome;
 
 private slots:
+    // The sentences under test are English, whatever the machine's locale:
+    // an image build has none set, and Qt's own "C" joins names with commas.
+    void initTestCase() {
+        QLocale::setDefault(QLocale(QLocale::English, QLocale::UnitedStates));
+    }
+
     void init() {
         QVERIFY(m_temporary.isValid());
         m_accounts = family();

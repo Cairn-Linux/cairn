@@ -13,11 +13,14 @@ guideline (a design canvas, v0.1); this directory is what programs import.
 | `tests/` | Python generator tests and QML tests for both import routes. |
 | `build.py` | The generator and validator. Edit `tokens.json`, run it, then run it again with `--check`. |
 | `mark.svg` | The mark, variant C "Trail stack", in Ink. For light grounds. |
-| `mark-on-ink.svg` | The mark in Sand. For Ink grounds: terminal, login, boot splash. |
+| `mark-on-ink.svg` | The mark in Sand. For Ink grounds: terminal, login. |
 | `mark-currentcolor.svg` | The mark filled with `currentColor` for inline use in HTML. |
 | `image/cairn-logo.svg` | The mark in Ink for the image's icon theme, in a square box with one base-stone height of clear space. |
 | `image/cairn-logo-on-ink.svg` | The same in Sand. The image's logo for dark grounds: the Guardian's start button, the splash, System Settings' About page. |
 | `image/ansi-color` | The colour of the system's name on the console, from `semantic.console`, in the form `os-release` wants. |
+| `image/plymouth/` | The boot screen, a Plymouth theme (ADR-0044): one PNG per stone, the password box and its dot, the theme file and the script. Generated; the image installs it and builds its initramfs with it. |
+| `boot_screen.py` | Draws `image/plymouth/` for `build.py`: the PNGs with the standard library, and the script's numbers from the tokens. |
+| `boot-screen.script` | The boot screen's script in Plymouth's own language, by hand. `build.py` puts the token numbers above it. |
 
 ## Rules that code must keep
 
@@ -53,9 +56,12 @@ python3 brand/build.py --check
 ```
 
 The first command writes `tokens.css`, the QML singleton and module files,
-the three mark SVGs, and the image's two icons and console colour.
+the three mark SVGs, the image's two icons and console colour, and the
+boot screen.
 The second checks every recorded contrast figure, the 3:1 label policy,
-reserved QML names, and byte-for-byte generated output.
+reserved QML names, and byte-for-byte generated output. A PNG is
+compared by its pixels, since another zlib may compress them to other
+bytes.
 Both commands use the Python standard library only.
 
 Applications compile the module in with

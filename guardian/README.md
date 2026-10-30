@@ -144,6 +144,16 @@ If the visit does not open, the window says why in one sentence and offers
 restart the computer before the child logs in again, and stays open until
 the Guardian has read it.
 
+The window's size follows its words. It grows or shrinks with each new
+message (#172). If KWin gives it any other height, such as the height it
+had for the last message as the password box closes, the window puts its
+own height back. Each step with a button to press, such as "did not
+open", asks to bring the window to the front, in case another window,
+such as Steam updating itself, came over it. KWin decides whether it
+does; it may only highlight the window in the taskbar. While the
+password box is up, the window has no button and leaves the box in
+front.
+
 ## cairn-family
 
 ```sh
@@ -244,6 +254,7 @@ QML draws, C++ decides (ADR-0002):
 | `src/ScreenLockWatch` | KWin's `org.freedesktop.ScreenSaver` `ActiveChanged` signal on the session bus, through Qt D-Bus. |
 | `src/SteamForChild` | The steps the window shows, and what Done, the screen lock and the close button do at each one. |
 | `qml/Main.qml` | The Steam window. |
+| `qml/SteamForWords.qml` | The Steam window's words for each step. |
 | `src/LoginName` | The account's login name, made from the name a parent types, and the first free one when it is taken. |
 | `src/ChildList` | The family's children among the accounts, in the order they were made, each with their name and level. |
 | `src/FamilyChange` | Runs `pkexec` with `cairn-family`, one change at a time, and reads its one-line answer, or pkexec's own exit code. |
@@ -338,6 +349,22 @@ login, and asks the test machine's own logind when it has one;
 `loginwatch` sends logind's signals on a bus of its own.
 Setting `CAIRN_SCREENSHOT=/path/family.png` when running
 `tst_familywindow` saves pictures of both pages beside that path.
+`steamwindow` shows every message the Steam window can give, each
+reason it did not open with and without the Guardian's own Steam
+coming back, and checks that every word and button is inside the
+window and the window fits a 1280 by 800 screen. It also checks that
+the window grows again after the password box closes, puts its height
+back when it is resized from outside to an old height, and comes to the
+front when the visit did not open. `CAIRN_SCREENSHOT=/path/steam-for.png`
+saves a picture of each of those steps beside that path. These tests run
+offscreen, so they check the window's own layout and its answer to a
+resize, not what KWin does. They also run by hand with
+`QT_QPA_PLATFORM=wayland` inside a nested `kwin_wayland --virtual
+--no-lockscreen`, started under its own `dbus-run-session`, with
+`__EGL_VENDOR_LIBRARY_FILENAMES` set to Mesa's file on a laptop with an
+Nvidia card. There, without the window putting its height back, the
+stale-resize test fails: the window keeps the old height and cuts off
+its buttons.
 
 `familycommand` runs `cairn-family`'s steps with `system-tool`, one
 stand-in linked under each account tool's name that writes down what it

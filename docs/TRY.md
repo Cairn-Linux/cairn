@@ -217,6 +217,16 @@ themselves.
   logging the child out is planned.
   The journal command above also says it for each such launch: "Steam is
   waiting for an answer about …" or "Steam refused to start …".
+- If the journal says "Steam could not sign in", Steam no longer accepts the
+  child's saved sign-in. Log the child out, open Steam for the child from
+  your own account, and sign in again. If it says "Steam could not reach
+  the internet", check the Wi-Fi; games Steam has already set up may still
+  start without it.
+- Right after a child logs in, Steam sometimes updates itself, which can
+  take ten minutes or more on slow Wi-Fi. The child sees the tiles, and
+  Steam's update window is hidden; a game tapped then says "Getting it
+  ready". The journal says "Steam is updating itself" for each window it
+  hid.
 - If the set-up command says some of a game's files can be read only by
   your own account, your own Steam made them private. This, in your own
   login, lets every account read them, and the children get their copies
