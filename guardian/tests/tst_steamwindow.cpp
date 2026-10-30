@@ -27,6 +27,7 @@ public:
     Q_INVOKABLE SteamForChild* visit(const QString& scenario, bool ownSteamRunning) {
         QDir proc(m_proc.path());
         proc.remove(QStringLiteral("started"));
+        proc.remove(QStringLiteral("stubborn"));
         QDir(m_proc.filePath(QStringLiteral("4242"))).removeRecursively();
         if (ownSteamRunning) {
             proc.mkdir(QStringLiteral("4242"));
@@ -47,6 +48,26 @@ public:
         auto* visit = new SteamForChild(setup);
         QQmlEngine::setObjectOwnership(visit, QQmlEngine::JavaScriptOwnership);
         return visit;
+    }
+
+    // The Guardian's own Steam ignores a request to shut down, until told
+    // otherwise. Each visit() starts with it willing.
+    Q_INVOKABLE void ownSteamWillNotQuit(bool stubborn) {
+        const QString path = m_proc.filePath(QStringLiteral("stubborn"));
+        if (stubborn) {
+            QFile file(path);
+            if (file.open(QIODevice::WriteOnly)) {
+                file.close();
+            }
+        } else {
+            QFile::remove(path);
+        }
+    }
+
+    // Where to save a picture of each step of the window, when pictures
+    // are wanted: this path, with the step's name before ".png".
+    Q_INVOKABLE QString screenshotPath() const {
+        return qEnvironmentVariable("CAIRN_SCREENSHOT");
     }
 
 private:

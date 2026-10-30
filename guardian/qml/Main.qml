@@ -17,20 +17,37 @@ Window {
     readonly property bool asksFirst: visit.step === SteamForChild.Ready || visit.step === SteamForChild.NotOpened
 
     title: qsTr("Steam for %1").arg(child)
-    // The size follows the words, and only the words. Bound as the most and
-    // the least the window may be, so a resize from KWin, such as when the
-    // password box closes, cannot cut the buttons off.
+    // The size follows the words, and only the words, for every step: it
+    // grows and shrinks with each message (#172). Bound as the most and the
+    // least the window may be, so a resize from KWin, such as when the
+    // password box closes, cannot cut the buttons off. Rounded up, as a
+    // window's height is whole pixels and the words' height may not be.
     width: Tokens.headingSize * 22
     height: minimumHeight
     minimumWidth: width
     maximumWidth: width
-    minimumHeight: content.implicitHeight + margin * 2
+    minimumHeight: Math.ceil(content.implicitHeight) + margin * 2
     maximumHeight: minimumHeight
     color: Tokens.ground
     visible: true
 
     onClosing: close => {
         close.accepted = visit.leave();
+    }
+
+    // A step with a button is one the Guardian needs to see, so the window
+    // comes in front, such as of Steam's own window when it updates itself.
+    // While the password box is up there is no button, and the box stays
+    // in front.
+    Connections {
+        target: window.visit
+
+        function onStepChanged() {
+            if (window.mainButtonText() === "")
+                return;
+            window.raise();
+            window.requestActivate();
+        }
     }
 
     function heading() {
@@ -143,6 +160,7 @@ Window {
     Column {
         id: content
 
+        objectName: "content"
         x: window.margin
         y: window.margin
         width: window.width - window.margin * 2
@@ -168,6 +186,7 @@ Window {
             Text {
                 required property string modelData
 
+                objectName: "paragraph"
                 width: content.width
                 wrapMode: Text.WordWrap
                 text: modelData
@@ -181,6 +200,7 @@ Window {
         }
 
         Row {
+            objectName: "buttons"
             spacing: Tokens.bodySize
             topPadding: Tokens.bodySize
             // From the words, not from the button: a hidden row hides the
