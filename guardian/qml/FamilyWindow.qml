@@ -165,14 +165,6 @@ Window {
             width: window.width - window.margin * 2
             visible: window.showing === "games"
             page: window.gamesPage
-
-            // Where focus went, and what the Save did, which wins when the
-            // window is too short for both.
-            onOutcomeShown: {
-                gamesView.forceLayout();
-                window.showItem(window.activeFocusItem);
-                window.showItem(gamesView.outcomeBox);
-            }
         }
     }
 
@@ -187,5 +179,13 @@ Window {
         radius: Tokens.radiusPill
         color: Tokens.machine
         Accessible.ignored: true
+    }
+
+    // A Save's own window, over everything else, the page switch too.
+    SaveProgress {
+        objectName: "saveProgress"
+        anchors.fill: parent
+        saving: window.gamesPage.saving
+        onClosed: Qt.callLater(gamesView.restoreFocus)
     }
 }

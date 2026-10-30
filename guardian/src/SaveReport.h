@@ -43,10 +43,15 @@ public:
         std::optional<int> removed;
         // Why their new games are not all given, such as logged-in.
         std::optional<QString> held;
-        // Their new games are written down, and are copied the next time
-        // they log out.
-        bool later = false;
         QList<Skip> skipped;
+    };
+
+    // One game the copy gave a child, or found they had already.
+    struct Copied {
+        QString login;
+        QString appId;
+        // The child's Steam had it already: `have`, not `copied`.
+        bool had = false;
     };
 
     // The logins the Save names; lines about anyone else are left out.
@@ -63,6 +68,8 @@ public:
     std::optional<bool> catalogueKept() const;
     // Each child the command said anything about, in the order it did.
     QList<Child> children() const;
+    // Each game copied, or already there, in the order the command said so.
+    QList<Copied> copied() const;
 
 private:
     Child& child(const QString& login);
@@ -73,4 +80,5 @@ private:
     std::optional<bool> m_picturesKept;
     std::optional<bool> m_catalogueKept;
     QList<Child> m_children;
+    QList<Copied> m_copied;
 };

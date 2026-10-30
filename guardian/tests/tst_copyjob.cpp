@@ -14,6 +14,7 @@ class CopyJobTest : public QObject {
 
     CopyJob::Result run(const QStringList& appIds) {
         const CopyJob::Setup setup{.systemdRun = path("systemd-run"),
+                                   .systemdInhibit = path("systemd-inhibit"),
                                    .visitHelper = path("cairn-steam-visit")};
         return CopyJob::run(setup, "ada", 1002, appIds,
                             [this](const QString& line) { m_said.append(line); });
@@ -49,12 +50,14 @@ private slots:
             QVERIFY(folder.remove(name));
         }
         QVERIFY(QFile::link(QStringLiteral(FIXTURES "/systemd-run"), path("systemd-run")));
+        QVERIFY(QFile::link(QStringLiteral(FIXTURES "/systemd-inhibit"), path("systemd-inhibit")));
         QVERIFY(QFile::link(QStringLiteral(FIXTURES "/copy-helper"), path("cairn-steam-visit")));
         m_said.clear();
     }
 
     // The helper runs as a service of its own, by name, with nothing of
-    // this program's environment and never --all.
+    // this program's environment and never --all, inside systemd-inhibit's
+    // lock on sleep and the lid, never on shutting down.
     void runsTheHelperAsASystemJob() {
         const CopyJob::Result result = run({"620", "12"});
         QCOMPARE(lines("systemd-run-calls"),
@@ -62,7 +65,15 @@ private slots:
                               "--service-type=exec --expand-environment=no "
                               "--unit=cairn-copy-games-1002 "
                               "--description=Cairn copies games to a child -- " +
+                              path("systemd-inhibit") +
+                              " --what=sleep:handle-lid-switch --mode=block --who=Cairn "
+                              "--why=Copying games to a child " +
                               path("cairn-steam-visit") + " --copy-games ada 620 12"}));
+        QCOMPARE(lines("systemd-inhibit-calls"),
+                 QStringList({"--what=sleep:handle-lid-switch --mode=block --who=Cairn "
+                              "--why=Copying games to a child " +
+                              path("cairn-steam-visit") + " --copy-games ada 620 12"}));
+        QVERIFY(!lines("systemd-inhibit-calls").constFirst().contains("shutdown"));
         QCOMPARE(lines("helper-calls"), QStringList({"--copy-games ada 620 12"}));
         QCOMPARE(m_said, QStringList({"copied ada 620", "copied ada 12"}));
         QCOMPARE(result.copied, QStringList({"620", "12"}));
@@ -144,12 +155,21 @@ private slots:
         QVERIFY(m_said.isEmpty());
     }
 
+    // logind cannot give the lock: the copy never starts.
+    void notStartedWithoutTheLock() {
+        give("fail-inhibit", "");
+        QCOMPARE(run({"620"}).held, std::optional<QString>("not-started"));
+        QVERIFY(!QFile::exists(path("helper-calls")));
+        QVERIFY(m_said.isEmpty());
+    }
+
     void holds_data() {
         QTest::addColumn<QByteArray>("lines");
         QTest::addColumn<QString>("held");
         QTest::newRow("logged in") << QByteArray("refused logged-in\n") << "logged-in";
         QTest::newRow("a visit") << QByteArray("refused busy\n") << "busy";
         QTest::newRow("another copy") << QByteArray("refused copying\n") << "copying";
+        QTest::newRow("a logout") << QByteArray("refused logging-out\n") << "logging-out";
         QTest::newRow("still running")
             << QByteArray("waiting\nrefused still-running\n") << "still-running";
         QTest::newRow("stopped") << QByteArray("refused stopped\n") << "stopped";

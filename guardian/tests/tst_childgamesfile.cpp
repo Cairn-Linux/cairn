@@ -118,30 +118,42 @@ private slots:
         QVERIFY(!ChildGamesFile(m_folder, getuid(), m_restorecon).write("ada", {}));
     }
 
+    // A list anyone but root may write is not a list at all, and a list of
+    // the right bytes left writable by an older build is repaired, not
+    // trusted. A link in the file's place is never read through and never
+    // written through.
     void refusesWritableAndLinkedFilesAndRepairsMode() {
         const ChildGamesFile file(m_folder, getuid(), m_restorecon);
-        const QList<QJsonObject> entries{game("620", "Portal 2")};
-        QVERIFY(file.write("ada", entries));
+        const QList<QJsonObject> portal{game("620", "Portal 2")};
+        QVERIFY(file.write("ada", portal));
         for (mode_t mode : {mode_t{0664}, mode_t{0666}, mode_t{0646}}) {
             QVERIFY(chmod(QFile::encodeName(file.path("ada")).constData(), mode) == 0);
             QVERIFY(file.read("ada").isEmpty());
         }
         QVERIFY(chmod(QFile::encodeName(file.path("ada")).constData(), 0644) == 0);
-        QCOMPARE(file.read("ada"), entries);
-        // Same content with an unsafe mode is repaired, not left writable.
+        QCOMPARE(file.read("ada"), portal);
+
+        // The same list with an unsafe mode is repaired, not left writable.
         QVERIFY(chmod(QFile::encodeName(file.path("ada")).constData(), 0666) == 0);
-        QVERIFY(file.write("ada", entries));
+        QVERIFY(file.write("ada", portal));
         QCOMPARE(modeOf(file.path("ada")), mode_t{0644});
-        QCOMPARE(file.read("ada"), entries);
-        // A link in the file's place is never followed, and a write replaces it.
+        QCOMPARE(file.read("ada"), portal);
+
+        // A link in the file's place is replaced, not followed: the write
+        // lands on the file and leaves what the link pointed at alone.
         const QString elsewhere = QDir(m_temporary.path()).filePath("elsewhere.json");
         QVERIFY(QFile::copy(file.path("ada"), elsewhere));
         QVERIFY(QFile::remove(file.path("ada")));
         QVERIFY(QFile::link(elsewhere, file.path("ada")));
         QVERIFY(file.read("ada").isEmpty());
-        QVERIFY(file.write("ada", entries));
+        const QList<QJsonObject> zoo{game("12", "Zoo Tycoon")};
+        QVERIFY(file.write("ada", zoo));
         QVERIFY(!QFileInfo(file.path("ada")).isSymLink());
-        QCOMPARE(file.read("ada"), entries);
+        QCOMPARE(modeOf(file.path("ada")), mode_t{0644});
+        QCOMPARE(file.read("ada"), zoo);
+        QFile pointedAt(elsewhere);
+        QVERIFY(pointedAt.open(QIODevice::ReadOnly));
+        QCOMPARE(pointedAt.readAll(), GameCatalogue::toJson(portal));
     }
 
     // A list that cannot be read is no games: missing, broken, another

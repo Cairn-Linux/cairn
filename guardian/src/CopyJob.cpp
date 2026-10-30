@@ -1,16 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "CopyJob.h"
 
-#include <QProcess>
-#include <QProcessEnvironment>
 #include <QRegularExpression>
 
 #include <utility>
 
 namespace {
-
-// The helper's lines are a few words; a longer one is not the helper's.
-constexpr qint64 longestLine = 256;
 
 // What the copy program says when it copies nothing for the child at all
 // (provision/cairn-copy-games.py).
@@ -27,24 +22,11 @@ bool isCondition(const QString& line) {
 // is held as `failed`.
 bool isHoldingRefusal(const QString& word) {
     static const QStringList words{
-        QStringLiteral("logged-in"),     QStringLiteral("busy"),    QStringLiteral("copying"),
-        QStringLiteral("still-running"), QStringLiteral("stopped"), QStringLiteral("not-set-up"),
+        QStringLiteral("logged-in"),   QStringLiteral("busy"),          QStringLiteral("copying"),
+        QStringLiteral("logging-out"), QStringLiteral("still-running"), QStringLiteral("stopped"),
+        QStringLiteral("not-set-up"),
     };
     return words.contains(word);
-}
-
-// The helper's own trace goes to its error output, which goes nowhere.
-// systemd-run gets nothing of root's environment, and the service gets the
-// service manager's, so PKEXEC_UID never reaches the helper.
-void prepare(QProcess& process) {
-    QProcessEnvironment environment;
-    environment.insert(QStringLiteral("PATH"), QStringLiteral("/usr/sbin:/usr/bin"));
-    environment.insert(QStringLiteral("LC_ALL"), QStringLiteral("C"));
-    process.setProcessEnvironment(environment);
-    process.setWorkingDirectory(QStringLiteral("/"));
-    process.setStandardInputFile(QProcess::nullDevice());
-    process.setStandardErrorFile(QProcess::nullDevice());
-    process.setUnixProcessParameters(QProcess::UnixProcessFlag::ResetSignalHandlers);
 }
 
 } // namespace
@@ -52,30 +34,25 @@ void prepare(QProcess& process) {
 CopyJob::CopyJob(QString login, QStringList appIds, Say say)
     : m_login(std::move(login)), m_appIds(std::move(appIds)), m_say(std::move(say)) {}
 
-// --pipe hands the service this program's pipe, so the helper's lines come
-// straight back, and --wait waits for the service to end. --collect lets a
-// failed job's name be used again.
+// The inhibitor lock lasts exactly as long as the helper: systemd-inhibit
+// takes it, runs the helper, and lets it go when the helper ends.
 CopyJob::Result CopyJob::run(const Setup& setup, const QString& login, unsigned int uid,
                              const QStringList& appIds, const Say& say) {
     if (appIds.isEmpty()) {
         return {};
     }
-    QProcess process;
-    prepare(process);
-    process.start(
-        setup.systemdRun,
-        QStringList{
-            QStringLiteral("--quiet"), QStringLiteral("--collect"), QStringLiteral("--wait"),
-            QStringLiteral("--pipe"), QStringLiteral("--no-ask-password"),
-            QStringLiteral("--service-type=exec"), QStringLiteral("--expand-environment=no"),
-            QStringLiteral("--unit=cairn-copy-games-%1").arg(uid),
-            QStringLiteral("--description=Cairn copies games to a child"), QStringLiteral("--"),
-            setup.visitHelper, QStringLiteral("--copy-games"), login} +
-            appIds);
-
     CopyJob job(login, appIds, say);
-    job.read(process);
-    process.waitForFinished(-1);
+    const int lines = SystemJob::run(
+        {.systemdRun = setup.systemdRun,
+         .unit = QStringLiteral("cairn-copy-games-%1").arg(uid),
+         .description = QStringLiteral("Cairn copies games to a child"),
+         .command =
+             QStringList{setup.systemdInhibit, QStringLiteral("--what=sleep:handle-lid-switch"),
+                         QStringLiteral("--mode=block"), QStringLiteral("--who=Cairn"),
+                         QStringLiteral("--why=Copying games to a child"), setup.visitHelper,
+                         QStringLiteral("--copy-games"), login} +
+             appIds},
+        [&job](const QString& line) { job.take(line); });
 
     Result result = job.m_result;
     if (job.m_ending == QStringLiteral("finished")) {
@@ -84,9 +61,10 @@ CopyJob::Result CopyJob::run(const Setup& setup, const QString& login, unsigned 
     if (job.m_ending && job.m_ending->startsWith(QStringLiteral("refused "))) {
         const QString word = job.m_ending->mid(QStringLiteral("refused ").size());
         result.held = isHoldingRefusal(word) ? word : QStringLiteral("failed");
-    } else if (!job.m_ending && job.m_lines == 0) {
-        // systemd-run said nothing of the helper's: the name is still taken
-        // by an earlier copy, the helper is missing, or systemd is not there.
+    } else if (!job.m_ending && lines == 0) {
+        // Nothing of the helper's came back: the name is still taken by an
+        // earlier copy, the helper is missing, the inhibitor lock could not
+        // be taken, or systemd is not there.
         result.held = QStringLiteral("not-started");
     } else {
         result.held = result.held.value_or(QStringLiteral("failed"));
@@ -94,30 +72,7 @@ CopyJob::Result CopyJob::run(const Setup& setup, const QString& login, unsigned 
     return result;
 }
 
-// Waits for each line with no time limit. A line too long to be the helper's
-// is dropped to its end, so no part of it is read as a line of its own.
-void CopyJob::read(QProcess& process) {
-    bool inLongLine = false;
-    const auto takeLines = [&] {
-        while (process.canReadLine() || process.bytesAvailable() >= longestLine) {
-            const QByteArray piece = process.readLine(longestLine + 1);
-            const bool whole = piece.endsWith('\n');
-            if (whole && !inLongLine) {
-                take(QString::fromUtf8(piece.chopped(1)));
-            }
-            inLongLine = !whole;
-        }
-    };
-    do {
-        takeLines();
-    } while (process.waitForReadyRead(-1));
-    takeLines();
-}
-
 void CopyJob::take(const QString& line) {
-    if (++m_lines > mostLines) {
-        return;
-    }
     static const QRegularExpression game(QStringLiteral("^(copied|have) ([1-9][0-9]{0,9})$"));
     static const QRegularExpression skipped(
         QStringLiteral("^skipped ([1-9][0-9]{0,9}) ([a-z-]{1,32})$"));

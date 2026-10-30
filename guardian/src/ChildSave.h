@@ -38,17 +38,10 @@ struct Before {
 // Writes the child's list with the games taken off gone and nothing added.
 Before takeOff(const Shared& shared, const Account& child, const QStringList& ticked);
 
-// How the child's part ended.
-struct Ended {
-    // `child LOGIN added N removed N [held WORD]`, for the journal too. The
-    // counts say what the child's file holds now.
-    QString line;
-    // The held word in it, if any.
-    std::optional<QString> held;
-};
-
-// Says each line for the child as it goes, the last one too.
-Ended run(const Shared& shared, const Account& child, const QStringList& ticked,
-          const Before& before, const CopyJob::Say& say);
+// Says each line for the child as it goes, and returns the last,
+// `child LOGIN added N removed N [held WORD]`, for the journal too. The
+// counts say what the child's file holds now.
+QString run(const Shared& shared, const Account& child, const QStringList& ticked,
+            const Before& before, const CopyJob::Say& say);
 
 } // namespace ChildSave

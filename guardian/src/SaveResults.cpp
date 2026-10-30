@@ -3,9 +3,59 @@
 
 #include "GamesSaving.h"
 
+#include <QHash>
 #include <QVariantList>
 
 #include <algorithm>
+
+namespace {
+
+// The copy's held word, or "" for none, as the window's kind.
+GamesSaving::Held heldFor(const QString& word) {
+    if (word.isEmpty()) {
+        return GamesSaving::Held::NotHeld;
+    }
+    static const QHash<QString, GamesSaving::Held> held = {
+        {QStringLiteral("logged-in"), GamesSaving::Held::LoggedIn},
+        {QStringLiteral("busy"), GamesSaving::Held::VisitOpen},
+        {QStringLiteral("copying"), GamesSaving::Held::CopyStillRunning},
+        {QStringLiteral("logging-out"), GamesSaving::Held::ChildLoggingOut},
+        {QStringLiteral("still-running"), GamesSaving::Held::StillRunning},
+        {QStringLiteral("stopped"), GamesSaving::Held::Stopped},
+        {QStringLiteral("not-set-up"), GamesSaving::Held::NotSetUp},
+        {QStringLiteral("no-library"), GamesSaving::Held::NoLibrary},
+        {QStringLiteral("no-shared"), GamesSaving::Held::NoShared},
+        {QStringLiteral("lists-shared"), GamesSaving::Held::ListsShared},
+        {QStringLiteral("unreadable-config"), GamesSaving::Held::UnreadableConfig},
+        {QStringLiteral("no-reflink"), GamesSaving::Held::NoReflink},
+        {QStringLiteral("failed"), GamesSaving::Held::CopyStopped},
+        {QStringLiteral("not-started"), GamesSaving::Held::NotStarted},
+        {QStringLiteral("not-written"), GamesSaving::Held::NotWritten},
+    };
+    return held.value(word, GamesSaving::Held::OtherHold);
+}
+
+// A skipped game's reason word as the window's kind.
+GamesSaving::Skip skipFor(const QString& word) {
+    static const QHash<QString, GamesSaving::Skip> skips = {
+        {QStringLiteral("not-shared"), GamesSaving::Skip::NotShared},
+        {QStringLiteral("no-catalogue"), GamesSaving::Skip::NoCatalogue},
+        {QStringLiteral("unreadable"), GamesSaving::Skip::UnreadableManifest},
+        {QStringLiteral("appid"), GamesSaving::Skip::OtherGame},
+        {QStringLiteral("installdir"), GamesSaving::Skip::OddFolder},
+        {QStringLiteral("beta-branch"), GamesSaving::Skip::BetaBranch},
+        {QStringLiteral("not-installed"), GamesSaving::Skip::NotInstalled},
+        {QStringLiteral("downloading"), GamesSaving::Skip::Downloading},
+        {QStringLiteral("no-folder"), GamesSaving::Skip::NoFolder},
+        {QStringLiteral("folder-without-manifest"), GamesSaving::Skip::FolderThere},
+        {QStringLiteral("changed"), GamesSaving::Skip::ChangedDuringCopy},
+        {QStringLiteral("copy-failed"), GamesSaving::Skip::CopyDidNotWork},
+        {QStringLiteral("unreadable-files"), GamesSaving::Skip::UnreadableFiles},
+    };
+    return skips.value(word, GamesSaving::Skip::OtherSkip);
+}
+
+} // namespace
 
 QHash<QString, QString> SaveResults::titlesOf(const QList<GameShelf::Game>& games) {
     QHash<QString, QString> titles;
@@ -22,7 +72,7 @@ QVariantMap SaveResults::forChild(const SaveReport::Child& child, const QString&
         skipped.append(QVariantMap{
             {QStringLiteral("appId"), skip.appId},
             {QStringLiteral("title"), titles.value(skip.appId)},
-            {QStringLiteral("reason"), static_cast<int>(GamesSaving::skipFor(skip.reason))},
+            {QStringLiteral("reason"), static_cast<int>(skipFor(skip.reason))},
         });
     }
     return QVariantMap{
@@ -30,9 +80,7 @@ QVariantMap SaveResults::forChild(const SaveReport::Child& child, const QString&
         {QStringLiteral("name"), name},
         {QStringLiteral("added"), child.added.value_or(-1)},
         {QStringLiteral("removed"), child.removed.value_or(-1)},
-        {QStringLiteral("held"),
-         static_cast<int>(GamesSaving::heldFor(child.held.value_or(QString())))},
-        {QStringLiteral("later"), child.later},
+        {QStringLiteral("held"), static_cast<int>(heldFor(child.held.value_or(QString())))},
         {QStringLiteral("skipped"), skipped},
     };
 }

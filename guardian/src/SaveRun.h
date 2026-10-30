@@ -7,13 +7,15 @@
 #include <QString>
 #include <QStringList>
 
-// One Save of the Games page (ADR-0041): cairn-family save-games through
-// pkexec, which asks for one password for the whole Save. Unlike the
-// Children page's changes, the command answers in many lines as it goes,
-// so each is passed on as it arrives, and the last one is the answer.
+// One run of a cairn-family subcommand that answers in lines (ADR-0041):
+// save-games, for a Save of the Games page, or log-out, for its "Log ada
+// out". It goes through pkexec, which asks for one password for the whole
+// run. Unlike the Children page's changes, the command answers in many
+// lines as it goes, so each is passed on as it arrives, and the last one is
+// the answer.
 //
 // polkit judges the process that started pkexec, so pkexec is started
-// directly, never through a shell. One Save runs at a time.
+// directly, never through a shell. One run at a time.
 class SaveRun : public QObject {
     Q_OBJECT
 
@@ -21,8 +23,8 @@ public:
     SaveRun(QString pkexec, QString command, QObject* parent = nullptr);
 
     bool running() const;
-    // Starts the command with these arguments, "save-games" first. False,
-    // and nothing starts, while a Save is still running. When the command
+    // Starts the command with these arguments, the subcommand first. False,
+    // and nothing starts, while a run is still going. When the command
     // is not there, it answers "not-started" without running pkexec.
     bool start(const QStringList& arguments);
 

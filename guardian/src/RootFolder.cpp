@@ -71,8 +71,8 @@ bool RootFolder::write(const QString& folder, unsigned int owner, const QString&
 
 // O_NOFOLLOW refuses a link in the file's place, and fstat checks the file
 // that was opened, so nothing can be swapped in between.
-std::optional<RootFolder::File> RootFolder::read(const QString& folder, unsigned int owner,
-                                                 const QString& name, qint64 largest) {
+std::optional<QByteArray> RootFolder::read(const QString& folder, unsigned int owner,
+                                           const QString& name, qint64 largest) {
     if (!isSafe(folder, owner)) {
         return std::nullopt;
     }
@@ -91,17 +91,11 @@ std::optional<RootFolder::File> RootFolder::read(const QString& folder, unsigned
         (status.st_mode & (S_IWGRP | S_IWOTH)) != 0 || status.st_size > largest) {
         return std::nullopt;
     }
-    File read{.bytes = file.read(largest + 1), .modified = {}};
-    if (read.bytes.size() > largest) {
+    const QByteArray bytes = file.read(largest + 1);
+    if (bytes.size() > largest) {
         return std::nullopt;
     }
-    read.modified = QDateTime::fromSecsSinceEpoch(status.st_mtim.tv_sec);
-    return read;
-}
-
-bool RootFolder::holds(const QString& folder, const QString& name) {
-    struct stat status{};
-    return lstat(QFile::encodeName(pathIn(folder, name)).constData(), &status) == 0;
+    return bytes;
 }
 
 // A folder that is not there holds no file either.

@@ -8,23 +8,20 @@ import Cairn.Family
 // shared folder, with the games on that child's own list highlighted.
 // Tapping a game puts it on the list or takes it off, for one child or
 // several, and Save gives each of them their new list with one password.
-// Each child also has a way to open their own Steam. While a Save runs,
-// every control waits.
+// Each child also has a way to open their own Steam. A child who is logged
+// in has their games greyed and blurred under a card that offers to log
+// them out first. While a Save or a logout runs, every control waits; the
+// Save's own window shows how it goes.
 Column {
     id: view
 
     required property GamesPage page
-    // The box with what the last Save did, for the window to scroll to.
-    readonly property alias outcomeBox: outcome
 
     readonly property bool hasChildren: view.page.listedChildren.length > 0
     // Games to show: the shared folder's, and any left on the child's list.
     readonly property bool hasGames: view.page.games.length > 0
     readonly property string name: view.page.chosenName
     readonly property bool busy: view.page.busy
-
-    // A Save has started or ended, and focus is where the parent can go on.
-    signal outcomeShown
 
     spacing: Tokens.bodySize
 
@@ -38,18 +35,6 @@ Column {
         color: Tokens.text
         Accessible.role: Accessible.StaticText
         Accessible.name: text
-    }
-
-    // What the picked child's list holds, or why it holds nothing.
-    function listSentence() {
-        if (view.page.list === GamesPage.Unreadable)
-            return qsTr("%1's list of games could not be read, so it counts as a list with no games, and %1 has no game tiles. The file is /var/lib/cairn/games/%2.json. Saving %1's games on this page writes it again.").arg(view.name).arg(view.page.chosen);
-        if (view.page.onListCount === 0)
-            return qsTr("%1 has no games on their list yet.").arg(view.name);
-        const listed = qsTr("Games on %1's list: %2. They are highlighted.").arg(view.name).arg(view.page.onListCount);
-        if (view.page.goneCount === 0)
-            return listed;
-        return listed + " " + qsTr("The ones no longer in the shared folder come last. %1's own copy may still play them.").arg(view.name);
     }
 
     Text {
@@ -110,28 +95,6 @@ Column {
         }
     }
 
-    TextButton {
-        objectName: "openSteam"
-        visible: view.hasChildren
-        quiet: true
-        enabled: !view.busy
-        text: qsTr("Open Steam for %1").arg(view.name)
-        onActivated: view.page.openSteam(view.page.chosen)
-    }
-
-    Words {
-        objectName: "steamNotOpened"
-        visible: text !== ""
-        text: view.page.steamNotOpened === "" ? "" : qsTr("The Steam window for %1 did not open. The reason is in the system log. In a terminal: journalctl -t cairn-guardian -t cairn-steam-for").arg(view.page.steamNotOpened)
-        Accessible.role: Accessible.AlertMessage
-    }
-
-    Words {
-        objectName: "listSentence"
-        visible: view.hasChildren && view.hasGames
-        text: view.listSentence()
-    }
-
     Flow {
         objectName: "saveRow"
         width: view.width
@@ -170,58 +133,26 @@ Column {
         text: qsTr("Not saved yet: the changes for %1. Save gives each child their new list, with one password.").arg(view.page.unsavedNames)
     }
 
-    // Hidden while a Save's own outcome shows, which says the same.
-    WaitingNote {
-        objectName: "waitingNotes"
+    Words {
+        objectName: "loggedInUnsavedSentence"
+        visible: view.hasChildren && view.page.loggedInUnsavedNames !== "" && !view.busy
+        text: qsTr("Save waits: changes for a child who is logged in cannot be saved yet. Logged in: %1. Log them out first.").arg(view.page.loggedInUnsavedNames)
+    }
+
+    // The child picked: their Steam, their list and the games, greyed and
+    // blurred while the child is logged in.
+    ChildGames {
+        id: childArea
+
+        objectName: "childArea"
         width: view.width
-        visible: view.hasChildren && !outcome.visible && (view.page.chosenWaiting || view.page.finished.result !== undefined)
+        visible: view.hasChildren
         page: view.page
-        sentences: outcome
-    }
-
-    SaveOutcome {
-        id: outcome
-
-        objectName: "saveOutcomeBox"
-        width: view.width
-        saving: view.page.saving
-    }
-
-    Flow {
-        id: grid
-
-        // As many columns as fit, each at least this wide.
-        readonly property real narrowest: Tokens.headingSize * 6
-        readonly property int columns: Math.max(1, Math.floor((grid.width + grid.spacing) / (grid.narrowest + grid.spacing)))
-
-        objectName: "gameGrid"
-        width: view.width
-        spacing: Tokens.bodySize / 2
-        visible: view.hasChildren && view.hasGames
-
-        Accessible.role: Accessible.List
-        Accessible.name: qsTr("Games in the shared folder")
-
-        Repeater {
-            objectName: "gameCards"
-            model: view.page.games
-
-            GameCard {
-                required property var modelData
-
-                width: (grid.width - grid.spacing * (grid.columns - 1)) / grid.columns
-                game: modelData
-                childName: view.name
-                onList: view.page.wanted.indexOf(modelData.appId) >= 0
-                enabled: !view.busy
-                onTurned: view.page.turn(modelData.appId)
-            }
-        }
     }
 
     // Every control waits while a Save runs, which takes focus away. After
-    // it, focus goes to Save when there is still something to save, and to
-    // the child picked otherwise.
+    // the Save's window is closed, focus goes to Save when there is still
+    // something to save, and to the child picked otherwise.
     function restoreFocus() {
         if (saveButton.enabled) {
             saveButton.forceActiveFocus();
@@ -233,19 +164,27 @@ Column {
                     choice.forceActiveFocus();
             }
         }
-        view.outcomeShown();
+    }
+
+    // Each step of a logout moves focus to where the parent goes on: within
+    // the card while it shows, back to the page once the child is out.
+    function followLogOut() {
+        // Picking another child also ends a warning; focus stays on the
+        // choice then.
+        const focused = view.Window.activeFocusItem;
+        if (view.page.loggingOut.step === ChildLogOut.NotAsking && focused && focused.visible && focused.enabled)
+            return;
+        if (childArea.cover.visible)
+            childArea.cover.takeFocus();
+        else if (view.page.loggingOut.step === ChildLogOut.NotAsking)
+            view.restoreFocus();
     }
 
     Connections {
-        target: view.page.saving
-
-        function onEnded() {
-            Qt.callLater(view.restoreFocus);
-        }
+        target: view.page.loggingOut
 
         function onChanged() {
-            if (view.page.saving.step === GamesSaving.Asking)
-                Qt.callLater(view.outcomeShown);
+            Qt.callLater(view.followLogOut);
         }
     }
 }

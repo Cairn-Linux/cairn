@@ -148,7 +148,7 @@ class FamilyActionTest(unittest.TestCase):
     levels rule refuses each to a child and lets an administrator through
     to the password prompt, with no change of its own."""
 
-    SUBCOMMANDS = {"create-child", "set-level", "save-games"}
+    SUBCOMMANDS = {"create-child", "set-level", "save-games", "log-out"}
 
     def setUp(self):
         self.text = FAMILY_ACTION.read_text()
@@ -185,6 +185,8 @@ class FamilyActionTest(unittest.TestCase):
                     for subcommand, action in self.by_subcommand().items()}
         self.assertEqual(messages["save-games"],
                          "A grown-up's password is needed to change which games a child has.")
+        # Logging a child out is its own password, never folded into a Save.
+        self.assertEqual(messages["log-out"], "A grown-up's password is needed to log a child out.")
         for subcommand in ("create-child", "set-level"):
             self.assertEqual(messages[subcommand],
                              "A grown-up's password is needed to change a child's account.")

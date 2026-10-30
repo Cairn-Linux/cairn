@@ -24,12 +24,12 @@ QString ChildGamesFile::path(const QString& login) const {
 }
 
 QList<QJsonObject> ChildGamesFile::read(const QString& login) const {
-    const std::optional<RootFolder::File> file =
+    const std::optional<QByteArray> bytes =
         RootFolder::read(m_folder, m_owner, login + QStringLiteral(".json"), largestFile);
-    if (!file) {
+    if (!bytes) {
         return {};
     }
-    const std::optional<GameCatalogue> catalogue = GameCatalogue::fromJson(file->bytes);
+    const std::optional<GameCatalogue> catalogue = GameCatalogue::fromJson(*bytes);
     if (!catalogue) {
         return {};
     }

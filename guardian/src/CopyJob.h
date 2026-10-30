@@ -1,28 +1,30 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+#include "SystemJob.h"
+
 #include <QString>
 #include <QStringList>
 
 #include <functional>
 #include <optional>
 
-class QProcess;
-
 // One child's copy of the games on their list (ADR-0041), run by the visit
-// helper as a system job: `cairn-steam-visit --copy-games CHILD APPID...`
-// in a transient service of its own, started by systemd-run. The job is not
-// in the Guardian's session, so a Guardian who logs out mid-copy ends this
-// program and not the copy, which lets the child log in again when it ends.
+// helper as a system job (SystemJob): `cairn-steam-visit --copy-games CHILD
+// APPID...`. A Guardian who logs out mid-copy ends cairn-family and not the
+// copy, which lets the child log in again when it ends.
 //
-// It waits as long as the copy takes, with no time limit, and never kills
-// it: a copy cut off holds the child's login until its helper ends.
+// systemd-inhibit holds a block lock on sleep and the lid switch for as
+// long as the copy runs, so closing the lid does not suspend the computer
+// halfway. Shutting down stays allowed. When the lock cannot be taken the
+// copy never starts and is held `not-started`.
 class CopyJob {
 public:
     using Say = std::function<void(const QString&)>;
 
     struct Setup {
         QString systemdRun = QStringLiteral("/usr/bin/systemd-run");
+        QString systemdInhibit = QStringLiteral("/usr/bin/systemd-inhibit");
         QString visitHelper;
     };
 
@@ -41,12 +43,11 @@ public:
                       const QStringList& appIds, const Say& say);
 
     // The most lines read from one copy; the rest are drained unread.
-    static constexpr int mostLines = 4000;
+    static constexpr int mostLines = SystemJob::mostLines;
 
 private:
     CopyJob(QString login, QStringList appIds, Say say);
 
-    void read(QProcess& process);
     void take(const QString& line);
 
     QString m_login;
@@ -55,5 +56,4 @@ private:
     Result m_result;
     // The helper's last word: finished, failed or a refusal.
     std::optional<QString> m_ending;
-    int m_lines = 0;
 };

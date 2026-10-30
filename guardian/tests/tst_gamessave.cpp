@@ -8,7 +8,6 @@
 #include <QTemporaryDir>
 #include <QTest>
 
-#include <sys/stat.h>
 #include <unistd.h>
 
 namespace {
@@ -86,11 +85,10 @@ class GamesSaveTest : public QObject {
         setup.catalogue.gamesFile = path("games.json");
         setup.catalogue.restorecon = path("restorecon");
         setup.copy.systemdRun = path("systemd-run");
+        setup.copy.systemdInhibit = path("systemd-inhibit");
         setup.copy.visitHelper = path("cairn-steam-visit");
         setup.gamesFolder = path("games");
         setup.gamesFolderOwner = getuid();
-        setup.waitingFolder = path("games-waiting");
-        setup.finishedFolder = path("games-finished");
         setup.lock = path("lock");
         return GamesSave(setup).run(arguments,
                                     [this](const QString& line) { m_said.append(line); });
@@ -101,15 +99,6 @@ class GamesSaveTest : public QObject {
         QVERIFY(!QFile::exists(path("systemd-run-calls")));
         QVERIFY(!QFile::exists(path("games.json")));
         QVERIFY(QDir(path("games")).isEmpty());
-        QVERIFY(!QFile::exists(path("games-waiting")));
-    }
-
-    // A waiting list and a finished copy from an earlier Save for ada.
-    void leaveEarlierFiles() const {
-        QVERIFY(QDir().mkpath(path("games-waiting")));
-        QVERIFY(QDir().mkpath(path("games-finished")));
-        give("games-waiting/ada", "ada=504230\n");
-        give("games-finished/ada", "child ada added 1 removed 0\n");
     }
 
     QString path(const QString& name) const {
@@ -143,6 +132,7 @@ private slots:
         const QHash<QString, QString> links{{"python", "python"},
                                             {"restorecon", "system-tool"},
                                             {"systemd-run", "systemd-run"},
+                                            {"systemd-inhibit", "systemd-inhibit"},
                                             {"cairn-steam-visit", "copy-helper"}};
         for (auto link = links.cbegin(); link != links.cend(); ++link) {
             QVERIFY(QFile::link(QStringLiteral(FIXTURES "/") + link.value(), path(link.key())));
@@ -248,17 +238,16 @@ private slots:
     }
 
     // A logged-in child loses the game taken off at once and gets the new
-    // one at their next logout; the next child still goes ahead.
+    // one later; the next child still goes ahead.
     void aLoggedInChildIsHeld() {
         give("games/ada.json", adaHasPortal);
         give("lines-ada", "refused logged-in\n");
         give("status-ada", "1");
         const GamesSave::Outcome outcome = run({"save-games", "ada=12", "ben=620"});
         QVERIFY(!outcome.refusal.has_value());
-        QCOMPARE(
-            m_said.mid(3),
-            QStringList({"copying ada", "child ada added 0 removed 1 held logged-in", "later ada",
-                         "copying ben", "copied ben 620", "child ben added 1 removed 0"}));
+        QCOMPARE(m_said.mid(3),
+                 QStringList({"copying ada", "child ada added 0 removed 1 held logged-in",
+                              "copying ben", "copied ben 620", "child ben added 1 removed 0"}));
         QVERIFY(!read("games/ada.json").contains("\"620\""));
         QVERIFY(!read("games/ada.json").contains("\"12\""));
     }
@@ -319,30 +308,6 @@ private slots:
                                              "child ada added 0 removed 0"}));
         QVERIFY(!QFile::exists(path("systemd-run-calls")));
         QVERIFY(read("games/ada.json").contains("\"620\""));
-    }
-
-    // A finished record that cannot be removed holds only that child:
-    // nothing for it is mutated or copied, and the next child completes.
-    void aFinishedRecordThatCannotBeRemovedHoldsOnlyThatChild() {
-        leaveEarlierFiles();
-        give("games/ada.json", adaHasPortal);
-        // A folder in the finished record's place cannot be unlinked.
-        QVERIFY(QFile::remove(path("games-finished/ada")));
-        QVERIFY(QDir().mkpath(path("games-finished/ada")));
-        const GamesSave::Outcome outcome = run({"save-games", "ada=620", "ben=620"});
-        QVERIFY(!outcome.refusal.has_value());
-        QCOMPARE(m_said,
-                 QStringList({"looking", "pictures made", "catalogue made",
-                              "child ada added 0 removed 0 held not-written", "copying ben",
-                              "copied ben 620", "child ben added 1 removed 0"}));
-        QCOMPARE(outcome.children,
-                 QStringList({"child ada added 0 removed 0 held not-written",
-                              "child ben added 1 removed 0"}));
-        QCOMPARE(read("games/ada.json"), QByteArray(adaHasPortal));
-        QCOMPARE(read("games-waiting/ada"), QByteArray("ada=504230\n"));
-        QVERIFY(QDir(path("games-finished/ada")).exists());
-        QCOMPARE(lines("helper-calls"), QStringList({"--copy-games ben 620"}));
-        QVERIFY(read("games/ben.json").contains("\"620\""));
     }
 
     // One child's file that cannot be written does not stop the others.

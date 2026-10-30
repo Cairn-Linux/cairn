@@ -98,6 +98,15 @@ TestCase {
         compare(findChild(window, "mainButton").text, "Try again");
     }
 
+    // A grown-up is logging a child out from the Games page (ADR-0041).
+    function test_aLogoutSaysToTryAgainInAMoment() {
+        const window = makeWindow("logging-out", false);
+        mouseClick(findChild(window, "mainButton"));
+        tryCompare(findChild(window, "heading"), "text", "nobody-here's Steam did not open");
+        verify(words(window).includes("A child is being logged out on this computer. Try again in a moment."));
+        verify(!words(window).includes("already open"));
+    }
+
     // Plasma's password box gives the same answer for Cancel as for a wrong
     // password, so the window names both.
     function test_aClosedPasswordBoxSaysWhatItNeeds() {

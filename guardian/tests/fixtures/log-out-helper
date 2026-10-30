@@ -1,0 +1,16 @@
+#!/bin/sh
+# SPDX-License-Identifier: Apache-2.0
+#
+# A stand-in for cairn-steam-visit --log-out CHILD, for cairn-family
+# log-out's tests. A test links it in a folder of its own. It writes its
+# arguments to "helper-calls" there, then prints the lines in "lines" when
+# that file is there, and otherwise "logging-out", "logged-out" and
+# "finished". It ends with the status in "status", or 0.
+here="${0%/*}"
+echo "$*" >> "$here/helper-calls"
+if [ -e "$here/lines" ]; then
+    cat "$here/lines"
+else
+    printf 'logging-out\nlogged-out\nfinished\n'
+fi
+exit "$(cat "$here/status" 2> /dev/null || echo 0)"

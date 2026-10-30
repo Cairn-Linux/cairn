@@ -22,7 +22,7 @@ TestCase {
         const given = options === undefined ? {} : options;
         const properties = {
             "page": standIns.page(scenario, given.withChildren !== false, given.withOlderChild === true),
-            "gamesPage": standIns.gamesPage(given.withChildren !== false, given.withGames !== false, given.steamStarts !== false, given.gamesScenario === undefined ? "" : given.gamesScenario),
+            "gamesPage": standIns.gamesPage(given.withChildren !== false, given.withGames !== false, given.steamStarts !== false, given.gamesScenario === undefined ? "" : given.gamesScenario, given.loggedIn === undefined ? [] : given.loggedIn),
             "height": 1400
         };
         const window = createTemporaryObject(windowComponent, testCase, properties);
@@ -416,6 +416,8 @@ TestCase {
         tryCompare(choice(window, "ben"), "activeFocus", true);
         keyClick(Qt.Key_Space);
         compare(window.gamesPage.chosen, "ben");
+        // Past Cy and Look for new games; Save and Put back are off.
+        keyClick(Qt.Key_Tab);
         keyClick(Qt.Key_Tab);
         keyClick(Qt.Key_Tab);
         tryCompare(findChild(window, "openSteam"), "activeFocus", true);
@@ -523,11 +525,20 @@ TestCase {
     // The sentence for the result of one child, in the order the Save
     // answered.
     function result(window, index) {
-        return findChild(findChild(window, "saveResults").itemAt(index), "resultSentence");
+        return findChild(window, "saveResults").itemAt(index);
     }
 
-    function laterNote(window, index) {
-        return findChild(findChild(window, "saveResults").itemAt(index), "laterNote");
+    function progressWindow(window) {
+        return findChild(window, "saveProgress");
+    }
+
+    // Close in the Save's window, once the Save has ended.
+    function closeProgress(window) {
+        const close = findChild(window, "closeSaveProgress");
+        tryVerify(() => close.visible);
+        waitForPolish(window);
+        mouseClick(close);
+        verify(!progressWindow(window).visible);
     }
 
     function saveOutcome(window) {
@@ -539,7 +550,7 @@ TestCase {
         const window = makeWindow("done");
         showGames(window);
         compare(findChild(window, "notYet"), null);
-        verify(!findChild(window, "saveOutcomeBox").visible);
+        verify(!progressWindow(window).visible);
         verify(!findChild(window, "unsavedSentence").visible);
     }
 
@@ -612,19 +623,22 @@ TestCase {
         tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
         compare(saveOutcome(window), "Saved. Each child sees their games the next time they log in.");
         compare(result(window, 0).text, "Ada's list is saved. Added: 4. Taken off: 0.");
-        verify(!laterNote(window, 0).visible);
+        verify(!findChild(window, "lidWarning").visible);
+        tryCompare(findChild(window, "closeSaveProgress"), "activeFocus", true);
+        if (standIns.screenshotPath() !== "") {
+            wait(300);
+            grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-games-saved.png"));
+        }
+        closeProgress(window);
         verify(!findChild(window, "saveButton").enabled);
         verify(!findChild(choice(window, "ada"), "unsavedLabel").visible);
         compare(findChild(card(window, 1), "onListLabel").text, "On the list");
         // Focus goes back to the child picked, as Save has nothing to do.
         tryCompare(choice(window, "ada"), "activeFocus", true);
-        if (standIns.screenshotPath() !== "") {
-            wait(300);
-            grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-games-saved.png"));
-        }
     }
 
-    // A logged-in child's new games wait; the page says what to do.
+    // A child who logged in after the page last looked: the copy is held,
+    // and the result says what to do.
     function test_aLoggedInChildIsToldWhatComesNext() {
         const window = makeWindow("done", {
             "gamesScenario": "save-held-logged-in"
@@ -635,124 +649,25 @@ TestCase {
         tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
         // Not every child sees their games at their next login.
         compare(saveOutcome(window), "Saved, but not every new game could be given. The sentences below say what each child has now, and what comes next.");
-        compare(result(window, 0).text, "Ada's list is saved, with no change. Ada is logged in, so their new games could not be copied. They come after Ada logs out and you press Save again. The games taken off are already gone from Ada's list.");
-        verify(!laterNote(window, 0).visible);
-        // The game stays chosen, so Save gives it later.
+        // Nothing was taken off, so the sentence does not say so.
+        compare(result(window, 0).text, "Ada's list is saved, with no change. Ada is logged in, so their new games could not be copied. They come after Ada logs out and you press Save again.");
+        closeProgress(window);
+        // The game stays chosen, so Save can give it once Ada logs out.
         verify(findChild(window, "saveButton").enabled);
         tryCompare(findChild(window, "saveButton"), "activeFocus", true);
-        if (standIns.screenshotPath() !== "") {
-            wait(300);
-            grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-games-held.png"));
-        }
     }
 
-    // A logged-in child's new games are written down for their next
-    // logout: the page says they come by themselves, and starts from them.
-    function test_aChildWhoseGamesWaitForTheirLogout() {
+    // The same for a logged-in child held without a wait.
+    function test_aHeldSentenceSaysWhatWasTakenOff() {
         const window = makeWindow("done", {
-            "gamesScenario": "save-held-later"
+            "gamesScenario": "save-held-logged-in"
         });
         showGames(window);
+        mouseClick(card(window, 0));
         mouseClick(card(window, 1));
         mouseClick(findChild(window, "saveButton"));
         tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
-        compare(saveOutcome(window), "Saved, but not every new game could be given. The sentences below say what each child has now, and what comes next.");
-        compare(result(window, 0).text, "Ada's list is saved, with no change.");
-        const note = laterNote(window, 0);
-        verify(note.visible);
-        compare(note.text, "Ada is logged in, so Ada's new games could not be copied yet. Ada's new games are copied the next time Ada logs out. You do not need to do anything else. The games taken off are already gone from Ada's list.");
-        compare(note.Accessible.name, note.text);
-        // Nothing is left to save, and the game says it waits.
-        verify(!findChild(window, "saveButton").enabled);
-        compare(findChild(card(window, 1), "onListLabel").text, "Waits for Ada to log out");
-        compare(card(window, 1).Accessible.description, "On Ada's list, copied the next time Ada logs out");
-        // The Save's own outcome says it, so the page's note waits.
-        verify(!findChild(window, "waitingNotes").visible);
-        if (standIns.screenshotPath() !== "") {
-            wait(300);
-            grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-games-later.png"));
-        }
-    }
-
-    // Coming back to a child whose games wait: the note, the marks, and
-    // Save off until something changes.
-    function test_aWaitingListShowsOnTheGamesPage() {
-        const window = makeWindow("done");
-        verify(standIns.leave("games-waiting/ada", "ada=1001,1002,1003,1004\n"));
-        window.gamesPage.reload();
-        showGames(window);
-        const notes = findChild(window, "waitingNotes");
-        verify(notes.visible);
-        const waiting = findChild(window, "waitingNote");
-        verify(waiting.visible);
-        compare(waiting.text, "Ada's new games are copied the next time Ada logs out.");
-        compare(waiting.Accessible.name, waiting.text);
-        compare(findChild(card(window, 1), "onListLabel").text, "Waits for Ada to log out");
-        compare(findChild(card(window, 0), "onListLabel").text, "On the list");
-        verify(!findChild(window, "saveButton").enabled);
-        // Taking a waiting game off is a change to save, and Put back
-        // returns to the waiting list.
-        mouseClick(card(window, 1));
-        compare(findChild(card(window, 1), "onListLabel").text, "Taken off, not saved yet");
-        verify(findChild(window, "saveButton").enabled);
-        mouseClick(findChild(window, "putBack"));
-        compare(findChild(card(window, 1), "onListLabel").text, "Waits for Ada to log out");
-        chooseChild(window, "ben");
-        verify(!findChild(window, "waitingNotes").visible);
-    }
-
-    // A clean copy at a logout is dated, until the next Save for the child.
-    function test_aCleanFinishIsDated() {
-        const window = makeWindow("done");
-        const when = new Date(2026, 9, 20, 17, 30);
-        verify(standIns.leave("games-finished/ada", "copied ada 1002\nchild ada added 1 removed 0\n", when));
-        window.gamesPage.reload();
-        showGames(window);
-        const finished = findChild(window, "finishedNote");
-        verify(finished.visible);
-        compare(finished.text, "Ada's new games were copied when Ada logged out on " + when.toLocaleDateString(Qt.locale(), Locale.LongFormat) + ".");
-        compare(finished.Accessible.name, finished.text);
-        verify(!findChild(window, "waitingNote").visible);
-    }
-
-    // A copy at a logout that could not give everything says what stopped
-    // it, in the Save's own words, and that the games are not on the list.
-    function test_aFinishThatHeldSaysWhy() {
-        const window = makeWindow("done");
-        const when = new Date(2026, 9, 21, 8, 0);
-        verify(standIns.leave("games-finished/ada", "child ada added 0 removed 0 held no-library\n", when));
-        window.gamesPage.reload();
-        showGames(window);
-        compare(findChild(window, "finishedNote").text, "When Ada logged out on " + when.toLocaleDateString(Qt.locale(), Locale.LongFormat) + ": Ada's Steam has not run yet, so it has no place for games. Open Steam for Ada and sign in first. The games that were not given are not on Ada's list now. To try them again, put them back on the list and press Save.");
-    }
-
-    // The copy has ended and its games are off the list, so Save has
-    // nothing to save: no held word may say to press it again, and the
-    // closing sentence is the one way to try again.
-    function test_aFinishGivesOneNextStep() {
-        const words = ["busy", "copying", "not-set-up", "no-library", "no-shared", "lists-shared", "unreadable-config", "no-reflink", "failed", "not-written", "something-new"];
-        const window = makeWindow("done");
-        showGames(window);
-        for (let i = 0; i < words.length; ++i) {
-            verify(standIns.leave("games-finished/ada", "child ada added 0 removed 0 held " + words[i] + "\n", new Date(2026, 9, 21, 8, 0)));
-            window.gamesPage.reload();
-            const text = findChild(window, "finishedNote").text;
-            verify(text.indexOf("Save again") < 0, words[i] + ": " + text);
-            verify(text.indexOf("Added to") < 0, words[i] + ": " + text);
-            verify(text.endsWith("To try them again, put them back on the list and press Save."), words[i] + ": " + text);
-            verify(!findChild(window, "saveButton").enabled);
-        }
-    }
-
-    // A copy that gave some games and left one out counts what it added
-    // and names the one it left out, in the Save's words.
-    function test_aFinishThatGaveSomeCountsThem() {
-        const window = makeWindow("done");
-        const when = new Date(2026, 9, 22, 18, 15);
-        verify(standIns.leave("games-finished/ada", "copied ada 1002\nskipped ada 1004 downloading\nchild ada added 1 removed 0\n", when));
-        window.gamesPage.reload();
-        showGames(window);
-        compare(findChild(window, "finishedNote").text, "When Ada logged out on " + when.toLocaleDateString(Qt.locale(), Locale.LongFormat) + ": Added to Ada's list: 1. Spy Fox was not given to Ada: Steam is still downloading it. The games that were not given are not on Ada's list now. To try them again, put them back on the list and press Save.");
+        compare(result(window, 0).text, "Ada's list is saved. Added: 0. Taken off: 1. Ada is logged in, so their new games could not be copied. They come after Ada logs out and you press Save again. The games taken off are already gone from Ada's list.");
     }
 
     function test_aSkippedGameIsNamed() {
@@ -767,7 +682,8 @@ TestCase {
         verify(result(window, 0).text.indexOf("Spy Fox was not given to Ben: Steam is still downloading it.") >= 0);
     }
 
-    // While the password box is open, every control on the page waits.
+    // While the password box is open, every control on the page waits,
+    // behind the Save's own window.
     function test_everythingWaitsWhileASaveRuns() {
         const window = makeWindow("done", {
             "gamesScenario": "asking"
@@ -789,7 +705,8 @@ TestCase {
         compare(highlighted(window), ["Putt-Putt Joins the Parade", "Freddi Fish", "Pajama Sam", "Spy Fox"]);
     }
 
-    // A copy in progress names the child, and says they cannot log in.
+    // A copy in progress names the child, says they cannot log in, and
+    // warns not to log out or close the lid.
     function test_aCopyInProgressSaysWhose() {
         const window = makeWindow("done", {
             "gamesScenario": "save-copying"
@@ -799,6 +716,52 @@ TestCase {
         mouseClick(findChild(window, "saveButton"));
         tryCompare(window.gamesPage.saving, "progress", GamesSaving.CopyingGames);
         compare(saveOutcome(window), "Copying games for Ada. This can take a few minutes, and Ada cannot log in until it ends.");
+        verify(progressWindow(window).visible);
+        compare(findChild(window, "saveProgressHeading").text, "Saving games");
+        verify(findChild(window, "lidWarning").visible);
+        compare(findChild(window, "lidWarning").text, "Do not log out or close the lid until this is finished.");
+        verify(!findChild(window, "closeSaveProgress").visible);
+        if (standIns.screenshotPath() !== "") {
+            wait(300);
+            grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-games-copying.png"));
+        }
+        // Escape does not put it away while the copy runs, and nothing on
+        // the page behind it takes a click.
+        keyClick(Qt.Key_Escape);
+        verify(progressWindow(window).visible);
+        mouseClick(findChild(window, "childrenTab"));
+        compare(window.showing, "games");
+    }
+
+    // Each game copied is named as it comes.
+    function test_theProgressWindowNamesEachGameCopied() {
+        const window = makeWindow("done", {
+            "gamesScenario": "save-copied-then-copying"
+        });
+        showGames(window);
+        mouseClick(card(window, 1));
+        mouseClick(findChild(window, "saveButton"));
+        tryCompare(findChild(window, "copiedGames"), "count", 2);
+        compare(findChild(window, "copiedGames").itemAt(0).text, "Copied Putt-Putt Joins the Parade for Ada.");
+        compare(findChild(window, "copiedGames").itemAt(1).text, "Ada already had Freddi Fish.");
+    }
+
+    // Escape puts the window away once the Save has ended, and focus goes
+    // back to the page.
+    function test_escapeClosesTheEndedSave() {
+        const window = makeWindow("done", {
+            "gamesScenario": "not-authorized"
+        });
+        showGames(window);
+        mouseClick(card(window, 1));
+        mouseClick(findChild(window, "saveButton"));
+        tryCompare(findChild(window, "closeSaveProgress"), "activeFocus", true);
+        keyClick(Qt.Key_Tab);
+        verify(findChild(window, "closeSaveProgress").activeFocus);
+        keyClick(Qt.Key_Escape);
+        verify(!progressWindow(window).visible);
+        compare(window.gamesPage.saving.step, GamesSaving.Ready);
+        tryCompare(findChild(window, "saveButton"), "activeFocus", true);
     }
 
     function test_aClosedPasswordBoxKeepsTheChanges() {
@@ -833,7 +796,8 @@ TestCase {
         showGames(window);
         mouseClick(findChild(window, "lookForGames"));
         tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
-        compare(saveOutcome(window), "The shared folder was read again. Every game in it shows below.");
+        compare(saveOutcome(window), "The shared folder was read again. Every game in it shows on the page.");
+        compare(findChild(window, "saveProgressHeading").text, "Looking for new games");
         // It names no child, so it says nothing about any child's list.
         compare(findChild(window, "saveResults").count, 0);
     }
@@ -848,6 +812,8 @@ TestCase {
         mouseClick(findChild(window, "lookForGames"));
         tryCompare(window.gamesPage.saving, "step", GamesSaving.Saving);
         compare(saveOutcome(window), "Looking at the shared folder for games and their pictures.");
+        // A look copies nothing, so it has no warning about the lid.
+        verify(!findChild(window, "lidWarning").visible);
     }
 
     // A look that did not run speaks of looking, not of saved changes.
@@ -871,9 +837,8 @@ TestCase {
         compare(saveOutcome(window), "The shared folder was not looked at again. It needs your password: the box was closed, or the password was not accepted.");
     }
 
-    // What a Save did stops showing once a game is turned, so the page
-    // never says "Saved" beside changes that are not.
-    function test_theOutcomeEndsWithTheNextTap() {
+    // What a Save did shows until Close; the page waits behind it.
+    function test_theOutcomeStaysUntilClose() {
         const window = makeWindow("done", {
             "gamesScenario": "save-done"
         });
@@ -881,10 +846,130 @@ TestCase {
         mouseClick(card(window, 1));
         mouseClick(findChild(window, "saveButton"));
         tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
-        verify(findChild(window, "saveOutcomeBox").visible);
         mouseClick(card(window, 2));
-        verify(!findChild(window, "saveOutcomeBox").visible);
+        compare(card(window, 2).onList, true);
+        verify(progressWindow(window).visible);
+        closeProgress(window);
+        mouseClick(card(window, 2));
+        compare(card(window, 2).onList, false);
         verify(findChild(window, "unsavedSentence").visible);
+    }
+
+    // ---- a child who is logged in ----
+
+    // The child's games are greyed under a card that says why; the other
+    // children and Look for new games stay.
+    function test_aLoggedInChildsGamesAreCovered() {
+        const window = makeWindow("done", {
+            "loggedIn": ["ada"]
+        });
+        showGames(window);
+        verify(window.gamesPage.chosenLoggedIn);
+        verify(findChild(window, "loggedInCover").visible);
+        compare(findChild(window, "loggedInSentence").text, "Ada is still logged in. Log Ada out, then choose their games.");
+        compare(findChild(window, "logOutChild").text, "Log Ada out");
+        compare(findChild(window, "logOutChild").Accessible.name, "Log Ada out");
+        verify(!findChild(window, "childGames").enabled);
+        compare(findChild(window, "childGames").opacity, Tokens.coveredOpacity);
+        mouseClick(card(window, 1));
+        compare(card(window, 1).onList, false);
+        verify(findChild(window, "lookForGames").enabled);
+        if (standIns.screenshotPath() !== "") {
+            wait(300);
+            grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-games-logged-in.png"));
+        }
+        // Ben is not logged in: his games show.
+        chooseChild(window, "ben");
+        verify(!findChild(window, "loggedInCover").visible);
+        verify(findChild(window, "childGames").enabled);
+        compare(findChild(window, "childGames").opacity, 1);
+    }
+
+    // Log out warns first, with focus on Not now; then the password and the
+    // logout, and the games show again.
+    function test_logAChildOut() {
+        const window = makeWindow("done", {
+            "loggedIn": ["ada"],
+            "gamesScenario": "log-out-done"
+        });
+        showGames(window);
+        mouseClick(findChild(window, "logOutChild"));
+        compare(findChild(window, "loggedInSentence").text, "Log Ada out? Anything Ada has not saved in a game or program is lost. Steam is asked to save first.");
+        tryCompare(findChild(window, "notNowLogOut"), "activeFocus", true);
+        compare(findChild(window, "confirmLogOut").text, "Log Ada out");
+        if (standIns.screenshotPath() !== "") {
+            wait(300);
+            grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-games-log-out.png"));
+        }
+        mouseClick(findChild(window, "confirmLogOut"));
+        tryVerify(() => !window.gamesPage.chosenLoggedIn);
+        verify(!findChild(window, "loggedInCover").visible);
+        verify(findChild(window, "childGames").enabled);
+        tryCompare(choice(window, "ada"), "activeFocus", true);
+        mouseClick(card(window, 1));
+        compare(card(window, 1).onList, true);
+    }
+
+    function test_notNowLogsNobodyOut() {
+        const window = makeWindow("done", {
+            "loggedIn": ["ada"],
+            "gamesScenario": "log-out-done"
+        });
+        showGames(window);
+        mouseClick(findChild(window, "logOutChild"));
+        tryCompare(findChild(window, "notNowLogOut"), "activeFocus", true);
+        keyClick(Qt.Key_Space);
+        compare(findChild(window, "loggedInSentence").text, "Ada is still logged in. Log Ada out, then choose their games.");
+        tryCompare(findChild(window, "logOutChild"), "activeFocus", true);
+        verify(window.gamesPage.chosenLoggedIn);
+    }
+
+    // A program that will not close: the parent is told to restart.
+    function test_aStuckLogoutSaysRestart() {
+        const window = makeWindow("done", {
+            "loggedIn": ["ada"],
+            "gamesScenario": "log-out-held-stuck"
+        });
+        showGames(window);
+        mouseClick(findChild(window, "logOutChild"));
+        tryCompare(findChild(window, "notNowLogOut"), "activeFocus", true);
+        waitForPolish(window);
+        mouseClick(findChild(window, "confirmLogOut"));
+        tryCompare(window.gamesPage.loggingOut, "step", ChildLogOut.NotLoggedOut);
+        compare(findChild(window, "loggedInSentence").text, "One of Ada's programs would not close, so Ada is not fully logged out. Restart the computer, then choose Ada's games.");
+        tryCompare(findChild(window, "closeLogOut"), "activeFocus", true);
+        verify(!findChild(window, "childGames").enabled);
+        mouseClick(findChild(window, "closeLogOut"));
+        compare(findChild(window, "loggedInSentence").text, "Ada is still logged in. Log Ada out, then choose their games.");
+    }
+
+    function test_aClosedPasswordBoxLogsNobodyOut() {
+        const window = makeWindow("done", {
+            "loggedIn": ["ada"],
+            "gamesScenario": "dismissed"
+        });
+        showGames(window);
+        mouseClick(findChild(window, "logOutChild"));
+        tryCompare(findChild(window, "notNowLogOut"), "activeFocus", true);
+        waitForPolish(window);
+        mouseClick(findChild(window, "confirmLogOut"));
+        tryCompare(window.gamesPage.loggingOut, "step", ChildLogOut.NotLoggedOut);
+        compare(findChild(window, "loggedInSentence").text, "Ada was not logged out. It needs your password: the box was closed, or the password was not accepted.");
+    }
+
+    // A child who logs in while their changes wait keeps the changes, but
+    // Save waits, and the page says why.
+    function test_saveWaitsForALoggedInChildsChanges() {
+        const window = makeWindow("done");
+        showGames(window);
+        mouseClick(card(window, 1));
+        verify(findChild(window, "saveButton").enabled);
+        standIns.setLoggedIn(["ada"]);
+        window.gamesPage.reload();
+        verify(!findChild(window, "saveButton").enabled);
+        verify(!findChild(window, "putBack").enabled);
+        compare(findChild(window, "loggedInUnsavedSentence").text, "Save waits: changes for a child who is logged in cannot be saved yet. Logged in: Ada. Log them out first.");
+        compare(card(window, 1).onList, true);
     }
 
     // A list that cannot be read says that Saving writes it again.

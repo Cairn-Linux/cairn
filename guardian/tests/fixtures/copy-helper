@@ -8,18 +8,14 @@
 # each appid and then "finished". It waits the seconds in "sleep-CHILD" first
 # and ends with the status in "status-CHILD", or 0. It copies the folder's
 # "games" to "games-seen-CHILD" as it starts, so a test sees each list as
-# the copy found it, and its "games-waiting", when there is one, to
-# "waiting-seen-CHILD", so a test sees what waited for the child while the
-# copy ran. With "break-CHILD" it then puts a folder in place of
-# "games/CHILD.json", so the list cannot be written after the copy.
+# the copy found it, and with "break-CHILD" it then puts a folder in place
+# of "games/CHILD.json", so the list cannot be written after the copy.
 here="${0%/*}"
 echo "$*" >> "$here/helper-calls"
 child="$2"
 shift 2
 rm -rf "$here/games-seen-$child"
 cp -R "$here/games" "$here/games-seen-$child"
-rm -rf "$here/waiting-seen-$child"
-[ ! -d "$here/games-waiting" ] || cp -R "$here/games-waiting" "$here/waiting-seen-$child"
 if [ -e "$here/break-$child" ]; then
     rm -f "$here/games/$child.json"
     mkdir "$here/games/$child.json"

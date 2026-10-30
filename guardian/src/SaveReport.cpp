@@ -26,9 +26,10 @@ void SaveReport::take(const QString& line) {
     static const QRegularExpression made(
         pattern(QStringLiteral("(pictures|catalogue) (made|kept)")));
     static const QRegularExpression step(pattern(QStringLiteral("(copying|waiting) ") + loginWord));
+    static const QRegularExpression game(
+        pattern(QStringLiteral("(copied|have) ") + loginWord + ' ' + appIdWord));
     static const QRegularExpression skipped(
         pattern(QStringLiteral("skipped ") + loginWord + ' ' + appIdWord + ' ' + reasonWord));
-    static const QRegularExpression later(pattern(QStringLiteral("later ") + loginWord));
     static const QRegularExpression counted(
         pattern(QStringLiteral("child ") + loginWord +
                 QStringLiteral(" added ([0-9]{1,4}) removed ([0-9]{1,4})(?: held ") + reasonWord +
@@ -49,6 +50,11 @@ void SaveReport::take(const QString& line) {
                match.hasMatch() && m_logins.contains(match.captured(2))) {
         m_stage = match.captured(1) == QLatin1String("copying") ? Stage::Copying : Stage::Waiting;
         m_current = match.captured(2);
+    } else if (const QRegularExpressionMatch match = game.match(line);
+               match.hasMatch() && m_logins.contains(match.captured(2))) {
+        m_copied.append({.login = match.captured(2),
+                         .appId = match.captured(3),
+                         .had = match.captured(1) == QLatin1String("have")});
     } else if (const QRegularExpressionMatch match = skipped.match(line);
                match.hasMatch() && m_logins.contains(match.captured(1))) {
         child(match.captured(1))
@@ -63,9 +69,6 @@ void SaveReport::take(const QString& line) {
         }
         m_stage = Stage::Writing;
         m_current.clear();
-    } else if (const QRegularExpressionMatch match = later.match(line);
-               match.hasMatch() && m_logins.contains(match.captured(1))) {
-        child(match.captured(1)).later = true;
     }
 }
 
@@ -89,12 +92,15 @@ QList<SaveReport::Child> SaveReport::children() const {
     return m_children;
 }
 
+QList<SaveReport::Copied> SaveReport::copied() const {
+    return m_copied;
+}
+
 SaveReport::Child& SaveReport::child(const QString& login) {
     const auto found = std::ranges::find(m_children, login, &Child::login);
     if (found != m_children.end()) {
         return *found;
     }
-    m_children.append(Child{
-        .login = login, .added = {}, .removed = {}, .held = {}, .later = false, .skipped = {}});
+    m_children.append(Child{.login = login, .added = {}, .removed = {}, .held = {}, .skipped = {}});
     return m_children.last();
 }

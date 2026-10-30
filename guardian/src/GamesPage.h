@@ -3,12 +3,15 @@
 
 #include "Account.h"
 #include "ChildList.h"
+#include "ChildLogOut.h"
 #include "GameChoices.h"
 #include "GameShelf.h"
 #include "GamesSaving.h"
+#include "LoginSessions.h"
+#include "LoginWatch.h"
 #include "SteamWindowStart.h"
-#include "WaitingGames.h"
 
+#include <QDBusConnection>
 #include <QObject>
 #include <QQmlEngine>
 #include <QString>
@@ -17,6 +20,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <optional>
 #include <vector>
 
 // What the Guardian tool's Games page shows and does (ADR-0041): the
@@ -24,9 +28,11 @@
 // shared folder with the games on that child's list marked. The parent
 // puts games on and takes them off, for one child or several, and Save
 // gives each changed child their whole new list with one run of
-// cairn-family save-games through pkexec. It also opens a child's own
-// Steam with the window the "Steam for <child>" menu entries open
-// (ADR-0032).
+// cairn-family save-games through pkexec. A child who is logged in has
+// their games greyed, with a way to log them out first: one rule, so the
+// parent never chooses games that could not be copied. It also opens a
+// child's own Steam with the window the "Steam for <child>" menu entries
+// open (ADR-0032).
 class GamesPage : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -38,9 +44,13 @@ class GamesPage : public QObject {
     // The login of the child picked, or "" when there are no children.
     Q_PROPERTY(QString chosen READ chosen NOTIFY changed)
     Q_PROPERTY(QString chosenName READ chosenName NOTIFY changed)
+    // The child picked is logged in, as logind says now.
+    Q_PROPERTY(bool chosenLoggedIn READ chosenLoggedIn NOTIFY changed)
+    // The child picked has their games greyed: they are logged in, or the
+    // logout, its warning or its outcome is about them.
+    Q_PROPERTY(bool chosenCovered READ chosenCovered NOTIFY changed)
     // Each game as a map: appId, title, picture (a file:// URL, or empty),
-    // saved, when it is on the child's list as last saved, waiting, when
-    // it waits for the child's next logout to be copied, and shared, for
+    // saved, when it is on the child's list as last saved, and shared, for
     // the child picked. The games on their saved list that the shared folder no
     // longer has come last, with shared false. Like listedChildren, it
     // changes only when one of those does, so turning a game keeps the
@@ -55,11 +65,6 @@ class GamesPage : public QObject {
     Q_PROPERTY(int sharedCount READ sharedCount NOTIFY changed)
     // How many games on the child's list the shared folder no longer has.
     Q_PROPERTY(int goneCount READ goneCount NOTIFY changed)
-    // The child picked has games waiting for their next logout.
-    Q_PROPERTY(bool chosenWaiting READ chosenWaiting NOTIFY changed)
-    // The copy at the picked child's last logout, as WaitingGames gives
-    // it, until the next Save for them; empty when there is none.
-    Q_PROPERTY(QVariantMap finished READ finished NOTIFY changed)
     // The name of the child whose Steam window did not start, or "".
     Q_PROPERTY(QString steamNotOpened READ steamNotOpened NOTIFY changed)
     // The logins of the children with changes not saved yet, in the
@@ -67,13 +72,19 @@ class GamesPage : public QObject {
     // "Ada and Ben".
     Q_PROPERTY(QStringList unsavedLogins READ unsavedLogins NOTIFY changed)
     Q_PROPERTY(QString unsavedNames READ unsavedNames NOTIFY changed)
-    // Whether Save would save something now.
+    // The names, in words, of the children with changes not saved yet who
+    // are logged in, which keeps Save off.
+    Q_PROPERTY(QString loggedInUnsavedNames READ loggedInUnsavedNames NOTIFY changed)
+    // Whether Save would save something now: never while a child with
+    // changes is logged in.
     Q_PROPERTY(bool canSave READ canSave NOTIFY changed)
     // Whether "Put back as saved" would change the picked child's list now.
     Q_PROPERTY(bool canPutBack READ canPutBack NOTIFY changed)
-    // A Save, or a look for new games, is running; every control waits.
+    // A Save, a look for new games or a logout is running; every other
+    // control waits.
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
     Q_PROPERTY(GamesSaving* saving READ saving CONSTANT)
+    Q_PROPERTY(ChildLogOut* loggingOut READ loggingOut CONSTANT)
 
 public:
     // The picked child's own list, as GameShelf reads it.
@@ -85,13 +96,16 @@ public:
         // cairn-family; main() names the one this build installs.
         QString command;
         QString catalogue = QStringLiteral("/var/lib/cairn/games.json");
-        // Each child's own games list, waiting list and last finish.
-        WaitingGames::Folders lists;
+        QString childLists = QStringLiteral("/var/lib/cairn/games");
         // cairn-steam-for; main() names the one this build installs.
         QString steamFor;
         std::function<std::vector<Account>()> accounts = listAccounts;
         // Starts a program on its own, so it outlives this window.
         SteamWindowStart::Start start = SteamWindowStart::startOnItsOwn;
+        // Who is logged in, and the bus logind says so on: the system bus
+        // in main(), none in a test, which reads again by hand.
+        LoginWatch::Read loggedIn = LoginSessions::loggedInNow;
+        std::optional<QDBusConnection> loginBus;
     };
 
     explicit GamesPage(Setup setup, QObject* parent = nullptr);
@@ -99,21 +113,23 @@ public:
     QVariantList listedChildren() const;
     QString chosen() const;
     QString chosenName() const;
+    bool chosenLoggedIn() const;
+    bool chosenCovered() const;
     QVariantList games() const;
     QStringList wanted() const;
     List list() const;
     int onListCount() const;
     int sharedCount() const;
     int goneCount() const;
-    bool chosenWaiting() const;
-    QVariantMap finished() const;
     QString steamNotOpened() const;
     QStringList unsavedLogins() const;
     QString unsavedNames() const;
+    QString loggedInUnsavedNames() const;
     bool canSave() const;
     bool canPutBack() const;
     bool busy() const;
     GamesSaving* saving() const;
+    ChildLogOut* loggingOut() const;
 
     // Picking a child, turning a game and putting a list back each end the
     // last Save's outcome, which was about the page as it was then.
@@ -122,7 +138,8 @@ public:
     // changes nothing. Changes to the other children's lists are kept.
     Q_INVOKABLE void choose(const QString& login);
     // Puts a game on the picked child's list, or takes it off, until Save.
-    // Only a game the page shows, and not while a Save runs.
+    // Only a game the page shows, not while a Save runs, and not while the
+    // child's games are greyed.
     Q_INVOKABLE void turn(const QString& appId);
     // The picked child's list goes back to how it is saved.
     Q_INVOKABLE void putBack();
@@ -133,12 +150,15 @@ public:
     // child's list.
     Q_INVOKABLE void lookForGames();
     // Opens the child's own Steam, in the Steam window, as a program of its
-    // own. A login that is not a listed child opens nothing.
+    // own. A login that is not a listed child, or is logged in, opens
+    // nothing.
     Q_INVOKABLE void openSteam(const QString& login);
+    // Shows the warning before logging out the picked child, when they are
+    // logged in and nothing else runs. loggingOut takes it from there.
+    Q_INVOKABLE void logOut();
     // Reads the children and the games files again. Changes not saved yet
     // stay, but for a child who is gone or a game that can no longer show.
-    // A waiting or finished file that changes reads them again too, unless
-    // a Save is running, after which they are read anyway.
+    // Who is logged in is read again too.
     Q_INVOKABLE void reload();
 
 signals:
@@ -147,12 +167,12 @@ signals:
     void changed();
 
 private:
-    const ListedChild* child(const QString& login) const;
     void readShelf();
 
     Setup m_setup;
     GamesSaving* m_saving;
-    WaitingGames* m_lists;
+    ChildLogOut* m_logOut;
+    LoginWatch* m_logins;
     std::vector<ListedChild> m_children;
     QString m_chosen;
     GameShelf m_shelf;

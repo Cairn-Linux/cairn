@@ -42,8 +42,7 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/bin/cairn-steam-for" DESTINATION "${C
 
 # cairn-family: no window, only Qt Core, run as root by pkexec or sudo.
 # create-child and set-level change accounts (ADR-0039); save-games gives
-# children their games, and finish-games, which only systemd starts at a
-# child's logout, copies the games a Save left waiting (ADR-0041).
+# children their games, and log-out logs a child out first (ADR-0041).
 set(family_sources
     src/Refusal.h src/Refusal.cpp
     src/Caller.h src/Caller.cpp
@@ -61,12 +60,11 @@ set(games_save_sources
     src/CatalogueRefresh.h src/CatalogueRefresh.cpp
     src/ChildGameList.h src/ChildGameList.cpp
     src/ChildGamesFile.h src/ChildGamesFile.cpp
-    src/WaitingSave.h src/WaitingSave.cpp
-    src/FinishedSave.h src/FinishedSave.cpp
+    src/SystemJob.h src/SystemJob.cpp
     src/CopyJob.h src/CopyJob.cpp
     src/ChildSave.h src/ChildSave.cpp
     src/GamesSave.h src/GamesSave.cpp
-    src/FinishGames.h src/FinishGames.cpp
+    src/LogOutCommand.h src/LogOutCommand.cpp
 )
 qt_add_executable(cairn-family src/familymain.cpp ${family_sources} ${games_save_sources})
 target_include_directories(cairn-family PRIVATE src)
@@ -80,8 +78,9 @@ target_compile_definitions(cairn-family PRIVATE
     CAIRN_APPLICATIONS="/usr/local/share/applications"
 )
 # save-games runs the visit helper's copy, the picture step and kidscan,
-# where this build installs them. systemd-run and python3 are the system's
-# own, at their fixed paths.
+# where this build installs them, and log-out the helper's logout.
+# systemd-run, systemd-inhibit and python3 are the system's own, at their
+# fixed paths.
 target_compile_definitions(cairn-family PRIVATE
     CAIRN_STEAM_VISIT="${CAIRN_FULL_LIBEXECDIR}/cairn-steam-visit"
     CAIRN_GAME_PICTURES="${CAIRN_FULL_LIBEXECDIR}/cairn-game-pictures"
@@ -92,6 +91,8 @@ install(TARGETS cairn-family RUNTIME DESTINATION "${CAIRN_LIBEXECDIR}")
 # The Guardian tool: its own program and QML module, so the Steam window
 # stays as it is. It shares the Steam window's button, and checks what it
 # asks for with cairn-family's own rule before it asks for a password.
+# Qt's D-Bus module asks logind, without root, which children are logged
+# in, and listens for logins coming and going (ADR-0041).
 set(family_window_sources
     src/Refusal.h src/Refusal.cpp
     src/FamilyRequest.h src/FamilyRequest.cpp
@@ -108,25 +109,27 @@ set(family_window_sources
     src/SystemTool.h src/SystemTool.cpp
     src/ReadableFile.h src/ReadableFile.cpp
     src/RootFolder.h src/RootFolder.cpp
-    src/WaitingSave.h src/WaitingSave.cpp
-    src/FinishedSave.h src/FinishedSave.cpp
-    src/WaitingGames.h src/WaitingGames.cpp
     src/SteamWindowStart.h src/SteamWindowStart.cpp
     src/SaveRun.h src/SaveRun.cpp
     src/SaveReport.h src/SaveReport.cpp
     src/SaveResults.h src/SaveResults.cpp
     src/GamesSaving.h src/GamesSaving.cpp
+    src/LoginSessions.h src/LoginSessions.cpp
+    src/LoginWatch.h src/LoginWatch.cpp
+    src/ChildLogOut.h src/ChildLogOut.cpp
     src/GamesPage.h src/GamesPage.cpp
 )
 set(family_window_qml_files
     qml/FamilyWindow.qml
     qml/ChildrenView.qml
     qml/GamesView.qml
+    qml/ChildGames.qml
     qml/ChildChoice.qml
     qml/GameCard.qml
     qml/SaveOutcome.qml
-    qml/LaterNote.qml
-    qml/WaitingNote.qml
+    qml/SaveResultWords.qml
+    qml/SaveProgress.qml
+    qml/LoggedInCover.qml
     qml/ChildRow.qml
     qml/AddChildForm.qml
     qml/LabelledField.qml
@@ -145,7 +148,7 @@ qt_add_qml_module(cairn-guardian
     SOURCES ${family_window_sources}
 )
 target_include_directories(cairn-guardian PRIVATE src)
-target_link_libraries(cairn-guardian PRIVATE Qt6::Quick CairnBrand cairn-accounts)
+target_link_libraries(cairn-guardian PRIVATE Qt6::Quick Qt6::DBus CairnBrand cairn-accounts)
 # cairn-family, and the Steam window the Games page opens for a child.
 target_compile_definitions(cairn-guardian PRIVATE
     CAIRN_FAMILY="${CAIRN_FULL_LIBEXECDIR}/cairn-family"
@@ -254,15 +257,6 @@ target_link_libraries(tst_childgamesfile PRIVATE Qt6::Core Qt6::Test)
 target_compile_definitions(tst_childgamesfile PRIVATE FIXTURES="${guardian_fixtures}")
 add_test(NAME childgamesfile COMMAND tst_childgamesfile)
 
-qt_add_executable(tst_waitingsave tests/tst_waitingsave.cpp src/WaitingSave.h
-    src/WaitingSave.cpp src/FinishedSave.h src/FinishedSave.cpp src/GamesRequest.h src/GamesRequest.cpp src/Refusal.h src/Refusal.cpp
-    src/ReadableFile.h src/ReadableFile.cpp src/RootFolder.h src/RootFolder.cpp src/SystemTool.h
-    src/SystemTool.cpp)
-target_include_directories(tst_waitingsave PRIVATE src)
-target_link_libraries(tst_waitingsave PRIVATE Qt6::Core Qt6::Test cairn-accounts)
-target_compile_definitions(tst_waitingsave PRIVATE FIXTURES="${guardian_fixtures}")
-add_test(NAME waitingsave COMMAND tst_waitingsave)
-
 qt_add_executable(tst_cataloguerefresh tests/tst_cataloguerefresh.cpp src/CatalogueRefresh.h
     src/CatalogueRefresh.cpp src/GameCatalogue.h src/GameCatalogue.cpp src/ReadableFile.h
     src/ReadableFile.cpp src/SystemTool.h src/SystemTool.cpp)
@@ -271,24 +265,26 @@ target_link_libraries(tst_cataloguerefresh PRIVATE Qt6::Core Qt6::Test)
 target_compile_definitions(tst_cataloguerefresh PRIVATE FIXTURES="${guardian_fixtures}")
 add_test(NAME cataloguerefresh COMMAND tst_cataloguerefresh)
 
-qt_add_executable(tst_copyjob tests/tst_copyjob.cpp src/CopyJob.h src/CopyJob.cpp)
+qt_add_executable(tst_copyjob tests/tst_copyjob.cpp src/CopyJob.h src/CopyJob.cpp
+    src/SystemJob.h src/SystemJob.cpp)
 target_include_directories(tst_copyjob PRIVATE src)
 target_link_libraries(tst_copyjob PRIVATE Qt6::Core Qt6::Test)
 target_compile_definitions(tst_copyjob PRIVATE FIXTURES="${guardian_fixtures}")
 add_test(NAME copyjob COMMAND tst_copyjob)
+
+qt_add_executable(tst_logoutcommand tests/tst_logoutcommand.cpp src/LogOutCommand.h
+    src/LogOutCommand.cpp src/SystemJob.h src/SystemJob.cpp src/Caller.h src/Caller.cpp
+    src/Refusal.h src/Refusal.cpp)
+target_include_directories(tst_logoutcommand PRIVATE src)
+target_link_libraries(tst_logoutcommand PRIVATE Qt6::Core Qt6::Test cairn-accounts)
+target_compile_definitions(tst_logoutcommand PRIVATE FIXTURES="${guardian_fixtures}")
+add_test(NAME logoutcommand COMMAND tst_logoutcommand)
 
 qt_add_executable(tst_gamessave tests/tst_gamessave.cpp ${family_sources} ${games_save_sources})
 target_include_directories(tst_gamessave PRIVATE src)
 target_link_libraries(tst_gamessave PRIVATE Qt6::Core Qt6::Test cairn-accounts)
 target_compile_definitions(tst_gamessave PRIVATE FIXTURES="${guardian_fixtures}")
 add_test(NAME gamessave COMMAND tst_gamessave)
-
-qt_add_executable(tst_finishgames tests/tst_finishgames.cpp ${family_sources}
-    ${games_save_sources})
-target_include_directories(tst_finishgames PRIVATE src)
-target_link_libraries(tst_finishgames PRIVATE Qt6::Core Qt6::Test cairn-accounts)
-target_compile_definitions(tst_finishgames PRIVATE FIXTURES="${guardian_fixtures}")
-add_test(NAME finishgames COMMAND tst_finishgames)
 
 qt_add_executable(tst_steamentry tests/tst_steamentry.cpp src/SteamEntry.h src/SteamEntry.cpp)
 target_include_directories(tst_steamentry PRIVATE src)
@@ -329,6 +325,27 @@ target_include_directories(tst_savereport PRIVATE src)
 target_link_libraries(tst_savereport PRIVATE Qt6::Core Qt6::Test)
 add_test(NAME savereport COMMAND tst_savereport)
 
+# Who is logged in: the visit helper's rule on sessions given here, then
+# the system's own logind, when the test machine has one.
+qt_add_executable(tst_loginsessions tests/tst_loginsessions.cpp src/LoginSessions.h
+    src/LoginSessions.cpp)
+target_include_directories(tst_loginsessions PRIVATE src)
+target_link_libraries(tst_loginsessions PRIVATE Qt6::Core Qt6::DBus Qt6::Test)
+add_test(NAME loginsessions COMMAND tst_loginsessions)
+
+# On a session bus of its own, with a stand-in for logind's signals.
+qt_add_executable(tst_loginwatch tests/tst_loginwatch.cpp src/LoginWatch.h src/LoginWatch.cpp)
+target_include_directories(tst_loginwatch PRIVATE src)
+target_link_libraries(tst_loginwatch PRIVATE Qt6::Core Qt6::DBus Qt6::Test)
+add_test(NAME loginwatch COMMAND "${DBUS_RUN_SESSION}" -- $<TARGET_FILE:tst_loginwatch>)
+
+qt_add_executable(tst_childlogout tests/tst_childlogout.cpp src/ChildLogOut.h
+    src/ChildLogOut.cpp src/SaveRun.h src/SaveRun.cpp src/PkexecAnswer.h src/PkexecAnswer.cpp)
+target_include_directories(tst_childlogout PRIVATE src)
+target_link_libraries(tst_childlogout PRIVATE Qt6::Qml Qt6::Test)
+target_compile_definitions(tst_childlogout PRIVATE FIXTURES="${guardian_fixtures}")
+add_test(NAME childlogout COMMAND tst_childlogout)
+
 qt_add_executable(tst_gamechoices tests/tst_gamechoices.cpp src/GameChoices.h
     src/GameChoices.cpp)
 target_include_directories(tst_gamechoices PRIVATE src)
@@ -337,7 +354,7 @@ add_test(NAME gamechoices COMMAND tst_gamechoices)
 
 qt_add_executable(tst_childrenpage tests/tst_childrenpage.cpp ${family_window_sources})
 target_include_directories(tst_childrenpage PRIVATE src)
-target_link_libraries(tst_childrenpage PRIVATE Qt6::Qml Qt6::Test cairn-accounts)
+target_link_libraries(tst_childrenpage PRIVATE Qt6::Qml Qt6::DBus Qt6::Test cairn-accounts)
 target_compile_definitions(tst_childrenpage PRIVATE FIXTURES="${guardian_fixtures}")
 add_test(NAME childrenpage COMMAND tst_childrenpage)
 
@@ -355,7 +372,7 @@ add_test(NAME gameshelf COMMAND tst_gameshelf)
 
 qt_add_executable(tst_gamespage tests/tst_gamespage.cpp ${family_window_sources})
 target_include_directories(tst_gamespage PRIVATE src)
-target_link_libraries(tst_gamespage PRIVATE Qt6::Qml Qt6::Test cairn-accounts)
+target_link_libraries(tst_gamespage PRIVATE Qt6::Qml Qt6::DBus Qt6::Test cairn-accounts)
 target_compile_definitions(tst_gamespage PRIVATE FIXTURES="${guardian_fixtures}")
 add_test(NAME gamespage COMMAND tst_gamespage)
 
@@ -368,7 +385,8 @@ qt_add_qml_module(tst_familywindow
     SOURCES ${family_window_sources}
 )
 target_include_directories(tst_familywindow PRIVATE src)
-target_link_libraries(tst_familywindow PRIVATE Qt6::Gui Qt6::QuickTest CairnBrand cairn-accounts)
+target_link_libraries(tst_familywindow PRIVATE Qt6::Gui Qt6::DBus Qt6::QuickTest CairnBrand
+    cairn-accounts)
 target_compile_definitions(tst_familywindow PRIVATE
     QUICK_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests"
     FIXTURES="${guardian_fixtures}"
@@ -377,8 +395,10 @@ add_test(NAME familywindow COMMAND tst_familywindow
     -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/tst_familywindow.qml")
 
 set_tests_properties(steamvisit ownsteam screenlockwatch steamforchild steamwindow familycommand
-    caller gamesrequest childgamelist childgamesfile waitingsave cataloguerefresh copyjob gamessave
-    finishgames steamentry loginname childlist familychange saverun savereport gamechoices childrenpage
+    caller gamesrequest childgamelist childgamesfile cataloguerefresh copyjob logoutcommand gamessave
+    steamentry
+    loginname childlist familychange saverun savereport loginsessions loginwatch childlogout
+    gamechoices childrenpage
     gamepicture gameshelf gamespage familywindow PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QML_IMPORT_PATH=${QT_QML_OUTPUT_DIRECTORY}"
 )
