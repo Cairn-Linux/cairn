@@ -54,6 +54,35 @@ games on their list.**
   is ever sent back to be written. A family whose shared folder had no games yet has
   nothing to highlight, so without it no Save could run.
 
+### Games in the Guardian's own Steam
+
+Added 2026-10-29.
+A Guardian who installs a game the usual way puts it in their own Steam
+library, in their home or on another drive that Steam lists in its
+`libraryfolders.vdf`, not in the shared folder, so no child can have it.
+Mason chose, for now, that the Games page says so (#167):
+
+- The window, which runs as the Guardian, reads its own Steam's
+  libraries: kidscan's four places for Steam in a home, and each library
+  its `libraryfolders.vdf` lists, but for the shared folder and
+  anything inside it.
+  It reads each `appmanifest_*.acf` there, at most 1 MiB, never through
+  a link, and passes over any it cannot read.
+- It names each game it finds by Steam's own name, but for Steam's
+  runtimes, redistributables and Proton, by kidscan's rule, and for the
+  games already in the full games list.
+  A game still downloading is named too: what matters is where it goes.
+  The rule is written again in C++, and a test checks it against
+  kidscan's.
+- The page then says, in one paragraph, how to move them with Steam's
+  own Settings, Storage: add `/var/lib/cairn/steam-library` as a drive,
+  pick the games, Move, and optionally make it the default for future
+  downloads.
+- It reads them again whenever it reads everything else.
+  It changes nothing, needs no password and asks root for nothing.
+
+A later decision may replace this with a move as part of Save.
+
 ### The root side
 
 - Saving is a new subcommand of the existing root command, `cairn-family

@@ -327,32 +327,37 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="77"/>
+        <location filename="../qml/GamesView.qml" line="76"/>
+        <source>In your own Steam library, not the shared folder: %1. Children can have only the games in the shared folder. To move them, open Steam&apos;s Settings and choose Storage. If the folder /var/lib/cairn/steam-library is not listed there, add it as a drive. Then pick your own library in the list, tick the games, press Move and choose the shared folder. A moved game shows here after the next Save, or after Look for new games. To send future downloads to the shared folder too, make it the default drive in Storage.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/GamesView.qml" line="86"/>
         <source>Whose games to show</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="108"/>
+        <location filename="../qml/GamesView.qml" line="117"/>
         <source>Save</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="116"/>
+        <location filename="../qml/GamesView.qml" line="125"/>
         <source>Put back as saved</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="124"/>
+        <location filename="../qml/GamesView.qml" line="133"/>
         <source>Look for new games</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="133"/>
+        <location filename="../qml/GamesView.qml" line="142"/>
         <source>Not saved yet: the changes for %1. Save gives each child their new list, with one password.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="139"/>
+        <location filename="../qml/GamesView.qml" line="148"/>
         <source>Save waits: changes for a child who is logged in cannot be saved yet. Logged in: %1. Log them out first.</source>
         <translation type="unfinished"></translation>
     </message>
