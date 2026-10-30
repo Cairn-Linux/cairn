@@ -151,12 +151,89 @@ private slots:
         QVERIFY(windows.unexpectedOnScreen());
     }
 
+    // Steam updating itself at login, as on the kids' laptop on 2026-10-27:
+    // its updater's windows came up with no tap (#183). They are Steam's, so
+    // nothing interrupts, and each is one to hide.
+    void steamsUpdaterWindowsAtTheTilesAreSteams() {
+        LaunchWindows windows;
+        windows.steamUpdating(true);
+        windows.opened(QStringLiteral("u1"), QStringLiteral("Progress"), false, {});
+        windows.opened(QStringLiteral("u2"), QStringLiteral("Steam setup"), false, {});
+        windows.opened(QStringLiteral("u3"), QStringLiteral("Steam"), false, {});
+        QVERIFY(!windows.unexpectedOnScreen());
+        QVERIFY(windows.unexpectedName().isEmpty());
+        QVERIFY(windows.steamUpdaterOnScreen(QStringLiteral("u1")));
+        QVERIFY(windows.steamUpdaterOnScreen(QStringLiteral("u3")));
+        QCOMPARE(windows.name(QStringLiteral("u2")), QStringLiteral("Steam setup"));
+        // Hidden, it is no longer one to hide.
+        windows.changed(QStringLiteral("u1"), true, {});
+        QVERIFY(!windows.steamUpdaterOnScreen(QStringLiteral("u1")));
+        // Steam's it stays, even if it comes back after the update.
+        windows.steamUpdating(false);
+        windows.changed(QStringLiteral("u1"), false, {});
+        QVERIFY(windows.steamUpdaterOnScreen(QStringLiteral("u1")));
+        QVERIFY(!windows.unexpectedOnScreen());
+        // A window after the update opened on its own, as before.
+        windows.opened(QStringLiteral("w1"), QStringLiteral("Steam"), false, {});
+        QVERIFY(windows.unexpectedOnScreen());
+        QVERIFY(!windows.steamUpdaterOnScreen(QStringLiteral("w1")));
+    }
+
+    // A tap while Steam updates itself: the updater's window is not the
+    // game's, so it neither opens the app nor counts as it having come.
+    void steamsUpdaterWindowDuringALaunchIsNotTheApp() {
+        LaunchWindows windows;
+        windows.startLaunch();
+        windows.steamUpdating(true);
+        windows.opened(QStringLiteral("u1"), QStringLiteral("Progress"), false, {});
+        QVERIFY(!windows.appOnScreen());
+        QVERIFY(!windows.appWasOnScreen());
+        QVERIFY(!windows.unexpectedOnScreen());
+        windows.steamUpdating(false);
+        windows.opened(QStringLiteral("g1"), QStringLiteral("Arthur's Reading Race"), false, {});
+        QVERIFY(windows.appOnScreen());
+        windows.endLaunch();
+        // Still Steam's after the launch, never on its own.
+        QVERIFY(windows.steamUpdaterOnScreen(QStringLiteral("u1")));
+        QCOMPARE(windows.unexpectedName(), QStringLiteral("Arthur's Reading Race"));
+    }
+
+    // A dialog of an open app's while Steam updates itself is the app's,
+    // never one to hide: hidden, it would leave the app stuck behind it.
+    void anOpenAppsDialogWhileSteamUpdatesItselfIsTheApps() {
+        LaunchWindows windows;
+        windows.startLaunch();
+        windows.opened(QStringLiteral("g1"), QStringLiteral("Tux Paint"), false, {});
+        windows.appIsOpen();
+        windows.steamUpdating(true);
+        windows.opened(QStringLiteral("g2"), QStringLiteral("Save changes?"), false,
+                       QStringLiteral("g1"));
+        QVERIFY(!windows.steamUpdaterOnScreen(QStringLiteral("g2")));
+        QVERIFY(!windows.unexpectedOnScreen());
+        windows.closed(QStringLiteral("g1"));
+        QVERIFY(windows.appOnScreen());
+    }
+
+    // A window hidden while Steam updated itself is decided when it is
+    // first shown, by what holds then.
+    void aHiddenWindowIsDecidedWhenShown() {
+        LaunchWindows windows;
+        windows.steamUpdating(true);
+        windows.opened(QStringLiteral("h1"), QStringLiteral("Sign in to Steam"), true, {});
+        windows.steamUpdating(false);
+        windows.changed(QStringLiteral("h1"), false, {});
+        QVERIFY(windows.unexpectedOnScreen());
+        QVERIFY(!windows.steamUpdaterOnScreen(QStringLiteral("h1")));
+    }
+
     void unknownWindowsChangeNothing() {
         LaunchWindows windows;
         windows.changed(QStringLiteral("never"), false, {});
         windows.closed(QStringLiteral("never"));
         QVERIFY(!windows.unexpectedOnScreen());
         QVERIFY(windows.unexpectedName().isEmpty());
+        QVERIFY(!windows.steamUpdaterOnScreen(QStringLiteral("never")));
+        QVERIFY(windows.name(QStringLiteral("never")).isEmpty());
     }
 };
 

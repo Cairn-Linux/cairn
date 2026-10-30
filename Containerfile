@@ -50,6 +50,9 @@ COPY guardian /src/guardian
 COPY session /src/session
 COPY provision /src/provision
 COPY tools/kidscan /src/tools/kidscan
+# The one file from system_files/ a test reads: the folders the image
+# makes in /var, which provisioning's tests check against (ADR-0041).
+COPY system_files/usr/lib/tmpfiles.d/cairn.conf /src/system_files/usr/lib/tmpfiles.d/
 
 COPY build_files/build-cairn.sh /cairn-build/
 RUN --mount=type=tmpfs,dst=/tmp \

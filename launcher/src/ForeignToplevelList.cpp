@@ -15,6 +15,16 @@ ForeignToplevelList::ForeignToplevelList(QObject* parent)
     setParent(parent);
 }
 
+void ForeignToplevelList::minimize(const QString& identifier) {
+    // Each window is a child of the list until it closes.
+    for (ForeignToplevel* window : findChildren<ForeignToplevel*>(Qt::FindDirectChildrenOnly)) {
+        if (window->identifier() == identifier) {
+            window->set_minimized();
+            return;
+        }
+    }
+}
+
 void ForeignToplevelList::zwlr_foreign_toplevel_manager_v1_toplevel(
     struct ::zwlr_foreign_toplevel_handle_v1* toplevel) {
     ++m_windowsSeen;

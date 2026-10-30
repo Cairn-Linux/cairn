@@ -3,6 +3,7 @@
 
 #include "LaunchWindows.h"
 #include "SteamGameWait.h"
+#include "SteamStartup.h"
 
 #include <QObject>
 #include <QProcess>
@@ -26,7 +27,11 @@
 // the grace, up to a limit (SteamGameWait, ADR-0029); while Steam's log says
 // it is working on the game, the starting screen says it is getting ready
 // (ADR-0036). A tap Steam lost while it updated itself is sent again once the
-// new client has started (ADR-0037). A launch that has put
+// new client has started (ADR-0037). A Steam that cannot sign in ends the
+// wait sooner, and the journal says why (#182). While Steam updates itself,
+// its updater's windows are neither the app's nor on their own, and the
+// launcher asks for each to be hidden, so its Cancel button is out of the
+// child's reach (#183). A launch that has put
 // nothing on the screen when the grace timer ends, or when its program exits
 // after the settle window, is Failed (ADR-0030), and its window counts as the
 // app's if it comes late; one whose window came and went returns to Idle. A
@@ -96,6 +101,9 @@ public:
     void setOwnAppId(const QString& appId);
     bool steamStartedAtLogin() const;
     void setSteamStartedAtLogin(bool started);
+    // Tests set this short: how long a Steam that cannot reach its servers
+    // is waited for (SteamGameWait).
+    void setSteamOfflineLimitMilliseconds(int milliseconds);
 
     // Ignored while a launch is in flight (Starting), an app's window is up
     // (Running), or a window that opened on its own is up (Interrupted). An
@@ -130,6 +138,9 @@ signals:
     void ownAppIdChanged();
     void scopedChanged();
     void steamStartedAtLoginChanged();
+    // Steam's updater put this window on the screen: the compositor should
+    // hide it (#183). Asked again if the window comes back.
+    void windowToHide(const QString& identifier);
 
 private:
     void setState(State state);
@@ -137,6 +148,11 @@ private:
     void setGettingReady(bool gettingReady);
     // Works out the state from the windows on the screen and the launch.
     void update();
+    // Tells the windows whether one that comes on the screen now is Steam's
+    // updater's (#183).
+    void noteSteamUpdating();
+    // Asks for a window to be hidden if it is Steam's updater's and shown.
+    void hideIfSteamUpdater(const QString& identifier);
     void appIsOpen();
     void endLaunch();
     // Nothing of the app came on the screen in time: Failed, but the launch
@@ -160,6 +176,7 @@ private:
     QTimer m_steadyTimer;
     LaunchWindows m_windows;
     SteamGameWait m_steamGame;
+    SteamStartup m_steamStartup;
     State m_state = State::Idle;
     QString m_title;
     QString m_launchTitle;

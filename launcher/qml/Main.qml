@@ -67,6 +67,8 @@ Window {
         ownAppId: windows.ownAppId
         scoped: window.scopeApps
         steamStartedAtLogin: window.steamStartedAtLogin
+        // Steam's updater's windows are kept out of the child's reach (#183).
+        onWindowToHide: identifier => windows.minimize(identifier)
     }
 
     // Footpath, the terminal (ADR-0014). The tiles are its doors; open there
