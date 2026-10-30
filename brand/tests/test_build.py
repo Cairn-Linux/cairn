@@ -306,7 +306,12 @@ class BootScreenTests(unittest.TestCase):
             if line.endswith('";') and "_words = " in line
         ]
         self.assertEqual(
-            words, ["Type the password to start this computer.", "Caps Lock is on."]
+            words,
+            [
+                "Type the password to start this computer.",
+                "That password did not work. Type it again.",
+                "Caps Lock is on.",
+            ],
         )
         for sentence in words:
             self.assertNotIn("!", sentence)

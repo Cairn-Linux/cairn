@@ -23,6 +23,7 @@ screen_height = Window.GetHeight();
 # Plymouth's own text, as plain as the launcher's. Its script language has
 # no way to translate (ADR-0044).
 password_words = "Type the password to start this computer.";
+retry_words = "That password did not work. Type it again.";
 caps_lock_words = "Caps Lock is on.";
 
 # ---- the mark ----
@@ -62,6 +63,11 @@ caps_lock = Sprite(Image.Text(caps_lock_words, ink.red, ink.green, ink.blue, 1, 
 caps_lock.SetOpacity(0);
 typed = Sprite();
 asking = 0;
+# The prompt being answered, and the last one answered. systemd asks
+# again with the same prompt only when the password did not open the
+# disk; a second disk has a prompt of its own.
+asked_prompt = "";
+answered_prompt = "";
 
 # How many stones the step shows: one more each step until the mark is
 # whole, the whole mark for a step, then none.
@@ -168,8 +174,13 @@ fun show_bullets(count)
 fun display_password(prompt, bullets)
   {
     # systemd's prompt names the disk in words a child does not need; the
-    # sentence says what to do instead.
-    show_asking(password_words);
+    # sentence says what to do instead. Plymouth calls this again for
+    # every letter typed, with the same prompt.
+    global.asked_prompt = prompt;
+    if (prompt == global.answered_prompt)
+      show_asking(retry_words);
+    else
+      show_asking(password_words);
     global.typed.SetOpacity(0);
     show_bullets(bullets);
   }
@@ -193,6 +204,8 @@ fun display_question(prompt, entry_text)
 
 fun display_normal()
   {
+    if (global.asking)
+      global.answered_prompt = global.asked_prompt;
     global.asking = 0;
     global.words.SetOpacity(0);
     global.entry.SetOpacity(0);
