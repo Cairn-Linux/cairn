@@ -3,9 +3,11 @@
 The Guardian's side of Cairn (ROADMAP P1-5). So far it has three pieces:
 
 - **The Guardian tool**, "Family" in a Guardian's application menu
-  (ADR-0040). Its Children page lists the family's children with their
-  levels, adds a child and moves a child to another level. Its Games
-  page chooses the games on each child's own list (ADR-0041).
+  and in System Settings (ADR-0040, ADR-0043). Its Children page lists
+  the family's children with their levels, adds a child and moves a
+  child to another level. Its Games page chooses the games on each
+  child's own list (ADR-0041). Its Your account page changes the
+  Guardian's own password and picture (ADR-0043).
 - **`cairn-family`**, the root command under it that makes a child's
   account, sets a child's level (ADR-0039) and gives children their
   games (ADR-0041). The family's setup on the image runs it too.
@@ -20,8 +22,16 @@ Steam window, only the `cairn-guardian` group may run it, and the entry
 names it as its `TryExec`, so no one else's menu shows it. It is on the
 image only: hand provisioning installs neither it nor `cairn-family`.
 
-Two buttons above the page, **Children** and **Games**, move between its
-pages. The window opens on Children.
+Three buttons above the page, **Children**, **Games** and **Your
+account**, move between its pages. The window opens on Children.
+
+System Settings lists it too, as "Family" under System, where Plasma's
+Users page was: the image hides that page with KDE Kiosk
+(`build_files/hide-users-page.sh` adds `kcm_users=false` to
+`/etc/xdg/kdeglobals`), so the family's accounts are changed here and
+nowhere else in Plasma (ADR-0043). The entry,
+`/usr/share/plasma/systemsettings/externalmodules/cairn-guardian-settings.desktop`,
+runs the same wrapper.
 
 The Children page:
 
@@ -94,6 +104,24 @@ The Games page (ADR-0041):
    Steam's runtimes and Proton by kidscan's rule, and any game the
    shared folder already has.
 
+The Your account page (ADR-0043):
+
+1. The Guardian's name and picture.
+2. Plasma's own pictures, from `/usr/share/plasma/avatars`, and
+   **Choose a picture of your own**, Qt's file dialog. A tap makes the
+   picture a square of at most 256 pixels and hands it to
+   AccountsService (`SetIconFile`), with no password; Plasma's lock
+   screen shows it. Cairn's login screen draws first letters instead.
+3. **Password:** the new password twice, then **Change password**.
+   Both are checked first: not empty, the same, at most 128 characters,
+   no tab or line break. Then `cairn-family set-own-password` runs
+   through `pkexec`, with the new password on its standard input, and
+   polkit asks for the password in use now (`auth_self`). Once it is
+   changed both fields are emptied; after a refusal they stay, so a
+   slip is mended without typing both again.
+4. One sentence under each part says what happened, or why nothing
+   changed and what to do next, and the window scrolls to it.
+
 A child who is logged in has their games greyed and blurred under a
 card: "Ada is still logged in. Log Ada out, then choose their games."
 Their games, Put back and Open Steam wait; the other children and Look
@@ -160,12 +188,16 @@ front.
 cairn-family create-child LOGIN LEVEL [--full-name NAME]
 cairn-family set-level LOGIN LEVEL
 cairn-family save-games LOGIN=APPID,APPID... [LOGIN=...]
+cairn-family log-out LOGIN
+cairn-family set-own-password    # the new password on standard input
 ```
 
 It is installed as `/usr/libexec/cairn/cairn-family` and runs as root:
 through `pkexec`, behind a polkit action for each subcommand
-(`com.cairnlinux.family.create-child`, `.set-level`, `.save-games`),
-each of which asks for an administrator's password for every change, or
+(`com.cairnlinux.family.create-child`, `.set-level`, `.save-games`,
+`.log-out`), each of which asks for an administrator's password for
+every change, and `.set-own-password`, which asks for the caller's own
+password every time (ADR-0043), or
 with `sudo` from `../provision/cairn-family-setup.sh`. Started by
 `pkexec`, it checks again that the account that started it is an
 administrator.
@@ -233,6 +265,17 @@ says `logging-out LOGIN` and `logged-out LOGIN`, or `held LOGIN WORD`
 `not-set-up`, `not-started` or `failed`) when the child is not logged out, then
 `done`; `refused WORD` means it was not tried.
 
+`set-own-password` changes the password of the grown-up pkexec names,
+and no one else's: it takes no login, and under `sudo` it is refused
+with `not-a-grown-up`. It reads one line from standard input, checks it
+with the same rule as the window (`NewPassword`), and hands
+`LOGIN:PASSWORD` to `/usr/sbin/chpasswd` on its standard input, which
+makes the hash with `login.defs`'s method. The password is never an
+argument and never in the journal, which gets `set-own-password LOGIN`
+and the answer: `done`, or `refused` and a caller's word, `usage`,
+`bad-password` (an input the rule does not take) or `failed` (chpasswd
+failed).
+
 `create-child` removes a new child's old games file first.
 ADR-0041 lists every word but the copy step's skip reasons, which
 `provision/cairn-copy-games.py` lists and `cairn-family` passes on.
@@ -271,6 +314,11 @@ QML draws, C++ decides (ADR-0002):
 | `src/SaveRun` | Runs `pkexec` with `cairn-family save-games` or `log-out`, and passes on each line as it arrives, then the answer, pkexec's own exit code, or `not-started` when nothing could be started. |
 | `src/SaveReport` | Reads `save-games`'s lines into how far it has got, each game copied, and each child's counts, held word and games left out, taking only its fixed words and the children the Save named. |
 | `src/PkexecAnswer` | pkexec's own two exit codes, for both runners of `cairn-family`. |
+| `src/AccountPage` | What the Your account page shows and does: the Guardian's name and picture, Plasma's pictures, a new picture, and a new password, checked first and sent to `cairn-family set-own-password` on standard input. Its commands, account database and bus are in its `Setup`, so a test can replace them. |
+| `src/AccountPicture` | The Guardian's own picture through AccountsService on the system bus, with Qt D-Bus: reading `IconFile`, and `SetIconFile`, waited for without blocking the window. |
+| `src/PictureFile` | A chosen picture made ready for AccountsService: a square from its middle, turned as the camera meant, at most 256 pixels, as PNG. |
+| `src/NewPassword` | The one rule for a new password, which the window and `cairn-family` both check. |
+| `qml/AccountView.qml`, `qml/PictureSection.qml`, `qml/PasswordForm.qml`, `qml/PictureTile.qml`, `qml/OutcomeBox.qml` | The Your account page with its password sentences, the picture section with its file dialog, the password form, one of Plasma's pictures to tap, and the box a sentence goes in. |
 | `src/GamePicture` | A game's picture from its games file entry, with the launcher's rule: only the full path of a file here. |
 | `qml/FamilyWindow.qml`, `qml/ChildrenView.qml`, `qml/GamesView.qml` | The Guardian tool's window with its switch between pages, its Children page with the sentence for every answer, and its Games page. |
 | `qml/ChildChoice.qml`, `qml/GameCard.qml`, `qml/SaveOutcome.qml`, `qml/SaveResultWords.qml` | A child to pick on the Games page, one game in its grid, the sentences for a Save, and its words for what each child got. |
@@ -292,8 +340,9 @@ QML draws, C++ decides (ADR-0002):
 | `src/ChildSave` | One child's part of a Save: their file without the games taken off, then the copy, their file again and their line. |
 | `src/RootFolder` | A folder only root may change and every account may read, and its small files, checked without following a link. |
 | `src/FamilyRequest` | The subcommand and its values, read from the arguments and checked before anything looks at an account. |
+| `src/OwnPasswordCommand` | `cairn-family set-own-password`: the caller, then one line from standard input, checked, to chpasswd's standard input. Everything it reads from or does to the machine is in its `Setup`. |
 | `src/Refusal` | Why the command made no change, and the word for each. |
-| `src/SystemTool` | Runs `useradd`, `passwd`, `gpasswd`, `usermod`, `restorecon`, the picture step or kidscan by absolute path, without a shell, with a small environment of its own and a two-minute limit. |
+| `src/SystemTool` | Runs `useradd`, `passwd`, `gpasswd`, `usermod`, `restorecon`, `chpasswd`, the picture step or kidscan by absolute path, without a shell, with a small environment of its own and a two-minute limit, and for `chpasswd` with its input on standard input. |
 | `src/PasswordLock` | Whether a child's password is locked, from the shadow database. |
 | `src/SteamEntry` | A child's "Steam for <child>" menu entry: its text, the same as provisioning's, and writing it into place. |
 
@@ -310,14 +359,16 @@ journalctl -t cairn-steam-for -t cairn-steam-visit --since today
 
 ## Tests
 
-CTest runs twenty-nine, among them `steamvisit`, `ownsteam`, `screenlockwatch`,
+CTest runs thirty-four here, among them `steamvisit`, `ownsteam`, `screenlockwatch`,
 `steamforchild`, `steamwindow` (the real window in Qt Quick Test),
 `familycommand`, `steamentry`, and for the Guardian tool `loginname`,
 `childlist`, `familychange`, `saverun`, `savereport`, `loginwatch`,
 `childlogout`, `gamechoices`,
 `childrenpage`, `gamepicture`, `gameshelf`, `gamespage` and
-`familywindow` (the real window in Qt Quick Test, both pages and the
-switch). They use stand-ins in `tests/fixtures/`
+`familywindow` (the real window in Qt Quick Test, all three pages and
+the switch), and for a grown-up's own password and picture
+`newpassword`, `ownpasswordcommand`, `picturefile`, `accountpage` and
+`hideuserspage`. They use stand-ins in `tests/fixtures/`
 for `pkexec` with the helper behind it, which takes a scenario where the
 helper's path goes, and for the Guardian's Steam client, over a stand-in
 process list. `pkexec-family` stands in for `pkexec` as the Guardian
@@ -374,7 +425,21 @@ order of the group changes, a second run, the tools' environment, a
 tool that fails, and a new child's old games file removed first.
 `gamessave` and `copyjob` run `save-games` with stand-ins for
 `systemd-run`, `systemd-inhibit` and the visit helper's copy, and
-`logoutcommand` runs `log-out` with a stand-in for the helper's logout. `steamentry` checks the entry's text against
+`logoutcommand` runs `log-out` with a stand-in for the helper's logout. `ownpasswordcommand` runs `set-own-password` with a stand-in input and
+tool: every caller refused before the input is read, every input the
+rule refuses, the exact line chpasswd gets, and nothing of the password
+in what goes to the journal; then the real tool runner with
+`read-input`, a stand-in for chpasswd that writes down its standard
+input. `accountpage` runs the page against a stand-in AccountsService
+on a session bus of its own (in a thread of its own, so the page's
+waiting calls get their answer) and the pkexec stand-ins, whose
+`cairn-family` writes what came on its standard input to the file
+`CAIRN_TEST_INPUT` names: the checks before any password box, the
+password on standard input and never in the arguments, every answer,
+one change at a time, a picture taken, refused or unreadable.
+`hideuserspage` runs the Kiosk script on Bazzite's own `kdeglobals`, on
+none, and twice, and reads the result with `kreadconfig6` when it is
+there. `steamentry` checks the entry's text against
 provisioning's own `steam_entry`. The screen-lock tests and the Steam
 window's tests run on a session bus of their own under
 `dbus-run-session`, which the build needs, and so does `loginwatch`;
@@ -396,4 +461,8 @@ What the stand-ins cannot show was run in the VM (`docs/research/steam-visit.md`
 - Whether Plasma's own lid handling honours the copy's inhibitor lock is
   to be checked in the VM (ADR-0041, step 6).
 - The Guardian tool cannot reset a child, set a PIN, or make an existing
-  account a child (#113).
+  account a child or a Guardian (#113).
+- KWallet keeps its own password when the Guardian's changes; Plasma's
+  Users page offered to change both (ADR-0043).
+- KRunner still lists "Users - System Settings", which opens System
+  Settings without the page (ADR-0043).

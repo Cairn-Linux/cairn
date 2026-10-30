@@ -144,11 +144,14 @@ process.stdout.write(rules[0]({id: input.action}, subject));
 
 
 class FamilyActionTest(unittest.TestCase):
-    """cairn-family's actions, one per subcommand (ADR-0039, ADR-0041): the
-    levels rule refuses each to a child and lets an administrator through
-    to the password prompt, with no change of its own."""
+    """cairn-family's actions, one per subcommand (ADR-0039, ADR-0041,
+    ADR-0043): the levels rule refuses each to a child and lets an
+    administrator through to the password prompt, with no change of its
+    own."""
 
-    SUBCOMMANDS = {"create-child", "set-level", "save-games", "log-out"}
+    SUBCOMMANDS = {"create-child", "set-level", "save-games", "log-out", "set-own-password"}
+    # Asks for the grown-up's own password, the one being changed.
+    OWN = {"set-own-password"}
 
     def setUp(self):
         self.text = FAMILY_ACTION.read_text()
@@ -190,6 +193,7 @@ class FamilyActionTest(unittest.TestCase):
         for subcommand in ("create-child", "set-level"):
             self.assertEqual(messages[subcommand],
                              "A grown-up's password is needed to change a child's account.")
+        self.assertEqual(messages["set-own-password"], "Type the password you use now to change it.")
 
     def test_a_child_is_refused_and_a_guardian_falls_through(self):
         # The rule steps aside for an administrator first and then refuses
@@ -226,12 +230,15 @@ class FamilyActionTest(unittest.TestCase):
                     self.assertEqual(result.stdout, answer)
 
     def test_asks_an_administrator_for_every_change_and_only_at_the_machine(self):
-        # auth_admin, never auth_admin_keep: each change asks again.
-        for action in self.actions:
+        # auth_admin, never auth_admin_keep: each change asks again. A
+        # grown-up's own password asks for their own, auth_self, never kept
+        # either (ADR-0043); cairn-family checks they are a grown-up.
+        for subcommand, action in self.by_subcommand().items():
             with self.subTest(action=action.get("id")):
                 defaults = {child.tag: child.text for child in action.find("defaults")}
+                asks = "auth_self" if subcommand in self.OWN else "auth_admin"
                 self.assertEqual(defaults, {"allow_any": "no", "allow_inactive": "no",
-                                            "allow_active": "auth_admin"})
+                                            "allow_active": asks})
 
     def test_pkexec_finds_them_by_the_commands_path(self):
         # The build changes /usr/local to its own prefix (cmake/CairnInstall.cmake).

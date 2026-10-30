@@ -3,13 +3,14 @@ import QtQuick
 import Cairn.Brand
 
 // A text field with its label above it, and a line of help when it needs
-// one.
+// one. A secret one, for a password, shows dots in place of what is typed.
 Column {
     id: field
 
     required property string label
     property string hint: ""
     property alias text: input.text
+    property bool secret: false
 
     signal submitted
 
@@ -65,10 +66,13 @@ Column {
             selectionColor: Tokens.selection
             selectedTextColor: Tokens.paperLabel
             clip: true
+            echoMode: field.secret ? TextInput.Password : TextInput.Normal
+            passwordMaskDelay: 0
 
             Accessible.role: Accessible.EditableText
             Accessible.name: field.label
             Accessible.description: field.hint
+            Accessible.passwordEdit: field.secret
 
             Keys.onReturnPressed: field.submitted()
             Keys.onEnterPressed: field.submitted()

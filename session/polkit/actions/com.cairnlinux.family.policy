@@ -1,12 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!--
-  cairn-family's subcommands (ADR-0039, ADR-0041): making a child's account,
-  changing a child's level, saving a child's games, and logging a child out
-  before a grown-up chooses their games. The Guardian's tool
+  cairn-family's subcommands (ADR-0039, ADR-0041, ADR-0043): making a
+  child's account, changing a child's level, saving a child's games,
+  logging a child out before a grown-up chooses their games, and a
+  grown-up's own new password. The Guardian's tool
   runs cairn-family through pkexec, which finds the action by the command's
   path and its first argument, and asks for an administrator's password, or
   a fingerprint, for every change, with the message of that subcommand.
+  A grown-up's own new password asks for that grown-up's own password,
+  auth_self, so the password they use now is what lets them change it,
+  and no other grown-up's will do.
 
   Every action names its first argument, so pkexec never picks one by the
   path alone, whatever order polkit lists them in. Any other first argument
@@ -64,5 +68,16 @@
     </defaults>
     <annotate key="org.freedesktop.policykit.exec.path">/usr/local/libexec/cairn/cairn-family</annotate>
     <annotate key="org.freedesktop.policykit.exec.argv1">log-out</annotate>
+  </action>
+  <action id="com.cairnlinux.family.set-own-password">
+    <description>Change your own password</description>
+    <message>Type the password you use now to change it.</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_self</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/local/libexec/cairn/cairn-family</annotate>
+    <annotate key="org.freedesktop.policykit.exec.argv1">set-own-password</annotate>
   </action>
 </policyconfig>

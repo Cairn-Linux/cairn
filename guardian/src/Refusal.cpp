@@ -25,6 +25,8 @@ QString refusalWord(Refusal refusal) {
         return QStringLiteral("bad-appid");
     case Refusal::Busy:
         return QStringLiteral("busy");
+    case Refusal::BadPassword:
+        return QStringLiteral("bad-password");
     }
     return QStringLiteral("failed");
 }

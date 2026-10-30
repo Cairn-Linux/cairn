@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: Apache-2.0
+# "Family" in System Settings, beside where Plasma's Users page was, which
+# Cairn hides (ADR-0043). System Settings lists an external app like this
+# one and starts its Exec program when the entry is picked, as Info Center
+# does for Plasma System Monitor. The entry is plain English for now, as
+# the menu entry is (ADR-0007).
+[Desktop Entry]
+Type=Service
+Name=Family
+Comment=The children, their levels and games, and your own password and picture
+Exec=@CMAKE_INSTALL_FULL_BINDIR@/cairn-guardian
+TryExec=@CMAKE_INSTALL_FULL_BINDIR@/cairn-guardian
+Icon=system-users
+Categories=Qt;KDE;X-KDE-settings-system;
+X-KDE-ServiceTypes=SystemSettingsExternalApp
+X-KDE-System-Settings-Parent-Category=system-administration
+X-KDE-Weight=1

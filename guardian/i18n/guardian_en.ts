@@ -2,6 +2,84 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="en_US">
 <context>
+    <name>AccountView</name>
+    <message>
+        <location filename="../qml/AccountView.qml" line="26"/>
+        <source>Type the password you use now in the box that opened.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AccountView.qml" line="28"/>
+        <source>Your password is changed. Use the new one from now on: to log in, to unlock the screen and in every password box.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AccountView.qml" line="38"/>
+        <source>Type the new password first.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AccountView.qml" line="40"/>
+        <source>The two new passwords are not the same. Type the new password again in the second box.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AccountView.qml" line="42"/>
+        <source>A password can be at most %1 characters long. Choose a shorter one.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AccountView.qml" line="45"/>
+        <source>A password cannot hold a tab, a line break or another character that does not show. Type it again without them.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AccountView.qml" line="48"/>
+        <source>Your password did not change. It needs the password you use now: the box was closed, or the password was not accepted.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AccountView.qml" line="50"/>
+        <source>Your password did not change. Only a grown-up&apos;s account can change its password here.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AccountView.qml" line="52"/>
+        <source>Cairn&apos;s family command did not get the rights it needs, so your password did not change. Close Family and open it again. If it happens again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AccountView.qml" line="54"/>
+        <source>This window asked Cairn&apos;s family command for something it does not do, so your password did not change. The window and the command may come from different versions of Cairn. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AccountView.qml" line="56"/>
+        <source>Your password did not change. Trying again is safe. If it fails again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AccountView.qml" line="58"/>
+        <source>Cairn&apos;s family command did not answer as expected, so it is not known whether your password changed. Try the new one the next time a box asks; if it is not accepted, the old one still works. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AccountView.qml" line="72"/>
+        <source>Your account</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AccountView.qml" line="94"/>
+        <source>No picture yet</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AccountView.qml" line="94"/>
+        <source>Your picture</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>AddChildForm</name>
     <message>
         <location filename="../qml/AddChildForm.qml" line="19"/>
@@ -230,23 +308,28 @@
 <context>
     <name>FamilyWindow</name>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="21"/>
+        <location filename="../qml/FamilyWindow.qml" line="22"/>
         <source>Family</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="89"/>
+        <location filename="../qml/FamilyWindow.qml" line="92"/>
         <source>Pages</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="95"/>
+        <location filename="../qml/FamilyWindow.qml" line="98"/>
         <source>Children</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="108"/>
+        <location filename="../qml/FamilyWindow.qml" line="111"/>
         <source>Games</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/FamilyWindow.qml" line="125"/>
+        <source>Your account</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -307,57 +390,57 @@
 <context>
     <name>GamesView</name>
     <message>
-        <location filename="../qml/GamesView.qml" line="44"/>
+        <location filename="../qml/GamesView.qml" line="46"/>
         <source>Games</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="61"/>
+        <location filename="../qml/GamesView.qml" line="63"/>
         <source>No children yet. Add one on the Children page, then come back here for their games.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="55"/>
+        <location filename="../qml/GamesView.qml" line="57"/>
         <source>Each child has their own list of the games in the shared folder. A new child starts with none. Tap a game to put it on the list or take it off, then press Save. A child sees their games the next time they log in.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="67"/>
+        <location filename="../qml/GamesView.qml" line="69"/>
         <source>No games in the shared folder yet. To add one, install it from your own Steam into the folder /var/lib/cairn/steam-library. If Steam&apos;s install dialog does not offer that folder, add it first in Steam&apos;s Settings, under Storage. A game shows here after the next Save, which looks at the shared folder again. With nothing to save, Look for new games does the same.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="76"/>
+        <location filename="../qml/GamesView.qml" line="78"/>
         <source>In your own Steam library, not the shared folder: %1. Children can have only the games in the shared folder. To move them, open Steam&apos;s Settings and choose Storage. If the folder /var/lib/cairn/steam-library is not listed there, add it as a drive. Then pick your own library in the list, tick the games, press Move and choose the shared folder. A moved game shows here after the next Save, or after Look for new games. To send future downloads to the shared folder too, make it the default drive in Storage.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="86"/>
+        <location filename="../qml/GamesView.qml" line="88"/>
         <source>Whose games to show</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="117"/>
+        <location filename="../qml/GamesView.qml" line="119"/>
         <source>Save</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="125"/>
+        <location filename="../qml/GamesView.qml" line="127"/>
         <source>Put back as saved</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="133"/>
+        <location filename="../qml/GamesView.qml" line="135"/>
         <source>Look for new games</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="142"/>
+        <location filename="../qml/GamesView.qml" line="144"/>
         <source>Not saved yet: the changes for %1. Save gives each child their new list, with one password.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="148"/>
+        <location filename="../qml/GamesView.qml" line="150"/>
         <source>Save waits: changes for a child who is logged in cannot be saved yet. Logged in: %1. Log them out first.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -490,6 +573,91 @@
     <message>
         <location filename="../qml/Main.qml" line="155"/>
         <source>Cancel</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>PasswordForm</name>
+    <message>
+        <location filename="../qml/PasswordForm.qml" line="16"/>
+        <source>Change your password</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PasswordForm.qml" line="37"/>
+        <source>Password</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PasswordForm.qml" line="50"/>
+        <source>Type the new password twice. Then a box asks for the password you use now. Choose one the children do not know: it lets anyone change the family&apos;s accounts.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PasswordForm.qml" line="65"/>
+        <source>New password</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PasswordForm.qml" line="75"/>
+        <source>New password again</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PasswordForm.qml" line="81"/>
+        <source>Change password</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>PictureSection</name>
+    <message>
+        <location filename="../qml/PictureSection.qml" line="23"/>
+        <source>Saving the picture.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PictureSection.qml" line="25"/>
+        <source>Your picture is changed.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PictureSection.qml" line="28"/>
+        <source>That file is not a picture this window can read, so your picture stays as it was. Choose a PNG or JPEG picture.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PictureSection.qml" line="29"/>
+        <source>Your picture stays as it was: the computer&apos;s account service did not take it. Trying again is safe. The reason is in the system log. In a terminal: journalctl -t cairn-guardian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PictureSection.qml" line="37"/>
+        <source>Picture</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PictureSection.qml" line="50"/>
+        <source>Pick one of these, or a picture of your own. Plasma shows it on the lock screen.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PictureSection.qml" line="81"/>
+        <location filename="../qml/PictureSection.qml" line="97"/>
+        <source>Choose a picture of your own</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PictureSection.qml" line="99"/>
+        <source>Pictures (*.png *.jpg *.jpeg *.webp *.bmp *.gif)</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>PictureTile</name>
+    <message>
+        <location filename="../qml/PictureTile.qml" line="23"/>
+        <source>Use the picture %1</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

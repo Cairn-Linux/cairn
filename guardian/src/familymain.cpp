@@ -2,6 +2,7 @@
 #include "FamilyCommand.h"
 #include "GamesSave.h"
 #include "LogOutCommand.h"
+#include "OwnPasswordCommand.h"
 
 #include <QCoreApplication>
 
@@ -64,6 +65,20 @@ int logOutChild(const QStringList& arguments) {
     return outcome.refusal ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
+// A grown-up's own new password, read from standard input (ADR-0043). The
+// journal gets whose password was asked for and the answer, never the
+// password.
+int setOwnPassword(const QStringList& arguments) {
+    const OwnPasswordCommand::Outcome outcome =
+        OwnPasswordCommand(OwnPasswordCommand::Setup{}).run(arguments);
+
+    const QString answer = answerFor(outcome.refusal);
+    sayLine(answer);
+    note(outcome.refusal.has_value(),
+         outcome.asked.isEmpty() ? answer : outcome.asked + QStringLiteral(": ") + answer);
+    return outcome.refusal ? EXIT_FAILURE : EXIT_SUCCESS;
+}
+
 int changeAccount(const QStringList& arguments) {
     FamilyCommand::Setup setup;
     setup.applications = QStringLiteral(CAIRN_APPLICATIONS);
@@ -79,7 +94,7 @@ int changeAccount(const QStringList& arguments) {
 
 } // namespace
 
-// cairn-family (ADR-0039, ADR-0041). It answers on standard output in lines
+// cairn-family (ADR-0039, ADR-0041, ADR-0043). It answers on standard output in lines
 // of machine words, ending with `done` or `refused REASON`, for the
 // Guardian's window and the family's setup to read. It writes to the journal
 // as well, read with journalctl -t cairn-family, whoever started it.
@@ -95,6 +110,8 @@ int main(int argc, char* argv[]) {
         status = saveGames(arguments);
     } else if (subcommand == QStringLiteral("log-out")) {
         status = logOutChild(arguments);
+    } else if (subcommand == QStringLiteral("set-own-password")) {
+        status = setOwnPassword(arguments);
     } else {
         status = changeAccount(arguments);
     }

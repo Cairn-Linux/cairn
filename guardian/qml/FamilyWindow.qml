@@ -3,18 +3,19 @@ import QtQuick
 import Cairn.Brand
 import Cairn.Family
 
-// The Guardian tool, "Family" in the menu (ADR-0040). Two pages, Children
-// and Games, with a switch between them above the page, which stays in
-// place while the page scrolls.
+// The Guardian tool, "Family" in the menu (ADR-0040). Three pages,
+// Children, Games and Your account (ADR-0043), with a switch between them
+// above the page, which stays in place while the page scrolls.
 Window {
     id: window
 
     required property ChildrenPage page
     required property GamesPage gamesPage
+    required property AccountPage accountPage
 
-    // The page that shows: "children" or "games".
+    // The page that shows: "children", "games" or "account".
     property string showing: "children"
-    readonly property Item shownView: window.showing === "games" ? gamesView : childrenView
+    readonly property Item shownView: window.showing === "games" ? gamesView : window.showing === "account" ? accountView : childrenView
 
     readonly property int margin: Tokens.headingSize
 
@@ -33,6 +34,8 @@ Window {
             return;
         if (name === "games")
             window.gamesPage.reload();
+        if (name === "account")
+            window.accountPage.reload();
         window.showing = name;
         flickable.contentY = 0;
     }
@@ -111,7 +114,21 @@ Window {
                 Accessible.checkable: true
                 Accessible.checked: window.showing === "games"
                 KeyNavigation.left: childrenTab
+                KeyNavigation.right: accountTab
                 onActivated: window.show("games")
+            }
+
+            TextButton {
+                id: accountTab
+
+                objectName: "accountTab"
+                text: qsTr("Your account")
+                quiet: window.showing !== "account"
+                Accessible.role: Accessible.PageTab
+                Accessible.checkable: true
+                Accessible.checked: window.showing === "account"
+                KeyNavigation.left: gamesTab
+                onActivated: window.show("account")
             }
         }
 
@@ -165,6 +182,23 @@ Window {
             width: window.width - window.margin * 2
             visible: window.showing === "games"
             page: window.gamesPage
+        }
+
+        AccountView {
+            id: accountView
+
+            objectName: "accountView"
+            x: window.margin
+            y: window.margin
+            width: window.width - window.margin * 2
+            visible: window.showing === "account"
+            page: window.accountPage
+
+            // What the change did, after focus has gone back.
+            onOutcomeShown: box => {
+                accountView.forceLayout();
+                Qt.callLater(window.showItem, box);
+            }
         }
     }
 

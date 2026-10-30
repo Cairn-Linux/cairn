@@ -72,5 +72,8 @@ tool's job (#113).
 - An account made in System Settings still gets Plasma until #113 lands.
   That is a known gap, stated here and in #113, not a fallback we chose to
   keep.
+  ADR-0043 (proposed) hides System Settings' Users page, so a parent no
+  longer makes such an account there; rank 4 itself is unchanged, and
+  adopting an existing account is still #113's.
 - The checks are still text-level tests plus a VM run; behavioural PAM and
   polkit harnesses are #102.

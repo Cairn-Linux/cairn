@@ -23,6 +23,7 @@ TestCase {
         const properties = {
             "page": standIns.page(scenario, given.withChildren !== false, given.withOlderChild === true),
             "gamesPage": standIns.gamesPage(given.withChildren !== false, given.withGames !== false, given.steamStarts !== false, given.gamesScenario === undefined ? "" : given.gamesScenario, given.loggedIn === undefined ? [] : given.loggedIn, given.withOwnSteamGames === true),
+            "accountPage": standIns.accountPage(),
             "height": 1400
         };
         const window = createTemporaryObject(windowComponent, testCase, properties);
@@ -325,6 +326,157 @@ TestCase {
         compare(findChild(window, "gamesTab").Accessible.checked, false);
     }
 
+    function showAccount(window) {
+        mouseClick(findChild(window, "accountTab"));
+        compare(window.showing, "account");
+        waitForPolish(window);
+    }
+
+    function typeInto(field, text) {
+        findChild(field, "input").forceActiveFocus();
+        for (let i = 0; i < text.length; ++i)
+            keyClick(text[i]);
+    }
+
+    function passwordOutcome(window) {
+        return findChild(window, "passwordOutcomeText").text;
+    }
+
+    // The third page: the grown-up's own name, Plasma's pictures and the
+    // password form, and nothing said yet.
+    function test_yourAccountPage() {
+        const window = makeWindow("done");
+        compare(findChild(window, "accountTab").text, "Your account");
+        compare(findChild(window, "accountTab").Accessible.role, Accessible.PageTab);
+        showAccount(window);
+        verify(findChild(window, "accountView").visible);
+        verify(!findChild(window, "childrenView").visible);
+        verify(!findChild(window, "gamesView").visible);
+        compare(findChild(window, "accountTab").Accessible.checked, true);
+        compare(findChild(window, "accountHeading").text, "Your account");
+        compare(findChild(window, "ownName").text, "Guardian");
+        compare(findChild(window, "ownPicture").Accessible.name, "No picture yet");
+        const tiles = findChild(window, "pictureTiles");
+        compare(tiles.count, 3);
+        compare(tiles.itemAt(0).Accessible.name, "Use the picture Artist Konqi");
+        verify(!findChild(window, "pictureOutcome").visible);
+        verify(!findChild(window, "passwordOutcome").visible);
+        compare(findChild(findChild(window, "newPasswordField"), "input").echoMode, TextInput.Password);
+        compare(findChild(findChild(window, "againPasswordField"), "input").echoMode, TextInput.Password);
+        compare(findChild(findChild(window, "newPasswordField"), "input").Accessible.passwordEdit, true);
+        if (standIns.screenshotPath() !== "") {
+            wait(200);
+            grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-account.png"));
+        }
+    }
+
+    // Type it twice, Enter, and the password is changed; the fields are
+    // emptied, so the new password is not left on screen.
+    function test_changeYourPassword() {
+        const window = makeWindow("done");
+        showAccount(window);
+        typeInto(findChild(window, "newPasswordField"), "new pass");
+        keyClick(Qt.Key_Return);
+        tryCompare(findChild(findChild(window, "againPasswordField"), "input"), "activeFocus", true);
+        typeInto(findChild(window, "againPasswordField"), "new pass");
+        keyClick(Qt.Key_Return);
+        tryCompare(window.accountPage, "step", AccountPage.PasswordChanged);
+        compare(passwordOutcome(window), "Your password is changed. Use the new one from now on: to log in, to unlock the screen and in every password box.");
+        compare(findChild(window, "newPasswordField").text, "");
+        compare(findChild(window, "againPasswordField").text, "");
+        tryCompare(findChild(findChild(window, "newPasswordField"), "input"), "activeFocus", true);
+        if (standIns.screenshotPath() !== "") {
+            wait(200);
+            grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-account-password.png"));
+        }
+    }
+
+    // Two different passwords: nothing is asked, the fields stay, and
+    // focus goes to the second.
+    function test_twoDifferentPasswords() {
+        const window = makeWindow("done");
+        showAccount(window);
+        findChild(window, "newPasswordField").text = "one";
+        findChild(window, "againPasswordField").text = "two";
+        mouseClick(findChild(window, "changePasswordButton"));
+        compare(window.accountPage.step, AccountPage.PasswordNotChanged);
+        compare(passwordOutcome(window), "The two new passwords are not the same. Type the new password again in the second box.");
+        compare(findChild(window, "newPasswordField").text, "one");
+        tryCompare(findChild(findChild(window, "againPasswordField"), "input"), "activeFocus", true);
+    }
+
+    function test_aPasswordNotAccepted() {
+        const window = makeWindow("not-authorized");
+        showAccount(window);
+        findChild(window, "newPasswordField").text = "new";
+        findChild(window, "againPasswordField").text = "new";
+        mouseClick(findChild(window, "changePasswordButton"));
+        tryCompare(window.accountPage, "step", AccountPage.PasswordNotChanged);
+        compare(passwordOutcome(window), "Your password did not change. It needs the password you use now: the box was closed, or the password was not accepted.");
+        // Kept, so pressing the button again is enough.
+        compare(findChild(window, "newPasswordField").text, "new");
+    }
+
+    // While the password box is open, everything on the page waits.
+    function test_everythingWaitsWhileThePasswordChanges() {
+        const window = makeWindow("asking");
+        showAccount(window);
+        findChild(window, "newPasswordField").text = "new";
+        findChild(window, "againPasswordField").text = "new";
+        mouseClick(findChild(window, "changePasswordButton"));
+        compare(window.accountPage.step, AccountPage.Asking);
+        compare(passwordOutcome(window), "Type the password you use now in the box that opened.");
+        verify(!findChild(window, "passwordForm").enabled);
+        verify(!findChild(window, "pictureChoices").enabled);
+        verify(!findChild(window, "ownPictureButton").enabled);
+    }
+
+    function test_theCommandsOwnPasswordRefusals_data() {
+        return [
+            { tag: "failed", scenario: "refused-failed", words: "Your password did not change. Trying again is safe. If it fails again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian" },
+            { tag: "not-a-grown-up", scenario: "refused-not-a-grown-up", words: "Your password did not change. Only a grown-up's account can change its password here." },
+            { tag: "unknown", scenario: "garbage", words: "Cairn's family command did not answer as expected, so it is not known whether your password changed. Try the new one the next time a box asks; if it is not accepted, the old one still works. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian" }
+        ];
+    }
+
+    function test_theCommandsOwnPasswordRefusals(data) {
+        const window = makeWindow(data.scenario);
+        showAccount(window);
+        findChild(window, "newPasswordField").text = "new";
+        findChild(window, "againPasswordField").text = "new";
+        mouseClick(findChild(window, "changePasswordButton"));
+        tryCompare(window.accountPage, "step", AccountPage.PasswordNotChanged);
+        compare(passwordOutcome(window), data.words);
+    }
+
+    // With no account service to take it, a picture chosen says so, under
+    // the pictures.
+    function test_aPictureNotTaken() {
+        const window = makeWindow("done");
+        showAccount(window);
+        mouseClick(findChild(window, "pictureTiles").itemAt(1));
+        compare(window.accountPage.step, AccountPage.PictureNotChanged);
+        verify(findChild(window, "pictureOutcome").visible);
+        compare(findChild(window, "pictureOutcomeText").text, "Your picture stays as it was: the computer's account service did not take it. Trying again is safe. The reason is in the system log. In a terminal: journalctl -t cairn-guardian");
+        verify(!findChild(window, "passwordOutcome").visible);
+    }
+
+    // In a short window, what a change did scrolls into sight.
+    function test_theAccountOutcomeComesIntoSight() {
+        const window = makeWindow("done", {
+            "smallest": true
+        });
+        showAccount(window);
+        findChild(window, "pictureTiles").itemAt(0).chosen();
+        compare(window.accountPage.step, AccountPage.PictureNotChanged);
+        tryVerify(() => inSight(window, findChild(window, "pictureOutcome")));
+        findChild(window, "scroller").contentY = 0;
+        findChild(window, "newPasswordField").text = "one";
+        findChild(window, "againPasswordField").text = "two";
+        findChild(window, "changePasswordButton").activated();
+        tryVerify(() => inSight(window, findChild(window, "passwordOutcome")));
+    }
+
     function test_switchToGamesAndBack() {
         const window = makeWindow("done");
         showGames(window);
@@ -403,7 +555,8 @@ TestCase {
         compare(title.textFormat, Text.PlainText);
     }
 
-    // The keyboard alone: Tab from the switch to the children, Space picks.
+    // The keyboard alone: Tab from the switch, past its last tab, to the
+    // children, Space picks.
     function test_pickAChildWithTheKeyboard() {
         const window = makeWindow("done");
         findChild(window, "childrenTab").forceActiveFocus();
@@ -411,6 +564,8 @@ TestCase {
         tryCompare(findChild(window, "gamesTab"), "activeFocus", true);
         keyClick(Qt.Key_Space);
         compare(window.showing, "games");
+        keyClick(Qt.Key_Tab);
+        tryCompare(findChild(window, "accountTab"), "activeFocus", true);
         keyClick(Qt.Key_Tab);
         tryCompare(choice(window, "ada"), "activeFocus", true);
         keyClick(Qt.Key_Tab);
@@ -517,7 +672,7 @@ TestCase {
         verify(findChild(window, "scrollIndicator").visible);
         scroller.contentY = scroller.contentHeight - scroller.height;
         verify(inSight(window, findChild(window, "gamesTab")));
-        findChild(window, "gamesTab").forceActiveFocus();
+        findChild(window, "accountTab").forceActiveFocus();
         keyClick(Qt.Key_Tab);
         tryCompare(choice(window, "ada"), "activeFocus", true);
         verify(inSight(window, choice(window, "ada")));
