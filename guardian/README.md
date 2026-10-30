@@ -137,6 +137,13 @@ If the visit does not open, the window says why in one sentence and offers
 restart the computer before the child logs in again, and stays open until
 the Guardian has read it.
 
+The window's size follows its words. It grows or shrinks with each new
+message, so its buttons always show (#172). Each step with a button to
+press, such as "did not open", brings the window to the front, in case
+another window, such as Steam updating itself, came over it. While the
+password box is up, the window has no button and leaves the box in
+front.
+
 ## cairn-family
 
 ```sh
@@ -331,6 +338,15 @@ login, and asks the test machine's own logind when it has one;
 `loginwatch` sends logind's signals on a bus of its own.
 Setting `CAIRN_SCREENSHOT=/path/family.png` when running
 `tst_familywindow` saves pictures of both pages beside that path.
+`steamwindow` shows every message the Steam window can give, each
+reason it did not open with and without the Guardian's own Steam
+coming back, and checks that every word and button is inside the
+window and the window fits a 1280 by 800 screen. It also checks that
+the window grows again after the password box closes, and comes to the
+front when the visit did not open. `CAIRN_SCREENSHOT=/path/steam-for.png`
+saves a picture of each of those steps beside that path. These tests run
+offscreen; run by hand with `QT_QPA_PLATFORM=wayland` inside a nested
+`kwin_wayland --virtual`, they check the same against KWin itself.
 
 `familycommand` runs `cairn-family`'s steps with `system-tool`, one
 stand-in linked under each account tool's name that writes down what it
