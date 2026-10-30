@@ -17,7 +17,6 @@ void prepare(QProcess& process) {
     environment.insert(QStringLiteral("LC_ALL"), QStringLiteral("C"));
     process.setProcessEnvironment(environment);
     process.setWorkingDirectory(QStringLiteral("/"));
-    process.setStandardInputFile(QProcess::nullDevice());
     process.setUnixProcessParameters(QProcess::UnixProcessFlag::ResetSignalHandlers);
 }
 
@@ -35,9 +34,25 @@ bool finishes(QProcess& process) {
 bool SystemTool::run(const QString& program, const QStringList& arguments) {
     QProcess process;
     prepare(process);
+    process.setStandardInputFile(QProcess::nullDevice());
     process.setStandardOutputFile(QProcess::nullDevice());
     process.setProcessChannelMode(QProcess::ForwardedErrorChannel);
     process.start(program, arguments);
+    return finishes(process);
+}
+
+// The input is handed to the tool as it starts and the channel closed after
+// it, so a tool that reads to the end of its input sees all of it, then
+// the end.
+bool SystemTool::runWithInput(const QString& program, const QStringList& arguments,
+                              const QByteArray& input) {
+    QProcess process;
+    prepare(process);
+    process.setStandardOutputFile(QProcess::nullDevice());
+    process.setProcessChannelMode(QProcess::ForwardedErrorChannel);
+    process.start(program, arguments);
+    process.write(input);
+    process.closeWriteChannel();
     return finishes(process);
 }
 
@@ -45,6 +60,7 @@ std::optional<QByteArray> SystemTool::output(const QString& program, const QStri
                                              qint64 maxBytes) {
     QProcess process;
     prepare(process);
+    process.setStandardInputFile(QProcess::nullDevice());
     process.setStandardErrorFile(QProcess::nullDevice());
     process.start(program, arguments);
     if (!finishes(process)) {

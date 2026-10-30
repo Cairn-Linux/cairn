@@ -43,7 +43,7 @@ private slots:
         QTest::newRow("done") << "done" << "done";
         // Every word cairn-family can give after "refused" (ADR-0039).
         for (const char* word : {"not-root", "not-a-grown-up", "usage", "bad-name", "bad-full-name",
-                                 "bad-level", "taken", "not-a-child", "failed"}) {
+                                 "bad-level", "taken", "not-a-child", "failed", "bad-password"}) {
             QTest::newRow(word) << QStringLiteral("refused-") + word << QString::fromLatin1(word);
         }
         // pkexec's own, when the command never ran.
@@ -121,6 +121,31 @@ private slots:
         QCOMPARE(
             QString::fromUtf8(file.readAll()),
             QStringLiteral("run\ncreate-child\nada\n1\n--full-name\nAda $HOME * ; Lovelace\n"));
+    }
+
+    // A new password goes on the command's standard input, whole, and
+    // never among the arguments (ADR-0043).
+    void theInputGoesOnStandardInput() {
+        const QTemporaryDir folder;
+        const QString record = folder.filePath(QStringLiteral("arguments"));
+        const QString input = folder.filePath(QStringLiteral("input"));
+        qputenv("CAIRN_TEST_ARGUMENTS", record.toLocal8Bit());
+        qputenv("CAIRN_TEST_INPUT", input.toLocal8Bit());
+        qputenv("CAIRN_TEST_SCENARIO", "done");
+        FamilyChange change(pkexec(), command());
+        QSignalSpy finished(&change, &FamilyChange::finished);
+        QVERIFY(change.start({QStringLiteral("set-own-password")},
+                             QByteArrayLiteral("new pass: $HOME \xc3\xab\n")));
+        QVERIFY(finished.wait(kAnswerMilliseconds));
+        qunsetenv("CAIRN_TEST_ARGUMENTS");
+        qunsetenv("CAIRN_TEST_INPUT");
+        QCOMPARE(finished.constFirst().constFirst().toString(), QStringLiteral("done"));
+        QFile arguments(record);
+        QVERIFY(arguments.open(QIODevice::ReadOnly));
+        QCOMPARE(arguments.readAll(), QByteArrayLiteral("run\nset-own-password\n"));
+        QFile given(input);
+        QVERIFY(given.open(QIODevice::ReadOnly));
+        QCOMPARE(given.readAll(), QByteArrayLiteral("new pass: $HOME \xc3\xab\n"));
     }
 
     // While the password box is open, a second change does not start.

@@ -14,22 +14,22 @@
 Caller Caller::check(unsigned int euid, const std::optional<QString>& pkexecUid,
                      const LookUpUid& lookUpUid, const LookUpHome& lookUpHome) {
     if (euid != 0) {
-        return {.refusal = Refusal::NotRoot, .home = std::nullopt};
+        return {.refusal = Refusal::NotRoot, .home = std::nullopt, .login = std::nullopt};
     }
     if (!pkexecUid) {
-        return {.refusal = std::nullopt, .home = std::nullopt};
+        return {.refusal = std::nullopt, .home = std::nullopt, .login = std::nullopt};
     }
     static const QRegularExpression number(QStringLiteral("^[0-9]{1,10}$"));
     bool converted = false;
     const unsigned int uid = pkexecUid->toUInt(&converted);
     if (!number.match(*pkexecUid).hasMatch() || !converted) {
-        return {.refusal = Refusal::NotAGrownUp, .home = std::nullopt};
+        return {.refusal = Refusal::NotAGrownUp, .home = std::nullopt, .login = std::nullopt};
     }
     const std::optional<Account> caller = lookUpUid(uid);
     if (!caller || !FamilyRole::fromGroups(caller->groups).isAdministrator()) {
-        return {.refusal = Refusal::NotAGrownUp, .home = std::nullopt};
+        return {.refusal = Refusal::NotAGrownUp, .home = std::nullopt, .login = std::nullopt};
     }
-    return {.refusal = std::nullopt, .home = lookUpHome(uid)};
+    return {.refusal = std::nullopt, .home = lookUpHome(uid), .login = caller->login};
 }
 
 unsigned int Caller::effectiveUid() {

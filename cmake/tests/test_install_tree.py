@@ -58,6 +58,7 @@ EXPECTED = {
     "usr/share/cairn/manifest.json": 0o644,
     "usr/share/applications/cairn-guardian.desktop": 0o644,
     "usr/share/cairn/sessions/cairn.desktop": 0o644,
+    "usr/share/plasma/systemsettings/externalmodules/cairn-guardian-settings.desktop": 0o644,
     "usr/share/polkit-1/actions/com.cairnlinux.family.policy": 0o644,
     "usr/share/polkit-1/actions/com.cairnlinux.steam-visit.policy": 0o644,
     "usr/share/polkit-1/rules.d/10-cairn-levels.rules": 0o644,
@@ -144,6 +145,17 @@ class InstallTree(unittest.TestCase):
         self.assertIn("Exec=/usr/bin/cairn-guardian", entry)
         self.assertIn("TryExec=/usr/bin/cairn-guardian", entry)
 
+    def test_system_settings_lists_family(self):
+        # "Family" in System Settings, where the hidden Users page was
+        # (ADR-0043), runs the same wrapper.
+        entry = self.text("usr/share/plasma/systemsettings/externalmodules/"
+                          "cairn-guardian-settings.desktop").splitlines()
+        self.assertIn("Name=Family", entry)
+        self.assertIn("X-KDE-ServiceTypes=SystemSettingsExternalApp", entry)
+        self.assertIn("X-KDE-System-Settings-Parent-Category=system-administration", entry)
+        self.assertIn("Exec=/usr/bin/cairn-guardian", entry)
+        self.assertIn("TryExec=/usr/bin/cairn-guardian", entry)
+
     def test_programs_find_the_brand_library(self):
         for name in ("usr/libexec/cairn/cairn-launcher", "usr/libexec/cairn/cairn-steam-for",
                      "usr/libexec/cairn/cairn-guardian"):
@@ -167,7 +179,7 @@ class InstallTree(unittest.TestCase):
         # cairn-family's file has one action for each subcommand.
         actions = {
             "com.cairnlinux.steam-visit": ["/usr/libexec/cairn/cairn-steam-visit"],
-            "com.cairnlinux.family": ["/usr/libexec/cairn/cairn-family"] * 4,
+            "com.cairnlinux.family": ["/usr/libexec/cairn/cairn-family"] * 5,
         }
         for action, programs in actions.items():
             with self.subTest(action=action):

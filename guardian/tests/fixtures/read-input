@@ -1,0 +1,12 @@
+#!/bin/sh
+# SPDX-License-Identifier: Apache-2.0
+#
+# A stand-in for chpasswd, for cairn-family's tests (ADR-0043). A test
+# links it into a folder of its own, because the tool gets an environment
+# of its own. It writes its arguments, one to a line, to "arguments" in
+# that folder, and what came on its standard input to "input". It fails
+# when that folder has "fail".
+here="${0%/*}"
+printf '%s\n' "$@" > "$here/arguments"
+cat > "$here/input"
+[ ! -e "$here/fail" ]
