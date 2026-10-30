@@ -11,8 +11,9 @@ set(guardian_sources
     src/ScreenLockWatch.h src/ScreenLockWatch.cpp
     src/SteamForChild.h src/SteamForChild.cpp
 )
-set(guardian_qml_files qml/Main.qml qml/TextButton.qml)
+set(guardian_qml_files qml/Main.qml qml/SteamForWords.qml qml/TextButton.qml)
 set_source_files_properties(qml/Main.qml PROPERTIES QT_RESOURCE_ALIAS Main.qml)
+set_source_files_properties(qml/SteamForWords.qml PROPERTIES QT_RESOURCE_ALIAS SteamForWords.qml)
 set_source_files_properties(qml/TextButton.qml PROPERTIES QT_RESOURCE_ALIAS TextButton.qml)
 
 qt_add_executable(cairn-steam-for src/main.cpp)
