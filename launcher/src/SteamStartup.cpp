@@ -20,24 +20,6 @@ constexpr qint64 lastPartBytes = qint64{256} * 1024;
 // kids' laptop's Wi-Fi.
 constexpr qint64 longestStartSeconds = qint64{20} * 60;
 
-// The whole lines in the last part of a log; none when it cannot be read.
-QList<QByteArray> lastLines(const QString& path) {
-    QFile log(path);
-    if (!log.open(QIODevice::ReadOnly)) {
-        return {};
-    }
-    const qint64 from = std::max(qint64{0}, log.size() - lastPartBytes);
-    if (!log.seek(from)) {
-        return {};
-    }
-    QList<QByteArray> lines = log.readAll().split('\n');
-    // The first is cut part-way unless the log was read from its start.
-    if (from > 0 && !lines.isEmpty()) {
-        lines.removeFirst();
-    }
-    return lines;
-}
-
 // A line the updater writes while it downloads or installs an update of the
 // client before starting it. A download while the client runs writes others.
 bool isUpdating(const QByteArray& line) {
@@ -78,6 +60,32 @@ SteamStartup::Now SteamStartup::read(const QDateTime& now) const {
         }
     }
     return updating ? Now::Updating : Now::Starting;
+}
+
+QList<QByteArray> SteamStartup::lastLines(const QString& path) {
+    QFile log(path);
+    if (!log.open(QIODevice::ReadOnly)) {
+        return {};
+    }
+    const qint64 from = std::max(qint64{0}, log.size() - lastPartBytes);
+    if (!log.seek(from)) {
+        return {};
+    }
+    QList<QByteArray> lines = log.readAll().split('\n');
+    // The first is cut part-way unless the log was read from its start.
+    if (from > 0 && !lines.isEmpty()) {
+        lines.removeFirst();
+    }
+    return lines;
+}
+
+std::optional<QDateTime> SteamStartup::lastStartup(const QString& bootstrapLog) {
+    for (const QByteArray& line : lastLines(bootstrapLog) | std::views::reverse) {
+        if (line.contains("] Startup - ")) {
+            return SteamLaunchLog::timeOf(line);
+        }
+    }
+    return std::nullopt;
 }
 
 QString SteamStartup::defaultPath() {
