@@ -1046,6 +1046,132 @@ private slots:
         qputenv("PATH", path);
     }
 
+    // #183: a child logged in on the kids' laptop on 2026-10-27 and, before
+    // any tap, Steam installed an update of itself and downloaded another.
+    // Its updater's windows came up: the tiles stay, and each window is
+    // asked to be hidden, so its Cancel button is out of the child's reach.
+    void steamUpdatingItselfAtLoginLeavesTheTiles() {
+        // A client of its own: the earlier cases' clients had started.
+        QFile::remove(dataHome().filePath(QStringLiteral("Steam/logs/console_log.txt")));
+        steamLogs(QStringLiteral("bootstrap_log.txt"), 40,
+                  "Startup - updater built Sep  3 2026 01:31:48");
+        steamLogs(QStringLiteral("bootstrap_log.txt"), 40, "Found pending update");
+        steamLogs(QStringLiteral("bootstrap_log.txt"), 40, "Installing update...");
+        AppLauncher launcher(this);
+        launcher.setSteamStartedAtLogin(true);
+        const QSignalSpy toHide(&launcher, &AppLauncher::windowToHide);
+        launcher.windowOpened(QStringLiteral("u1"), QStringLiteral("steam"),
+                              QStringLiteral("Progress"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Idle);
+        QVERIFY(!launcher.needsGrownUp());
+        QCOMPARE(toHide.count(), 1);
+        QCOMPARE(toHide.at(0).at(0).toString(), QStringLiteral("u1"));
+        launcher.windowChanged(QStringLiteral("u1"), true);
+
+        // Restarted to check itself, then started again and downloading.
+        steamLogs(QStringLiteral("bootstrap_log.txt"), 20, "Update complete, launching Steam...");
+        steamLogs(QStringLiteral("bootstrap_log.txt"), 20, "Shutdown");
+        steamLogs(QStringLiteral("bootstrap_log.txt"), 20,
+                  "Startup - updater built Oct 21 2026 21:09:45");
+        steamLogs(QStringLiteral("bootstrap_log.txt"), 20, "Verifying installation...");
+        launcher.windowOpened(QStringLiteral("u2"), QStringLiteral("steam"),
+                              QStringLiteral("Steam setup"));
+        steamLogs(QStringLiteral("bootstrap_log.txt"), 2,
+                  "Startup - updater built Oct 21 2026 21:09:45");
+        steamLogs(QStringLiteral("bootstrap_log.txt"), 1,
+                  "Downloading update (22,269 of 424,455 KB)...");
+        launcher.windowOpened(QStringLiteral("u3"), QStringLiteral("steam"),
+                              QStringLiteral("Steam"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Idle);
+        QCOMPARE(toHide.count(), 3);
+        // Steam shows a hidden one again: it is asked again.
+        launcher.windowChanged(QStringLiteral("u1"), false);
+        QCOMPARE(toHide.count(), 4);
+        QCOMPARE(launcher.state(), AppLauncher::State::Idle);
+
+        // The update over and the client started, a window opened on its own.
+        steamLogs(QStringLiteral("console_log.txt"), 0, steamStartsItself());
+        QTest::ignoreMessage(QtWarningMsg, "Sign in to Steam opened a window on its own.");
+        launcher.windowOpened(QStringLiteral("w1"), QStringLiteral("steamwebhelper"),
+                              QStringLiteral("Sign in to Steam"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Interrupted);
+        QCOMPARE(toHide.count(), 4);
+        launcher.windowClosed(QStringLiteral("w1"));
+        for (const QString& window :
+             {QStringLiteral("u1"), QStringLiteral("u2"), QStringLiteral("u3")}) {
+            launcher.windowClosed(window);
+        }
+        QCOMPARE(launcher.state(), AppLauncher::State::Idle);
+        QVERIFY(QFile::remove(dataHome().filePath(QStringLiteral("Steam/logs/bootstrap_log.txt"))));
+        QVERIFY(QFile::remove(dataHome().filePath(QStringLiteral("Steam/logs/console_log.txt"))));
+    }
+
+    // A game tapped while Steam updates itself: the updater's window is not
+    // the game's, so the starting screen stays and says the game is getting
+    // ready (ADR-0037), and the window is asked to be hidden.
+    void steamsUpdaterWindowDuringASteamLaunchKeepsTheStartingScreen() {
+        const QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        QFile fake(dir.filePath(QStringLiteral("steam")));
+        QVERIFY(fake.open(QIODevice::WriteOnly));
+        fake.write("#!/bin/sh\nexit 0\n");
+        fake.close();
+        QVERIFY(fake.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
+        const QByteArray path = qgetenv("PATH");
+        qputenv("PATH", dir.path().toUtf8() + ':' + path);
+
+        QFile::remove(dataHome().filePath(QStringLiteral("Steam/logs/console_log.txt")));
+        steamLogs(QStringLiteral("bootstrap_log.txt"), 10,
+                  "Startup - updater built Sep  3 2026 01:31:48");
+        steamLogs(QStringLiteral("bootstrap_log.txt"), 10, "Found pending update");
+        steamLogs(QStringLiteral("bootstrap_log.txt"), 10, "Installing update...");
+        AppLauncher launcher(this);
+        launcher.setSteadyMilliseconds(0);
+        launcher.setLaunchGraceMilliseconds(200);
+        const QSignalSpy toHide(&launcher, &AppLauncher::windowToHide);
+        launcher.launch(
+            QStringLiteral("Arthur's Reading Race"),
+            {QStringLiteral("steam"), QStringLiteral("-applaunch"), QStringLiteral("2471160")});
+        launcher.windowOpened(QStringLiteral("u1"), QStringLiteral("steam"),
+                              QStringLiteral("Progress"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+        QCOMPARE(toHide.count(), 1);
+        QTRY_VERIFY(launcher.gettingReady());
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+        launcher.giveUp();
+        QVERIFY(QFile::remove(dataHome().filePath(QStringLiteral("Steam/logs/bootstrap_log.txt"))));
+        qputenv("PATH", path);
+    }
+
+    // Another tile tapped while Steam updates itself: a program that is
+    // opening owns every window on the screen, so its own is never hidden.
+    void anotherAppsWindowWhileSteamUpdatesItselfIsTheApp() {
+        QFile::remove(dataHome().filePath(QStringLiteral("Steam/logs/console_log.txt")));
+        steamLogs(QStringLiteral("bootstrap_log.txt"), 10,
+                  "Startup - updater built Sep  3 2026 01:31:48");
+        steamLogs(QStringLiteral("bootstrap_log.txt"), 10, "Found pending update");
+        steamLogs(QStringLiteral("bootstrap_log.txt"), 10, "Installing update...");
+        AppLauncher launcher(this);
+        launcher.setSteadyMilliseconds(0);
+        const QSignalSpy toHide(&launcher, &AppLauncher::windowToHide);
+        launcher.launch(QStringLiteral("Draw"),
+                        {shell(), QStringLiteral("-c"), QStringLiteral("sleep 0.3")});
+        launcher.windowOpened(QStringLiteral("g1"), QStringLiteral("tuxpaint"),
+                              QStringLiteral("Tux Paint"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Running);
+        QCOMPARE(toHide.count(), 0);
+        // Once it is open, a window of the updater's is hidden, not the app's.
+        launcher.windowOpened(QStringLiteral("u1"), QStringLiteral("steam"),
+                              QStringLiteral("Progress"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Running);
+        QCOMPARE(toHide.count(), 1);
+        QCOMPARE(toHide.at(0).at(0).toString(), QStringLiteral("u1"));
+        launcher.giveUp();
+        // Its program ends by itself, before the launcher goes.
+        QTest::qWait(500);
+        QVERIFY(QFile::remove(dataHome().filePath(QStringLiteral("Steam/logs/bootstrap_log.txt"))));
+    }
+
     // #182: Steam, starting at login, had its saved sign-in turned down. The
     // starting screen said the game was getting ready while Steam started;
     // the refusal ends the wait at the next grace, and the journal says why.

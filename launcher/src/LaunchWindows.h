@@ -19,6 +19,13 @@
 // only a window that belongs to one of the app's, such as a dialog, is the
 // app's too. Any other window opened on its own. A window's app id or title
 // only ever names it.
+//
+// While Steam is updating itself, a window that comes on the screen is its
+// updater's, such as "Progress" with a Cancel button (#183). It is neither
+// the app's nor on its own: it keeps no launch waiting and brings up no
+// grown-up screen, and the launcher asks the compositor to hide it. Steam
+// draws no game while it updates itself, so this holds during a Steam
+// game's launch too; the launcher says when it holds (AppLauncher).
 class LaunchWindows {
 public:
     // A tile launched something: every window on the screen is the app's until
@@ -31,6 +38,8 @@ public:
     void endLaunch();
     // The grown-up's give-up key: forget every window open now, whatever it is.
     void forgetAll();
+    // Whether Steam is updating itself now, for the windows decided from now.
+    void steamUpdating(bool updating);
 
     void opened(const QString& identifier, const QString& name, bool hidden,
                 const QString& belongsTo);
@@ -50,9 +59,13 @@ public:
     bool unexpectedOnScreen() const;
     // The name of the first such window still on the screen.
     QString unexpectedName() const;
+    // Whether a window is one of Steam's updater's and on the screen now.
+    bool steamUpdaterOnScreen(const QString& identifier) const;
+    // The name of a window, or empty for one not known.
+    QString name(const QString& identifier) const;
 
 private:
-    enum class Owner : std::uint8_t { Undecided, App, OnItsOwn, Forgotten };
+    enum class Owner : std::uint8_t { Undecided, App, OnItsOwn, SteamUpdater, Forgotten };
 
     struct Window {
         QString name;
@@ -71,4 +84,5 @@ private:
     bool m_launching = false;
     bool m_opening = false;
     bool m_appWasOnScreen = false;
+    bool m_steamUpdating = false;
 };

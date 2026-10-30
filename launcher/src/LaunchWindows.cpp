@@ -32,6 +32,10 @@ void LaunchWindows::forgetAll() {
     }
 }
 
+void LaunchWindows::steamUpdating(bool updating) {
+    m_steamUpdating = updating;
+}
+
 void LaunchWindows::opened(const QString& identifier, const QString& name, bool hidden,
                            const QString& belongsTo) {
     Window window{
@@ -95,7 +99,20 @@ QString LaunchWindows::unexpectedName() const {
     return {};
 }
 
+bool LaunchWindows::steamUpdaterOnScreen(const QString& identifier) const {
+    const auto found = m_windows.constFind(identifier);
+    return found != m_windows.constEnd() && found->owner == Owner::SteamUpdater && !found->hidden;
+}
+
+QString LaunchWindows::name(const QString& identifier) const {
+    return m_windows.value(identifier).name;
+}
+
 void LaunchWindows::decide(Window& window) {
+    if (m_steamUpdating) {
+        window.owner = Owner::SteamUpdater;
+        return;
+    }
     const auto parent = m_windows.constFind(window.belongsTo);
     const bool belongsToTheApp = parent != m_windows.constEnd() && parent->owner == Owner::App;
     if (m_launching && (m_opening || !appOnScreen() || belongsToTheApp)) {
