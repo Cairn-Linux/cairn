@@ -131,8 +131,12 @@ closed while a game moves, and Save asks the parent first.**
   copy is made from, could go stale. No source says which copy Steam
   picks.
 - **Reflink, then remove.** A rename cannot cross from the Guardian's home
-  to `/var/lib/cairn`, so the move is a reflink copy of the folder, each
-  file keeping its mode, then the removal of the original. It takes no
+  to `/var/lib/cairn`, so the move is a reflink copy of the folder, then
+  the removal of the original. The copy uses the copy step's own flags,
+  `cp -R --reflink=always --preserve=timestamps`, and keeps no mode or
+  ACL from the source. Each new file and folder then takes the family
+  folder's default ACL and setgid bit, and its run bits from the
+  source's mode, as Steam's own install there would. It takes no
   extra disk, and a few seconds even for a large game. If the filesystem
   cannot reflink, as for a library on another drive, the game does not
   move: Cairn never fills the disk with a full copy, as the copy step
@@ -140,17 +144,23 @@ closed while a game moves, and Save asks the parent first.**
 - **In an order that leaves the game in one library.**
   1. The folder is copied under a temporary name in the family folder's
      `steamapps/common/`.
-  2. The original manifest is renamed aside, under a name only this step
+  2. The manifest is written in the family folder's `steamapps/`, under
+     a temporary name.
+  3. The original manifest is renamed aside, under a name only this step
      uses, so Steam no longer sees the game in the old library.
-  3. The copy is renamed to `common/<installdir>`, and the manifest is
-     written beside it, under a temporary name and then renamed.
-  4. The original folder and the set-aside manifest are removed.
-  Ctrl-C is held off from step 2 to step 3. If the step is ended anyway,
-  its next run finishes a move whose family manifest is in place, and
-  puts the set-aside manifest back for one whose manifest is not, after
-  removing its own temporary folder. A Steam started meanwhile sees the
-  game in one library or, between steps 2 and 3, in none, until it
-  starts again.
+  4. The copy is renamed to `common/<installdir>`, and then the family
+     manifest is renamed to its own name.
+  5. The original folder and the set-aside manifest are removed.
+  Ctrl-C is held off from step 3 to the end of step 4. A kill, a power
+  cut or a stop timeout can still end the step anywhere. Its next run
+  looks at each set-aside manifest. If the family manifest is in place,
+  it removes the original folder and the set-aside manifest. If the
+  copy already has its full name, the temporary family manifest is
+  there too, since step 2 came first, so it renames that and finishes
+  the move. Otherwise it removes its temporary folder and temporary
+  manifest, and puts the set-aside manifest back. A Steam started
+  meanwhile sees the game in one library or, between steps 3 and 4, in
+  none, until it starts again.
 - **Which games.** A game moves only if the copy step would then copy
   it: the same rules, read once from the one manifest. Its appid is a
   number, its `installdir` is one plain folder name, its `StateFlags` is
@@ -165,8 +175,10 @@ closed while a game moves, and Save asks the parent first.**
   `cairn-guardian` (ADR-0033: root and `cairn-guardian`, mode 2775,
   default ACL for the group). So the moved files end up as Steam's own
   install there would: owned by the Guardian, group `cairn-guardian`
-  through setgid, the group in each access ACL through the default ACL,
-  readable by every account. A link planted anywhere can send a write
+  through setgid, the group in each access ACL and each folder's default
+  ACL through the family folder's default ACL, readable by every
+  account. Files a later Steam update makes inside a moved game follow
+  ADR-0033's rule too. A link planted anywhere can send a write
   nowhere the Guardian could not already write. The step drops to the
   Guardian as the copy step drops to a child (`setpriv`, `env -i`,
   `python3 -I`, stdin from `/dev/null`), finds the Guardian's home in the
@@ -201,7 +213,12 @@ closed while a game moves, and Save asks the parent first.**
   the maintainer's Storage step, is left alone. A list Cairn cannot read
   or write leaves every game where it is, with a reason.
 - Cairn changes no other entry and no `"apps"` map after this one write.
-  Steam rewrites the list at its next start (ADR-0033, check 5).
+  Steam rewrites the list at its next start (ADR-0033, check 5). So a
+  game moved at a later Save is missing from the family entry's `"apps"`
+  map until Steam next starts. Whether Steam loads such a game, in an
+  entry other than `"0"`, is untested (VM check 12). If it does not, the
+  move step adds each moved appid to the family entry's map instead,
+  with Steam closed, in the same way.
 - Cairn does not make the family folder the Guardian's default library.
   Steam keeps that somewhere undocumented, and a parent's new game still
   lands in their own folder, which is fine: it moves when they pick it.
@@ -259,8 +276,13 @@ closed while a game moves, and Save asks the parent first.**
   Its Wine prefix, and any save the game keeps inside it, stays in the
   old library, and Steam makes a new prefix in the family folder. Steam
   Cloud brings back saves for games that use it. The old prefix stays on
-  disk until the parent removes it. Moving the prefix too would put the
-  parent's prefix where every account can read it.
+  disk until the parent removes it. It is not moved so that the parent's
+  saves from before the move stay private in their closed home.
+- **From then on, the parent's saves for a moved game can be read by
+  every account.** The new prefix, and any save the game keeps in its
+  own folder, sit in the family folder, where every account can read
+  them. ADR-0033 already accepts this for games installed there. No
+  child can change them.
 - Workshop items stay in the old library. Steam may download them again
   for the family copy. Children's copies have never had them.
 - A game on another drive, or on a filesystem that cannot reflink, does
@@ -277,7 +299,7 @@ closed while a game moves, and Save asks the parent first.**
 - Cairn writes one of Steam's files now, the Guardian's library list,
   once, besides copying manifests as before. A Steam update could change
   how Steam treats a hand-written entry. The ROADMAP's risk on Steam's
-  files covers it: a game that does not show in the Guardian's Steam
+  files now names this write: a game that does not show in the Guardian's Steam
   after a move is still in the family folder, and the parent can add the
   folder in Settings › Storage, as before.
 - `docs/TRY.md` loses the Storage and Move steps when the move lands.
@@ -288,7 +310,9 @@ closed while a game moves, and Save asks the parent first.**
 ### Steps
 
 1. **The move step.** `cairn-share-games.py` with its tests: the order of
-   a move, recovery from each point it can be ended at, every reason,
+   a move, recovery from each point it can be ended at (among them a
+   copy already renamed whose family manifest is still temporary), every
+   reason,
    the library-list entry and its marker, and the Steam-open guard.
    It lands alone, as the copy step did, since it writes in a Guardian's
    home.
@@ -320,12 +344,13 @@ different levels:
    the entry is still there. Record what Steam did to both `"apps"`
    maps, and whether it changed the `config/` copy.
 4. **Files.** `getfacl` on the moved game: owner the Guardian, group
-   `cairn-guardian`, the group in each access ACL, every account can
-   read. `ada`'s Steam, signed in through a visit, starts her copy with
+   `cairn-guardian`, the group in each access ACL, each folder with the
+   default ACL and setgid, every account can read. `ada`'s Steam, signed in through a visit, starts her copy with
    no download.
 5. **An update.** A game with an update or a public beta branch in the
    Guardian's Steam, after its move: Steam updates it in the family
-   folder (ADR-0033, check 13).
+   folder (ADR-0033, check 13). `getfacl` on a file and a folder the
+   update made inside the moved game shows the same as check 4.
 6. **An interrupted move.** A large game, with the move step killed
    midway: after the next Save the game is in exactly one library, and
    the Guardian's Steam shows it installed.
@@ -340,6 +365,10 @@ different levels:
     folder shows once and is not moved.
 11. **Steam started mid-move,** by hand: the game is in at most one
     library afterwards, and in exactly one after the next Save.
+12. **A second move.** After the family entry exists, a second Save
+    moves a further game with Steam closed. The Guardian's Steam shows
+    it installed in the family folder and downloads nothing. Record both
+    `"apps"` maps before Steam starts and after.
 
 ## Alternatives considered
 
