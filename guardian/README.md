@@ -86,6 +86,13 @@ The Games page (ADR-0041):
    then stopped, under `-t cairn-steam-for`.
 7. With no children, or no games in the shared folder yet, it says what
    to do instead. It reads everything again each time it is shown.
+8. A game installed in the Guardian's own Steam library, rather than the
+   shared folder, is named, with how to move it in Steam's Settings,
+   under Storage. The window looks in the places kidscan looks for Steam
+   in the Guardian's home, and in every library that Steam's
+   `libraryfolders.vdf` lists, but the shared folder. It leaves out
+   Steam's runtimes and Proton by kidscan's rule, and any game the
+   shared folder already has.
 
 A child who is logged in has their games greyed and blurred under a
 card: "Ada is still logged in. Log Ada out, then choose their games."

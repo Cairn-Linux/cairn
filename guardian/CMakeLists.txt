@@ -117,6 +117,9 @@ set(family_window_sources
     src/LoginSessions.h src/LoginSessions.cpp
     src/LoginWatch.h src/LoginWatch.cpp
     src/ChildLogOut.h src/ChildLogOut.cpp
+    src/KeyValues.h src/KeyValues.cpp
+    src/SteamManifest.h src/SteamManifest.cpp
+    src/OwnSteamGames.h src/OwnSteamGames.cpp
     src/GamesPage.h src/GamesPage.cpp
 )
 set(family_window_qml_files

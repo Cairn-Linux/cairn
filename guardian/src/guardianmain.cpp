@@ -3,6 +3,7 @@
 #include "GamesPage.h"
 
 #include <QDBusConnection>
+#include <QDir>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 
@@ -23,6 +24,7 @@ int main(int argc, char* argv[]) {
     gamesSetup.command = QStringLiteral(CAIRN_FAMILY);
     gamesSetup.steamFor = QStringLiteral(CAIRN_STEAM_FOR);
     gamesSetup.loginBus = QDBusConnection::systemBus();
+    gamesSetup.steamHome = QDir::homePath();
     GamesPage gamesPage(gamesSetup);
 
     QQmlApplicationEngine engine;

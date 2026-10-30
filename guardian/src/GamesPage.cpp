@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "GamesPage.h"
 
+#include "OwnSteamGames.h"
+
+#include <QLocale>
+
 #include <utility>
 
 GamesPage::GamesPage(Setup setup, QObject* parent)
@@ -73,6 +77,10 @@ int GamesPage::sharedCount() const {
 
 int GamesPage::goneCount() const {
     return static_cast<int>(m_shelf.games().size()) - m_shelf.sharedCount();
+}
+
+QString GamesPage::ownSteamGames() const {
+    return QLocale().createSeparatedList(m_ownSteamGames);
 }
 
 QString GamesPage::steamNotOpened() const {
@@ -192,6 +200,10 @@ void GamesPage::reload() {
     }
     readShelf();
     m_choices.keepOnly(loginsOf(m_children), m_shelf.sharedIds());
+    m_ownSteamGames = m_setup.steamHome.isEmpty()
+                          ? QStringList()
+                          : OwnSteamGames::names(OwnSteamGames::find(
+                                m_setup.steamHome, m_setup.sharedLibrary, m_shelf.sharedIds()));
     if (!sameChildren) {
         emit listedChildrenChanged();
     }

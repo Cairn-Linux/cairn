@@ -67,6 +67,15 @@ Column {
         text: qsTr("No games in the shared folder yet. To add one, install it from your own Steam into the folder /var/lib/cairn/steam-library. If Steam's install dialog does not offer that folder, add it first in Steam's Settings, under Storage. A game shows here after the next Save, which looks at the shared folder again. With nothing to save, Look for new games does the same.")
     }
 
+    // Games installed the usual way go to the Guardian's own Steam library,
+    // where no child can have them, so the page names them and says how
+    // to move them.
+    Words {
+        objectName: "ownSteamGames"
+        visible: view.page.ownSteamGames !== ""
+        text: qsTr("In your own Steam library, not the shared folder: %1. Children can have only the games in the shared folder. To move them, open Steam's Settings and choose Storage. If the folder /var/lib/cairn/steam-library is not listed there, add it as a drive. Then pick your own library in the list, tick the games, press Move and choose the shared folder. A moved game shows here after the next Save, or after Look for new games. To send future downloads to the shared folder too, make it the default drive in Storage.").arg(view.page.ownSteamGames)
+    }
+
     Flow {
         objectName: "childChoices"
         width: view.width
