@@ -190,7 +190,9 @@ locked icon, nothing to probe.
 **Full administration — separate login.** Requires the Guardian account
 password. This is where account creation, level changes, updates, rollback, and
 data export live. Its tool is Cairn's own app, "Family" in the Guardian's
-menu, not pages added to System Settings (ADR-0040).
+menu, not pages added to System Settings (ADR-0040). System Settings lists
+"Family" too, in place of Plasma's Users page, which Cairn hides; a
+Guardian changes their own password and picture in Family (ADR-0043).
 
 **Quick actions — PIN-gated overlay inside a child session.** Because the common
 case is a parent standing at the child's shoulder wanting to grant fifteen more
