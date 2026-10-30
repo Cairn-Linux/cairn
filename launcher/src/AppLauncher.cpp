@@ -434,7 +434,15 @@ void AppLauncher::onLaunchGraceTimeout() {
     // Nothing came at all. Back at the tiles a child presses again, and again
     // (#139); the grown-up screen says the tile did not start (ADR-0030).
     // What Steam last said goes to the journal for the grown-up.
-    if (m_steamGame.lastStep() == SteamLaunchLog::Step::WaitingForAnswer) {
+    if (m_steamGame.signIn() == SteamSignIn::Now::Refused) {
+        qWarning().noquote() << QStringLiteral("Steam could not sign in, so %1 did not start. "
+                                               "Steam needs to be signed in again.")
+                                    .arg(m_launchTitle);
+    } else if (m_steamGame.signIn() == SteamSignIn::Now::NoConnection) {
+        qWarning().noquote() << QStringLiteral(
+                                    "Steam could not reach the internet, so %1 did not start.")
+                                    .arg(m_launchTitle);
+    } else if (m_steamGame.lastStep() == SteamLaunchLog::Step::WaitingForAnswer) {
         qWarning().noquote()
             << QStringLiteral(
                    "Steam is waiting for an answer about %1 on a window the kiosk hides.")

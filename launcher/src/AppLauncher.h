@@ -26,7 +26,8 @@
 // the grace, up to a limit (SteamGameWait, ADR-0029); while Steam's log says
 // it is working on the game, the starting screen says it is getting ready
 // (ADR-0036). A tap Steam lost while it updated itself is sent again once the
-// new client has started (ADR-0037). A launch that has put
+// new client has started (ADR-0037). A Steam that cannot sign in ends the
+// wait sooner, and the journal says why (#182). A launch that has put
 // nothing on the screen when the grace timer ends, or when its program exits
 // after the settle window, is Failed (ADR-0030), and its window counts as the
 // app's if it comes late; one whose window came and went returns to Idle. A

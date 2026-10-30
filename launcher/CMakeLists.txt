@@ -35,6 +35,7 @@ set(launcher_model_sources
     src/SteamAtLogin.h src/SteamAtLogin.cpp
     src/SteamGameWait.h src/SteamGameWait.cpp
     src/SteamLaunchLog.h src/SteamLaunchLog.cpp
+    src/SteamSignIn.h src/SteamSignIn.cpp
     src/SteamStartup.h src/SteamStartup.cpp
     src/GridScroller.h src/GridScroller.cpp
     src/CloseRequest.h src/CloseRequest.cpp
@@ -109,7 +110,8 @@ target_link_libraries(tst_launchwindows PRIVATE Qt6::Core Qt6::Test)
 add_test(NAME launchwindows COMMAND tst_launchwindows)
 
 qt_add_executable(tst_steamgamewait tests/tst_steamgamewait.cpp src/SteamGameWait.h src/SteamGameWait.cpp
-    src/SteamLaunchLog.h src/SteamLaunchLog.cpp src/SteamStartup.h src/SteamStartup.cpp)
+    src/SteamLaunchLog.h src/SteamLaunchLog.cpp src/SteamSignIn.h src/SteamSignIn.cpp
+    src/SteamStartup.h src/SteamStartup.cpp)
 target_include_directories(tst_steamgamewait PRIVATE src)
 target_link_libraries(tst_steamgamewait PRIVATE Qt6::Core Qt6::Test)
 add_test(NAME steamgamewait COMMAND tst_steamgamewait)

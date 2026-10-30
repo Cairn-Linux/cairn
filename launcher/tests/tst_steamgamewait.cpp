@@ -389,6 +389,83 @@ private slots:
         QVERIFY(!wait.sendAgain());
     }
 
+    // #182: Steam starting at login while its saved sign-in is turned down.
+    // It never finishes starting, but that is not work: the wait ends at the
+    // next look, with no "Getting it ready".
+    void aRefusedSignInEndsTheWait() {
+        const QTemporaryDir root;
+        const QString log = root.filePath(QStringLiteral("console_log.txt"));
+        const QString bootstrap = root.filePath(QStringLiteral("bootstrap_log.txt"));
+        SteamGameWait wait(root.path(), log, bootstrap);
+        steamLine(bootstrap, 30, "Startup - updater built Oct 13 2026 18:44:25");
+        steamLine(log, 28, "Client version: 1792618285");
+        wait.startLaunch(steamGame());
+        QVERIFY(wait.stillComing());
+        QVERIFY(wait.steamWorking());
+        steamLine(log, 0, "LogonFailure Access Denied");
+        QVERIFY(!wait.stillComing());
+        QVERIFY(!wait.steamWorking());
+        QCOMPARE(wait.signIn(), SteamSignIn::Now::Refused);
+        // The tries after it fail with No Connection; still refused.
+        steamLine(log, 0, "LogonFailure No Connection");
+        QVERIFY(!wait.stillComing());
+        QCOMPARE(wait.signIn(), SteamSignIn::Now::Refused);
+        QVERIFY(!wait.sendAgain());
+    }
+
+    // A Steam that cannot reach its servers gets a short wait to come back,
+    // then the wait ends, even while it is still starting.
+    void noConnectionGetsAShortWait() {
+        const QTemporaryDir root;
+        const QString log = root.filePath(QStringLiteral("console_log.txt"));
+        const QString bootstrap = root.filePath(QStringLiteral("bootstrap_log.txt"));
+        SteamGameWait wait(root.path(), log, bootstrap);
+        wait.setOfflineLimitMilliseconds(200);
+        steamLine(bootstrap, 30, "Startup - updater built Oct 13 2026 18:44:25");
+        steamLine(log, 28, "Client version: 1792618285");
+        steamLine(log, 10, "LogonFailure No Connection");
+        wait.startLaunch(steamGame());
+        QVERIFY(wait.stillComing());
+        QVERIFY(!wait.steamWorking());
+        QCOMPARE(wait.signIn(), SteamSignIn::Now::NoConnection);
+        QTRY_VERIFY(!wait.stillComing());
+        QCOMPARE(wait.signIn(), SteamSignIn::Now::NoConnection);
+    }
+
+    // Steam back online in the short wait: starting is work again.
+    void signingInInTheShortWaitIsWorkAgain() {
+        const QTemporaryDir root;
+        const QString log = root.filePath(QStringLiteral("console_log.txt"));
+        const QString bootstrap = root.filePath(QStringLiteral("bootstrap_log.txt"));
+        SteamGameWait wait(root.path(), log, bootstrap);
+        wait.setOfflineLimitMilliseconds(100);
+        steamLine(bootstrap, 30, "Startup - updater built Oct 13 2026 18:44:25");
+        steamLine(log, 28, "Client version: 1792618285");
+        steamLine(log, 10, "LogonFailure No Connection");
+        wait.startLaunch(steamGame());
+        QVERIFY(wait.stillComing());
+        steamLine(log, 0, "Waiting for compat in post-logon took: 0.098334s");
+        QTest::qWait(150);
+        QVERIFY(wait.stillComing());
+        QVERIFY(wait.steamWorking());
+        QCOMPARE(wait.signIn(), SteamSignIn::Now::Fine);
+    }
+
+    // Steam starts games while it cannot reach its servers (2026-10-28): once
+    // its log is about the game, the sign-in no longer decides.
+    void aGameSteamHasInHandIsWaitedForOffline() {
+        const QTemporaryDir root;
+        const QString log = root.filePath(QStringLiteral("console_log.txt"));
+        SteamGameWait wait(root.path(), log, root.filePath(QStringLiteral("bootstrap_log.txt")));
+        wait.setOfflineLimitMilliseconds(0);
+        steamLine(log, 10, "LogonFailure No Connection");
+        wait.startLaunch(steamGame());
+        steamSays(log, "changed task to RunningInstallScript with \"\"");
+        QVERIFY(wait.stillComing());
+        QVERIFY(wait.steamWorking());
+        QCOMPARE(wait.signIn(), SteamSignIn::Now::Fine);
+    }
+
     void notASteamGameIsNeverSentAgain() {
         const QTemporaryDir root;
         const QString log = root.filePath(QStringLiteral("console_log.txt"));

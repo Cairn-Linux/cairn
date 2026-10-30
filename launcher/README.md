@@ -243,6 +243,11 @@ reads the last part of Steam's `bootstrap_log.txt` and `console_log.txt`. A
 tap made during an update is lost when Steam restarts, so once a client
 started after the tap has run its own start command without taking it, the
 launcher runs the tile's command again, once (ADR-0037).
+A Steam that cannot sign in never takes a tap up. `SteamSignIn` reads
+Steam's `LogonFailure` lines: while Steam's log says nothing about the
+game, a refused sign-in such as `Access Denied` ends the wait at once, and
+a Steam that cannot reach its servers gets a minute. Neither says "Getting
+it ready", and the journal says which it was (ADR-0036, #182).
 With `--scope-apps`, which the kiosk wrapper passes, every program starts
 in a systemd user scope of its own, `cairn-app-<launcher pid>-<n>.scope`,
 so the grown-up's give-up key can end it and whatever it started
