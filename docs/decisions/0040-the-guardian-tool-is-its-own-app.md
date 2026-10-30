@@ -9,7 +9,9 @@ The names `cairn-guardian` and "Family" are now the program's names.
 **Closes:** (none) — the second slice of issue #167; part of ROADMAP P1-5
 **Amended by:** ADR-0041, proposed (a Games page beside Children; the
 switch between them and a read-only Games page landed 2026-10-28, and
-highlighting games and Save the same day)
+highlighting games and Save the same day); ADR-0043, proposed (a third page, Your account,
+with the Guardian's own password and picture, and "Family" in System
+Settings in place of Plasma's hidden Users page)
 
 ## Context
 

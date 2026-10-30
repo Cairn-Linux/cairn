@@ -209,6 +209,56 @@ installed. The third lists `kcm-about-distrorc` and the two splash
 `kicker-extra-favoritesrc`, which Bazzite changed. Leave out `--nomtime`
 and `rpm -V` lists hundreds of files whose times the base changed.
 
+The grown-up's start-menu button shows the Cairn mark (#166, first
+step). Valve's look names `distributor-logo-steamdeck`, which slice 5
+leads to the mark. `build_files/guardian-desktop.sh` adds the mark under
+`start-here` in `/usr/share/cairn/guardian-desktop`, which every
+Plasma login reads before the system's icons, and
+`build_files/check-guardian-desktop.sh` asks KDE's own icon loader which
+file each name finds. To ask it yourself:
+
+```sh
+podman run --rm -e QT_QPA_PLATFORM=offscreen \
+    -e XDG_DATA_DIRS=/usr/share/cairn/guardian-desktop:/usr/share \
+    localhost/cairn:dev sh -c 'for i in distributor-logo-steamdeck start-here; do readlink -f "$(kiconfinder6 $i)"; done'
+```
+
+Both lines print `/usr/share/icons/hicolor/scalable/places/cairn-logo-on-ink.svg`.
+
+The boot screen is Cairn's stones building (ADR-0044, #165).
+`brand/build.py` draws the Plymouth theme into `brand/image/plymouth/`,
+and `build_files/boot-screen.sh` installs it, makes it the default and
+builds the initramfs again, so the theme, its font and Cairn's
+`initrd-release` are in it. That takes about a minute.
+`build_files/check-boot-screen.sh` stops the build if any of it is
+missing. To look yourself:
+
+```sh
+podman run --rm localhost/cairn:dev plymouth-set-default-theme
+podman run --rm localhost/cairn:dev sh -c 'lsinitrd -f usr/lib/initrd-release /usr/lib/modules/*/initramfs.img'
+```
+
+The first prints `cairn`, the second Cairn Linux's `os-release` with
+`(Initramfs)` after its name. To see the screen without restarting a VM
+that runs the image, stop the login screen and show it by hand, then
+take a screenshot from the host:
+
+```sh
+ssh cairn-min 'sudo systemctl stop sddm && sudo plymouthd --mode=boot --attach-to-session=no && sudo plymouth show-splash'
+virsh -c qemu:///system screenshot cairn-min boot.ppm
+ssh -f cairn-min 'sudo plymouth ask-for-password --prompt=test >/dev/null'
+virsh -c qemu:///system send-key cairn-min KEY_A KEY_ENTER
+ssh cairn-min 'sudo plymouth quit && sudo systemctl start sddm'
+```
+
+The password box takes what `send-key` types, and Enter ends it. Asked
+twice with the same prompt, the second time says the password did not
+work. That checks the screen as Plymouth draws it after the real root is
+mounted, with Pango. The prompt for an encrypted disk comes from the
+initramfs, where Plymouth draws with FreeType; to see it, give the VM a
+small LUKS disk and add `rd.luks.uuid=` with its UUID to the kernel
+arguments (`rpm-ostree kargs --append`), then restart.
+
 To boot it, switch a VM that runs stock Bazzite to it. The VM should never
 have been provisioned, because provisioning's changes to `/etc` would
 override the image's. Copy the image in as an archive and switch to it:

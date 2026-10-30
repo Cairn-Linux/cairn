@@ -68,6 +68,8 @@ class GamesPageTest : public QObject {
         setup.catalogue = path("games.json");
         setup.childLists = path("games");
         setup.steamFor = "/usr/bin/cairn-steam-for";
+        setup.steamHome = m_steamHome;
+        setup.sharedLibrary = path("steam-library");
         setup.accounts = [this] { return m_accounts; };
         setup.loggedIn = [this] { return loggedIn(); };
         setup.start = [this, starts](const QString& program, const QStringList& arguments) {
@@ -161,9 +163,19 @@ class GamesPageTest : public QObject {
         return file.open(QIODevice::ReadOnly) ? QString::fromUtf8(file.readAll()) : QString();
     }
 
+    // A game's manifest in the library `steamapps`, as Steam writes one.
+    static void installIn(const QString& steamapps, const QString& appId, const QString& name) {
+        QVERIFY(QDir().mkpath(steamapps));
+        write(QDir(steamapps).filePath("appmanifest_" + appId + ".acf"),
+              QString(R"("AppState" { "appid" "%1" "name" "%2" "installdir" "%2" })")
+                  .arg(appId, name)
+                  .toUtf8());
+    }
+
     QTemporaryDir m_temporary;
     std::vector<Account> m_accounts;
     QStringList m_started;
+    QString m_steamHome;
 
 private slots:
     // The sentences under test are English, whatever the machine's locale:
@@ -176,6 +188,7 @@ private slots:
         QVERIFY(m_temporary.isValid());
         m_accounts = family();
         m_started.clear();
+        m_steamHome.clear();
         write(path("games.json"), gamesFile({game("1001", "Game one"), game("1002", "Game two"),
                                              game("1003", "Game three")}));
         QVERIFY(QDir().mkpath(path("games")));
@@ -312,6 +325,31 @@ private slots:
         std::erase_if(m_accounts, [](const Account& account) { return account.login == "ben"; });
         page->reload();
         QCOMPARE(page->chosen(), "ada");
+    }
+
+    // Games installed in the Guardian's own Steam, not the shared folder,
+    // are named, but for Steam's tools and the games the family has.
+    void gamesInTheGuardiansOwnSteam() {
+        m_steamHome = path("home");
+        const QString own = path("home/.local/share/Steam/steamapps");
+        installIn(own, "620", "Portal 2");
+        installIn(own, "504230", "Celeste");
+        installIn(own, "1628350", "Steam Linux Runtime 3.0 (sniper)");
+        installIn(own, "1001", "Game one");
+        installIn(path("steam-library/steamapps"), "440", "Team Fortress 2");
+        const auto page = makePage();
+        QCOMPARE(page->ownSteamGames(), "Celeste and Portal 2");
+        // Moved to the shared folder, it is named no more.
+        QVERIFY(QFile::remove(own + "/appmanifest_620.acf"));
+        page->reload();
+        QCOMPARE(page->ownSteamGames(), "Celeste");
+    }
+
+    // Without a home to look in, as in every other test, nothing is named.
+    void noHomeNoOwnSteamGames() {
+        installIn(path("home/.local/share/Steam/steamapps"), "620", "Portal 2");
+        const auto page = makePage();
+        QCOMPARE(page->ownSteamGames(), QString());
     }
 
     // The Steam window, as the menu entry starts it, on its own.

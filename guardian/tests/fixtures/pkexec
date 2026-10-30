@@ -38,11 +38,31 @@ case "$scenario" in
     copying) echo "refused copying"; exit 1 ;;
     logging-out) echo "refused logging-out"; exit 1 ;;
     logged-in) echo "refused logged-in"; exit 1 ;;
+    # Any other refusal the helper can give, named after "refused-".
+    refused-*) echo "refused ${scenario#refused-}"; exit 1 ;;
     # pkexec's own: the box was dismissed, or the password not accepted.
     dismissed) exit 126 ;;
     not-authorized) exit 127 ;;
     # The Guardian has not answered the box yet.
     asking) exec sleep 30 ;;
+    # The box stays up a while, then the Guardian closes it.
+    dismissed-slowly) sleep 1.5; exit 126 ;;
+    # Slow enough for a test to look at the window in each step between.
+    slow-waiting)
+        echo waiting
+        sleep 3
+        echo open
+        watch_visit
+        echo closing
+        echo closed
+        ;;
+    slow-close)
+        echo open
+        watch_visit
+        echo closing
+        sleep 3
+        echo closed
+        ;;
     stuck)
         echo open
         watch_visit

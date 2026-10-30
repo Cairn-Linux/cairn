@@ -21,6 +21,12 @@ namespace SystemTool {
 // journal.
 bool run(const QString& program, const QStringList& arguments);
 
+// The same, with `input` on the tool's standard input in place of nothing,
+// for a tool that reads a secret there, such as chpasswd (ADR-0043). A
+// secret never goes into the arguments, which every account can read in
+// /proc while the tool runs.
+bool runWithInput(const QString& program, const QStringList& arguments, const QByteArray& input);
+
 // What the tool printed on its standard output, when it succeeded and
 // printed at most `maxBytes`; nothing otherwise. Its error output is
 // dropped, because it can name files in someone's home.

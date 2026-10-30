@@ -2,6 +2,84 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="en_US">
 <context>
+    <name>AccountView</name>
+    <message>
+        <location filename="../qml/AccountView.qml" line="26"/>
+        <source>Type the password you use now in the box that opened.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AccountView.qml" line="28"/>
+        <source>Your password is changed. Use the new one from now on: to log in, to unlock the screen and in every password box.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AccountView.qml" line="38"/>
+        <source>Type the new password first.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AccountView.qml" line="40"/>
+        <source>The two new passwords are not the same. Type the new password again in the second box.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AccountView.qml" line="42"/>
+        <source>A password can be at most %1 characters long. Choose a shorter one.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AccountView.qml" line="45"/>
+        <source>A password cannot hold a tab, a line break or another character that does not show. Type it again without them.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AccountView.qml" line="48"/>
+        <source>Your password did not change. It needs the password you use now: the box was closed, or the password was not accepted.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AccountView.qml" line="50"/>
+        <source>Your password did not change. Only a grown-up&apos;s account can change its password here.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AccountView.qml" line="52"/>
+        <source>Cairn&apos;s family command did not get the rights it needs, so your password did not change. Close Family and open it again. If it happens again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AccountView.qml" line="54"/>
+        <source>This window asked Cairn&apos;s family command for something it does not do, so your password did not change. The window and the command may come from different versions of Cairn. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AccountView.qml" line="56"/>
+        <source>Your password did not change. Trying again is safe. If it fails again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AccountView.qml" line="58"/>
+        <source>Cairn&apos;s family command did not answer as expected, so it is not known whether your password changed. Try the new one the next time a box asks; if it is not accepted, the old one still works. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AccountView.qml" line="72"/>
+        <source>Your account</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AccountView.qml" line="94"/>
+        <source>No picture yet</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AccountView.qml" line="94"/>
+        <source>Your picture</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>AddChildForm</name>
     <message>
         <location filename="../qml/AddChildForm.qml" line="19"/>
@@ -230,23 +308,28 @@
 <context>
     <name>FamilyWindow</name>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="21"/>
+        <location filename="../qml/FamilyWindow.qml" line="22"/>
         <source>Family</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="89"/>
+        <location filename="../qml/FamilyWindow.qml" line="92"/>
         <source>Pages</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="95"/>
+        <location filename="../qml/FamilyWindow.qml" line="98"/>
         <source>Children</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="108"/>
+        <location filename="../qml/FamilyWindow.qml" line="111"/>
         <source>Games</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/FamilyWindow.qml" line="125"/>
+        <source>Your account</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -307,52 +390,57 @@
 <context>
     <name>GamesView</name>
     <message>
-        <location filename="../qml/GamesView.qml" line="44"/>
+        <location filename="../qml/GamesView.qml" line="46"/>
         <source>Games</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="61"/>
+        <location filename="../qml/GamesView.qml" line="63"/>
         <source>No children yet. Add one on the Children page, then come back here for their games.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="55"/>
+        <location filename="../qml/GamesView.qml" line="57"/>
         <source>Each child has their own list of the games in the shared folder. A new child starts with none. Tap a game to put it on the list or take it off, then press Save. A child sees their games the next time they log in.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="67"/>
+        <location filename="../qml/GamesView.qml" line="69"/>
         <source>No games in the shared folder yet. To add one, install it from your own Steam into the folder /var/lib/cairn/steam-library. If Steam&apos;s install dialog does not offer that folder, add it first in Steam&apos;s Settings, under Storage. A game shows here after the next Save, which looks at the shared folder again. With nothing to save, Look for new games does the same.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="77"/>
+        <location filename="../qml/GamesView.qml" line="78"/>
+        <source>In your own Steam library, not the shared folder: %1. Children can have only the games in the shared folder. To move them, open Steam&apos;s Settings and choose Storage. If the folder /var/lib/cairn/steam-library is not listed there, add it as a drive. Then pick your own library in the list, tick the games, press Move and choose the shared folder. A moved game shows here after the next Save, or after Look for new games. To send future downloads to the shared folder too, make it the default drive in Storage.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/GamesView.qml" line="88"/>
         <source>Whose games to show</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="108"/>
+        <location filename="../qml/GamesView.qml" line="119"/>
         <source>Save</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="116"/>
+        <location filename="../qml/GamesView.qml" line="127"/>
         <source>Put back as saved</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="124"/>
+        <location filename="../qml/GamesView.qml" line="135"/>
         <source>Look for new games</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="133"/>
+        <location filename="../qml/GamesView.qml" line="144"/>
         <source>Not saved yet: the changes for %1. Save gives each child their new list, with one password.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="139"/>
+        <location filename="../qml/GamesView.qml" line="150"/>
         <source>Save waits: changes for a child who is logged in cannot be saved yet. Logged in: %1. Log them out first.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -478,195 +566,98 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="39"/>
-        <source>Open %1&apos;s Steam</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="41"/>
-        <source>Closing your own Steam</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="41"/>
-        <location filename="../qml/Main.qml" line="44"/>
-        <source>Opening %1&apos;s Steam</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="46"/>
-        <source>%1&apos;s Steam is open</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="48"/>
-        <source>Closing %1&apos;s Steam</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="50"/>
-        <source>%1&apos;s Steam is closed</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="52"/>
-        <source>%1&apos;s Steam did not close properly</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="54"/>
-        <source>%1&apos;s Steam did not open</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="62"/>
-        <source>A child&apos;s Steam is already open on this computer. Press Done in its window first.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="64"/>
-        <source>Games are being copied into a child&apos;s Steam on this computer. Try again in a minute.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="66"/>
-        <source>A child is being logged out on this computer. Try again in a moment.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="68"/>
-        <source>%1 is logged in. %1 needs to log out first.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="70"/>
-        <source>%1&apos;s last login has not finished ending. Try again in a minute. If it keeps happening, restart the computer.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="72"/>
-        <source>This computer&apos;s Cairn set-up is missing a part this needs. Run the set-up script again.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="74"/>
-        <source>%1 is not a child&apos;s account on this computer.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="76"/>
-        <source>It opens only from your own login, on this computer&apos;s own screen.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="78"/>
-        <source>It needs your password. The box was closed, or the password was not accepted.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="80"/>
-        <source>This account may not open a child&apos;s Steam. A grown-up&apos;s account can.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="82"/>
-        <source>Your own Steam did not close. Quit it from Steam&apos;s own menu, then try again.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="84"/>
-        <source>The reason is in the system log. In a terminal: journalctl -t cairn-steam-for</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="88"/>
-        <source>Your own Steam is starting again.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="91"/>
-        <source>%1&apos;s own Steam opens in a window on your desktop. There you can sign %1 in to Steam, switch the account, or change Steam&apos;s settings.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="91"/>
-        <source>%1 cannot log in until you press Done.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="91"/>
-        <source>Your own Steam closes first, with any game or download in it. It starts again when %1&apos;s Steam closes.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="93"/>
-        <source>It saves first, which can take half a minute.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="95"/>
-        <source>Confirm with your password, or your fingerprint, in the box that opened.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="97"/>
-        <source>%1&apos;s last login is still ending. This takes a few seconds.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="99"/>
-        <source>It is in a window of its own. The first time, Steam can take a minute or two to appear.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="99"/>
-        <source>When you have finished, press Done here, not the close button on Steam&apos;s window. Steam then saves and closes, which can take half a minute.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="99"/>
-        <source>Press Done before you log out, restart or shut down. Locking the screen closes %1&apos;s Steam too, and stops any download in it.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="101"/>
-        <source>Steam saves first, which can take half a minute.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="103"/>
-        <source>%1 can log in again.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="105"/>
-        <source>A program of %1&apos;s would not end. %1 cannot log in until the computer restarts. Restart it when you can.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="115"/>
-        <source>Open</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="117"/>
-        <source>Done</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/Main.qml" line="120"/>
-        <location filename="../qml/Main.qml" line="207"/>
+        <location filename="../qml/Main.qml" line="155"/>
         <source>Close</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="122"/>
-        <source>Try again</source>
+        <location filename="../qml/Main.qml" line="155"/>
+        <source>Cancel</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>PasswordForm</name>
+    <message>
+        <location filename="../qml/PasswordForm.qml" line="16"/>
+        <source>Change your password</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="207"/>
-        <source>Cancel</source>
+        <location filename="../qml/PasswordForm.qml" line="37"/>
+        <source>Password</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PasswordForm.qml" line="50"/>
+        <source>Type the new password twice. Then a box asks for the password you use now. Choose one the children do not know: it lets anyone change the family&apos;s accounts.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PasswordForm.qml" line="65"/>
+        <source>New password</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PasswordForm.qml" line="75"/>
+        <source>New password again</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PasswordForm.qml" line="81"/>
+        <source>Change password</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>PictureSection</name>
+    <message>
+        <location filename="../qml/PictureSection.qml" line="23"/>
+        <source>Saving the picture.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PictureSection.qml" line="25"/>
+        <source>Your picture is changed.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PictureSection.qml" line="28"/>
+        <source>That file is not a picture this window can read, so your picture stays as it was. Choose a PNG or JPEG picture.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PictureSection.qml" line="29"/>
+        <source>Your picture stays as it was: the computer&apos;s account service did not take it. Trying again is safe. The reason is in the system log. In a terminal: journalctl -t cairn-guardian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PictureSection.qml" line="37"/>
+        <source>Picture</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PictureSection.qml" line="50"/>
+        <source>Pick one of these, or a picture of your own. Plasma shows it on the lock screen.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PictureSection.qml" line="81"/>
+        <location filename="../qml/PictureSection.qml" line="97"/>
+        <source>Choose a picture of your own</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PictureSection.qml" line="99"/>
+        <source>Pictures (*.png *.jpg *.jpeg *.webp *.bmp *.gif)</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>PictureTile</name>
+    <message>
+        <location filename="../qml/PictureTile.qml" line="23"/>
+        <source>Use the picture %1</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1020,6 +1011,195 @@
     <message>
         <location filename="../src/SteamEntry.cpp" line="19"/>
         <source>Open %1&apos;s own Steam, to sign in or change its settings</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>SteamForWords</name>
+    <message>
+        <location filename="../qml/SteamForWords.qml" line="18"/>
+        <source>Open %1&apos;s Steam</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SteamForWords.qml" line="20"/>
+        <source>Closing your own Steam</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SteamForWords.qml" line="20"/>
+        <location filename="../qml/SteamForWords.qml" line="23"/>
+        <source>Opening %1&apos;s Steam</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SteamForWords.qml" line="25"/>
+        <source>%1&apos;s Steam is open</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SteamForWords.qml" line="27"/>
+        <source>Closing %1&apos;s Steam</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SteamForWords.qml" line="29"/>
+        <source>%1&apos;s Steam is closed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SteamForWords.qml" line="31"/>
+        <source>%1&apos;s Steam did not close properly</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SteamForWords.qml" line="33"/>
+        <source>%1&apos;s Steam did not open</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SteamForWords.qml" line="41"/>
+        <source>A child&apos;s Steam is already open on this computer. Press Done in its window first.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SteamForWords.qml" line="43"/>
+        <source>Games are being copied into a child&apos;s Steam on this computer. Try again in a minute.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SteamForWords.qml" line="45"/>
+        <source>A child is being logged out on this computer. Try again in a moment.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SteamForWords.qml" line="47"/>
+        <source>%1 is logged in. %1 needs to log out first.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SteamForWords.qml" line="49"/>
+        <source>%1&apos;s last login has not finished ending. Try again in a minute. If it keeps happening, restart the computer.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SteamForWords.qml" line="51"/>
+        <source>This computer&apos;s Cairn set-up is missing a part this needs. Run the set-up script again.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SteamForWords.qml" line="53"/>
+        <source>%1 is not a child&apos;s account on this computer.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SteamForWords.qml" line="55"/>
+        <source>It opens only from your own login, on this computer&apos;s own screen.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SteamForWords.qml" line="57"/>
+        <source>It needs your password. The box was closed, or the password was not accepted.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SteamForWords.qml" line="59"/>
+        <source>This account may not open a child&apos;s Steam. A grown-up&apos;s account can.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SteamForWords.qml" line="61"/>
+        <source>Your own Steam did not close. Quit it from Steam&apos;s own menu, then try again.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SteamForWords.qml" line="63"/>
+        <source>The reason is in the system log. In a terminal: journalctl -t cairn-steam-for</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SteamForWords.qml" line="67"/>
+        <source>Your own Steam is starting again.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SteamForWords.qml" line="70"/>
+        <source>%1&apos;s own Steam opens in a window on your desktop. There you can sign %1 in to Steam, switch the account, or change Steam&apos;s settings.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SteamForWords.qml" line="70"/>
+        <source>%1 cannot log in until you press Done.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SteamForWords.qml" line="70"/>
+        <source>Your own Steam closes first, with any game or download in it. It starts again when %1&apos;s Steam closes.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SteamForWords.qml" line="72"/>
+        <source>It saves first, which can take half a minute.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SteamForWords.qml" line="74"/>
+        <source>Confirm with your password, or your fingerprint, in the box that opened.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SteamForWords.qml" line="76"/>
+        <source>%1&apos;s last login is still ending. This takes a few seconds.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SteamForWords.qml" line="78"/>
+        <source>It is in a window of its own. The first time, Steam can take a minute or two to appear.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SteamForWords.qml" line="78"/>
+        <source>When you have finished, press Done here, not the close button on Steam&apos;s window. Steam then saves and closes, which can take half a minute.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SteamForWords.qml" line="78"/>
+        <source>Press Done before you log out, restart or shut down. Locking the screen closes %1&apos;s Steam too, and stops any download in it.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SteamForWords.qml" line="80"/>
+        <source>Steam saves first, which can take half a minute.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SteamForWords.qml" line="82"/>
+        <source>%1 can log in again.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SteamForWords.qml" line="84"/>
+        <source>A program of %1&apos;s would not end. %1 cannot log in until the computer restarts. Restart it when you can.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SteamForWords.qml" line="94"/>
+        <source>Open</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SteamForWords.qml" line="96"/>
+        <source>Done</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SteamForWords.qml" line="99"/>
+        <source>Close</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SteamForWords.qml" line="101"/>
+        <source>Try again</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

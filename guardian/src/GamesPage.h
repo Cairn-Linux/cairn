@@ -65,6 +65,11 @@ class GamesPage : public QObject {
     Q_PROPERTY(int sharedCount READ sharedCount NOTIFY changed)
     // How many games on the child's list the shared folder no longer has.
     Q_PROPERTY(int goneCount READ goneCount NOTIFY changed)
+    // The games in the Guardian's own Steam libraries, not the shared
+    // folder, by name, as one list in words, such as "Celeste and Portal
+    // 2", or "" when there are none. Children cannot have them until the
+    // Guardian moves them (#167).
+    Q_PROPERTY(QString ownSteamGames READ ownSteamGames NOTIFY changed)
     // The name of the child whose Steam window did not start, or "".
     Q_PROPERTY(QString steamNotOpened READ steamNotOpened NOTIFY changed)
     // The logins of the children with changes not saved yet, in the
@@ -106,6 +111,11 @@ public:
         // in main(), none in a test, which reads again by hand.
         LoginWatch::Read loggedIn = LoginSessions::loggedInNow;
         std::optional<QDBusConnection> loginBus;
+        // The Guardian's home, whose own Steam is looked in for games
+        // outside the shared folder: none when it is "", as in a test that
+        // does not give one. main() gives the Guardian's own.
+        QString steamHome;
+        QString sharedLibrary = QStringLiteral("/var/lib/cairn/steam-library");
     };
 
     explicit GamesPage(Setup setup, QObject* parent = nullptr);
@@ -121,6 +131,7 @@ public:
     int onListCount() const;
     int sharedCount() const;
     int goneCount() const;
+    QString ownSteamGames() const;
     QString steamNotOpened() const;
     QStringList unsavedLogins() const;
     QString unsavedNames() const;
@@ -158,7 +169,7 @@ public:
     Q_INVOKABLE void logOut();
     // Reads the children and the games files again. Changes not saved yet
     // stay, but for a child who is gone or a game that can no longer show.
-    // Who is logged in is read again too.
+    // Who is logged in, and the Guardian's own Steam, are read again too.
     Q_INVOKABLE void reload();
 
 signals:
@@ -179,4 +190,5 @@ private:
     QVariantList m_games;
     GameChoices m_choices;
     QString m_steamNotOpened;
+    QStringList m_ownSteamGames;
 };

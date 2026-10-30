@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
+#include "AccountPage.h"
 #include "ChildrenPage.h"
 #include "GamesPage.h"
 
@@ -96,10 +97,13 @@ public:
     // startedSteam(). Its Save runs the stand-ins, which answer as
     // `scenario` says, when one is given, and write the children's lists
     // into its folder. The children in `loggedIn` are logged in, until a
-    // logout the stand-ins run, or setLoggedIn(), says otherwise.
+    // logout the stand-ins run, or setLoggedIn(), says otherwise. With
+    // `withOwnSteamGames`, the Guardian's own Steam has two games and a
+    // runtime outside the shared folder.
     Q_INVOKABLE GamesPage* gamesPage(bool withChildren, bool withGames, bool steamStarts = true,
                                      const QString& scenario = QString(),
-                                     const QStringList& loggedIn = QStringList()) {
+                                     const QStringList& loggedIn = QStringList(),
+                                     bool withOwnSteamGames = false) {
         const QDir files(m_files.path());
         setLoggedIn(loggedIn);
         QJsonArray shared;
@@ -165,6 +169,8 @@ public:
         setup.catalogue = files.filePath("games.json");
         setup.childLists = files.filePath("games");
         setup.steamFor = "/usr/bin/cairn-steam-for";
+        setup.steamHome = ownSteamHome(withOwnSteamGames);
+        setup.sharedLibrary = files.filePath("steam-library");
         setup.accounts = [accounts] { return accounts; };
         setup.loggedIn = [this] {
             QFile file(loggedInFile());
@@ -180,6 +186,36 @@ public:
             return steamStarts;
         };
         auto* page = new GamesPage(setup);
+        QQmlEngine::setObjectOwnership(page, QQmlEngine::JavaScriptOwnership);
+        return page;
+    }
+
+    // The window's AccountPage, for the Guardian of page(), with three
+    // stand-in pictures of Plasma's. It has no bus, so a picture chosen is
+    // never taken; its password runs the stand-ins as page()'s scenario
+    // says.
+    Q_INVOKABLE AccountPage* accountPage() {
+        const QDir files(m_files.path());
+        files.mkpath(QStringLiteral("avatars"));
+        const QStringList names{"Artist Konqi", "Bookworm Konqi", "Katie"};
+        for (int i = 0; i < names.size(); ++i) {
+            makePicture(files.filePath("avatars/" + names.at(i) + ".png"), names.at(i), i * 3);
+        }
+        AccountPage::Setup setup;
+        setup.pkexec = QStringLiteral(FIXTURES "/pkexec-family");
+        setup.command = QStringLiteral(FIXTURES "/cairn-family");
+        setup.uid = 1000;
+        setup.lookUpUid = [](unsigned int uid) -> std::optional<Account> {
+            if (uid != 1000) {
+                return std::nullopt;
+            }
+            return Account{.uid = 1000,
+                           .groups = {"guardian", "wheel", "cairn-guardian"},
+                           .login = "guardian",
+                           .fullName = "Guardian"};
+        };
+        setup.stockPictures = files.filePath(QStringLiteral("avatars"));
+        auto* page = new AccountPage(setup);
         QQmlEngine::setObjectOwnership(page, QQmlEngine::JavaScriptOwnership);
         return page;
     }
@@ -200,6 +236,28 @@ public:
     }
 
 private:
+    // A home whose own Steam library has games in it, or "" for none.
+    QString ownSteamHome(bool withGames) const {
+        const QDir files(m_files.path());
+        const QString steamapps = files.filePath("home/.local/share/Steam/steamapps");
+        QDir(files.filePath("home")).removeRecursively();
+        if (!withGames) {
+            return {};
+        }
+        files.mkpath(steamapps);
+        const QStringList manifests{
+            R"("AppState" { "appid" "620" "name" "Portal 2" "installdir" "Portal 2" })",
+            R"("AppState" { "appid" "504230" "name" "Celeste" "installdir" "Celeste" })",
+            R"m("AppState" { "appid" "1628350" "name" "Steam Linux Runtime 3.0 (sniper)"
+                            "installdir" "SteamLinuxRuntime_sniper" })m",
+        };
+        for (const QString& manifest : manifests) {
+            const QString appId = manifest.section(u'"', 5, 5);
+            writeFile(steamapps + "/appmanifest_" + appId + ".acf", manifest.toUtf8());
+        }
+        return files.filePath("home");
+    }
+
     QString loggedInFile() const {
         return QDir(m_files.path()).filePath("logged-in");
     }

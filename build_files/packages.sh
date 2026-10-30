@@ -17,6 +17,9 @@ set -ouex pipefail
 # - The brand's typefaces (DESIGN §6.2, brand/tokens.json). Without them
 #   every Cairn screen falls back to another font, losing the letterforms
 #   early readers need (I/l/1, O/0).
+# - plymouth-plugin-script: Fedora's own module for a boot screen drawn
+#   by a script, which Cairn's stones are (ADR-0044). The base ships only
+#   the two-step module.
 # sddm requires desktop-backgrounds-compat, whose two wallpaper paths the
 # base has as links no package owns. Provisioning has to force that
 # package over them in an rpm-ostree transaction of its own. dnf in an
@@ -29,7 +32,8 @@ dnf5 install -y \
     sddm-breeze \
     sddm-wayland-plasma \
     atkinson-hyperlegible-next-fonts \
-    atkinson-hyperlegible-mono-fonts
+    atkinson-hyperlegible-mono-fonts \
+    plymouth-plugin-script
 
 # Fedora's trademark guidelines ask a system derived from Fedora to
 # remove fedora-logos. generic-logos is Fedora's own replacement with no

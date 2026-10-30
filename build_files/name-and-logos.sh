@@ -92,10 +92,5 @@ rm /etc/skel/.config/autostart/bazzite-portal.desktop
 # cache, which must list it.
 gtk-update-icon-cache -f /usr/share/icons/hicolor
 
-# A fingerprint of every icon file and link. The Guardian's Plasma clears
-# its own picture cache when it differs from the one it saw last
-# (system_files/etc/xdg/plasma-workspace/env/cairn-icon-cache.sh).
-install -d -m 0755 /usr/share/cairn
-find /usr/share/icons -printf '%p %l %s %T@\n' | LC_ALL=C sort | sha256sum \
-    | cut -d' ' -f1 >/usr/share/cairn/icons.sum
-chmod 0644 /usr/share/cairn/icons.sum
+# build.sh takes the icons' fingerprint once guardian-desktop.sh has
+# added Cairn's own.

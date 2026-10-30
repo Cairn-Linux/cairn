@@ -13,6 +13,10 @@ set -ouex pipefail
 find /ctx/system_files -mindepth 1 -maxdepth 1 ! -name README.md \
     -exec cp -avf {} / \;
 
+# Plasma's Users page is hidden, so the family's accounts are changed in
+# Cairn's Family app, which System Settings lists in its place (ADR-0043).
+/ctx/hide-users-page.sh /etc/xdg/kdeglobals
+
 # SDDM is the login screen (ADR-0016). Plasma Login Manager goes first,
 # because both claim display-manager.service and only one may hold it.
 systemctl disable plasmalogin.service
@@ -55,9 +59,27 @@ semanage fcontext -a -t etc_t '/run/cairn(/.*)?'
 # Cairn's name, mark and licence texts in place of Bazzite's (slice 5).
 /ctx/name-and-logos.sh
 
+# The Guardian's desktop in Cairn's frame (#166): so far, the mark on the
+# start-menu button.
+/ctx/guardian-desktop.sh
+
+# A fingerprint of every icon file and link, the system's and Cairn's
+# own. The Guardian's Plasma clears its own picture cache when it differs
+# from the one it saw last
+# (system_files/etc/xdg/plasma-workspace/env/cairn-icon-cache.sh).
+install -d -m 0755 /usr/share/cairn
+find /usr/share/icons /usr/share/cairn/guardian-desktop/icons \
+    -printf '%p %l %s %T@\n' | LC_ALL=C sort | sha256sum \
+    | cut -d' ' -f1 >/usr/share/cairn/icons.sum
+chmod 0644 /usr/share/cairn/icons.sum
+
+# The boot screen, and the initramfs built again with it and with Cairn's
+# os-release (#165). Last, so the initramfs holds everything above.
+/ctx/boot-screen.sh
+
 ### Not here, ever: accounts, games.json, a child's "Steam for <child>" menu
 ### entry and the Flatpaks name a person or are the family's choice.
 ### provision/cairn-family-setup.sh makes them on the computer (slice 4).
 ###
-### Not here yet: the boot screen (#165) and the Guardian's desktop
-### (#166).
+### Not here yet: the rest of the Guardian's desktop (#166): its
+### wallpaper, colours, loading splash and lock screen.

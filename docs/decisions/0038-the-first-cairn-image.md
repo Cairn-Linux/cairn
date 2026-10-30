@@ -6,7 +6,9 @@ login screen, a child reached the tiles, and a Guardian reached Plasma.
 **Closes:** (none) — the first slice of issue #164; part of ROADMAP P1-2
 and P1-3
 **Amended by:** ADR-0041, proposed (the family's setup makes no child's
-copy of the games; a Guardian's Save on the Games page does)
+copy of the games; a Guardian's Save on the Games page does);
+ADR-0044, proposed (the image builds its own initramfs, with Cairn's
+boot screen)
 
 ## Context
 
@@ -443,7 +445,8 @@ cache included, so nothing would see that the icons changed. The build runs
 `gtk-update-icon-cache` so the cache lists the new names. Plasma also
 keeps a cache of icons it has drawn in each account, which survived
 every image switch in the VM. The build writes a fingerprint of every
-icon file and link to `/usr/share/cairn/icons.sum`. A short script in
+icon file and link, Cairn's own folder of icons for the Guardian's
+desktop included (#166), to `/usr/share/cairn/icons.sum`. A short script in
 `/etc/xdg/plasma-workspace/env/` removes the account's
 `icon-cache.kcache` at login when the fingerprint differs from the one it
 saw last.
@@ -495,6 +498,9 @@ line too.
   the VM: `hostnamectl` should then report `cairn` with source "default".
   The new kernel image set also makes libostree write new boot entries,
   so upgraded computers get "Cairn Linux" titles then.
+  ADR-0044 did it, and the VM showed both on 2026-10-29: after one
+  update from a slice 5 image, the computer was called `cairn` and both
+  boot entries read "Cairn Linux".
 - **#166, the Guardian's desktop.** The start-menu button and the splash
   now show the Sand mark, chosen because Vapor's panel and the splash are
   dark. `LOGO` names it too, because the About page is drawn in Vapor's
@@ -507,9 +513,20 @@ line too.
   mark nearly vanishes; a Guardian never opens it that way.
   The splash ground is Splash.qml's black, not Ink, and #166 owns
   Splash.qml. Valve's previews and `deck_icon.png` are Valve's and stay.
-  A Guardian who resets the panel or picks a Fedora look gets
-  generic-logos' plain `start-here` icon, not the mark; overwriting it
-  waits for `cairn-logos`. `mark-currentcolor.svg` is not used, because
+  A Guardian who picks a Fedora look got generic-logos' plain
+  `start-here` icon, not the mark. Since #166's first step
+  (2026-10-30), `build_files/guardian-desktop.sh` leaves that file as
+  the package shipped it and puts the mark under `start-here` in a
+  hicolor folder of Cairn's own, `/usr/share/cairn/guardian-desktop`,
+  which a script in `/etc/xdg/plasma-workspace/env/` puts first in
+  `XDG_DATA_DIRS` at every Plasma login, so existing accounts get it
+  too. That is the Guardian's login and an L3 or L4 child's, and both
+  should see the mark.
+  The VM showed the mark on the button on 2026-10-30 for an existing
+  Guardian, with the button set to either name, and for a new one.
+  A Guardian who resets the button to Plasma's default gets KDE's own
+  `start-here-kde` from Breeze, which is KDE's and stays.
+  `mark-currentcolor.svg` is not used, because
   Plasma recolours only its own colour classes, not `currentColor`.
 - **#167, the Guardian tool.** Fedora's guidelines also ask for a notice
   where the system names itself: not provided or supported by the Fedora
