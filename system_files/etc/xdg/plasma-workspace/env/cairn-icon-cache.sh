@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
+# shellcheck shell=sh
 # Plasma keeps a cache of the icons it has drawn, and every file in the
 # image has the same time, so it never notices that an update changed an
 # icon. The image records a fingerprint of its icons; when it differs

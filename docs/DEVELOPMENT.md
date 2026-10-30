@@ -209,6 +209,22 @@ installed. The third lists `kcm-about-distrorc` and the two splash
 `kicker-extra-favoritesrc`, which Bazzite changed. Leave out `--nomtime`
 and `rpm -V` lists hundreds of files whose times the base changed.
 
+The grown-up's start-menu button shows the Cairn mark (#166, first
+step). Valve's look names `distributor-logo-steamdeck`, which slice 5
+leads to the mark. `build_files/guardian-desktop.sh` adds the mark under
+`start-here` in `/usr/share/cairn/guardian-desktop`, which every
+Plasma login reads before the system's icons, and
+`build_files/check-guardian-desktop.sh` asks KDE's own icon loader which
+file each name finds. To ask it yourself:
+
+```sh
+podman run --rm -e QT_QPA_PLATFORM=offscreen \
+    -e XDG_DATA_DIRS=/usr/share/cairn/guardian-desktop:/usr/share \
+    localhost/cairn:dev sh -c 'for i in distributor-logo-steamdeck start-here; do readlink -f "$(kiconfinder6 $i)"; done'
+```
+
+Both lines print `/usr/share/icons/hicolor/scalable/places/cairn-logo-on-ink.svg`.
+
 The boot screen is Cairn's stones building (ADR-0044, #165).
 `brand/build.py` draws the Plymouth theme into `brand/image/plymouth/`,
 and `build_files/boot-screen.sh` installs it, makes it the default and
