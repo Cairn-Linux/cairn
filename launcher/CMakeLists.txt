@@ -125,6 +125,12 @@ target_include_directories(tst_steamstartup PRIVATE src)
 target_link_libraries(tst_steamstartup PRIVATE Qt6::Core Qt6::Test)
 add_test(NAME steamstartup COMMAND tst_steamstartup)
 
+qt_add_executable(tst_steamsignin tests/tst_steamsignin.cpp src/SteamSignIn.h src/SteamSignIn.cpp
+    src/SteamStartup.h src/SteamStartup.cpp src/SteamLaunchLog.h src/SteamLaunchLog.cpp)
+target_include_directories(tst_steamsignin PRIVATE src)
+target_link_libraries(tst_steamsignin PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME steamsignin COMMAND tst_steamsignin)
+
 qt_add_executable(tst_giveupwatch tests/tst_giveupwatch.cpp ${launcher_model_sources})
 target_include_directories(tst_giveupwatch PRIVATE src)
 target_link_libraries(tst_giveupwatch PRIVATE Qt6::Qml Qt6::Test)

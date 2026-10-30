@@ -3,10 +3,13 @@
 
 #include "SteamLaunchLog.h"
 
+#include <QByteArray>
 #include <QDateTime>
+#include <QList>
 #include <QString>
 
 #include <cstdint>
+#include <optional>
 
 // Whether the child's Steam client is still starting, or installing an update
 // of itself, read from its own two logs (ADR-0037).
@@ -38,6 +41,12 @@ public:
 
     // `bootstrap_log.txt` in the child's own Steam folder.
     static QString defaultPath();
+    // The whole lines in the last part of one of Steam's logs, oldest first;
+    // none when it cannot be read.
+    static QList<QByteArray> lastLines(const QString& path);
+    // When the updater last started the client, by its last `Startup -`
+    // line, or nothing.
+    static std::optional<QDateTime> lastStartup(const QString& bootstrapLog);
 
 private:
     QString m_bootstrapLog;
