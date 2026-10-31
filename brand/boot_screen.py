@@ -178,13 +178,39 @@ def boot_sizes(tokens):
     }
 
 
+def boot_colors(tokens):
+    """The token colour name of each thing the boot screen draws.
+
+    The ground is the login screen's dark ground, so the screen stays the
+    same colour from the boot screen to the login screen. The stones and
+    the words on it take that ground's label colour, as the mark's rule
+    asks. The password box is a card wearing the focus ring, as the login
+    screen's is, and the dots and letters in it take the card's label
+    colour, because the ground's would vanish on the card.
+    """
+    semantic = tokens["semantic"]
+    ground = semantic["dark-ground"]
+    box = semantic["card"]
+    return {
+        "ground": ground,
+        "on-ground": semantic["on"][ground],
+        "box": box,
+        "ring": semantic["focus"],
+        "in-box": semantic["on"][box],
+    }
+
+
+def boot_rgb(tokens, role):
+    return rgb(tokens["color"][boot_colors(tokens)[role]]["hex"])
+
+
 def stone_images(tokens, sizes):
     """One PNG per stone, bottom stone first, each the whole mark's size.
 
     Every stone sits where it sits in the mark, so the script puts all
     four at one place and only changes how much each one shows.
     """
-    color = rgb(tokens["color"][tokens["semantic"]["text"]]["hex"])
+    color = boot_rgb(tokens, "on-ground")
     unit = sizes["unit"]
     radius = tokens["mark"]["rx"] * unit
     images = {}
@@ -199,21 +225,19 @@ def stone_images(tokens, sizes):
 
 
 def entry_images(tokens, sizes):
-    colors = {name: rgb(spec["hex"]) for name, spec in tokens["color"].items()}
-    semantic = tokens["semantic"]
     width, height = sizes["entry-width"], sizes["entry-height"]
     entry = draw_box_with_edge(
         width,
         height,
         sizes["entry-radius"],
         sizes["entry-edge"],
-        colors[semantic["card"]],
+        boot_rgb(tokens, "box"),
         # Typing always goes to this box, so it wears the focus ring, as
         # the login screen's box does while it has the keyboard.
-        colors[semantic["focus"]],
+        boot_rgb(tokens, "ring"),
     )
     side = sizes["bullet"]
-    bullet = draw_shape(side, side, (0, 0, side, side, side / 2), colors[semantic["text"]])
+    bullet = draw_shape(side, side, (0, 0, side, side, side / 2), boot_rgb(tokens, "in-box"))
     return {
         "entry.png": encode_png(width, height, entry),
         "bullet.png": encode_png(side, side, bullet),
@@ -230,8 +254,7 @@ def color_lines(name, hex_color):
 
 
 def render_script(tokens, sizes):
-    colors = {name: spec["hex"] for name, spec in tokens["color"].items()}
-    semantic = tokens["semantic"]
+    colors = {role: tokens["color"][name]["hex"] for role, name in boot_colors(tokens).items()}
     family = tokens["font"]["family"]
     lines = [
         "# SPDX-License-Identifier: Apache-2.0",
@@ -239,8 +262,9 @@ def render_script(tokens, sizes):
         "# brand/boot-screen.script. Edit those, not this file.",
         "",
         "# ---- from brand/tokens.json ----",
-        *color_lines("ground", colors[semantic["ground"]]),
-        *color_lines("ink", colors[semantic["text"]]),
+        *color_lines("ground", colors["ground"]),
+        *color_lines("text", colors["on-ground"]),
+        *color_lines("box_text", colors["in-box"]),
         f"stone_count = {len(tokens['mark']['stones'])};",
         f"refresh_rate = {REFRESH_RATE};",
         "# One stone every motion.stone milliseconds, each fading in over",

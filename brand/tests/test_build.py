@@ -228,6 +228,23 @@ class BootScreenTests(unittest.TestCase):
             rows.append([tuple(line[1 + i * 4:5 + i * 4]) for i in range(width)])
         return rows
 
+    def token_rgb(self, name):
+        return boot_screen.rgb(self.tokens["color"][name]["hex"])
+
+    def script_rgb(self, name):
+        """A colour the generated script sets, as 0-255 channels."""
+        script = self.file("cairn.script")
+        channels = []
+        for channel in ("red", "green", "blue"):
+            prefix = f"{name}.{channel} = "
+            line = next(line for line in script.splitlines() if line.startswith(prefix))
+            channels.append(round(float(line[len(prefix):].rstrip(";")) * 255))
+        return tuple(channels)
+
+    @staticmethod
+    def hex_color(rgb):
+        return "#" + "".join(f"{channel:02X}" for channel in rgb[:3])
+
     def test_the_theme_is_a_script_theme_with_every_file(self):
         names = sorted(path.name for path in self.files)
         self.assertEqual(
@@ -249,20 +266,62 @@ class BootScreenTests(unittest.TestCase):
             "ScriptFile=/usr/share/plymouth/themes/cairn/cairn.script\n", theme
         )
 
+    def stone_centre(self, number):
+        x, y, width, height = list(reversed(self.tokens["mark"]["stones"]))[number - 1]
+        unit = self.sizes["unit"]
+        rows = self.rgba(f"stone-{number}.png")
+        return rows[int((y + height / 2) * unit)][int((x + width / 2) * unit)]
+
     def test_one_stone_image_per_stone_bottom_first(self):
         stones = self.tokens["mark"]["stones"]
-        unit = self.sizes["unit"]
+        semantic = self.tokens["semantic"]
+        # The mark's rule: Sand on dark grounds, which is the dark ground's
+        # label colour.
+        on_dark_ground = self.token_rgb(semantic["on"][semantic["dark-ground"]])
         inked = []
-        for number, (x, y, width, height) in enumerate(reversed(stones), start=1):
+        for number in range(1, len(stones) + 1):
             rows = self.rgba(f"stone-{number}.png")
             self.assertEqual(len(rows), self.sizes["mark-height"])
             self.assertEqual(len(rows[0]), self.sizes["mark-width"])
-            centre = rows[int((y + height / 2) * unit)][int((x + width / 2) * unit)]
-            ink = boot_screen.rgb(self.tokens["color"]["ink"]["hex"])
-            self.assertEqual(centre, (*ink, 255), number)
+            self.assertEqual(self.stone_centre(number), (*on_dark_ground, 255), number)
             self.assertEqual(rows[0][0][3], 0, "outside the stone is clear")
             inked.append(sum(pixel[3] for row in rows for pixel in row))
         self.assertEqual(inked, sorted(inked, reverse=True), "widest stone first")
+
+    def test_the_script_draws_the_login_screens_colours(self):
+        # greeter/theme/Main.qml draws on Tokens.darkGround, so the screen
+        # keeps one colour from the boot screen to the login screen.
+        semantic = self.tokens["semantic"]
+        self.assertEqual(self.script_rgb("ground"), self.token_rgb(semantic["dark-ground"]))
+        self.assertEqual(
+            self.script_rgb("text"), self.token_rgb(semantic["on"][semantic["dark-ground"]])
+        )
+        self.assertEqual(
+            self.script_rgb("box_text"), self.token_rgb(semantic["on"][semantic["card"]])
+        )
+
+    def test_everything_drawn_stands_out_from_what_is_behind_it(self):
+        ground = self.script_rgb("ground")
+        box_rows = self.rgba("entry.png")
+        middle = box_rows[len(box_rows) // 2]
+        box = middle[len(middle) // 2]
+        ring = middle[0]
+        side = self.sizes["bullet"]
+        dot = self.rgba("bullet.png")[side // 2][side // 2]
+        # Words need 4.5:1, shapes and the focus ring 3:1 (WCAG 1.4.3 and
+        # 1.4.11). The ring counts against the ground around the box.
+        pairs = {
+            "the stones on the ground": (self.stone_centre(1), ground, 3.0),
+            "the words on the ground": (self.script_rgb("text"), ground, 4.5),
+            "the box on the ground": (box, ground, 3.0),
+            "the focus ring on the ground": (ring, ground, 3.0),
+            "the dots in the box": (dot, box, 3.0),
+            "an answer typed in the box": (self.script_rgb("box_text"), box, 4.5),
+        }
+        for what, (front, behind, minimum) in pairs.items():
+            with self.subTest(what):
+                ratio = brand_build.contrast_ratio(self.hex_color(front), self.hex_color(behind))
+                self.assertGreaterEqual(ratio, minimum)
 
     def test_the_mark_is_the_launchers_size(self):
         display = self.tokens["type"]["display"]["size"]
@@ -289,8 +348,6 @@ class BootScreenTests(unittest.TestCase):
             f"frames_per_step = {stone * boot_screen.REFRESH_RATE // 1000};", script
         )
         self.assertIn(f"stone_count = {len(self.tokens['mark']['stones'])};", script)
-        sand = boot_screen.rgb(self.tokens["color"]["sand"]["hex"])
-        self.assertIn(f"ground.red = {boot_screen.script_number(sand[0] / 255)};", script)
         family = self.tokens["font"]["family"]
         self.assertIn(f'text_font = "{family} {self.sizes["text"]}px";', script)
         self.assertIn("Plymouth.SetDisplayPasswordFunction(display_password);", script)

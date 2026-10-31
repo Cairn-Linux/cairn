@@ -4,10 +4,11 @@
 # brand/image/plymouth/. It shows from power-on to the login screen, and
 # again at shutdown and restart.
 #
-# The mark builds itself as on the launcher's starting screen (ADR-0028):
-# the bottom stone fades in, then each stone above it, one every
-# frames_per_step, until the mark is whole. The whole mark stays for one
-# step, fades for one, and the building starts again from the bottom.
+# The ground is the login screen's, so nothing changes colour between the
+# two. The mark builds itself on it as on the launcher's starting screen
+# (ADR-0028): the bottom stone fades in, then each stone above it, one
+# every frames_per_step, until the mark is whole. The whole mark stays for
+# one step, fades for one, and the building starts again from the bottom.
 #
 # When the computer asks for the disk's password, nothing is working while
 # it waits for a person, so the mark stands whole and still above one plain
@@ -59,7 +60,7 @@ entry.SetOpacity(0);
 bullet_image = Image("bullet.png");
 bullet_count = 0;
 words = Sprite();
-caps_lock = Sprite(Image.Text(caps_lock_words, ink.red, ink.green, ink.blue, 1, text_font));
+caps_lock = Sprite(Image.Text(caps_lock_words, text.red, text.green, text.blue, 1, text_font));
 caps_lock.SetOpacity(0);
 typed = Sprite();
 asking = 0;
@@ -129,7 +130,7 @@ fun show_asking(sentence)
         global.stone_shown[i] = 1;
         global.stone[i].SetOpacity(1);
       }
-    words_image = Image.Text(sentence, ink.red, ink.green, ink.blue, 1, text_font);
+    words_image = Image.Text(sentence, text.red, text.green, text.blue, 1, text_font);
     global.words.SetImage(words_image);
     entry_height = global.entry_image.GetHeight();
     caps_height = global.caps_lock.GetImage().GetHeight();
@@ -194,7 +195,7 @@ fun display_question(prompt, entry_text)
     global.typed.SetOpacity(0);
     if (entry_text == "")
       return;
-    typed_image = Image.Text(entry_text, ink.red, ink.green, ink.blue, 1, text_font);
+    typed_image = Image.Text(entry_text, box_text.red, box_text.green, box_text.blue, 1, text_font);
     global.typed.SetImage(typed_image);
     global.typed.SetPosition(centred_x(typed_image.GetWidth()),
                              global.entry_top + Math.Int((global.entry_image.GetHeight() - typed_image.GetHeight()) / 2),
