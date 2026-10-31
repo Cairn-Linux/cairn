@@ -114,7 +114,8 @@ The Games page (ADR-0041):
 
 The Your account page (ADR-0043):
 
-1. The Guardian's name and picture.
+1. The Guardian's name and picture. With no picture, its frame says
+   "No picture yet".
 2. Plasma's own pictures, from `/usr/share/plasma/avatars`, and
    **Choose a picture of your own**, Qt's file dialog. A tap makes the
    picture a square of at most 256 pixels and hands it to

@@ -83,6 +83,10 @@ Column {
         spacing: Tokens.bodySize
 
         Rectangle {
+            id: ownPicture
+
+            readonly property bool hasPicture: view.page.picture.toString() !== ""
+
             objectName: "ownPicture"
             width: Tokens.headingSize * 4
             height: width
@@ -91,17 +95,36 @@ Column {
             border.color: Tokens.line
             border.width: Tokens.strokeHairline
             Accessible.role: Accessible.Graphic
-            Accessible.name: view.page.picture.toString() === "" ? qsTr("No picture yet") : qsTr("Your picture")
+            Accessible.name: ownPicture.hasPicture ? qsTr("Your picture") : noPicture.text
 
             Image {
                 anchors.fill: parent
                 anchors.margins: Tokens.strokeHairline
-                visible: view.page.picture.toString() !== ""
+                visible: ownPicture.hasPicture
                 source: view.page.picture
                 sourceSize.width: width
                 sourceSize.height: height
                 fillMode: Image.PreserveAspectCrop
                 cache: false
+                Accessible.ignored: true
+            }
+
+            // Words where the picture would be, so an empty frame never
+            // looks like a picture that did not load.
+            Text {
+                id: noPicture
+
+                objectName: "noPicture"
+                anchors.fill: parent
+                anchors.margins: Tokens.bodySize / 2
+                visible: !ownPicture.hasPicture
+                text: qsTr("No picture yet")
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                wrapMode: Text.WordWrap
+                font.family: Tokens.fontFamily
+                font.pixelSize: Tokens.bodySize
+                color: Tokens.paperLabel
                 Accessible.ignored: true
             }
         }

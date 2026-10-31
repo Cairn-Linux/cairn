@@ -343,7 +343,9 @@ TestCase {
     }
 
     // The third page: the grown-up's own name, Plasma's pictures and the
-    // password form, and nothing said yet.
+    // password form, and nothing said yet. With no picture, the frame says
+    // so on screen as well as to a screen reader, so it never looks like a
+    // picture that did not load.
     function test_yourAccountPage() {
         const window = makeWindow("done");
         compare(findChild(window, "accountTab").text, "Your account");
@@ -356,6 +358,11 @@ TestCase {
         compare(findChild(window, "accountHeading").text, "Your account");
         compare(findChild(window, "ownName").text, "Guardian");
         compare(findChild(window, "ownPicture").Accessible.name, "No picture yet");
+        const noPicture = findChild(window, "noPicture");
+        verify(noPicture.visible);
+        compare(noPicture.text, "No picture yet");
+        verify(noPicture.contentWidth <= noPicture.width);
+        verify(noPicture.contentHeight <= noPicture.height);
         const tiles = findChild(window, "pictureTiles");
         compare(tiles.count, 3);
         compare(tiles.itemAt(0).Accessible.name, "Use the picture Artist Konqi");

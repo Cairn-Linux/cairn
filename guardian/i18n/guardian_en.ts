@@ -69,12 +69,12 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AccountView.qml" line="94"/>
+        <location filename="../qml/AccountView.qml" line="121"/>
         <source>No picture yet</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AccountView.qml" line="94"/>
+        <location filename="../qml/AccountView.qml" line="98"/>
         <source>Your picture</source>
         <translation type="unfinished"></translation>
     </message>
