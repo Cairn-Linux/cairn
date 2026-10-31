@@ -806,6 +806,95 @@ TestCase {
         tryCompare(card(window, 2), "activeFocus", true);
     }
 
+    // A grown-up holding Enter or Space on a game card turns it once. Each
+    // of the keyboard's repeats turned it the other way, about 25 times a
+    // second, and the grid jumped up and down until the key came up.
+    function test_aHeldKeyTurnsAGameOnce_data() {
+        return [
+            {
+                tag: "return",
+                key: Qt.Key_Return
+            },
+            {
+                tag: "enter",
+                key: Qt.Key_Enter
+            },
+            {
+                tag: "space",
+                key: Qt.Key_Space
+            }
+        ];
+    }
+
+    function test_aHeldKeyTurnsAGameOnce(data) {
+        const window = makeWindow("done");
+        showGames(window);
+        const second = card(window, 1);
+        let turns = 0;
+        second.turned.connect(() => ++turns);
+        second.forceActiveFocus();
+        keyPress(data.key);
+        for (let i = 0; i < 5; ++i)
+            heldKey.repeat(window, data.key);
+        keyRelease(data.key);
+        verify(second.activeFocus);
+        compare(turns, 1);
+        compare(second.onList, true);
+        compare(findChild(second, "onListLabel").text, "Added, not saved yet");
+    }
+
+    // The window's other controls take a held key once too, so they all
+    // work alike. `index` picks one control a Repeater made.
+    function test_aHeldKeyPressesOnce_data() {
+        return [
+            {
+                tag: "button",
+                page: "games",
+                control: "openSteam",
+                signal: "activated"
+            },
+            {
+                tag: "child",
+                page: "games",
+                control: "childChoiceRepeater",
+                index: 1,
+                signal: "chosen"
+            },
+            {
+                tag: "level",
+                page: "children",
+                control: "level2",
+                signal: "chosen"
+            },
+            {
+                tag: "picture",
+                page: "account",
+                control: "pictureTiles",
+                index: 0,
+                signal: "chosen"
+            }
+        ];
+    }
+
+    function test_aHeldKeyPressesOnce(data) {
+        const window = makeWindow("done");
+        if (data.page === "games")
+            showGames(window);
+        else if (data.page === "account")
+            showAccount(window);
+        const found = findChild(window, data.control);
+        const control = data.index === undefined ? found : found.itemAt(data.index);
+        let presses = 0;
+        control[data.signal].connect(() => ++presses);
+        control.forceActiveFocus();
+        keyPress(Qt.Key_Space);
+        for (let i = 0; i < 5; ++i)
+            heldKey.repeat(window, Qt.Key_Space);
+        keyRelease(Qt.Key_Space);
+        verify(control.activeFocus);
+        compare(presses, 1);
+    }
+
     function test_putBackAsSaved() {
         const window = makeWindow("done");
         showGames(window);

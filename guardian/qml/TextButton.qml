@@ -13,6 +13,13 @@ Rectangle {
 
     signal activated
 
+    // A held key repeats. Only the first press counts, so holding Enter or
+    // Space presses the button once.
+    function keyPressed(event) {
+        if (!event.isAutoRepeat)
+            button.activated();
+    }
+
     width: label.implicitWidth + Tokens.headingSize * 2
     height: Tokens.headingSize * 2
     radius: Tokens.radiusSm
@@ -26,9 +33,9 @@ Rectangle {
     Accessible.focusable: true
     Accessible.onPressAction: button.activated()
 
-    Keys.onReturnPressed: button.activated()
-    Keys.onEnterPressed: button.activated()
-    Keys.onSpacePressed: button.activated()
+    Keys.onReturnPressed: event => button.keyPressed(event)
+    Keys.onEnterPressed: event => button.keyPressed(event)
+    Keys.onSpacePressed: event => button.keyPressed(event)
 
     Rectangle {
         anchors.fill: parent

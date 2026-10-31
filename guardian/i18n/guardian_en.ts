@@ -136,12 +136,12 @@
 <context>
     <name>ChildChoice</name>
     <message>
-        <location filename="../qml/ChildChoice.qml" line="27"/>
+        <location filename="../qml/ChildChoice.qml" line="34"/>
         <source>Changes not saved yet</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/ChildChoice.qml" line="94"/>
+        <location filename="../qml/ChildChoice.qml" line="101"/>
         <source>not saved</source>
         <translation type="unfinished"></translation>
     </message>
@@ -448,8 +448,8 @@
 <context>
     <name>LevelChoice</name>
     <message>
-        <location filename="../qml/LevelChoice.qml" line="24"/>
-        <location filename="../qml/LevelChoice.qml" line="79"/>
+        <location filename="../qml/LevelChoice.qml" line="31"/>
+        <location filename="../qml/LevelChoice.qml" line="86"/>
         <source>Level %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -656,7 +656,7 @@
 <context>
     <name>PictureTile</name>
     <message>
-        <location filename="../qml/PictureTile.qml" line="23"/>
+        <location filename="../qml/PictureTile.qml" line="30"/>
         <source>Use the picture %1</source>
         <translation type="unfinished"></translation>
     </message>

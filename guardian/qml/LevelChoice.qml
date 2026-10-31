@@ -13,6 +13,13 @@ Rectangle {
 
     signal chosen
 
+    // A held key repeats. Only the first press counts, so holding Enter or
+    // Space picks the level once.
+    function keyPressed(event) {
+        if (!event.isAutoRepeat)
+            choice.chosen();
+    }
+
     height: words.implicitHeight + Tokens.bodySize * 2
     radius: Tokens.radiusSm
     color: Tokens.card
@@ -28,9 +35,9 @@ Rectangle {
     Accessible.focusable: true
     Accessible.onPressAction: choice.chosen()
 
-    Keys.onReturnPressed: choice.chosen()
-    Keys.onEnterPressed: choice.chosen()
-    Keys.onSpacePressed: choice.chosen()
+    Keys.onReturnPressed: event => choice.keyPressed(event)
+    Keys.onEnterPressed: event => choice.keyPressed(event)
+    Keys.onSpacePressed: event => choice.keyPressed(event)
 
     Rectangle {
         anchors.fill: parent
