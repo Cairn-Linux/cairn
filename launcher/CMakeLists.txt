@@ -37,6 +37,7 @@ set(launcher_model_sources
     src/SteamContentLog.h src/SteamContentLog.cpp
     src/SteamGameWait.h src/SteamGameWait.cpp
     src/SteamLaunchLog.h src/SteamLaunchLog.cpp
+    src/SteamQuestions.h src/SteamQuestions.cpp
     src/SteamReapers.h src/SteamReapers.cpp
     src/SteamRestart.h src/SteamRestart.cpp
     src/SteamSignIn.h src/SteamSignIn.cpp
@@ -122,7 +123,7 @@ qt_add_executable(tst_steamgamewait tests/tst_steamgamewait.cpp src/SteamGameWai
     src/SteamLaunchLog.h src/SteamLaunchLog.cpp src/SteamSignIn.h src/SteamSignIn.cpp
     src/SteamStartup.h src/SteamStartup.cpp src/SteamContentLog.h src/SteamContentLog.cpp
     src/SteamStall.h src/SteamStall.cpp src/SteamReapers.h src/SteamReapers.cpp
-    src/LogTail.h src/LogTail.cpp)
+    src/SteamQuestions.h src/SteamQuestions.cpp src/LogTail.h src/LogTail.cpp)
 target_include_directories(tst_steamgamewait PRIVATE src)
 target_link_libraries(tst_steamgamewait PRIVATE Qt6::Core Qt6::Test)
 add_test(NAME steamgamewait COMMAND tst_steamgamewait)
@@ -138,6 +139,12 @@ qt_add_executable(tst_steamstall tests/tst_steamstall.cpp src/SteamStall.h src/S
 target_include_directories(tst_steamstall PRIVATE src)
 target_link_libraries(tst_steamstall PRIVATE Qt6::Core Qt6::Test)
 add_test(NAME steamstall COMMAND tst_steamstall)
+
+qt_add_executable(tst_steamquestions tests/tst_steamquestions.cpp src/SteamQuestions.h
+    src/SteamQuestions.cpp src/SteamLaunchLog.h src/SteamLaunchLog.cpp src/LogTail.h src/LogTail.cpp)
+target_include_directories(tst_steamquestions PRIVATE src)
+target_link_libraries(tst_steamquestions PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME steamquestions COMMAND tst_steamquestions)
 
 qt_add_executable(tst_logtail tests/tst_logtail.cpp src/LogTail.h src/LogTail.cpp)
 target_include_directories(tst_logtail PRIVATE src)

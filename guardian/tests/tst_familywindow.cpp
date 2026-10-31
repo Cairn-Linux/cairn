@@ -4,12 +4,14 @@
 #include "GamesPage.h"
 
 #include <QColor>
+#include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QImage>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QKeyEvent>
 #include <QLocale>
 #include <QPainter>
 #include <QQmlContext>
@@ -270,6 +272,21 @@ private:
     QStringList m_startedSteam;
 };
 
+// TestCase.keyPress cannot mark a press as the keyboard's own repeat, which
+// is what a grown-up holding a key down sends. The tests get it as `heldKey`.
+class HeldKey : public QObject {
+    Q_OBJECT
+
+public:
+    using QObject::QObject;
+
+    // One repeat of `key`, delivered to whatever has the focus in `window`.
+    Q_INVOKABLE void repeat(QObject* window, int key) const {
+        QKeyEvent event(QEvent::KeyPress, key, Qt::NoModifier, QString(), true);
+        QCoreApplication::sendEvent(window, &event);
+    }
+};
+
 class Setup : public QObject {
     Q_OBJECT
 
@@ -281,6 +298,7 @@ public slots:
         QLocale::setDefault(QLocale(QLocale::English, QLocale::UnitedStates));
         engine->rootContext()->setContextProperty(QStringLiteral("standIns"),
                                                   new StandInPages(engine));
+        engine->rootContext()->setContextProperty(QStringLiteral("heldKey"), new HeldKey(engine));
     }
 };
 

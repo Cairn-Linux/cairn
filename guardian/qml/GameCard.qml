@@ -56,6 +56,13 @@ Rectangle {
         return card.saved ? qsTr("Taken off %1's list, not saved yet").arg(card.childName) : qsTr("Not on %1's list").arg(card.childName);
     }
 
+    // A held key repeats. Only the first press counts, so holding Enter or
+    // Space turns the game once, not on and off many times a second.
+    function keyPressed(event) {
+        if (!event.isAutoRepeat)
+            card.turned();
+    }
+
     height: picture.height + words.implicitHeight + Tokens.bodySize * 2
     radius: Tokens.radiusSm
     color: card.onList ? Tokens.selection : Tokens.card
@@ -72,9 +79,9 @@ Rectangle {
     Accessible.onPressAction: card.turned()
     Accessible.onToggleAction: card.turned()
 
-    Keys.onReturnPressed: card.turned()
-    Keys.onEnterPressed: card.turned()
-    Keys.onSpacePressed: card.turned()
+    Keys.onReturnPressed: event => card.keyPressed(event)
+    Keys.onEnterPressed: event => card.keyPressed(event)
+    Keys.onSpacePressed: event => card.keyPressed(event)
 
     Rectangle {
         anchors.fill: parent

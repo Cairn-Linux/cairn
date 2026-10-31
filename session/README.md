@@ -47,7 +47,10 @@ What is here:
 - `bin/cairn-log-out`: the child's Log out (ADR-0021, #44). The launcher
   runs it when the child confirms. It asks a running Steam client to shut
   down, then ends the child's own account with `loginctl terminate-user`,
-  so no app or Steam client is left for the next person.
+  so no app or Steam client is left for the next person. Just before that
+  it asks SDDM for a login screen, as Plasma's Switch User does. Otherwise
+  SDDM goes back to the last session still open, which after a grown-up's
+  Switch User is the grown-up's lock screen (#213).
 - `bin/cairn-steam-visit`: a grown-up's way into a child's own Steam from
   their own Plasma login (ADR-0032, proposed). The Guardian runs it through
   `pkexec`, which asks for their password or fingerprint each time; one
@@ -126,7 +129,7 @@ What is here:
 `tests/` checks that the labwc and logind files, the greeter's PAM file,
 the polkit rule and `cairn-give-up` say what this README promises, runs the dispatcher with
 stand-ins for `id`, `labwc` and `startplasma-wayland`, and runs
-`cairn-log-out` with stand-ins for `id`, `pgrep`, `steam` and `loginctl`,
+`cairn-log-out` with stand-ins for `id`, `pgrep`, `steam`, `busctl` and `loginctl`,
 and `cairn-steam-visit` with stand-ins for `id`, `getent`, `loginctl`,
 `pgrep`, `systemd-run` and the rest.
 Where a systemd user manager is running, it also runs `cairn-give-up` for
