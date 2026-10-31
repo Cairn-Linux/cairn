@@ -41,6 +41,27 @@ QVariantList loginsAndNames(const std::vector<ListedChild>& children) {
     return maps;
 }
 
+QVariantList loginsNamesAndLevels(const std::vector<ListedChild>& children) {
+    QVariantList maps;
+    for (const ListedChild& child : children) {
+        // Only the levels a child session exists for, so a child at L3 or
+        // L4 is offered both.
+        QVariantList otherLevels;
+        for (int level = FamilyRole::lowestLevel; level <= FamilyRole::highestKioskLevel; ++level) {
+            if (level != child.level) {
+                otherLevels.append(level);
+            }
+        }
+        maps.append(QVariantMap{
+            {QStringLiteral("login"), child.login},
+            {QStringLiteral("name"), child.name},
+            {QStringLiteral("level"), child.level},
+            {QStringLiteral("otherLevels"), otherLevels},
+        });
+    }
+    return maps;
+}
+
 bool sameLoginsAndNames(const std::vector<ListedChild>& one,
                         const std::vector<ListedChild>& other) {
     return std::ranges::equal(one, other, [](const ListedChild& first, const ListedChild& second) {

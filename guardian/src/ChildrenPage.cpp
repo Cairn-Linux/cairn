@@ -3,11 +3,9 @@
 
 #include "FamilyChange.h"
 #include "FamilyRequest.h"
-#include "FamilyRole.h"
 #include "LoginName.h"
 
 #include <QHash>
-#include <QVariantMap>
 
 #include <algorithm>
 #include <utility>
@@ -20,24 +18,7 @@ ChildrenPage::ChildrenPage(Setup setup, QObject* parent)
 }
 
 QVariantList ChildrenPage::listedChildren() const {
-    QVariantList children;
-    for (const ListedChild& child : m_children) {
-        // Only the levels a child session exists for, so a child at L3 or
-        // L4 is offered both.
-        QVariantList otherLevels;
-        for (int level = FamilyRole::lowestLevel; level <= FamilyRole::highestKioskLevel; ++level) {
-            if (level != child.level) {
-                otherLevels.append(level);
-            }
-        }
-        children.append(QVariantMap{
-            {QStringLiteral("login"), child.login},
-            {QStringLiteral("name"), child.name},
-            {QStringLiteral("level"), child.level},
-            {QStringLiteral("otherLevels"), otherLevels},
-        });
-    }
-    return children;
+    return loginsNamesAndLevels(m_children);
 }
 
 ChildrenPage::Step ChildrenPage::step() const {

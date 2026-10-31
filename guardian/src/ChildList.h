@@ -34,6 +34,10 @@ QStringList loginsOf(const std::vector<ListedChild>& children);
 // Each child as a map, login and name, in the same order, for a page's QML.
 QVariantList loginsAndNames(const std::vector<ListedChild>& children);
 
+// The same with their level, and otherLevels, the levels the Children page
+// offers to move them to, for its QML.
+QVariantList loginsNamesAndLevels(const std::vector<ListedChild>& children);
+
 // Whether both lists hold the same children, by login and name, in order.
 bool sameLoginsAndNames(const std::vector<ListedChild>& one, const std::vector<ListedChild>& other);
 
