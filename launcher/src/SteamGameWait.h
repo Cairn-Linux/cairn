@@ -3,6 +3,7 @@
 
 #include "SteamContentLog.h"
 #include "SteamLaunchLog.h"
+#include "SteamQuestions.h"
 #include "SteamReapers.h"
 #include "SteamSignIn.h"
 #include "SteamStall.h"
@@ -53,6 +54,11 @@
 // seen while Steam's sign-in is turned down, or while it cannot reach its
 // servers, ends the wait at that look by #182's rules, with the sign-in or
 // the connection as the reason.
+//
+// A question on a hidden window holds its game across taps, also after
+// Steam signs in again (#211). A later tap on that game that Steam takes
+// without a step is the same question, so it ends as the first one did,
+// with the same reason (SteamQuestions).
 class SteamGameWait {
 public:
     explicit SteamGameWait(QString processRoot = QStringLiteral("/proc"),
@@ -95,13 +101,16 @@ public:
     bool restartSteam();
     // Starting Steam again is over; `started` when it runs again. From then
     // on only what Steam writes counts, as after a lost tap, and the new
-    // client gets a work limit and an offline wait of its own.
+    // client gets a work limit and an offline wait of its own. Whichever tap
+    // it was for, the questions the old client asked went with it.
     void steamRestarted(bool started);
     // Logging the child out and back in would help, and Steam's logs gave no
     // other reason at the last stillComing(): the journal's note is the
     // stall's.
     bool logOutWouldHelp() const;
-    // What Steam's log said at the last stillComing(), for the journal.
+    // What Steam's log said at the last stillComing(), for the journal. A tap
+    // Steam took without a step, on a game it still holds behind a question
+    // from an earlier tap, is that question.
     SteamLaunchLog::Step lastStep() const;
     // Whether Steam could sign in, at the last stillComing(), for the
     // journal. Fine whenever Steam's log says something about the game,
@@ -134,6 +143,7 @@ private:
     SteamStartup m_startup;
     SteamSignIn m_signIn;
     SteamStall m_stall;
+    SteamQuestions m_questions;
     QString m_appId;
     QStringList m_reapersBefore;
     SteamLaunchLog::Step m_lastStep = SteamLaunchLog::Step::Nothing;
