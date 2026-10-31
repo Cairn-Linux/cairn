@@ -69,7 +69,7 @@ Column {
         if (box.saving.catalogueKept)
             said.push(qsTr("The list of shared games could not be made again, so the page shows the one from before. The reason is in the system log. In a terminal: journalctl -t cairn-family"));
         if (box.saving.toolsLeftOut)
-            said.push(qsTr("Not every tool Steam runs games with could be taken from your own Steam, so a child who got new games may not have them all. Their Steam downloads what is missing the first time a game needs it, which can take several minutes. If that game does not start, log the child out and back in, then try it again. The reason is in the system log. In a terminal: journalctl -t cairn-family"));
+            said.push(qsTr("Not every tool Steam runs games with could be taken from your own Steam, so a child who got new games may not have every tool yet. Their Steam downloads what is missing the first time a game needs it, which can take several minutes. If that game does not start, log the child out and back in, then try it again. The reason is in the system log. In a terminal: journalctl -t cairn-family"));
         return said.join(" ");
     }
 

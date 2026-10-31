@@ -14,7 +14,7 @@ ToolsRefresh::Result ToolsRefresh::run(const Setup& setup, const std::optional<Q
     if (!guardian) {
         return result;
     }
-    SystemJob::run(
+    const int lines = SystemJob::run(
         {.systemdRun = setup.systemdRun,
          .unit = QStringLiteral("cairn-share-tools"),
          .description = QStringLiteral("Cairn takes Steam's tools from a grown-up's Steam"),
@@ -22,6 +22,11 @@ ToolsRefresh::Result ToolsRefresh::run(const Setup& setup, const std::optional<Q
          .user = *guardian,
          .timeLimitSeconds = timeLimitSeconds},
         [&result](const QString& line) { take(result, line); });
+    // So that the journal always says why the step did not finish: the
+    // Save's sentence about the tools sends the parent there.
+    if (!result.made && !result.endedEarly) {
+        result.notes.append(lines == 0 ? QStringLiteral("no-answer") : QStringLiteral("stopped"));
+    }
     return result;
 }
 
@@ -32,9 +37,12 @@ void ToolsRefresh::take(Result& result, const QString& line) {
     static const QRegularExpression leftOut(
         QStringLiteral("^tool-(kept|not-shared) [1-9][0-9]{0,9} [a-z]+(?:-[a-z]+)*$"));
     static const QRegularExpression ending(
-        QStringLiteral("^(failed|no-steam|refused root|refused folder)$"));
+        QStringLiteral("^(failed|refused root|refused folder)$"));
     if (line == QLatin1String("finished")) {
         result.made = true;
+    } else if (line == QLatin1String("no-steam")) {
+        // Said before `finished`, so it ends nothing.
+        result.notes.append(line);
     } else if (const QRegularExpressionMatch match = inFolder.match(line); match.hasMatch()) {
         if (match.captured(1) == QLatin1String("shared")) {
             result.notes.append(line);
@@ -46,5 +54,6 @@ void ToolsRefresh::take(Result& result, const QString& line) {
         }
     } else if (ending.match(line).hasMatch()) {
         result.notes.append(line);
+        result.endedEarly = true;
     }
 }

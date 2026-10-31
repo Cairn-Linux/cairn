@@ -58,8 +58,8 @@ public:
         // each child's last line.
         QString asked;
         QStringList children;
-        // `tools made` or `tools kept`, then the tools step's own fixed
-        // lines, for the journal too.
+        // `tools made` or `tools kept`, then each of the tools step's own
+        // fixed lines after `tools step: `, for the journal too.
         QStringList tools;
     };
 

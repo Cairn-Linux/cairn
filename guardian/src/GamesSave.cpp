@@ -80,10 +80,13 @@ GamesSave::Outcome GamesSave::run(const QStringList& arguments, const Say& say) 
     for (const QString& line : tools.leftOut) {
         say(line);
     }
-    Outcome outcome{.refusal = std::nullopt,
-                    .asked = asked,
-                    .children = {},
-                    .tools = QStringList{toolsLine} + tools.notes};
+    // In the journal a bare `failed` or `refused folder` would read as the
+    // Save's own answer, so each of the step's lines says whose it is.
+    QStringList toolsJournal{toolsLine};
+    for (const QString& note : tools.notes) {
+        toolsJournal.append(QStringLiteral("tools step: ") + note);
+    }
+    Outcome outcome{.refusal = std::nullopt, .asked = asked, .children = {}, .tools = toolsJournal};
     for (std::size_t i = 0; i < children.size(); ++i) {
         outcome.children.append(
             ChildSave::run(shared, children[i], tickedFor(request, i), before[i], say));

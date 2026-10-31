@@ -969,7 +969,7 @@ TestCase {
             {
                 "tag": "copied",
                 "scenario": "save-tools",
-                "words": "Copied the tools your own Steam has into Ada's Steam, so Ada's first game does not have to download them. A tool your Steam does not have, or a newer version Valve has made since, still downloads the first time a game needs it, which can make that game wait several minutes."
+                "words": "Copied the tools Steam runs games with into Ada's Steam, from the copies Cairn keeps of the grown-ups' tools, so Ada's first game does not have to download them. A tool Cairn has no copy of, or a newer version Valve has made since, still downloads the first time a game needs it, which can make that game wait several minutes."
             },
             {
                 "tag": "missing",
@@ -979,7 +979,7 @@ TestCase {
             {
                 "tag": "none to copy",
                 "scenario": "save-no-tools",
-                "words": "There were no tools from your own Steam to copy into Ada's Steam. If Ada's Steam does not have them yet, Ada's first game waits while it downloads them, which can take several minutes. If that game does not start, log Ada out and back in, then try it again."
+                "words": "Cairn had no copies of the tools Steam runs games with to give Ada's Steam. If Ada's Steam does not have them yet, Ada's first game waits while it downloads them, which can take several minutes. If that game does not start, log Ada out and back in, then try it again."
             }
         ];
     }
@@ -1008,8 +1008,8 @@ TestCase {
         mouseClick(card(window, 1));
         mouseClick(findChild(window, "saveButton"));
         tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
-        compare(saveOutcome(window), "Saved. Each child sees their games the next time they log in. Not every tool Steam runs games with could be taken from your own Steam, so a child who got new games may not have them all. Their Steam downloads what is missing the first time a game needs it, which can take several minutes. If that game does not start, log the child out and back in, then try it again. The reason is in the system log. In a terminal: journalctl -t cairn-family");
-        verify(result(window, 0).text.startsWith("Ada's list is saved. Added: 4. Taken off: 0. Copied the tools your own Steam has into Ada's Steam,"));
+        compare(saveOutcome(window), "Saved. Each child sees their games the next time they log in. Not every tool Steam runs games with could be taken from your own Steam, so a child who got new games may not have every tool yet. Their Steam downloads what is missing the first time a game needs it, which can take several minutes. If that game does not start, log the child out and back in, then try it again. The reason is in the system log. In a terminal: journalctl -t cairn-family");
+        verify(result(window, 0).text.startsWith("Ada's list is saved. Added: 4. Taken off: 0. Copied the tools Steam runs games with into Ada's Steam,"));
         if (standIns.screenshotPath() !== "") {
             wait(300);
             grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-games-tools.png"));

@@ -51,8 +51,9 @@ public:
         QList<Skip> skipped;
         // How many of Steam's tools the copy gave them.
         int toolsCopied = 0;
-        // They may lack a tool: one was left out, another tool runs in one
-        // that neither they nor the tools folder had, or the folder could
+        // They may lack a tool: one was left out, a tool they have runs in
+        // one their Steam still lacks after the copy (the tools folder has
+        // no build of it, or that build was left out), or the folder could
         // not be read.
         bool toolsMissing = false;
         // The tools folder held no tool to copy.

@@ -227,8 +227,8 @@ It answers in one line: `done`, or `refused` and one of `not-root`,
 `save-games` gives children their games, and `log-out` logs a child out
 first (ADR-0041); the Games page runs both. Each argument is one
 child's whole new list, so `ben=` means no games, and a child not named
-is left alone. With no child named it only makes the pictures and the
-full games list again: the page's Look for new games.
+is left alone. With no child named it only makes the pictures, the full
+games list and the tools folder again: the page's Look for new games.
 
 - It checks the caller, every value and that every name is a child
   Cairn made before anything changes, and holds a lock for the whole
@@ -245,8 +245,11 @@ full games list again: the page's Look for new games.
   Steam's tools from the Guardian's own Steam, by running
   `cairn-share-tools` as a system job as that Guardian (`systemd-run
   --uid`), which systemd stops after five minutes (ADR-0046). Under
-  `sudo` there is no Guardian, and the folder stays as it is. A step that
-  does not finish keeps the folder as it was, and the Save goes on.
+  `sudo` there is no Guardian, and the folder stays as it is. The tools
+  step goes to its end, or it does not (it is refused, fails, never
+  starts or is stopped at its time limit); every build in the folder is
+  whole either way, though a step stopped part-way may already have
+  changed some. The Save goes on either way.
 - For each child it copies the games newly ticked with
   `cairn-steam-visit --copy-games CHILD APPID...`, run as a system job
   with `systemd-run`, outside the Guardian's session, and waited for with
@@ -295,11 +298,16 @@ and the answer: `done`, or `refused` and a caller's word, `usage`,
 failed).
 
 `create-child` removes a new child's old games file first.
-ADR-0041 lists every word but the copy step's skip reasons, which
-`provision/cairn-copy-games.py` lists and `cairn-family` passes on.
+ADR-0041 and ADR-0046 list every word but the copy step's and the tools
+step's reasons, which `provision/cairn-copy-games.py` and
+`provision/cairn-share-tools.py` list and `cairn-family` passes on.
 
-It writes to the journal, with the tools step's own lines but
-`tool-had`:
+It writes to the journal. For the tools step that is `tools made` or
+`tools kept`, then the step's lines but `tool-had` and `finished`, each
+after `tools step:`, and, when the step did not finish and did not say
+why, `tools step: no-answer` (it said no line: it could not start, or its
+time limit came first) or `tools step: stopped` (it said some lines, then
+stopped):
 
 ```sh
 journalctl -t cairn-family --since today
@@ -349,7 +357,7 @@ QML draws, C++ decides (ADR-0002):
 | `src/GamesSave` | `cairn-family save-games`: the checks, the lock, the pictures and full list, the games taken off, the tools folder, then each child in turn. Its `Setup` holds everything it reads from or does to the machine. |
 | `src/GamesRequest` | Each child's new list, read from the arguments and checked before anything looks at an account. |
 | `src/CatalogueRefresh` | Runs the picture step and kidscan, and writes kidscan's list into `/var/lib/cairn/games.json`. |
-| `src/ToolsRefresh` | Runs the tools step as the Guardian, as a system job with a time limit, and reads its lines: whether it finished, the tools left out, and its lines for the journal. |
+| `src/ToolsRefresh` | Runs the tools step as the Guardian, as a system job with a time limit, and reads its lines: whether it finished, the tools left out, and its lines for the journal, with `no-answer` or `stopped` when it did not finish and did not say why. |
 | `src/GameCatalogue` | A games file: reading it, each game by its appid with the launcher's rule, and writing one. `cairn-family` and the Games page both use it. |
 | `src/ChildGameList` | The rule for a child's new list, with nothing read or written. |
 | `src/ChildGamesFile` | A child's own games file: reading it, and writing it into place in a folder only root may change. |

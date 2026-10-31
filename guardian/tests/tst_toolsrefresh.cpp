@@ -63,6 +63,7 @@ private slots:
     void noGuardianStartsNothing() {
         const ToolsRefresh::Result result = run(std::nullopt);
         QVERIFY(!result.made);
+        QVERIFY(!result.endedEarly);
         QVERIFY(result.notes.isEmpty());
         QVERIFY(!QFile::exists(path("systemd-run-calls")));
         QVERIFY(!QFile::exists(path("python-calls")));
@@ -74,6 +75,7 @@ private slots:
     void runsAsTheGuardianAsASystemJob() {
         const ToolsRefresh::Result result = run(QStringLiteral("gina"));
         QVERIFY(result.made);
+        QVERIFY(result.notes.isEmpty());
         QCOMPARE(lines("systemd-run-calls"),
                  QStringList({"--quiet --collect --wait --pipe --no-ask-password "
                               "--service-type=exec --expand-environment=no "
@@ -90,32 +92,54 @@ private slots:
         }
     }
 
+    // A step that did not finish and did not say why still leaves a word in
+    // the journal: no-answer when it said no line, stopped when it said some.
     void madeOnlyWhenTheStepFinished_data() {
         QTest::addColumn<QString>("given");
         QTest::addColumn<QByteArray>("output");
         QTest::addColumn<bool>("made");
-        QTest::newRow("finished") << "" << QByteArray("finished\n") << true;
+        QTest::addColumn<QStringList>("notes");
+        QTest::newRow("finished") << "" << QByteArray("finished\n") << true << QStringList{};
         // The unit's name is still taken, or systemd is not there.
-        QTest::newRow("not started") << "fail-start" << QByteArray() << false;
-        QTest::newRow("failed with nothing said") << "fail-share-tools" << QByteArray() << false;
+        QTest::newRow("not started")
+            << "fail-start" << QByteArray() << false << QStringList{"no-answer"};
+        QTest::newRow("failed with nothing said")
+            << "fail-share-tools" << QByteArray() << false << QStringList{"no-answer"};
         // Stopped at its time limit, mid-way.
-        QTest::newRow("stopped mid-way") << "" << QByteArray("tool-shared 1070560\n") << false;
-        QTest::newRow("failed") << "" << QByteArray("failed\n") << false;
-        QTest::newRow("refused folder") << "" << QByteArray("refused folder\n") << false;
-        QTest::newRow("refused root") << "" << QByteArray("refused root\n") << false;
+        QTest::newRow("stopped mid-way") << "" << QByteArray("tool-shared 1070560\n") << false
+                                         << QStringList{"tool-shared 1070560", "stopped"};
+        // A line that is not the step's still shows that it started.
+        QTest::newRow("stopped after another line")
+            << "" << QByteArray("something else\n") << false << QStringList{"stopped"};
+        // no-steam comes before `finished`, so it ends nothing.
+        QTest::newRow("stopped after no-steam")
+            << "" << QByteArray("no-steam\n") << false << QStringList{"no-steam", "stopped"};
+        QTest::newRow("no Steam") << "" << QByteArray("no-steam\nfinished\n") << true
+                                  << QStringList{"no-steam"};
+        // A step that says why it ended gets no word of cairn-family's own.
+        QTest::newRow("failed") << "" << QByteArray("failed\n") << false << QStringList{"failed"};
+        QTest::newRow("failed mid-way") << "" << QByteArray("tool-shared 1070560\nfailed\n")
+                                        << false << QStringList{"tool-shared 1070560", "failed"};
+        QTest::newRow("refused folder")
+            << "" << QByteArray("refused folder\n") << false << QStringList{"refused folder"};
+        QTest::newRow("refused root")
+            << "" << QByteArray("refused root\n") << false << QStringList{"refused root"};
     }
 
     void madeOnlyWhenTheStepFinished() {
         QFETCH(const QString, given);
         QFETCH(const QByteArray, output);
         QFETCH(const bool, made);
+        QFETCH(const QStringList, notes);
         if (!given.isEmpty()) {
             give(given, "");
         }
         if (!output.isEmpty()) {
             give("share-tools-output", output);
         }
-        QCOMPARE(run(QStringLiteral("gina")).made, made);
+        const ToolsRefresh::Result result = run(QStringLiteral("gina"));
+        QCOMPARE(result.made, made);
+        QCOMPARE(result.notes, notes);
     }
 
     // The Save says the tools left out; the journal gets every line worth
@@ -184,6 +208,18 @@ private slots:
         QVERIFY(!take({"finished now"}).made);
         QVERIFY(!take({"Finished"}).made);
         QVERIFY(take({"finished"}).notes.isEmpty());
+    }
+
+    // Only the step's three words for an early end say why it ended.
+    void onlyItsOwnWordsSayWhyItEndedEarly() {
+        for (const char* word : {"failed", "refused root", "refused folder"}) {
+            QVERIFY2(take({word}).endedEarly, word);
+        }
+        for (const char* line :
+             {"no-steam", "finished", "tool-shared 1", "tool-not-shared 1 copy-failed",
+              "failed now", "refused", "refused something"}) {
+            QVERIFY2(!take({line}).endedEarly, line);
+        }
     }
 };
 

@@ -284,24 +284,34 @@ private slots:
         const GamesSave::Outcome outcome = run({"save-games", "ada=620"});
         QCOMPARE(m_said.mid(3, 3),
                  QStringList({"tools made", "tool-not-shared 4183110 other-drive", "copying ada"}));
-        QCOMPARE(outcome.tools, QStringList({"tools made", "tool-shared 1070560",
-                                             "tool-not-shared 4183110 other-drive"}));
+        QCOMPARE(outcome.tools, QStringList({"tools made", "tools step: tool-shared 1070560",
+                                             "tools step: tool-not-shared 4183110 other-drive"}));
     }
 
-    // A tools step that fails, or is stopped, keeps the folder as it was,
-    // and the Save goes on.
-    void aToolsStepThatFailsKeepsTheFolder_data() {
+    // The tools step went to its end, or it did not (refused, failed, never
+    // started or stopped at its time limit); every build in the folder is
+    // whole either way, though a step stopped part-way may already have
+    // changed some. The Save says `tools kept` and goes on, and the journal
+    // says why.
+    void aToolsStepThatDoesNotFinishLetsTheSaveGoOn_data() {
         QTest::addColumn<QString>("given");
         QTest::addColumn<QByteArray>("output");
-        QTest::newRow("failed") << "fail-share-tools" << QByteArray();
-        QTest::newRow("stopped mid-way") << "" << QByteArray("tool-shared 1070560\n");
-        QTest::newRow("not started") << "fail-start" << QByteArray();
-        QTest::newRow("refused folder") << "" << QByteArray("refused folder\n");
+        QTest::addColumn<QStringList>("journal");
+        QTest::newRow("failed") << "fail-share-tools" << QByteArray()
+                                << QStringList{"tools kept", "tools step: no-answer"};
+        QTest::newRow("stopped mid-way")
+            << "" << QByteArray("tool-shared 1070560\n")
+            << QStringList{"tools kept", "tools step: tool-shared 1070560", "tools step: stopped"};
+        QTest::newRow("not started")
+            << "fail-start" << QByteArray() << QStringList{"tools kept", "tools step: no-answer"};
+        QTest::newRow("refused folder") << "" << QByteArray("refused folder\n")
+                                        << QStringList{"tools kept", "tools step: refused folder"};
     }
 
-    void aToolsStepThatFailsKeepsTheFolder() {
+    void aToolsStepThatDoesNotFinishLetsTheSaveGoOn() {
         QFETCH(const QString, given);
         QFETCH(const QByteArray, output);
+        QFETCH(const QStringList, journal);
         if (!given.isEmpty()) {
             give("tools/" + given, "");
         }
@@ -312,7 +322,7 @@ private slots:
         QVERIFY(!outcome.refusal.has_value());
         QCOMPARE(m_said.mid(3), QStringList({"tools kept", "copying ada", "copied ada 620",
                                              "child ada added 1 removed 0"}));
-        QCOMPARE(outcome.tools.constFirst(), QStringLiteral("tools kept"));
+        QCOMPARE(outcome.tools, journal);
     }
 
     // A logged-in child loses the game taken off at once and gets the new
