@@ -30,8 +30,10 @@ int main(int argc, char* argv[]) {
                        "game."),
         QStringLiteral("file"));
     parser.addOption(gamesOption);
-    // The image's and provisioning's wrappers name it; a launcher installed
-    // by hand under an older wrapper still finds the pictures.
+    // The image's wrapper names it. Provisioning's leaves it to this default,
+    // so a launcher from an older build, which refuses an option it does not
+    // know, still starts under that wrapper, and a launcher installed by hand
+    // under an older wrapper still finds the pictures.
     const QCommandLineOption picturesOption(
         QStringLiteral("pictures"),
         QStringLiteral("The folder of the games' pictures, <appid>.jpg, which the picture step "

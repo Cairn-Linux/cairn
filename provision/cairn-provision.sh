@@ -431,8 +431,7 @@ install_launcher() {
 # Installed by provision/cairn-provision.sh; not the Phase 1 packaging.
 export LD_LIBRARY_PATH=/usr/local/lib64/cairn
 launcher=(/usr/local/libexec/cairn/cairn-launcher --manifest /usr/local/share/cairn/manifest.json
-    --games /var/lib/cairn/games.json --pictures /var/lib/cairn/game-pictures
-    --log-out /usr/local/bin/cairn-log-out --scope-apps --start-steam "$@")
+    --games /var/lib/cairn/games.json --log-out /usr/local/bin/cairn-log-out --scope-apps --start-steam "$@")
 # The launcher's notes for a grown-up go to the journal under their own name
 # (#122): journalctl -t cairn-launcher. No journal must never mean no tiles.
 if systemd-cat --identifier=cairn-launcher true > /dev/null 2>&1; then

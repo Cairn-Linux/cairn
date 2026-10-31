@@ -263,7 +263,6 @@ class LauncherWrapperTest(unittest.TestCase):
             result.stdout.strip(),
             "systemd-cat --identifier=cairn-launcher /usr/local/libexec/cairn/cairn-launcher"
             " --manifest /usr/local/share/cairn/manifest.json --games /var/lib/cairn/games.json"
-            " --pictures /var/lib/cairn/game-pictures"
             " --log-out /usr/local/bin/cairn-log-out --scope-apps --start-steam --extra",
         )
 
