@@ -700,6 +700,54 @@ private slots:
         QVERIFY(!wait.restartSteam());
     }
 
+    // A stall seen while Steam cannot reach its servers: what Steam still
+    // needs must come from them, so starting it again would not help. The
+    // wait ends by #182's rules, and the journal names the connection, not
+    // the stall, so the grown-up screen adds no line.
+    void aStallWhileOfflineEndsOnTheConnection() {
+        const QTemporaryDir root;
+        const QString log = root.filePath(QStringLiteral("console_log.txt"));
+        const QString content = root.filePath(QStringLiteral("content_log.txt"));
+        SteamGameWait wait(root.path(), log, root.filePath(QStringLiteral("bootstrap_log.txt")),
+                           content);
+        wait.setOfflineLimitMilliseconds(200);
+        wait.startLaunch(pajamaSam2());
+        stuckRun(log, content, 90);
+        steamLine(log, 0, "LogonFailure No Connection");
+        QVERIFY(wait.stillComing());
+        QVERIFY(!wait.steamWorking());
+        QVERIFY(!wait.restartSteam());
+        QTRY_VERIFY(!wait.stillComing());
+        QVERIFY(!wait.restartSteam());
+        QVERIFY(!wait.sendAgain());
+        QCOMPARE(wait.signIn(), SteamSignIn::Now::NoConnection);
+        QVERIFY(!wait.logOutWouldHelp());
+        QCOMPARE(wait.journalNote(QStringLiteral("Pajama Sam 2")),
+                 QStringLiteral("Steam could not reach the internet, so Pajama Sam 2 did not "
+                                "start."));
+    }
+
+    // A stall seen while Steam's sign-in is turned down ends the wait at
+    // that look, and the journal names the sign-in, not the stall.
+    void aStallWithARefusedSignInEndsOnTheSignIn() {
+        const QTemporaryDir root;
+        const QString log = root.filePath(QStringLiteral("console_log.txt"));
+        const QString content = root.filePath(QStringLiteral("content_log.txt"));
+        SteamGameWait wait(root.path(), log, root.filePath(QStringLiteral("bootstrap_log.txt")),
+                           content);
+        wait.startLaunch(pajamaSam2());
+        stuckRun(log, content, 90);
+        steamLine(log, 0, "LogonFailure Access Denied");
+        QVERIFY(!wait.stillComing());
+        QVERIFY(!wait.restartSteam());
+        QVERIFY(!wait.sendAgain());
+        QCOMPARE(wait.signIn(), SteamSignIn::Now::Refused);
+        QVERIFY(!wait.logOutWouldHelp());
+        QCOMPARE(wait.journalNote(QStringLiteral("Pajama Sam 2")),
+                 QStringLiteral("Steam could not sign in, so Pajama Sam 2 did not start. Steam "
+                                "needs to be signed in again."));
+    }
+
     // After a stall, the restarted Steam asked a question on a window the
     // kiosk hides. The journal says so, and logging out is not the answer.
     void theOtherReasonsComeFirstInTheJournal() {

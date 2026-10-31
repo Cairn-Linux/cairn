@@ -46,9 +46,11 @@ bool SteamGameWait::stillComing() {
     m_steamNow = m_startup.read(now);
     m_stallNow = m_stall.read(m_log, m_steamNow, now);
     // Once Steam has the game in hand, its sign-in no longer matters: it
-    // starts games while it cannot reach its servers.
-    m_signInNow =
-        m_lastStep == SteamLaunchLog::Step::Nothing ? m_signIn.read() : SteamSignIn::Now::Fine;
+    // starts games while it cannot reach its servers. Unless it stopped
+    // getting the game ready: what it still needs must come from them.
+    const bool needsServers =
+        m_lastStep == SteamLaunchLog::Step::Nothing || m_stallNow == SteamStall::Now::Stalled;
+    m_signInNow = needsServers ? m_signIn.read() : SteamSignIn::Now::Fine;
     if (m_signInNow == SteamSignIn::Now::Refused ||
         (m_stallNow == SteamStall::Now::Stuck && !newReaper())) {
         return false;
@@ -98,9 +100,8 @@ bool SteamGameWait::sendAgain() {
 }
 
 bool SteamGameWait::restartSteam() {
-    // Read here: stillComing() counts Steam signed in once it names the game.
     if (m_stallNow != SteamStall::Now::Stalled || m_steamNow != SteamStartup::Now::Ready ||
-        m_signIn.read() != SteamSignIn::Now::Fine || newReaper() || !m_stall.askRestart()) {
+        m_signInNow != SteamSignIn::Now::Fine || newReaper() || !m_stall.askRestart()) {
         return false;
     }
     m_stallNow = SteamStall::Now::Mending;

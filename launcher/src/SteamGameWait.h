@@ -38,7 +38,8 @@
 // A Steam that cannot sign in never takes the tap up (#182). While Steam's
 // log says nothing about the game, a refused sign-in ends the wait when the
 // grace it is seen in ends, and a Steam that cannot reach its servers gets a
-// short wait to come back first. Neither counts as work, so neither shows "Getting it ready".
+// short wait to come back first. Neither counts as work, so neither shows
+// "Getting it ready".
 //
 // A new child's first Linux game can stop part-way (#206): Steam takes the
 // game off its download schedule while its launch still says it is
@@ -46,7 +47,12 @@
 // Steam is then started again, once in each tap, and the tap is sent again
 // once the new client has started, all as work, under a work limit of the
 // restarted client's own. If that does not bring the game, the wait ends
-// soon, and logging the child out is what will help.
+// soon, and logging the child out is what will help. A stall seen while
+// Steam updates itself, or runs a new reaper for the game, is waited for
+// as work, and Steam is started again at a later look once it can be. One
+// seen while Steam's sign-in is turned down, or while it cannot reach its
+// servers, ends the wait at that look by #182's rules, with the sign-in or
+// the connection as the reason.
 class SteamGameWait {
 public:
     explicit SteamGameWait(QString processRoot = QStringLiteral("/proc"),
@@ -68,9 +74,10 @@ public:
     // within the limit since Steam last showed work, Steam is still starting
     // or a new reaper for it is running. Asked when a grace ends, so the wait
     // can run one grace past a limit. While Steam's log says nothing about
-    // the game, false once Steam's sign-in was refused, and false after the
-    // offline limit while it cannot reach its servers. False once starting
-    // Steam again could not be done or did not help, unless a new reaper runs.
+    // the game, or Steam stopped getting it ready, false once Steam's sign-in
+    // was refused, and false after the offline limit while it cannot reach
+    // its servers. False once starting Steam again could not be done or did
+    // not help, unless a new reaper runs.
     bool stillComing();
     // At the last stillComing(), Steam's logs said it was working on the
     // game, or starting or updating itself, or a client started since the
@@ -97,7 +104,8 @@ public:
     // What Steam's log said at the last stillComing(), for the journal.
     SteamLaunchLog::Step lastStep() const;
     // Whether Steam could sign in, at the last stillComing(), for the
-    // journal. Fine whenever Steam's log says something about the game.
+    // journal. Fine whenever Steam's log says something about the game,
+    // unless Steam stopped getting it ready.
     SteamSignIn::Now signIn() const;
     // The journal's sentence for a Steam game called `title` that put
     // nothing on the screen, from what Steam said at the last stillComing(),

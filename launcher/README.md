@@ -270,6 +270,12 @@ That happens once per tap, the starting screen says "Getting it ready"
 throughout, and only `cairn-steam` is ever stopped.
 The restarted Steam gets a 10-minute work limit of its own, so a stall seen
 late in the tap's can still be mended.
+A stall seen while Steam updates itself, or runs a new reaper for the
+game, is waited for as work, and Steam is started again at a later look
+once it can be.
+A stall seen while Steam's sign-in is turned down, or while it cannot
+reach its servers, ends the wait at that look by #182's rules: the journal
+names the sign-in or the connection, and the grown-up screen adds no line.
 If Steam could not be started again, the stall comes back, or the new
 client does not take the tap, the wait ends at the next look, and the
 journal says to log the child out and back in.

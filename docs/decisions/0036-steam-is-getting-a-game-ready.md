@@ -160,7 +160,8 @@ again counts as no connection.
 - Neither counts as work, so neither shows "Getting it ready". Neither
   sends the tap again.
 
-Once Steam's log names the game, its sign-in no longer decides. Steam
+Once Steam's log names the game, its sign-in no longer decides, unless
+Steam stops getting the game ready part-way (#206, next section). Steam
 starts games while it cannot reach its servers, as on 2026-10-28 on the
 development laptop, and ADR-0030's offline cloud question still comes as
 before.
@@ -253,7 +254,15 @@ stall.
 
 Steam is started again only when it has started (`SteamStartup` says it
 is ready, ADR-0037), has signed in (#182), and runs no new reaper for the
-game. `SteamRestart` then:
+game. A stall seen while Steam is updating itself, or runs a new reaper
+for the game, is waited for as work, and Steam is started again at a
+later look once it can be. A stall seen while Steam's sign-in is turned
+down, or while it cannot reach its servers, ends the wait at that look by
+#182's rules: what Steam still needs must come from its servers, and
+#182's minute from the tap has always passed by then. The journal names
+the sign-in or the connection, and the grown-up screen adds no line.
+
+To start Steam again, `SteamRestart`:
 
 1. Asks the child's systemd whether `cairn-steam` is active. If it is not,
    it stops nothing. Asked to shut down when it is not running, Steam
@@ -345,23 +354,25 @@ before its scheduler line, is not the end. `SteamStall` sees the stuck run
 after a minute and not a second before, never the working run, nor a
 question, a refusal, a started game or no word; asks for one restart in
 each tap; waits for a Steam that is starting or updating itself again, and
-gives one that has started 2 minutes from its own start command; is
-stuck after a failed restart or a second stall; and remembers a stalled
-game for a later tap, also when its tap ended before Steam was started
-again, until Steam writes a step for it. `SteamRestart` runs
-against stand-ins: a Steam the launcher started stops and starts again with
-the login's command, one it did not start is never told to shut down, one
-that will not stop is not started again, a service still stopping is
-waited for, and a failed start says so. `SteamGameWait` restarts once,
-keeps "Getting it ready" while Steam stops and starts again, sends the tap
-again once, and ends the wait after a second stall or a failed restart; it
-never restarts a Steam that is updating itself, offline or running a new
-reaper; a restarted Steam gets its own offline wait, and its own work
-limit when the stall came late in the tap's. Three `AppLauncher`
-tests run the stuck run to the game's window with one restart and one tap
-again, a stall that comes back, and a Steam the launcher did not start;
-another has a later tap of the stuck game end at its first look, and
-another a refused sign-in after the restart.
+gives one that has started 2 minutes from its own start command; is stuck
+after a failed restart or a second stall; and remembers a stalled game for
+a later tap, also when its tap ended before Steam was started again, until
+Steam writes a step for it. `SteamRestart` runs against stand-ins: a Steam
+the launcher started stops and starts again with the login's command, one
+it did not start is never told to shut down, one that will not stop is not
+started again, a service still stopping is waited for, and a failed start
+says so. `SteamGameWait` restarts once, keeps "Getting it ready" while
+Steam stops and starts again, sends the tap again once, and ends the wait
+after a second stall or a failed restart; it never restarts a Steam that is
+updating itself, offline or running a new reaper; a stall seen while Steam
+cannot reach its servers, or while its sign-in is turned down, ends the
+wait on that reason, with its journal line and no log-out line; a restarted
+Steam gets its own offline wait, and its own work limit when the stall came
+late in the tap's. Three `AppLauncher` tests run the stuck run to the
+game's window with one restart and one tap again, a stall that comes back,
+and a Steam the launcher did not start; another has a later tap of the
+stuck game end at its first look, and another a refused sign-in after the
+restart.
 
 This section is checked when, on the test VM with scout and soldier taken
 out of a child's Steam, the first tap on Pajama Sam 2 starts the game with
