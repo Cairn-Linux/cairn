@@ -130,7 +130,9 @@ Rectangle {
             objectName: "familyTiles"
             anchors.horizontalCenter: parent.horizontalCenter
             width: Math.min(parent.width, contentWidth)
-            height: Tokens.displaySize * 4
+            // Never shorter than its tallest tile: in some fonts a name on
+            // two lines needs more than the usual height.
+            height: Math.max(Tokens.displaySize * 4, contentItem.childrenRect.height)
             orientation: ListView.Horizontal
             spacing: Tokens.headingSize
             interactive: false

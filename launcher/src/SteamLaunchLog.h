@@ -58,6 +58,11 @@ public:
     // command, as of the last read(), or nothing. Steam takes any tap it held
     // in the same second.
     std::optional<QDateTime> steamStartedAt() const;
+    // Since the tap, a new Steam client has started, as of the last read():
+    // the log names a client's own start command, with the tap or without
+    // it, or Steam began a new log. A new client holds nothing an earlier one
+    // was asking about (#211).
+    bool clientStarted() const;
     // Where the launch had got to at the last read().
     Step step() const;
     // The last step about the game since the tap was DownloadingDepots, as
@@ -79,5 +84,6 @@ private:
     Step m_step = Step::Nothing;
     bool m_downloading = false;
     bool m_reached = false;
+    bool m_clientStarted = false;
     std::optional<QDateTime> m_steamStartedAt;
 };

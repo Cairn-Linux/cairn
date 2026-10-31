@@ -8,7 +8,8 @@ taken over from it.
 **Amended by:** ADR-0037 (Steam updating itself is work too; a tap lost to
 its restart is sent again); the section "A Steam that cannot sign in"
 below (2026-10-29, #182); the section "Steam stops part-way on a new
-child's first Linux game" below (2026-10-30, #206)
+child's first Linux game" below (2026-10-30, #206); the section "A
+question Steam keeps" below (2026-10-31, #211)
 
 ## Context
 
@@ -393,3 +394,65 @@ new client had started, the launcher sent the tap again at 21:06:00, and
 Steam fetched soldier in 38 seconds. The game started at 21:06:42, 2
 minutes 42 seconds after the tap, with "Getting it ready" on the screen
 throughout and no grown-up.
+
+## A question Steam keeps (2026-10-31, #211)
+
+On the test VM on 2026-10-31 a child's Steam lost the network after it had
+signed in. A tap on Pajama Sam 2, a game with Steam Cloud saves, met the
+cloud question and ended on the grown-up screen, as above. Steam signed in
+again within a minute, but it kept the question. Each later tap on the game
+made Steam write only the tap's own `ExecCommandLine` line and nothing
+more, so the journal said only "Nothing of Pajama Sam 2 came on the screen
+in time." Other games still started. Logging the child out and back in
+freed the game, and the next tap started it a second later.
+
+**The launcher remembers a question for its game.** `SteamQuestions` keeps
+each game whose launch stood at a question when the launcher last looked.
+A later tap on that game that Steam takes without writing a step is the
+same question. The journal says "Steam is waiting for an answer about
+Pajama Sam 2 on a window the kiosk hides." again, and the tap ends at its
+first look. Steam's sign-in does not decide then, as for a game Steam has
+in hand, because the connection coming back does not free the game.
+That holds whether Steam cannot reach its servers or its sign-in was
+turned down: a held game names the question either way, and a tap on
+another game still names the sign-in. Logging the child out, which both
+need, frees the game, and the next tap names the sign-in if that is still
+wrong. Steam writes the same single line for an app id it will not launch
+at all, so a tap with no step is a question only for a game Steam asked
+one about.
+
+A game is forgotten when Steam writes another step for it, when the launch
+log shows a new client starting (its own start command, a tap that started
+it, or a new log), or when the launcher has started Steam again, for any
+tap. A Steam the launcher could not start again may still be running with
+its questions, so they are kept. Logging the child out ends the launcher,
+and with it everything it remembered.
+
+The grown-up screen still adds no line for a question (ADR-0045). Whether
+it should say "Log out and back in, then try it again." for the cloud
+question once Steam has signed in again is open, and needs ADR-0045
+amended (#211).
+
+Tested in C++: a later tap on the questioned game is the question at every
+look once Steam has taken the tap, while Steam is still offline and once it
+has signed in again; a game never asked about is not, nor another game
+while one is held; each game keeps its own question; a step for the game,
+each kind of new client, and starting Steam again, for this tap or an
+earlier one, each forget it, and a restart that failed does not; and a
+question asked again holds the game again. An `AppLauncher` test runs the
+VM's case: the first tap and two later ones each end on the grown-up
+screen with the question in the journal and no line on the screen.
+
+Run on the test VM on 2026-10-31, with this change's launcher laid over
+`/usr`. With ada's Steam signed in and the network taken down, a tap on
+Pajama Sam 2 met the cloud question and ended at its first look, 15
+seconds after the tap, with the question in the journal. Steam signed in
+again a second after the network came back. A tap on Test Game Three,
+whose app id Steam will not launch, then logged only "Nothing of Test
+Game Three came on the screen in time." The next tap on Pajama Sam 2
+ended at its first look, 15 seconds after the tap, on the grown-up screen
+with no line, and the journal said "Steam is waiting for an answer about
+Pajama Sam 2: Thunder And Lightning Aren't So Frightening on a window the
+kiosk hides." Arthur's Birthday then started 5 seconds after its tap.
+Once ada had logged out and back in, Pajama Sam 2 started a second after
+the tap. There was no AVC denial.

@@ -343,7 +343,9 @@ TestCase {
     }
 
     // The third page: the grown-up's own name, Plasma's pictures and the
-    // password form, and nothing said yet.
+    // password form, and nothing said yet. With no picture, the frame says
+    // so on screen as well as to a screen reader, so it never looks like a
+    // picture that did not load.
     function test_yourAccountPage() {
         const window = makeWindow("done");
         compare(findChild(window, "accountTab").text, "Your account");
@@ -356,6 +358,11 @@ TestCase {
         compare(findChild(window, "accountHeading").text, "Your account");
         compare(findChild(window, "ownName").text, "Guardian");
         compare(findChild(window, "ownPicture").Accessible.name, "No picture yet");
+        const noPicture = findChild(window, "noPicture");
+        verify(noPicture.visible);
+        compare(noPicture.text, "No picture yet");
+        verify(noPicture.contentWidth <= noPicture.width);
+        verify(noPicture.contentHeight <= noPicture.height);
         const tiles = findChild(window, "pictureTiles");
         compare(tiles.count, 3);
         compare(tiles.itemAt(0).Accessible.name, "Use the picture Artist Konqi");
@@ -510,7 +517,7 @@ TestCase {
         verify(choice(window, "ada").checked);
         verify(!choice(window, "ben").checked);
         compare(highlighted(window), ["Putt-Putt Joins the Parade", "Pajama Sam", "Spy Fox"]);
-        compare(findChild(window, "listSentence").text, "Games on Ada's list: 3. They are highlighted.");
+        compare(findChild(window, "listSentence").text, "Games on Ada's list: 3. Each game on the list is highlighted.");
         const first = findChild(window, "gameCards").itemAt(0);
         compare(findChild(first, "onListLabel").text, "On the list");
         compare(first.Accessible.description, "On Ada's list");
@@ -547,7 +554,7 @@ TestCase {
         mouseClick(choice(window, "cy"));
         compare(findChild(window, "gameCards").count, 9);
         compare(highlighted(window), ["Tux Racer", "Humongous Bowling"]);
-        compare(findChild(window, "listSentence").text, "Games on Cy's list: 2. They are highlighted. The ones no longer in the shared folder come last. Cy's own copy may still play them.");
+        compare(findChild(window, "listSentence").text, "Games on Cy's list: 2. Each game on the list is highlighted. The ones no longer in the shared folder come last. Cy's own copy may still play them.");
         const last = findChild(window, "gameCards").itemAt(8);
         compare(findChild(last, "onListLabel").text, "On the list, no longer shared");
         compare(last.Accessible.description, "On Cy's list, no longer in the shared folder");
@@ -770,6 +777,18 @@ TestCase {
         }
     }
 
+    // One game is a common count: a new child's list starts empty, so the
+    // first game a parent picks for them gives this sentence. It said
+    // "They are highlighted" for that one game too.
+    function test_oneGameOnTheList() {
+        const window = makeWindow("done");
+        showGames(window);
+        chooseChild(window, "ben");
+        mouseClick(card(window, 0));
+        compare(highlighted(window), ["Putt-Putt Joins the Parade"]);
+        compare(findChild(window, "listSentence").text, "Games on Ben's list: 1. Each game on the list is highlighted.");
+    }
+
     // The keyboard alone: a card takes focus, and Space turns it.
     function test_turnAGameWithTheKeyboard() {
         const window = makeWindow("done");
@@ -785,6 +804,95 @@ TestCase {
         compare(second.onList, false);
         keyClick(Qt.Key_Tab);
         tryCompare(card(window, 2), "activeFocus", true);
+    }
+
+    // A grown-up holding Enter or Space on a game card turns it once. Each
+    // of the keyboard's repeats turned it the other way, about 25 times a
+    // second, and the grid jumped up and down until the key came up.
+    function test_aHeldKeyTurnsAGameOnce_data() {
+        return [
+            {
+                tag: "return",
+                key: Qt.Key_Return
+            },
+            {
+                tag: "enter",
+                key: Qt.Key_Enter
+            },
+            {
+                tag: "space",
+                key: Qt.Key_Space
+            }
+        ];
+    }
+
+    function test_aHeldKeyTurnsAGameOnce(data) {
+        const window = makeWindow("done");
+        showGames(window);
+        const second = card(window, 1);
+        let turns = 0;
+        second.turned.connect(() => ++turns);
+        second.forceActiveFocus();
+        keyPress(data.key);
+        for (let i = 0; i < 5; ++i)
+            heldKey.repeat(window, data.key);
+        keyRelease(data.key);
+        verify(second.activeFocus);
+        compare(turns, 1);
+        compare(second.onList, true);
+        compare(findChild(second, "onListLabel").text, "Added, not saved yet");
+    }
+
+    // The window's other controls take a held key once too, so they all
+    // work alike. `index` picks one control a Repeater made.
+    function test_aHeldKeyPressesOnce_data() {
+        return [
+            {
+                tag: "button",
+                page: "games",
+                control: "openSteam",
+                signal: "activated"
+            },
+            {
+                tag: "child",
+                page: "games",
+                control: "childChoiceRepeater",
+                index: 1,
+                signal: "chosen"
+            },
+            {
+                tag: "level",
+                page: "children",
+                control: "level2",
+                signal: "chosen"
+            },
+            {
+                tag: "picture",
+                page: "account",
+                control: "pictureTiles",
+                index: 0,
+                signal: "chosen"
+            }
+        ];
+    }
+
+    function test_aHeldKeyPressesOnce(data) {
+        const window = makeWindow("done");
+        if (data.page === "games")
+            showGames(window);
+        else if (data.page === "account")
+            showAccount(window);
+        const found = findChild(window, data.control);
+        const control = data.index === undefined ? found : found.itemAt(data.index);
+        let presses = 0;
+        control[data.signal].connect(() => ++presses);
+        control.forceActiveFocus();
+        keyPress(Qt.Key_Space);
+        for (let i = 0; i < 5; ++i)
+            heldKey.repeat(window, Qt.Key_Space);
+        keyRelease(Qt.Key_Space);
+        verify(control.activeFocus);
+        compare(presses, 1);
     }
 
     function test_putBackAsSaved() {
