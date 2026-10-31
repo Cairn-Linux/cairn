@@ -38,7 +38,8 @@ struct Result {
 //
 // Each game's picture is <picturesFolder>/<appid>.jpg (TilePicture). A game
 // without one shows its name, which is not a fault either, so nothing is
-// said: the Guardian's Family app names it.
+// said: on the image the Family app names it, and on a computer set up by
+// hand provisioning's notes do.
 Result read(const QString& path, const QSet<QString>& appIdsToLeaveOut,
             const QString& picturesFolder);
 

@@ -212,11 +212,16 @@ check, so the two always agree.
 A game from the games file shows the picture the picture step copied for
 its app id: `<folder>/<appid>.jpg` in the folder `--pictures` names,
 `/var/lib/cairn/game-pictures` unless it says otherwise, when that is a
-plain file, not a link (ADR-0047). Both wrappers name that folder. A
-`picture` key in a games file is not read, so a picture copied after the
-file was written still shows. A game without a picture shows its title,
-and nothing goes to the journal: the Guardian's Family app names the game
-and says how to add one.
+plain file, not a link (ADR-0047).
+The image's wrapper names that folder; provisioning's relies on the
+default.
+A `picture` key in a games file is not read, so a picture copied after
+the file was written still shows.
+A game without a picture shows its title, and nothing goes to the
+journal: on the image the Guardian's Family app names the game and says
+how to add one, and on a computer set up by hand provisioning's `note:`
+lines do.
+
 `manifests/dev-pc.json` names Tux Paint for Draw and GCompris for Practice
 only; Build, Music and Story are empty until the catalogue survey (issue
 #26) picks a program for each. GCompris is a practice-folder app, never

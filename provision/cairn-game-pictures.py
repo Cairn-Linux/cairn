@@ -35,21 +35,21 @@ folder that is a link stops the run.
 A picture also stays while its game is on any child's own list,
 /var/lib/cairn/games/<login>.json, which cairn-family save-games writes
 (ADR-0041), even when kidscan leaves the game out of the shared folder's
-tiles: uninstalled, moved back to the Guardian's own library, on a beta or
-being updated. The child keeps that tile, so it keeps its picture
-(ADR-0047). The lists only keep a picture; a picture is copied only for a
-game in the shared folder, so the Guardian's Steam is read only for those.
-Each list is read as the launcher reads it, but without following a link
-or waiting on a FIFO: only <login>.json names, by cairn-family's rule for
-a login, each a plain file of at most 4 MiB holding the launcher's games
-file, version 1, of which only the entries the launcher gives a tile
-count. A list that cannot be read that way keeps nothing; only root can
-put such a file in that folder, so it is a mistake, and the games on it
-then show their names when they leave the shared folder. No lists folder
-means no lists, as on a computer set up by hand. A lists folder that is a
-link, not a folder, not this program's own account's, or open to others
-for writing stops the run before anything is touched, as cairn-family
-refuses to write there.
+tiles: uninstalled, moved back to the Guardian's own library, on a beta,
+or, as the tests assume, being updated. The child keeps that tile, so it
+keeps its picture (ADR-0047). The lists only keep a picture; a picture is
+copied only for a game in the shared folder, so the Guardian's Steam is
+read only for those. Each list is read as the launcher reads it, but
+without following a link or waiting on a FIFO: only <login>.json names, by
+cairn-family's rule for a login, each a plain file of at most 4 MiB
+holding the launcher's games file, version 1, of which only the entries
+the launcher gives a tile count. A list that cannot be read that way keeps
+nothing; only root can put such a file in that folder, so it is a mistake,
+and the games on it then show their names when they leave the shared
+folder. No lists folder means no lists, as on a computer set up by hand. A
+lists folder that is a link, not a folder, not this program's own
+account's, or open to others for writing stops the run before anything is
+touched, as cairn-family refuses to write there.
 
 It prints only these lines, made of fixed words and appids, so nothing
 read from a home reaches the Guardian's terminal. Provisioning turns them
@@ -66,7 +66,8 @@ into sentences of its own, and cairn-family passes them to the journal.
     refused folder          the pictures folder is a link or not a
                             folder, so nothing was touched
     refused lists           the children's lists folder is a link, not
-                            a folder, or one others could write in, so
+                            a folder, not this program's own account's,
+                            or writable by its group or others, so
                             nothing was touched
     finished                the last line of a run that went to the end
     failed                  something unexpected stopped the run

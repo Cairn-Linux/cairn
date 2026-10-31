@@ -15,7 +15,8 @@ leave unexplained.
 
 On the image a tile took its picture from the `picture` key in the
 child's own list, as saved (ADR-0041).
-On the test VM on 2026-10-30, #205 found five gaps:
+While checking pictures on the test VM on 2026-10-30, where a Save gave
+every game its picture, #205 found five gaps:
 
 1. The Save's window never said a picture was missing: `cairn-family`
    dropped the picture step's lines and said `pictures made` either way.
@@ -25,8 +26,9 @@ On the test VM on 2026-10-30, #205 found five gaps:
 4. A picture copied later reached only a child whose list a later Save
    changed.
 5. The picture step removed the picture of every game kidscan left out:
-   uninstalled, moved back, on a beta or being updated. A child who still
-   had the game kept a tile with only its name.
+   uninstalled, moved back or on a beta, and, as kidscan's tests assume
+   though real Steam has not shown it, while Steam updates it (check 3).
+   A child who still had the game kept a tile with only its name.
 
 On 2026-10-30 Mason chose the issue's second way to fix 4 and 5, with the
 parent told about 1 to 3.
@@ -42,8 +44,8 @@ names each game without a picture and says what helps.**
 - The launcher shows a Steam game's picture from
   `/var/lib/cairn/game-pictures/<appid>.jpg`, for the app id it already
   checks, when that is a plain file, not a link.
-  `--pictures` names the folder: both wrappers pass it, and it is the
-  default.
+  `--pictures` names the folder: the image's wrapper passes it, and it
+  is the default, which provisioning's wrapper relies on.
 - The Games page reads each card's picture by the same rule.
 - So a picture that any later Save or Look copies reaches every child who
   has the game at their next login, with no change to their list.
@@ -63,8 +65,8 @@ names each game without a picture and says what helps.**
   began, and removes any other.
 - So the folder holds a picture only for a game in the family folder now,
   or one a parent gave a child.
-  A game taken off every list loses its picture at the next Save, Look or
-  set-up run after that.
+  A game that is neither in the family folder nor on any child's list
+  loses its picture at the next Save, Look or set-up run.
 - It reads only `<login>.json` names, by cairn-family's rule for a login:
   each a plain file of at most 4 MiB, opened without following a link or
   waiting on a FIFO, holding the launcher's games file, version 1.
@@ -92,13 +94,22 @@ the game: open Steam in your own login, then press Look for new games. If
 only another grown-up's Steam has the game, they can do the same in their
 own login."
 
-A game whose picture the step left out is named apart, "Your own Steam has
-a picture that Cairn could not use for: Spy Fox.", with the journal in
-place of the advice, since opening Steam does not help it.
+A game whose picture the step left out is named apart, "Cairn could not
+use your own Steam's picture for Spy Fox.", without the advice, since
+opening Steam does not help it.
+When both sentences come, only the first says what a child sees.
 When the step did not go to its end, no game is named, since what helps is
 then unknown; one sentence says the pictures could not all be copied, that
-those copied before stay, that pressing Look for new games tries again,
-and where the reason is.
+those copied before stay, and that pressing Look for new games tries
+again.
+
+The window's first paragraph points to the journal once, at its end,
+when any of its sentences has its reason there: the pictures that could
+not all be copied, a picture Cairn could not use, a games list kept from
+before, or a tool left out (ADR-0046).
+It ends with "The system log says why. In a terminal:
+journalctl -t cairn-family", so no sentence follows the command; each
+child's sentence is a paragraph of its own below it.
 
 A card without a picture says so, with the same advice and the journal
 for when it does not help; one no longer shared can get a picture only
@@ -157,6 +168,8 @@ ADR-0041.
   `build/release` before it makes the games file, so that build must come
   from the same checkout: an older launcher shows no pictures from a games
   file that names none.
+  It still starts, since provisioning's wrapper does not pass
+  `--pictures`, which an older launcher would refuse.
 - Tested in Python, C++ and QML; not yet in the VM.
 
 ## Checks in the VM
@@ -171,11 +184,17 @@ In cairn-iso, with an image built from this change:
    its picture after a Look; once off every list, the next Look removes it.
 3. The same while Steam updates a shared game, and on a beta branch.
 4. `/var/lib/cairn/game-pictures` replaced by a link: the pictures-kept
-   sentence, and `picture step: refused folder`.
-5. A games list that cannot be made: `catalogue step:` and its word.
-6. The set-up script run again after opening Steam copies the missing
+   sentence, and `picture step: refused folder`; or `/var/lib/cairn/games`
+   made writable by its group or others, then a Look: the pictures-kept
+   sentence, and `picture step: refused lists`.
+5. A shared game whose header in the Guardian's Steam is not a JPEG, with
+   no older picture in place: a Look names it in the could-not-use
+   sentence, the paragraph ends by pointing to the journal, and the
+   journal has `picture step: refused APPID not-a-jpeg`.
+6. A games list that cannot be made: `catalogue step:` and its word.
+7. The set-up script run again after opening Steam copies the missing
    picture, and the child sees it.
-7. No AVC denial, and no path or Steam name in the journal.
+8. No AVC denial, and no path or Steam name in the journal.
 
 ## Alternatives considered
 

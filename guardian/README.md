@@ -92,13 +92,15 @@ The Games page (ADR-0041):
    copied them, may still lack one, or found none to copy. A Save in
    which a tool could not be taken from the Guardian's Steam says that
    once. After a Save or a look, the window names each shared game
-   without a picture, by its title, and what helps, apart from one whose
-   picture Cairn could not use; when the pictures could not all be copied
-   it says that instead (ADR-0047). **Close**, or Escape once it has
-   ended, puts it away. A child's
-   games that could not be given stay chosen, so pressing Save again
-   tries them again. A closed password box keeps every change. The page
-   reads everything again after each Save.
+   without a picture by its title and says what helps. A game whose
+   picture Cairn could not use is named in a sentence of its own. When
+   the pictures could not all be copied, it says that instead and names
+   no game (ADR-0047). When a sentence about the pictures, the full
+   games list or Steam's tools has its reason in the journal, the first
+   paragraph ends by pointing there, once. **Close**, or Escape once it
+   has ended, puts it away. A child's games that could not be given stay
+   chosen, so pressing Save again tries them again. A closed password box
+   keeps every change. The page reads everything again after each Save.
 5. **Look for new games** runs `cairn-family save-games` with no child
    named, which changes no list but makes the full games list, the
    pictures and the tools folder again from the Guardian's own Steam, so
@@ -426,11 +428,12 @@ like an open password box, and writes down the arguments it was given.
 Its `save-*` scenarios answer `save-games` in many lines, as the real
 command does: every game given, a child held by a word, games left out,
 a copy still running, a run cut off before `done`, Steam's tools
-taken, left out, copied, missing or still being copied, or the pictures
-kept or a game without one; `save-done` also
-writes each child's list into the folder `CAIRN_TEST_GAMES` names. Its
-`log-out-*` scenarios answer `log-out`: done, which empties the file
-`CAIRN_TEST_LOGGED_IN` names, held by a word, or still running.
+taken, left out, copied, missing or still being copied, the pictures
+kept, a game without one, or two games without one, with the full list
+kept; `save-done` also writes each child's list into the folder
+`CAIRN_TEST_GAMES` names. Its `log-out-*` scenarios answer `log-out`:
+done, which empties the file `CAIRN_TEST_LOGGED_IN` names, held by a
+word, or still running.
 The Guardian tool's tests give the page a table of accounts in place of
 the system's, so they cover the order, who is left out, the login names,
 every check before a change, one change at a time, trying an add again
