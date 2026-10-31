@@ -25,7 +25,9 @@ SteamStall::Now SteamStall::read(const SteamLaunchLog& launch, SteamStartup::Now
         m_stuckAppId.clear();
     }
     m_now = decide(launch, steam, now);
-    if (m_now == Now::Stuck) {
+    // Remembered from the first look that sees the stall, so a tap that ends
+    // before Steam is started again, or while it is, leaves it for the next.
+    if (m_now != Now::Fine) {
         m_stuckAppId = m_appId;
     }
     return m_now;

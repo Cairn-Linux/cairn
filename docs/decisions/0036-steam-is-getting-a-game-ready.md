@@ -291,7 +291,10 @@ the grown-up screen at the next look after any of these:
 
 A game that still never comes after a good second tap ends by the 2-minute
 rule after the last work, as before. Steam takes a later tap on a game it
-keeps stuck without writing a word, so that tap ends at its first look.
+keeps stuck and writes no step for it, only the tap's own line, so that
+tap ends at its first look. A game counts as kept stuck from the first
+look that sees its stall, also when the tap ends before Steam is started
+again, until Steam writes a step for it.
 Each of these ends with one more line on the grown-up screen, under "…
 did not start.": "Log out and back in, then try it again." (ADR-0045),
 unless Steam's logs gave another reason.
@@ -342,8 +345,10 @@ before its scheduler line, is not the end. `SteamStall` sees the stuck run
 after a minute and not a second before, never the working run, nor a
 question, a refusal, a started game or no word; asks for one restart in
 each tap; waits for a Steam that is starting or updating itself again, and
-gives one that has started 2 minutes from its own start command; and is
-stuck after a failed restart or a second stall. `SteamRestart` runs
+gives one that has started 2 minutes from its own start command; is
+stuck after a failed restart or a second stall; and remembers a stalled
+game for a later tap, also when its tap ended before Steam was started
+again, until Steam writes a step for it. `SteamRestart` runs
 against stand-ins: a Steam the launcher started stops and starts again with
 the login's command, one it did not start is never told to shut down, one
 that will not stop is not started again, a service still stopping is

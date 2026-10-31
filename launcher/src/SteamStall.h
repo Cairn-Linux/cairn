@@ -69,9 +69,10 @@ private:
 
     SteamContentLog m_content;
     QString m_appId;
-    // A game whose stall ended Stuck. Steam keeps its launch and takes a
-    // later tap on it without a word, until the child logs out or Steam
-    // works on it again.
+    // A game Steam stopped on part-way, in this tap or an earlier one. Steam
+    // keeps its launch and takes a later tap on it, but writes no step for
+    // it, only the tap's own line, until the child logs out. Forgotten once
+    // Steam writes a step for it again.
     QString m_stuckAppId;
     Restart m_restart = Restart::NotYet;
     Now m_now = Now::Fine;

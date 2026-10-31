@@ -71,15 +71,15 @@ again." belongs on this screen, or in the Guardian tool.
   grown-up the wrong way, which is why there is one line, wired for one
   case, and why it gives way to any other reason Steam's logs give.
 - A later tap on a game Steam keeps stuck shows the line only while
-  Steam writes nothing about that game. If Steam writes a step for it,
-  such as the launch failing, the line goes and the journal gives Steam's
-  reason.
+  Steam writes no step for that game. If Steam writes one, such as the
+  launch failing, the line goes and the journal gives Steam's reason.
 - The enum leaves room for more lines without changing the screen's
   layout. Each new one needs its own C++ case, its own string and its own
   tests.
 - Tested in C++: the line comes after a stall the launcher could not
   mend, after a stall that came back after the restart, and on a later
-  tap of the stuck game; it does not come after a mended stall, after a
+  tap of the stuck game, also one whose stall ended its tap before Steam
+  was started again; it does not come after a mended stall, after a
   stall followed by a refused sign-in, after a launch that failed without
   a stall, nor for a window that opened on its own. In QML, the line is
   hidden without a step, and shown, named for a screen reader and at least

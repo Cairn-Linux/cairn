@@ -1483,9 +1483,9 @@ private slots:
         qputenv("PATH", path);
     }
 
-    // Steam keeps a stuck launch and takes a later tap on the game without
-    // a word. That tap ends at its first look, and Steam is not started
-    // again for it.
+    // Steam keeps a stuck launch and takes a later tap on the game, writing
+    // no step for it, only the tap's own line. That tap ends at its first
+    // look, and Steam is not started again for it.
     void aStuckGameTappedAgainStillSaysToLogOut() {
         const QTemporaryDir dir;
         QVERIFY(dir.isValid());

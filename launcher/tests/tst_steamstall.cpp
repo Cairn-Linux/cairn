@@ -299,8 +299,9 @@ private slots:
         QCOMPARE(run.read(at("2026-10-30 17:20:00")), Now::Fine);
     }
 
-    // Steam keeps a stuck launch and takes a later tap on the game without a
-    // word; until it works on that game again, logging out is what helps.
+    // Steam keeps a stuck launch and takes a later tap on the game, writing
+    // no step for it; until it works on that game again, logging out is what
+    // helps.
     void aStuckGameKeepsTheLineUntilSteamMovesAgain() {
         Launch run;
         run.tap();
@@ -323,6 +324,40 @@ private slots:
         run.console(tapTaken("2026-10-30 17:14:00"));
         QCOMPARE(run.read(at("2026-10-30 17:14:15")), Now::Fine);
         QVERIFY(run.stall.logOutWouldHelp());
+        run.console(step("2026-10-30 17:20:00", "changed task to RunningInstallScript with \"\""));
+        QCOMPARE(run.read(at("2026-10-30 17:20:15")), Now::Fine);
+        QVERIFY(!run.stall.logOutWouldHelp());
+    }
+
+    // A stall the tap left unmended is remembered too: Steam could not be
+    // started again at any look, or a grown-up gave up before or while it
+    // was. Steam takes the next tap on the game, writing no step for it.
+    void aStallTheTapLeftUnmendedIsRemembered_data() {
+        QTest::addColumn<bool>("restartAsked");
+        QTest::newRow("not started again") << false;
+        QTest::newRow("being started again") << true;
+    }
+
+    void aStallTheTapLeftUnmendedIsRemembered() {
+        QFETCH(const bool, restartAsked);
+        Launch run;
+        run.tap();
+        run.console(stuckLaunch());
+        run.content(stuckContent());
+        QCOMPARE(run.read(at("2026-10-30 17:12:00")), Now::Stalled);
+        if (restartAsked) {
+            QVERIFY(run.stall.askRestart());
+            QCOMPARE(run.read(at("2026-10-30 17:12:15")), Now::Mending);
+        }
+
+        run.tap();
+        QVERIFY(run.stall.logOutWouldHelp());
+        run.console(tapTaken("2026-10-30 17:14:00"));
+        QCOMPARE(run.read(at("2026-10-30 17:14:15")), Now::Fine);
+        QVERIFY(run.stall.logOutWouldHelp());
+        QCOMPARE(run.stall.journalNote(QStringLiteral("Pajama Sam 2")),
+                 QStringLiteral("Steam stopped getting Pajama Sam 2 ready, so Pajama Sam 2 did not "
+                                "start. Log the child out and back in, then try it again."));
         run.console(step("2026-10-30 17:20:00", "changed task to RunningInstallScript with \"\""));
         QCOMPARE(run.read(at("2026-10-30 17:20:15")), Now::Fine);
         QVERIFY(!run.stall.logOutWouldHelp());
