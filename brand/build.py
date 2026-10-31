@@ -18,6 +18,8 @@ import boot_screen
 
 HERE = Path(__file__).resolve().parent
 MINIMUM_LABEL_CONTRAST = 3.0
+# WCAG 1.4.11 asks a focus ring for 3:1 against the ground around it.
+MINIMUM_FOCUS_CONTRAST = 3.0
 # A ring that stands out on light grounds fades on Ink, so each ring is
 # for its own grounds, named here by their semantic tokens.
 FOCUS_GROUNDS = {
@@ -163,6 +165,17 @@ def focus_contrasts(tokens, ring_name):
         ground = semantic[ground_name]
         contrasts.append((ground, contrast_ratio(colors[ring], colors[ground])))
     return contrasts
+
+
+def validate_focus_contrasts(tokens):
+    for ring_name in FOCUS_GROUNDS:
+        ring = tokens["semantic"][ring_name]
+        for ground, ratio in focus_contrasts(tokens, ring_name):
+            if ratio < MINIMUM_FOCUS_CONTRAST:
+                raise BuildError(
+                    f"focus ring contrast is below 3:1: {ring}-on-{ground} "
+                    f"measures {ratio:.2f}:1"
+                )
 
 
 def focus_ratio_comment(tokens, ring_name):
@@ -589,6 +602,7 @@ def load_tokens():
 def validate_tokens(tokens):
     validate_recorded_contrasts(tokens)
     validate_label_contrasts(tokens)
+    validate_focus_contrasts(tokens)
 
 
 def parse_arguments(argv):

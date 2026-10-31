@@ -76,6 +76,35 @@ class BrandBuildTests(unittest.TestCase):
             )
             self.assertNotIn("Traceback", refused.stderr)
 
+    def test_a_focus_ring_too_faint_for_its_ground_is_refused(self):
+        # Sky on Sand was the ring at a child's tiles, which was hard to find
+        # (#216). Fjord on Ink is what the login screen would get from the
+        # ring for light grounds.
+        faint_rings = {
+            "focus": ("sky", "sky-on-sand measures 1.52:1"),
+            "focus-on-ink": ("fjord", "fjord-on-ink measures 1.97:1"),
+        }
+        for ring_name, (color_name, measured) in faint_rings.items():
+            with self.subTest(ring_name):
+                temporary, copied_brand = self.temporary_brand_copy()
+                with temporary:
+                    tokens_path = copied_brand / "tokens.json"
+                    copied_tokens = json.loads(tokens_path.read_text(encoding="utf-8"))
+                    copied_tokens["semantic"][ring_name] = color_name
+                    tokens_path.write_text(
+                        json.dumps(copied_tokens, indent=2) + "\n",
+                        encoding="utf-8",
+                    )
+
+                    refused = self.run_copied_build(copied_brand)
+
+                    self.assertNotEqual(refused.returncode, 0)
+                    self.assertEqual(
+                        refused.stderr.strip(),
+                        f"focus ring contrast is below 3:1: {measured}",
+                    )
+                    self.assertNotIn("Traceback", refused.stderr)
+
     def test_every_recorded_contrast_is_recomputed(self):
         self.assertEqual(brand_build.measured_contrast("#000000", "#FFFFFF"), 21.0)
         computed = brand_build.recomputed_contrasts(self.tokens)

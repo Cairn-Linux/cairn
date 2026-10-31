@@ -66,9 +66,10 @@ The first command writes `tokens.css`, the QML singleton and module files,
 the three mark SVGs, the image's two icons and console colour, and the
 boot screen.
 The second checks every recorded contrast figure, the 3:1 label policy,
-reserved QML names, and byte-for-byte generated output. A PNG is
-compared by its pixels, since another zlib may compress them to other
-bytes.
+the 3:1 focus ring policy against the grounds each ring is for (Sand and
+Paper for `focus`, Ink for `focus-on-ink`), reserved QML names, and
+byte-for-byte generated output. A PNG is compared by its pixels, since
+another zlib may compress them to other bytes.
 Both commands use the Python standard library only.
 
 Applications compile the module in with
