@@ -449,8 +449,9 @@ It moves to per-child lists when it is reinstalled from the image.
   ScummVM game in the shared folder (#215).
   Ctrl+F5 opens that menu in every ScummVM game, and the kiosk keeps
   Ctrl+F5 from the games.
-  Plain F5 opens it too in the Humongous games, by ScummVM's source, and
-  whether the kiosk takes F5 as well is not decided.
+  Plain F5 opens it too in the Humongous games, and so does F5 held
+  down before Ctrl in any game, both by ScummVM 2.0.0's source.
+  Whether the kiosk takes F5 as well is not decided.
   Before levels 3 and 4 ship (#107), Cairn must keep a child from opening
   games off their list from the shared folder or from old copies.
 - Every child the family's setup made before step 4 has a copy of every

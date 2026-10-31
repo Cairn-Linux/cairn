@@ -12,7 +12,8 @@ What is here:
   keys through PipeWire's `wpctl`, up to 100% and no louder (#43); Ctrl+F5
   kept from every app by a binding that does nothing, so it no longer
   opens ScummVM's own menu, whose Return to Launcher leads to ScummVM's
-  game manager (#215), though plain F5 still does in SCUMM games; no
+  game manager (#215), though by ScummVM 2.0.0's source plain F5 still
+  does in SCUMM games, as does F5 held down before Ctrl in any game; no
   window gets focus by asking for it; a window rule that makes the launcher
   fullscreen on sight; one that maximizes any ScummVM window, so a game
   whose Steam entry loses its config still fills the screen; and rules

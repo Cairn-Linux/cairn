@@ -21,6 +21,13 @@ ENVIRONMENT = LABWC_DIR / "environment"
 KEEP_FROM_APPS = "DisableScrollWheelEmulation"
 
 
+def combination(key):
+    # labwc reads a binding's modifier letters as written and its key name
+    # in any case (keybind.c), so "C-f5" is the same binding as "C-F5".
+    *modifiers, name = key.split("-")
+    return frozenset(modifiers), name.lower()
+
+
 class LabwcConfigTest(unittest.TestCase):
     def setUp(self):
         self.root = ET.parse(CONFIG).getroot()
@@ -139,7 +146,8 @@ class LabwcConfigTest(unittest.TestCase):
         self.assertEqual([k.get("key") for k in kept], ["C-F5"])
         # labwc keeps only the last binding for a key, so a second one,
         # None included, would hand Ctrl+F5 back to the games.
-        self.assertEqual([k.get("key") for k in keybinds].count("C-F5"), 1)
+        combinations = [combination(k.get("key")) for k in keybinds]
+        self.assertEqual(combinations.count(combination("C-F5")), 1)
         # On release, labwc keeps back whichever key comes up first, so a
         # game could miss Ctrl being let go.
         self.assertIn(kept[0].get("onRelease"), (None, "no"))

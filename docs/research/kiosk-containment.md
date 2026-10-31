@@ -13,8 +13,8 @@ Ctrl-Alt-Home runs `cairn-give-up` (ADR-0018). On 2026-09-29 a row for
 the child's own way out was added after the first child pilot (#77):
 Super+Q closes the app in front (ADR-0019), checked in the VM. On
 2026-10-31 a row for ScummVM's own menu was added after a user test
-(#215): the kiosk keeps Ctrl+F5 from every app, and plain F5 in SCUMM
-games is still open.
+(#215): the kiosk keeps Ctrl+F5 from every app, but plain F5 in SCUMM
+games, and F5 held down before Ctrl, still reach the menu.
 
 ## How it was run
 
@@ -57,7 +57,7 @@ Where a row depends on how labwc is written, the 0.9.6 sources were read
 | A child can end their turn and leave nothing running (#44) | **Fail, then pass** (VM, 2026-09-30) | An L1 child had no way back to the login screen, and quitting the launcher would have left Flatpak apps and the Steam client running. A Log out button above the tiles now ends the child's whole account (ADR-0021); the matrix is under "Logging out" below. |
 | The first app after login comes up (#87) | **Fail, then pass** (VM, 2026-09-30) | Tux Paint launched right after login hung before drawing a window, and the launcher, handling one app at a time, ignored every other tile. PipeWire had been started on demand by that first app. `cairn-session` now starts it before the kiosk; see "Sound at login" below. |
 | X11 windows carry no server decorations | **Fail, then pass** (new row) | An xterm got a titlebar with minimise, maximise and close buttons: `<decoration>client</decoration>` only governs Wayland clients. `serverDecoration="no"` on every window removes it. |
-| A game cannot open ScummVM's own menu (#215) | **Fail** (VM, 2026-10-31), **then pass nested**; the VM keypress is to do | In Pajama Sam 2, Ctrl+F5 opened ScummVM's menu, whose Return to Launcher showed ScummVM's game manager. A binding in `rc.xml` now keeps Ctrl+F5 from every app, checked headless with labwc 0.9.6. Plain F5 opens the same menu in SCUMM games and is not taken. See "ScummVM's own menu" below. |
+| A game cannot open ScummVM's own menu (#215) | **Fail** (VM, 2026-10-31); Ctrl+F5 **passes nested**, the VM keypress is to do; two ways in stay open | In Pajama Sam 2, Ctrl+F5 opened ScummVM's menu, whose Return to Launcher showed ScummVM's game manager. A binding in `rc.xml` now keeps Ctrl+F5 from every app, checked headless with labwc 0.9.6. Plain F5 opens the same menu in SCUMM games and is not taken, and F5 held down before Ctrl reaches a game through Xwayland's key repeat. See "ScummVM's own menu" below. |
 
 The launcher behaved as designed throughout: each window opened from the
 side terminal produced "Something needs a grown-up" naming the app id, and
@@ -404,13 +404,25 @@ among them. `xdotool`, through XTEST, did get Ctrl+F5 to the X11
 window, and labwc saw nothing. `wtype`'s keys are matched by keysym
 only, so a real keyboard's path is the VM's to check.
 
-What the binding does not close, from ScummVM 2.0.0's source:
+What the binding does not close, from ScummVM 2.0.0's source and the
+headless setup:
 
 - **Plain F5 in SCUMM games**, which the Humongous games are, opens the
   same menu (`engines/scumm/input.cpp`). An older game's scripts can
   turn that key off. Pajama Sam 2 and the other Humongous games from HE
   version 72 on have no way to. The decision on #215 took only Ctrl+F5,
   and a binding for F5 would keep it from every app in the kiosk.
+- **F5 held down before Ctrl, in any game on ScummVM 2.0.0.** labwc
+  matches a binding when a key is pressed, and F5 went down before
+  Ctrl. Xwayland, not labwc, repeats a held key for an X11 window, and
+  once Ctrl is down the repeats carry it. ScummVM 2.0.0 opens its menu
+  on a repeated key as on a first press (`common/EventMapper.cpp`). In
+  the same headless setup, F5 held for 1.7 seconds, with Ctrl pressed
+  after 0.2, gave the X11 window 28 presses of F5 with Ctrl down, and
+  labwc ran nothing. A real Ctrl key does not stop the repeat either:
+  Ctrl does not repeat in Xwayland's keymap, and the X server moves the
+  repeat only to a key that does. A binding for plain F5 would close
+  this too.
 - **ScummVM's debugger console** opens in SCUMM games with Ctrl+D, `~`
   or `#`. It is a text console of ScummVM's own, not a shell. Its
   `openlog` command asks the system to open ScummVM's log file, with
@@ -426,7 +438,7 @@ with them, and a default build is not.
 
 | Row | Where | Check |
 |---|---|---|
-| A game cannot open ScummVM's own menu (#215) | VM, as `ada`, keys through the VM's own keyboard | Ctrl+F5 in Pajama Sam 2 shows nothing and the game goes on. Plain F5 is tried too, for the open question above. |
+| A game cannot open ScummVM's own menu (#215) | VM, as `ada`, keys through the VM's own keyboard | Ctrl+F5 in Pajama Sam 2 shows nothing and the game goes on. Plain F5, and F5 held down before Ctrl, are tried too, for the open questions above. |
 
 Screenshots and logs from the run are in the maintainer's work area, not the
 repository.
