@@ -510,7 +510,7 @@ TestCase {
         verify(choice(window, "ada").checked);
         verify(!choice(window, "ben").checked);
         compare(highlighted(window), ["Putt-Putt Joins the Parade", "Pajama Sam", "Spy Fox"]);
-        compare(findChild(window, "listSentence").text, "Games on Ada's list: 3. They are highlighted.");
+        compare(findChild(window, "listSentence").text, "Games on Ada's list: 3. A game on the list is highlighted.");
         const first = findChild(window, "gameCards").itemAt(0);
         compare(findChild(first, "onListLabel").text, "On the list");
         compare(first.Accessible.description, "On Ada's list");
@@ -547,7 +547,7 @@ TestCase {
         mouseClick(choice(window, "cy"));
         compare(findChild(window, "gameCards").count, 9);
         compare(highlighted(window), ["Tux Racer", "Humongous Bowling"]);
-        compare(findChild(window, "listSentence").text, "Games on Cy's list: 2. They are highlighted. The ones no longer in the shared folder come last. Cy's own copy may still play them.");
+        compare(findChild(window, "listSentence").text, "Games on Cy's list: 2. A game on the list is highlighted. The ones no longer in the shared folder come last. Cy's own copy may still play them.");
         const last = findChild(window, "gameCards").itemAt(8);
         compare(findChild(last, "onListLabel").text, "On the list, no longer shared");
         compare(last.Accessible.description, "On Cy's list, no longer in the shared folder");
@@ -768,6 +768,18 @@ TestCase {
             wait(300);
             grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-games-changed.png"));
         }
+    }
+
+    // One game is a common count: a new child's list starts empty, so the
+    // first game a parent picks for them gives this sentence. It said
+    // "They are highlighted" for that one game too.
+    function test_oneGameOnTheList() {
+        const window = makeWindow("done");
+        showGames(window);
+        chooseChild(window, "ben");
+        mouseClick(card(window, 0));
+        compare(highlighted(window), ["Putt-Putt Joins the Parade"]);
+        compare(findChild(window, "listSentence").text, "Games on Ben's list: 1. A game on the list is highlighted.");
     }
 
     // The keyboard alone: a card takes focus, and Space turns it.

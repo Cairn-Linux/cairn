@@ -41,7 +41,7 @@ Item {
             return qsTr("%1's list of games could not be read, so it counts as a list with no games, and %1 has no game tiles. The file is /var/lib/cairn/games/%2.json. Saving %1's games on this page writes it again.").arg(area.name).arg(area.page.chosen);
         if (area.page.onListCount === 0)
             return qsTr("%1 has no games on their list yet.").arg(area.name);
-        const listed = qsTr("Games on %1's list: %2. They are highlighted.").arg(area.name).arg(area.page.onListCount);
+        const listed = qsTr("Games on %1's list: %2. A game on the list is highlighted.").arg(area.name).arg(area.page.onListCount);
         if (area.page.goneCount === 0)
             return listed;
         return listed + " " + qsTr("The ones no longer in the shared folder come last. %1's own copy may still play them.").arg(area.name);
