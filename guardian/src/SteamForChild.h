@@ -79,6 +79,8 @@ public:
     Q_INVOKABLE void done();
     // The window's close button. True if the window may close now. If not,
     // whatever is under way is closed first and quitRequested() follows.
+    // A Guardian's own Steam that this window asked to close, and that has
+    // gone since, starts again as the window closes (#217).
     Q_INVOKABLE bool leave();
 
     // The Guardian's screen locked.

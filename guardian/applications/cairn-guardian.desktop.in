@@ -1,12 +1,16 @@
 # SPDX-License-Identifier: Apache-2.0
 # The Guardian tool in the application menu (ADR-0040). Only a Guardian
 # sees it: Plasma's menu leaves out an entry whose TryExec program the
-# account cannot run, and only cairn-guardian may run this one.
+# account cannot run, and only cairn-guardian may run this one. Its words
+# name every page, as the System Settings entry's do, and Plasma's menu
+# search reads Keywords, so a parent who searches for games or Steam
+# finds Family.
 [Desktop Entry]
 Type=Application
 Name=Family
-GenericName=Children and their levels
-Comment=Add a child, or move a child to another level
+GenericName=Children, games and your account
+Comment=The children, their levels and games, and your own password and picture
+Keywords=children;child;level;games;Steam;password;picture;account;
 Exec=@CMAKE_INSTALL_FULL_BINDIR@/cairn-guardian
 TryExec=@CMAKE_INSTALL_FULL_BINDIR@/cairn-guardian
 Icon=system-users

@@ -70,9 +70,14 @@ void SteamForChild::done() {
 bool SteamForChild::leave() {
     switch (m_step) {
     case Step::Ready:
+    case Step::NotOpened:
+        // A Steam that saved for longer than the wait, or that the Guardian
+        // quit as the window said, has gone since: it was closed for a
+        // visit, and there is none now.
+        m_ownSteam->resume();
+        return true;
     case Step::Closed:
     case Step::Stuck:
-    case Step::NotOpened:
         return true;
     case Step::ClosingOwnSteam:
         m_stopBeforeOpening = true;
@@ -141,8 +146,9 @@ void SteamForChild::ownSteamPaused(bool closed) {
         setStep(Step::Ready);
         finish();
     } else if (!closed) {
+        // Still there, so nothing comes back now. It starts again after a
+        // later try, or as the window closes, once it has gone (#217).
         setStep(Step::NotOpened, Reason::OwnSteamStillOpen);
-        finish();
     } else {
         m_visit->open(m_child);
     }
