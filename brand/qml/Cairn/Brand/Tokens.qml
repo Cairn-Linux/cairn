@@ -7,8 +7,8 @@ import QtQuick
 QtObject {
     // ---- palette ----
     readonly property color ink: "#1C333C"  // Text, the mark, the only dark ground (terminal, login)
-    readonly property color fjord: "#2E6276"  // Accent, links, machine tiles
-    readonly property color sky: "#A5C8D6"  // Tints, selection, focus ring, hint text on Ink, the system's name on dark consoles
+    readonly property color fjord: "#2E6276"  // Accent, links, the focus ring on light grounds, machine tiles
+    readonly property color sky: "#A5C8D6"  // Tints, selection, the focus ring on Ink, hint text on Ink, the system's name on dark consoles
     readonly property color ochre: "#D9A03C"  // Make tiles (draw, music, build). Large fills only, never text
     readonly property color moss: "#7C956A"  // Practice tiles (GCompris, Tux). Large fills only, never text
     readonly property color sand: "#F4EDE0"  // Everyday ground
@@ -24,7 +24,8 @@ QtObject {
     readonly property color link: fjord
     readonly property color linkOnInk: sky
     readonly property color selection: sky
-    readonly property color focus: sky
+    readonly property color focus: fjord  // 5.77:1 on Sand, 6.29:1 on Paper
+    readonly property color focusOnInk: sky  // 7.45:1 on Ink
     readonly property int focusWidth: 3
     readonly property int focusOffset: 3
 

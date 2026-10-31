@@ -21,7 +21,8 @@
   --cairn-link:         var(--cairn-fjord);
   --cairn-link-on-ink:  var(--cairn-sky);
   --cairn-selection:    var(--cairn-sky);
-  --cairn-focus:        var(--cairn-sky);
+  --cairn-focus:        var(--cairn-fjord);
+  --cairn-focus-on-ink: var(--cairn-sky);
   --cairn-focus-width:  3px;
   --cairn-focus-offset: 3px;
 
@@ -79,6 +80,7 @@
   color: var(--cairn-on-ink);
   --cairn-text: var(--cairn-on-ink);
   --cairn-link: var(--cairn-link-on-ink);
+  --cairn-focus: var(--cairn-focus-on-ink);
 }
 
 /* Interaction states are themed, never browser defaults. */
