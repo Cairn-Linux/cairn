@@ -36,8 +36,9 @@ public:
     // Asks Steam to shut down if it is running. paused() says when it has
     // gone, or that it was still there when the time ran out.
     void pause();
-    // Starts Steam again, only if pause() asked it to shut down. True if it
-    // did.
+    // Starts Steam again, only if pause() asked it to shut down and it has
+    // gone. True if it did. A Steam that would not close stays asked: once
+    // it is quit some other way, the next resume() starts it (#217).
     bool resume();
 
 signals:
