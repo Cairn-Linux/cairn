@@ -544,6 +544,31 @@ class ManifestRulesTests(unittest.TestCase):
         self.assertFalse(kidscan.plain_folder_name(".."))
         self.assertTrue(kidscan.on_beta_branch({"UserConfig": {"BetaKey": "beta"}}))
 
+    def test_which_apps_are_steams_tools(self):
+        # The rule the tiles leave out, and the image's tools step and copy
+        # step take (ADR-0046): by appid, or by a name Valve gives a tool.
+        for appid, name in (("1070560", ""), ("1391110", "anything"), ("1628350", "x"), ("1493710", ""),
+                            ("228980", "Steamworks Common Redistributables"),
+                            ("2805730", "Proton 9.0"), ("4183110", "Steam Linux Runtime 4.0"),
+                            ("3000001", "proton hotfix"), ("3000002", "Steamworks Shared")):
+            with self.subTest(appid=appid, name=name):
+                self.assertTrue(kidscan.is_steam_tool(appid, name))
+        for appid, name in (("620", "Portal 2"), ("4690330", "Legacy Steam Runtime"),
+                            ("292780", "Pajama Sam 2: Proton and Lightning"), ("100", "")):
+            with self.subTest(appid=appid, name=name):
+                self.assertFalse(kidscan.is_steam_tool(appid, name))
+
+    def test_a_plain_file_is_read_byte_for_byte(self):
+        # The tools step copies a tool's manifest as Steam wrote it.
+        path = Path(self.tmp.name) / "appmanifest_100.acf"
+        path.write_bytes(b'"AppState"\r\n{\xff}\n')
+        self.assertEqual(kidscan.read_plain_file(path), b'"AppState"\r\n{\xff}\n')
+        self.assertEqual(kidscan.read_manifest(path), '"AppState"\r\n{�}\n')
+        path.unlink()
+        os.mkfifo(path)
+        self.assertIsNone(kidscan.read_plain_file(path))
+        self.assertIsNone(kidscan.read_plain_file(Path(self.tmp.name) / "missing"))
+
     def test_a_block_appid_never_stops_main(self):
         (self.steamapps / "appmanifest_100.acf").write_text(raw_acf(appid='{ "a" "b" }'))
         (self.steamapps / "appmanifest_200.acf").write_text(raw_acf(appid='"200"'))

@@ -196,6 +196,14 @@ def fully_installed(state):
     return (int(flags) & FULLY_INSTALLED) != 0
 
 
+def is_steam_tool(appid, name):
+    """Whether an app is one of Steam's own tools, a runtime, Proton or a
+    redistributable, rather than a game. Three programs take the rule from
+    here: kidscan leaves these apps out of the tiles, and on the image the
+    tools step and the copy step take only these apps (ADR-0046)."""
+    return appid in APPID_DENYLIST or bool(PROTON_NAME_RE.match(name))
+
+
 def app_from_manifest(file_name, data, steamapps):
     """The game one appmanifest describes, or None when it gets no tile. A
     manifest is Steam's file, and anyone who can write the library can
@@ -215,7 +223,7 @@ def app_from_manifest(file_name, data, steamapps):
         return None
     if not fully_installed(state) or on_beta_branch(state):
         return None
-    if appid in APPID_DENYLIST or PROTON_NAME_RE.match(name):
+    if is_steam_tool(appid, name):
         return None
 
     path = steamapps / "common" / installdir
@@ -224,11 +232,11 @@ def app_from_manifest(file_name, data, steamapps):
     return {"appid": appid, "name": name or installdir, "path": path}
 
 
-def read_manifest(path):
-    """A manifest's text, or None when it is not a plain file of at most
-    MANIFEST_LIMIT bytes. Steam never links or pipes a manifest; one that
-    is a link or a FIFO could make root read another file, or wait for
-    ever."""
+def read_plain_file(path):
+    """A file's bytes, exactly as they are, or None when it is not a plain
+    file of at most MANIFEST_LIMIT bytes. Steam never links or pipes one of
+    its files; one that is a link or a FIFO could make root read another
+    file, or make any reader wait for ever."""
     try:
         descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
     except OSError:
@@ -249,7 +257,14 @@ def read_manifest(path):
         os.close(descriptor)
     if len(data) > MANIFEST_LIMIT:
         return None
-    return data.decode("utf-8", errors="replace")
+    return data
+
+
+def read_manifest(path):
+    """A manifest's text, or None when it is not a plain file of at most
+    MANIFEST_LIMIT bytes (read_plain_file)."""
+    data = read_plain_file(path)
+    return None if data is None else data.decode("utf-8", errors="replace")
 
 
 def installed_apps(steamapps):

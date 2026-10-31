@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
 """Runs cairn-copy-games.py, the copy of each shared game into a child's own
-Steam library (ADR-0033), on folders made for each test.
+Steam library (ADR-0033), and of Steam's tools after the games (ADR-0046),
+on folders made for each test.
 
 Standard library only. The program is installed into a temporary folder
 beside kidscan.py, as provisioning installs it, and run there with
 `python3 -I`, or loaded from there when a test needs to change one of its
-parts. It always gets --shared and --library, so it never reads this
-account's own Steam.
+parts. It always gets --shared, --library and --tools, so it never reads
+this account's own Steam or the computer's tools folder. The tools folder
+is not there unless a test makes it, as on a computer set up by
+provisioning.
 
 A copy needs a filesystem that can reflink (btrfs or XFS). The tests look
 for one in the default temporary folder and then in the build folder, and
@@ -39,6 +42,8 @@ BUILD = HERE.parents[1] / "build"
 GRAMMAR = re.compile(
     r"(copied|have) [0-9]{1,10}|skipped [0-9]{1,10} [a-z-]{1,32}"
     r"|unnumbered|no-library|no-shared|lists-shared|unreadable-config|no-reflink"
+    r"|tool-(copied|have|missing) [0-9]{1,10}|tool-skipped [0-9]{1,10} [a-z-]{1,32}"
+    r"|copying-tools|no-tools|tools-unreadable"
 )
 
 
@@ -105,6 +110,8 @@ class Machine:
         self.steam = self.root / "home" / "ada" / ".local" / "share" / "Steam"
         self.library = self.steam / "steamapps"
         (self.library / "common").mkdir(parents=True)
+        # Made only by a test about Steam's tools.
+        self.tools = self.root / "var" / "steam-tools"
 
     def add_game(self, appid, installdir="A Game", data=None, files=None):
         """A game in the shared library: its manifest, and a folder with a
@@ -122,11 +129,28 @@ class Machine:
             path.chmod(mode)
         return folder
 
+    def add_tool(self, appid, installdir, name, build=100, runs_in=None, data=None):
+        """One build of a tool in the tools folder, as cairn-share-tools
+        makes it: <appid>-<build>, with the manifest and the tool's folder."""
+        self.tools.mkdir(parents=True, exist_ok=True)
+        folder = self.tools / f"{appid}-{build}"
+        (folder / "common" / installdir / "files").mkdir(parents=True)
+        extra = f'\t"buildid"\t\t"{build}"\n'
+        (folder / f"appmanifest_{appid}.acf").write_bytes(
+            data or manifest(appid, installdir, extra=extra, name=name))
+        needs = f'\t"require_tool_appid" "{runs_in}"\n' if runs_in else ""
+        tool = folder / "common" / installdir
+        (tool / "toolmanifest.vdf").write_bytes(f'"manifest"\n{{\n\t"version" "2"\n{needs}}}\n'.encode())
+        (tool / "_v2-entry-point").write_bytes(b"#!/bin/sh\n")
+        (tool / "_v2-entry-point").chmod(0o755)
+        (tool / "files" / "lib.so").write_bytes(b"lib" * 1000)
+        return folder
+
     def run(self, *arguments):
         # A run that blocks fails the test rather than hanging it.
         done = subprocess.run(
-            [sys.executable, "-I", str(self.libexec / "cairn-copy-games"),
-             "--shared", str(self.shared), "--library", str(self.library), *arguments],
+            [sys.executable, "-I", str(self.libexec / "cairn-copy-games"), "--shared", str(self.shared),
+             "--library", str(self.library), "--tools", str(self.tools), *arguments],
             stdin=subprocess.DEVNULL,
             capture_output=True,
             text=True,
@@ -149,7 +173,8 @@ class Machine:
     def run_in_process(self, module, *arguments):
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
-            code = module.main(["--shared", str(self.shared), "--library", str(self.library), *arguments])
+            code = module.main(["--shared", str(self.shared), "--library", str(self.library),
+                                "--tools", str(self.tools), *arguments])
         return code, out.getvalue().splitlines()
 
 
@@ -681,6 +706,221 @@ class OneChildsListTest(CopyTestCase):
             code, lines = self.machine.run_in_process(module, "--only", "100")
         self.assertEqual((code, lines), (2, ["refused root"]))
         self.assertEqual(self.games(), [])
+
+
+SCOUT = {"appid": "1070560", "installdir": "SteamLinuxRuntime", "name": "Steam Linux Runtime 1.0 (scout)",
+         "runs_in": "1391110"}
+SOLDIER = {"appid": "1391110", "installdir": "SteamLinuxRuntime_soldier",
+           "name": "Steam Linux Runtime 2.0 (soldier)"}
+PROTON = {"appid": "1493710", "installdir": "Proton - Experimental", "name": "Proton - Experimental",
+          "runs_in": "4183110"}
+
+
+class ToolsTest(CopyTestCase):
+    """Steam's tools from the tools folder, after the games (ADR-0046).
+    Most copies use a stand-in for cp, and run on any filesystem; the tests
+    that run the program as it is need reflink."""
+
+    place = REFLINK_PLACE
+
+    def run_with_stand_in(self, *arguments, **patches):
+        module = self.machine.load()
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(mock.patch.object(module, "reflink_copy", CopyTest.copy_tree))
+            for name, value in patches.items():
+                stack.enter_context(mock.patch.object(module, name, value))
+            return self.machine.run_in_process(module, *arguments)
+
+    def child_has(self, appid):
+        return (self.machine.library / f"appmanifest_{appid}.acf").exists()
+
+    def test_each_tool_the_child_lacks_comes_after_the_games(self):
+        self.machine.add_game(100)
+        build = self.machine.add_tool(**SCOUT)
+        self.machine.add_tool(**SOLDIER)
+        code, lines = self.run_with_stand_in()
+        self.assertEqual((code, lines), (0, ["copied 100", "copying-tools", "tool-copied 1070560",
+                                             "tool-copied 1391110"]))
+        self.assertOnlyGrammar(lines)
+        self.assertEqual((self.machine.library / "appmanifest_1070560.acf").read_bytes(),
+                         (build / "appmanifest_1070560.acf").read_bytes())
+        copy = self.machine.library / "common" / "SteamLinuxRuntime"
+        self.assertEqual((copy / "files" / "lib.so").read_bytes(), b"lib" * 1000)
+        self.assertTrue((self.machine.library / "common" / "SteamLinuxRuntime_soldier" / "toolmanifest.vdf").is_file())
+
+    @needs_reflink
+    def test_a_real_copy_keeps_no_setgid_or_acl_of_the_tools_folder(self):
+        build = self.machine.add_tool(**SOLDIER)
+        tool = build / "common" / "SteamLinuxRuntime_soldier"
+        for folder in (self.machine.tools, build, tool, tool / "files"):
+            folder.chmod(0o2775)
+        if shutil.which("setfacl"):
+            subprocess.run(["setfacl", "-m", "d:u::rwx,d:g::rwx,d:o::r-x", str(tool)], capture_output=True,
+                           check=False)
+        os.utime(tool / "_v2-entry-point", (1_000_000_000, 1_000_000_000))
+        lines = self.machine.run()
+        self.assertEqual(lines, ["copying-tools", "tool-copied 1391110"], self.machine.stderr)
+        copy = self.machine.library / "common" / "SteamLinuxRuntime_soldier"
+        self.assertEqual((copy / "_v2-entry-point").stat().st_mode & 0o777, 0o755, "it still runs")
+        self.assertEqual((copy / "_v2-entry-point").stat().st_mtime, 1_000_000_000)
+        for folder in (copy, copy / "files"):
+            self.assertFalse(folder.stat().st_mode & 0o2000, folder)
+            self.assertFalse([a for a in os.listxattr(folder) if a.startswith("system.posix_acl")], folder)
+
+    def test_copying_tools_is_said_once_and_only_before_a_copy(self):
+        self.machine.add_tool(**SCOUT)
+        self.machine.add_tool(**SOLDIER)
+        self.assertEqual(self.run_with_stand_in(), (0, ["copying-tools", "tool-copied 1070560",
+                                                       "tool-copied 1391110"]))
+        self.assertEqual(self.run_with_stand_in(), (0, ["tool-have 1070560", "tool-have 1391110"]))
+
+    def test_a_tool_the_child_has_is_never_touched(self):
+        # Their Steam owns it and updates it, whatever its build or state.
+        self.machine.add_tool(**SOLDIER, build=200)
+        own = self.machine.library / "appmanifest_1391110.acf"
+        own.write_bytes(manifest(1391110, "SteamLinuxRuntime_soldier", flags="6",
+                                 extra='\t"buildid"\t\t"100"\n'))
+        os.utime(own, (1_000_000_000, 1_000_000_000))
+        kept = own.read_bytes()
+        self.assertEqual(self.run_with_stand_in(), (0, ["tool-have 1391110"]))
+        self.assertEqual(own.read_bytes(), kept)
+        self.assertEqual(own.stat().st_mtime, 1_000_000_000)
+        self.assertFalse((self.machine.library / "common" / "SteamLinuxRuntime_soldier").exists())
+
+    def test_a_tool_folder_without_its_manifest_is_left_alone(self):
+        self.machine.add_tool(**SOLDIER)
+        (self.machine.library / "common" / "SteamLinuxRuntime_soldier").mkdir()
+        self.assertEqual(self.run_with_stand_in(), (0, ["tool-skipped 1391110 folder-without-manifest"]))
+        self.assertFalse(self.child_has("1391110"))
+
+    def test_the_newest_build_is_copied(self):
+        self.machine.add_tool(**SOLDIER, build=100)
+        newest = self.machine.add_tool(**SOLDIER, build=250)
+        self.machine.add_tool(**SOLDIER, build=99)
+        self.assertEqual(self.run_with_stand_in(), (0, ["copying-tools", "tool-copied 1391110"]))
+        self.assertEqual((self.machine.library / "appmanifest_1391110.acf").read_bytes(),
+                         (newest / "appmanifest_1391110.acf").read_bytes())
+
+    def test_anything_but_a_builds_folder_is_passed_over(self):
+        self.machine.add_tool(**SOLDIER, build=100)
+        tools = self.machine.tools
+        # A newer build that is a link, a file, a half-made build and odd
+        # names: none of them is a build.
+        (tools / "1391110-900").symlink_to(tools / "1391110-100")
+        (tools / "1391110-901").write_bytes(b"not a build")
+        shutil.copytree(tools / "1391110-100", tools / ".cairn-tool-abc")
+        shutil.copytree(tools / "1391110-100", tools / "1391110-0100")
+        shutil.copytree(tools / "1391110-100", tools / "soldier")
+        self.assertEqual(self.run_with_stand_in(), (0, ["copying-tools", "tool-copied 1391110"]))
+        self.assertIn(b'"buildid"\t\t"100"', (self.machine.library / "appmanifest_1391110.acf").read_bytes())
+
+    def test_a_game_put_in_the_tools_folder_is_never_copied(self):
+        self.machine.add_tool("620", "Portal 2", "Portal 2")
+        build = self.machine.add_tool("2805730", "Proton Shadow", "Proton 9.0")
+        (build / "common" / "Proton Shadow" / "toolmanifest.vdf").unlink()
+        self.assertEqual(self.run_with_stand_in(), (0, ["tool-skipped 620 not-a-tool",
+                                                       "tool-skipped 2805730 not-a-tool"]))
+        self.assertEqual(list((self.machine.library / "common").iterdir()), [])
+
+    def test_a_manifest_that_names_another_appid(self):
+        self.machine.add_tool(**SOLDIER, data=manifest(1070560, "SteamLinuxRuntime_soldier",
+                                                       name="Steam Linux Runtime 2.0 (soldier)"))
+        self.assertEqual(self.run_with_stand_in(), (0, ["tool-skipped 1391110 appid"]))
+
+    def test_a_tool_that_runs_in_one_nobody_has(self):
+        # #206: the child's Steam would fetch scout and never soldier.
+        self.machine.add_tool(**SCOUT)
+        self.assertEqual(self.run_with_stand_in(), (0, ["copying-tools", "tool-copied 1070560",
+                                                       "tool-missing 1391110"]))
+        # With the child's own soldier there is nothing missing.
+        shutil.rmtree(self.machine.library / "common" / "SteamLinuxRuntime")
+        (self.machine.library / "appmanifest_1070560.acf").unlink()
+        (self.machine.library / "appmanifest_1391110.acf").write_bytes(manifest(1391110, "SteamLinuxRuntime_soldier"))
+        self.assertEqual(self.run_with_stand_in(), (0, ["copying-tools", "tool-copied 1070560"]))
+
+    def test_tools_the_child_has_still_count_for_what_is_missing(self):
+        self.machine.add_tool(**PROTON)
+        (self.machine.library / "appmanifest_1493710.acf").write_bytes(manifest(1493710, "Proton - Experimental"))
+        self.assertEqual(self.run_with_stand_in(), (0, ["tool-have 1493710", "tool-missing 4183110"]))
+
+    def test_an_empty_tools_folder(self):
+        self.machine.tools.mkdir(parents=True)
+        self.machine.add_game(100)
+        self.assertEqual(self.run_with_stand_in(), (0, ["copied 100", "no-tools"]))
+
+    def test_no_tools_folder_says_nothing_about_tools(self):
+        self.machine.add_game(100)
+        self.assertEqual(self.run_with_stand_in(), (0, ["copied 100"]))
+        self.machine.tools.parent.mkdir(parents=True, exist_ok=True)
+        self.machine.tools.symlink_to(self.machine.root)
+        self.assertEqual(self.run_with_stand_in(), (0, ["have 100"]))
+
+    def test_an_early_stop_says_nothing_about_tools(self):
+        self.machine.add_tool(**SOLDIER)
+        self.machine.add_game(100)
+        vdf = self.machine.steam / "config" / "libraryfolders.vdf"
+        vdf.parent.mkdir(parents=True)
+        vdf.write_text(f'"libraryfolders"\n{{\n\t"1"\n\t{{\n\t\t"path"\t\t"{self.machine.shared.parent}"\n\t}}\n}}\n')
+        self.assertEqual(self.run_with_stand_in(), (0, ["lists-shared"]))
+        vdf.unlink()
+        os.mkfifo(vdf)
+        self.assertEqual(self.machine.run(), ["unreadable-config"])
+        vdf.unlink()
+        shutil.rmtree(self.machine.shared)
+        self.assertEqual(self.machine.run(), ["no-shared"])
+        shutil.rmtree(self.machine.steam)
+        self.assertEqual(self.machine.run(), ["no-library"])
+
+    def test_no_reflink_found_only_at_the_tools_holds_no_game(self):
+        self.machine.add_game(100)
+        (self.machine.library / "appmanifest_100.acf").write_bytes(manifest(100))
+        self.machine.add_tool(**SCOUT)
+        self.machine.add_tool(**SOLDIER)
+        code, lines = self.run_with_stand_in(can_reflink=lambda manifest, common: False)
+        self.assertEqual((code, lines), (0, ["have 100", "tool-skipped 1070560 no-reflink",
+                                             "tool-skipped 1391110 no-reflink"]))
+        self.assertNotIn("no-reflink", lines)
+
+    def test_tools_come_with_a_list_and_without_one(self):
+        self.machine.add_game(100, "First")
+        self.machine.add_game(200, "Second")
+        self.machine.add_tool(**SOLDIER)
+        self.assertEqual(self.run_with_stand_in("--only", "200"), (0, ["copied 200", "copying-tools",
+                                                                       "tool-copied 1391110"]))
+        self.assertEqual(self.run_with_stand_in(), (0, ["copied 100", "have 200", "tool-have 1391110"]))
+
+    @needs_reflink
+    @needs_not_root
+    def test_a_tools_folder_the_child_cannot_read_leaves_the_games_as_they_are(self):
+        self.machine.add_game(100)
+        self.machine.add_tool(**SOLDIER)
+        self.machine.tools.chmod(0o000)
+        try:
+            lines = self.machine.run()
+        finally:
+            self.machine.tools.chmod(0o755)
+        self.assertEqual((self.machine.code, lines), (0, ["copied 100", "tools-unreadable"]))
+
+    @needs_reflink
+    def test_a_fifo_for_a_manifest_never_holds_the_copy_up(self):
+        self.machine.add_game(100)
+        build = self.machine.add_tool(**SOLDIER)
+        (build / "appmanifest_1391110.acf").unlink()
+        os.mkfifo(build / "appmanifest_1391110.acf")
+        module = self.machine.load()
+        with mock.patch.object(module, "reflink_copy", CopyTest.copy_tree):
+            code, lines = self.machine.run_in_process(module)
+        self.assertEqual((code, lines), (0, ["copied 100", "tool-skipped 1391110 unreadable"]))
+        # And as its own program, which would block for ever otherwise.
+        (self.machine.library / "appmanifest_100.acf").unlink()
+        shutil.rmtree(self.machine.library / "common" / "A Game")
+        lines = self.machine.run()
+        self.assertEqual(lines[-1], "tool-skipped 1391110 unreadable", self.machine.stderr)
+
+    def test_a_game_manifest_that_is_a_fifo_is_unreadable_too(self):
+        # The same read for a game, whose folder every Guardian can write.
+        os.mkfifo(self.machine.shared / "appmanifest_100.acf")
+        self.assertEqual(self.machine.run(), ["skipped 100 unreadable"])
 
 
 class NoReflinkTest(unittest.TestCase):
