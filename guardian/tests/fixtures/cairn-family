@@ -22,7 +22,9 @@
 # save-tools-copying is still copying the tools. The pictures are made
 # first (ADR-0047): save-pictures-kept says they were kept, and
 # save-pictures-missing and save-pictures-refused name game 1008 without a
-# picture; each then goes on as save-done.
+# picture. save-pictures-and-catalogue-kept says the full list was kept,
+# and names game 1007 without a picture and game 1008 with one that was
+# left out. Each then goes on as save-done.
 #
 # For set-own-password, when CAIRN_TEST_INPUT names a file, what came on
 # standard input is written to it, as the real command reads the new
@@ -84,10 +86,15 @@ save_games() {
     else
         echo "pictures made"
     fi
-    echo "catalogue made"
+    if [ "$scenario" = save-pictures-and-catalogue-kept ]; then
+        echo "catalogue kept"
+    else
+        echo "catalogue made"
+    fi
     case "$scenario" in
         save-pictures-missing) echo "picture-missing 1008" ;;
         save-pictures-refused) echo "picture-refused 1008" ;;
+        save-pictures-and-catalogue-kept) printf 'picture-missing 1007\npicture-refused 1008\n' ;;
     esac
     case "$scenario" in
         save-sharing-tools) exec sleep 30 ;;

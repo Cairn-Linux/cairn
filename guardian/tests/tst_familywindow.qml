@@ -1031,7 +1031,7 @@ TestCase {
         mouseClick(card(window, 1));
         mouseClick(findChild(window, "saveButton"));
         tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
-        compare(saveOutcome(window), "Saved. Each child sees their games the next time they log in. Not every tool Steam runs games with could be taken from your own Steam, so a child who got new games may not have every tool yet. Their Steam downloads what is missing the first time a game needs it, which can take several minutes. If that game does not start, log the child out and back in, then try it again. The reason is in the system log. In a terminal: journalctl -t cairn-family");
+        compare(saveOutcome(window), "Saved. Each child sees their games the next time they log in. Not every tool Steam runs games with could be taken from your own Steam, so a child who got new games may not have every tool yet. Their Steam downloads what is missing the first time a game needs it, which can take several minutes. If that game does not start, log the child out and back in, then try it again. The system log says why. In a terminal: journalctl -t cairn-family");
         verify(result(window, 0).text.startsWith("Ada's list is saved. Added: 4. Taken off: 0. Copied the tools Steam runs games with into Ada's Steam,"));
         if (standIns.screenshotPath() !== "") {
             wait(300);
@@ -1083,7 +1083,7 @@ TestCase {
         showGames(window);
         mouseClick(findChild(window, "lookForGames"));
         tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
-        compare(saveOutcome(window), "The shared folder was read again. Every game in it shows on the page. Your own Steam has a picture that Cairn could not use for: A game with a long name that will not fit on one line. On a child's screen a game without a picture shows its name instead. The reason is in the system log. In a terminal: journalctl -t cairn-family");
+        compare(saveOutcome(window), "The shared folder was read again. Every game in it shows on the page. Cairn could not use your own Steam's picture for A game with a long name that will not fit on one line. On a child's screen a game without a picture shows its name instead. The system log says why. In a terminal: journalctl -t cairn-family");
     }
 
     // A picture step that did not go to its end gets one sentence, and
@@ -1096,7 +1096,33 @@ TestCase {
         mouseClick(card(window, 1));
         mouseClick(findChild(window, "saveButton"));
         tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
-        compare(saveOutcome(window), "Saved. Each child sees their games the next time they log in. The game pictures could not all be copied from your own Steam this time, so a game without one shows its name on a child's screen. Pictures copied before stay. Pressing Look for new games tries again. If it happens again, the reason is in the system log. In a terminal: journalctl -t cairn-family");
+        compare(saveOutcome(window), "Saved. Each child sees their games the next time they log in. The game pictures could not all be copied from your own Steam this time, so a game without one shows its name on a child's screen. Pictures copied before stay. Pressing Look for new games tries again. The system log says why. In a terminal: journalctl -t cairn-family");
+    }
+
+    // How many times `part` is in `text`.
+    function occurrences(text, part) {
+        return text.split(part).length - 1;
+    }
+
+    // Several notices at once: each game is named, what a child sees of a
+    // game without a picture is said once, and the system log is named
+    // once, last, so nothing runs on from the command.
+    function test_severalNoticesSayEachThingOnce() {
+        const window = makeWindow("done", {
+            "gamesScenario": "save-pictures-and-catalogue-kept"
+        });
+        showGames(window);
+        mouseClick(card(window, 1));
+        mouseClick(findChild(window, "saveButton"));
+        tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
+        const said = saveOutcome(window);
+        verify(said.startsWith("Saved. Each child sees their games the next time they log in. No picture yet: Mini Golf. "), said);
+        verify(said.includes(" Cairn could not use your own Steam's picture for A game with a long name that will not fit on one line. "), said);
+        verify(said.includes(" The list of shared games could not be made again, so the page shows the one from before. "), said);
+        compare(occurrences(said, "On a child's screen a game without a picture shows its name instead."), 1);
+        compare(occurrences(said, "system log"), 1);
+        compare(occurrences(said, "journalctl"), 1);
+        verify(said.endsWith(" The system log says why. In a terminal: journalctl -t cairn-family"), said);
     }
 
     // A look gives no child anything, so it says nothing about the tools.
