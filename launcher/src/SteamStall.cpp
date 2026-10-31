@@ -37,7 +37,7 @@ SteamStall::Now SteamStall::decide(const SteamLaunchLog& launch, SteamStartup::N
         return Now::Stuck;
     }
     if (m_restart == Restart::Asked) {
-        return Now::Restarting;
+        return Now::Mending;
     }
     if (m_restart == Restart::Done && !launch.reachedSteam()) {
         return retaking(launch, steam, now);
@@ -53,11 +53,11 @@ SteamStall::Now SteamStall::decide(const SteamLaunchLog& launch, SteamStartup::N
 SteamStall::Now SteamStall::retaking(const SteamLaunchLog& launch, SteamStartup::Now steam,
                                      const QDateTime& now) const {
     if (steam != SteamStartup::Now::Ready) {
-        return Now::Restarting;
+        return Now::Mending;
     }
     const std::optional<QDateTime> started = launch.steamStartedAt();
     const qint64 waited = started ? started->msecsTo(now) : m_sinceRestart.elapsed();
-    return waited < m_retakeLimitMilliseconds ? Now::Restarting : Now::Stuck;
+    return waited < m_retakeLimitMilliseconds ? Now::Mending : Now::Stuck;
 }
 
 bool SteamStall::askRestart() {
@@ -65,7 +65,7 @@ bool SteamStall::askRestart() {
         return false;
     }
     m_restart = Restart::Asked;
-    m_now = Now::Restarting;
+    m_now = Now::Mending;
     return true;
 }
 

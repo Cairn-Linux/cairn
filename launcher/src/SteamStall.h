@@ -29,8 +29,9 @@ public:
         Fine,
         // Stopped, for the first time in this tap: Steam may be started again.
         Stalled,
-        // Steam is being started again, or was and has not taken the tap.
-        Restarting,
+        // The launcher is mending the stall: Steam is being started again,
+        // or was and has not taken the tap yet.
+        Mending,
         // Starting Steam again could not be done or did not help.
         Stuck,
     };

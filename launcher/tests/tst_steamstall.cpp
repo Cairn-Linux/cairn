@@ -194,7 +194,7 @@ private slots:
         QCOMPARE(run.read(at("2026-10-30 17:12:00")), Now::Stalled);
         QVERIFY(run.stall.askRestart());
         QVERIFY(!run.stall.askRestart());
-        QCOMPARE(run.read(at("2026-10-30 17:12:15")), Now::Restarting);
+        QCOMPARE(run.read(at("2026-10-30 17:12:15")), Now::Mending);
         QVERIFY(!run.stall.askRestart());
 
         // A new tap that stalls again may start Steam again.
@@ -211,7 +211,7 @@ private slots:
         Launch run;
         run.stall.setRetakeLimitMilliseconds(200);
         run.restartedAfterAStall();
-        QCOMPARE(run.read(QDateTime::currentDateTime()), Now::Restarting);
+        QCOMPARE(run.read(QDateTime::currentDateTime()), Now::Mending);
         QTRY_COMPARE(run.read(QDateTime::currentDateTime()), Now::Stuck);
         QVERIFY(run.stall.logOutWouldHelp());
 
@@ -228,9 +228,9 @@ private slots:
         run.restartedAfterAStall();
         QTest::qWait(300);
         const QDateTime now = QDateTime::currentDateTime();
-        QCOMPARE(run.read(now, SteamStartup::Now::Updating), Now::Restarting);
-        QCOMPARE(run.read(now, SteamStartup::Now::Restarting), Now::Restarting);
-        QCOMPARE(run.read(now, SteamStartup::Now::Starting), Now::Restarting);
+        QCOMPARE(run.read(now, SteamStartup::Now::Updating), Now::Mending);
+        QCOMPARE(run.read(now, SteamStartup::Now::Restarting), Now::Mending);
+        QCOMPARE(run.read(now, SteamStartup::Now::Starting), Now::Mending);
         // Started by now and never ran its own start command: it never will.
         QCOMPARE(run.read(now), Now::Stuck);
     }
@@ -241,7 +241,7 @@ private slots:
         Launch run;
         run.restartedAfterAStall();
         run.console(ownStart("2026-10-30 17:13:00"));
-        QCOMPARE(run.read(at("2026-10-30 17:14:59")), Now::Restarting);
+        QCOMPARE(run.read(at("2026-10-30 17:14:59")), Now::Mending);
         QCOMPARE(run.read(at("2026-10-30 17:15:00")), Now::Stuck);
     }
 

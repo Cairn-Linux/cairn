@@ -79,7 +79,7 @@ bool SteamGameWait::steamWorking() const {
     // be asked again, or has just been.
     const bool tapToTake = m_log.steamStartedAt().has_value() && !m_log.reachedSteam();
     return m_lastStep == SteamLaunchLog::Step::Working || m_steamNow != SteamStartup::Now::Ready ||
-           tapToTake || m_stallNow == SteamStall::Now::Restarting;
+           tapToTake || m_stallNow == SteamStall::Now::Mending;
 }
 
 bool SteamGameWait::sendAgain() {
@@ -103,7 +103,7 @@ bool SteamGameWait::restartSteam() {
         m_signIn.read() != SteamSignIn::Now::Fine || newReaper() || !m_stall.askRestart()) {
         return false;
     }
-    m_stallNow = SteamStall::Now::Restarting;
+    m_stallNow = SteamStall::Now::Mending;
     return true;
 }
 
