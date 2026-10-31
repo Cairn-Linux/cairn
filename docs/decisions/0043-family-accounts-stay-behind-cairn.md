@@ -309,9 +309,10 @@ once the art was put back. With a Release build of this branch at
 account showed 37 pictures: KDE's 17 drawings in name order, then its
 20 photos in name order, and no game art. Tapping Owl said "Your
 picture is changed.", and the page and Plasma's lock screen showed the
-owl. Everything was put back afterwards, and the Guardian has no
-picture again, as before. Not checked yet: an image built with podman,
-where the build runs the script and the check.
+owl. Afterwards the Guardian had no picture again, as before. Not
+checked yet: an image built with podman, where the build runs the
+script and the check, and `rpm -V steamdeck-kde-presets-desktop` on
+that image.
 
 ## Consequences
 
