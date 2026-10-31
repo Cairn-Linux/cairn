@@ -490,8 +490,11 @@ done, and what could sink it. Decisions that change the design get an ADR in
   games, or the journal when Cairn could not use the picture. A card
   without one says the same. A picture step that does not finish gets a
   sentence, and the journal gets its own word, as a games list that could
-  not be made now does. Tested in Python, C++ and QML; not yet run in the
-  VM.
+  not be made now does. Tested in Python, C++ and QML, and in the VM on
+  2026-10-31 with this change laid over `/usr`: checks 1, 2 (simulated),
+  4, 5, 6 and 8 passed, and the Family app named the four test games that
+  have no picture. A Steam update or beta (check 3) and the set-up script
+  (check 7) are left.
 - **A Steam that cannot sign in needs a grown-up soon (2026-10-29, #182,
   amends ADR-0036).** On the kids' laptop a tap came while the tester
   account's Steam had its saved sign-in turned down. The starting screen

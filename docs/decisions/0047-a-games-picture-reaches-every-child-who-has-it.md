@@ -170,7 +170,8 @@ ADR-0041.
   file that names none.
   It still starts, since provisioning's wrapper does not pass
   `--pictures`, which an older launcher would refuse.
-- Tested in Python, C++ and QML; not yet in the VM.
+- Tested in Python, C++ and QML, and in the VM on 2026-10-31 (checks 1,
+  2, 4, 5, 6 and 8; see "Run on 2026-10-31").
 
 ## Checks in the VM
 
@@ -195,6 +196,49 @@ In cairn-iso, with an image built from this change:
 7. The set-up script run again after opening Steam copies the missing
    picture, and the child sees it.
 8. No AVC denial, and no path or Steam name in the journal.
+
+### Run on 2026-10-31
+
+In cairn-iso, with this change's build laid over `/usr` instead of a new
+image, since the VM cannot reboot without losing that. Looks ran as
+`cairn-family save-games` under sudo with `PKEXEC_UID=1000`, except one
+from the Family app itself.
+
+1. Passed, in part. The four test games have no picture in the
+   Guardian's Steam. Each gave the window `picture-missing APPID` and the
+   journal `picture step: missing APPID`. In the Family app, a Look said
+   "No picture yet: Test Game Big, Test Game One, Test Game Three, and
+   Test Game Two.", then the rest of that paragraph. Each test game's card
+   said "No picture yet, so a child's tile shows the name." with its
+   advice. A picture put in place by hand as `900001.jpg` showed on ada's
+   Test Game One tile, though her list names no picture for it. Not run:
+   opening Steam until it shows a game, since the test games are not
+   Steam's.
+2. Passed, by moving the manifests of Arthur's Birthday (on ada's list)
+   and Freddi Fish 2 (on no list) out of the family folder, then a Look.
+   The games file lost both. `2471140.jpg` stayed, with no `removed`
+   line, and ada's tile still showed it. `294530.jpg` went, with
+   `removed 294530`. With both put back, a Look gave `copied 294530`.
+3. Not run: no update or beta was to be had.
+4. Passed. The link gave the window `pictures kept` and the journal
+   `picture step: refused folder`. Mode 0775 gave `picture step: refused
+   lists`, and the pictures folder did not change. Both put back.
+5. Passed, without looking at the window. With Arthur's Birthday's header
+   overwritten by text and its picture removed, the window had
+   `picture-refused 2471140` and the journal `picture step: refused
+   2471140 not-a-jpeg`. With the header back, a Look gave `copied
+   2471140`.
+6. Passed. With `steamapps` a link, the window had `pictures kept` and
+   `catalogue kept`, and the journal `picture step: failed`, `catalogue
+   kept` and `catalogue step: failed`. The games file did not change. Put
+   back.
+7. Not run.
+8. Passed: none of the 64 journal lines holds a `/` or a game title, and
+   there was no AVC denial.
+
+The games file named no picture after the first Look, and each child's
+list was byte for byte the same before and after. This stays proposed
+until checks 3 and 7 run, unless the maintainer accepts it without them.
 
 ## Alternatives considered
 
