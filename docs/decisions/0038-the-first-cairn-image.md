@@ -11,7 +11,9 @@ ADR-0044, proposed (the image builds its own initramfs, with Cairn's
 boot screen); ADR-0046, proposed (tmpfiles also makes
 /var/lib/cairn/steam-tools, the build installs the tools step,
 cairn-share-tools, in /usr/libexec/cairn, and the family's setup also
-compares it with the checkout)
+compares it with the checkout); ADR-0043, proposed (the build leaves
+only KDE's own pictures in /usr/share/plasma/avatars and removes
+Bazzite's copies of game art from /usr/share/pixmaps/faces)
 
 ## Context
 
@@ -531,6 +533,10 @@ line too.
   `start-here-kde` from Breeze, which is KDE's and stays.
   `mark-currentcolor.svg` is not used, because
   Plasma recolours only its own colour classes, not `currentColor`.
+  Since 2026-10-31, `build_files/kde-pictures.sh` also takes out the
+  game art Bazzite adds to Plasma's picture folder, so the picture a
+  Guardian chooses, which the lock screen shows, is one of KDE's
+  (ADR-0043, "Only KDE's pictures").
 - **#167, the Guardian tool.** Fedora's guidelines also ask for a notice
   where the system names itself: not provided or supported by the Fedora
   Project, official Fedora at https://fedoraproject.org/. KDE's About page

@@ -112,11 +112,14 @@ The Games page (ADR-0041):
 The Your account page (ADR-0043):
 
 1. The Guardian's name and picture.
-2. Plasma's own pictures, from `/usr/share/plasma/avatars`, and
-   **Choose a picture of your own**, Qt's file dialog. A tap makes the
-   picture a square of at most 256 pixels and hands it to
-   AccountsService (`SetIconFile`), with no password; Plasma's lock
-   screen shows it. Cairn's login screen draws first letters instead.
+2. KDE's own pictures from `/usr/share/plasma/avatars`, its drawings and
+   then the photos in its `photos` folder, and **Choose a picture of
+   your own**, Qt's file dialog. The image leaves only KDE's pictures
+   there: `build_files/kde-pictures.sh` removes the game art Bazzite
+   adds. A tap makes the picture a square of at most 256 pixels and
+   hands it to AccountsService (`SetIconFile`), with no password;
+   Plasma's lock screen shows it. Cairn's login screen draws first
+   letters instead.
 3. **Password:** the new password twice, then **Change password**.
    Both are checked first: not empty, the same, at most 128 characters,
    no tab or line break. Then `cairn-family set-own-password` runs
@@ -341,7 +344,7 @@ QML draws, C++ decides (ADR-0002):
 | `src/SaveRun` | Runs `pkexec` with `cairn-family save-games` or `log-out`, and passes on each line as it arrives, then the answer, pkexec's own exit code, or `not-started` when nothing could be started. |
 | `src/SaveReport` | Reads `save-games`'s lines into how far it has got, each game copied, each child's counts, held word, games left out and tools, and whether a tool was left out of the tools folder, taking only its fixed words and the children the Save named. |
 | `src/PkexecAnswer` | pkexec's own two exit codes, for both runners of `cairn-family`. |
-| `src/AccountPage` | What the Your account page shows and does: the Guardian's name and picture, Plasma's pictures, a new picture, and a new password, checked first and sent to `cairn-family set-own-password` on standard input. Its commands, account database and bus are in its `Setup`, so a test can replace them. |
+| `src/AccountPage` | What the Your account page shows and does: the Guardian's name and picture, KDE's pictures, a new picture, and a new password, checked first and sent to `cairn-family set-own-password` on standard input. Its commands, account database and bus are in its `Setup`, so a test can replace them. |
 | `src/AccountPicture` | The Guardian's own picture through AccountsService on the system bus, with Qt D-Bus: reading `IconFile`, and `SetIconFile`, waited for without blocking the window. |
 | `src/PictureFile` | A chosen picture made ready for AccountsService: a square from its middle, turned as the camera meant, at most 256 pixels, as PNG. |
 | `src/NewPassword` | The one rule for a new password, which the window and `cairn-family` both check. |
@@ -387,7 +390,7 @@ journalctl -t cairn-steam-for -t cairn-steam-visit --since today
 
 ## Tests
 
-CTest runs thirty-eight here, among them `steamvisit`, `ownsteam`,
+CTest runs thirty-nine here, among them `steamvisit`, `ownsteam`,
 `screenlockwatch`,
 `steamforchild`, `steamwindow` (the real window in Qt Quick Test),
 `familycommand`, `steamentry`, and for the Guardian tool `loginname`,
@@ -396,8 +399,8 @@ CTest runs thirty-eight here, among them `steamvisit`, `ownsteam`,
 `childrenpage`, `gamepicture`, `gameshelf`, `gamespage` and
 `familywindow` (the real window in Qt Quick Test, all three pages and
 the switch), and for a grown-up's own password and picture
-`newpassword`, `ownpasswordcommand`, `picturefile`, `accountpage` and
-`hideuserspage`. They use stand-ins in `tests/fixtures/`
+`newpassword`, `ownpasswordcommand`, `picturefile`, `accountpage`,
+`hideuserspage` and `kdepictures`. They use stand-ins in `tests/fixtures/`
 for `pkexec` with the helper behind it, which takes a scenario where the
 helper's path goes, and for the Guardian's Steam client, over a stand-in
 process list. `pkexec-family` stands in for `pkexec` as the Guardian
@@ -468,10 +471,17 @@ waiting calls get their answer) and the pkexec stand-ins, whose
 `cairn-family` writes what came on its standard input to the file
 `CAIRN_TEST_INPUT` names: the checks before any password box, the
 password on standard input and never in the arguments, every answer,
-one change at a time, a picture taken, refused or unreadable.
+one change at a time, a picture taken, refused or unreadable, and
+KDE's photos listed after its drawings, and no other folder's pictures.
 `hideuserspage` runs the Kiosk script on Bazzite's own `kdeglobals`, on
 none, and twice, and reads the result with `kreadconfig6` when it is
-there. `steamentry` checks the entry's text against
+there. `kdepictures` runs the image's picture step on a folder of
+empty files, with a stand-in rpm that answers as the VM's did: KDE's
+pictures stay, Bazzite's links and copies and the Steam Deck look's
+folders go, a dry run removes nothing, and a second run changes
+nothing. It stops rather than remove a KDE picture in a folder that is
+not KDE's, and before anything goes when rpm cannot answer.
+`steamentry` checks the entry's text against
 provisioning's own `steam_entry`. The screen-lock tests and the Steam
 window's tests run on a session bus of their own under
 `dbus-run-session`, which the build needs, and so does `loginwatch`;
