@@ -4,7 +4,8 @@
 cairn-iso VM on 2026-10-30, from a test copy of this branch's programs
 at a path of their own. It becomes accepted when the same checks pass
 with the programs and files where the image puts them. "Only KDE's
-pictures", added on 2026-10-31, has had a dry run in the VM so far.
+pictures", added on 2026-10-31, passed its checks in the VM that day,
+on the VM's writable `/usr` rather than in a built image.
 **Date:** 2026-10-30; "Only KDE's pictures" 2026-10-31
 **Closes:** (none) — the System Settings half of issue #113, and the
 second item of the parent app Mason agreed (ROADMAP P1-5). Amends
@@ -296,8 +297,21 @@ folders with their 23 pictures, and the 15 copies in
 17 drawings, its `photos` folder or the 40 files in it. The picture
 lines of `check-guardian-desktop.sh`, run on the VM the same way,
 failed there as they should, and passed on the dev PC's Fedora KDE.
-Still to check in the VM: the removal itself, and the page showing
-KDE's 37 pictures and no other.
+
+Later that day the script was copied to the VM and run as root on its
+writable `/usr`, which is the image's own, Bazzite's art included. It
+removed those 57 paths and nothing else. KDE's 17 drawings and the 40
+files in `photos` were unchanged, `/usr/share/pixmaps/faces` was gone,
+and a second dry run listed nothing. The picture lines of
+`check-guardian-desktop.sh` then passed on the VM, and failed again
+once the art was put back. With a Release build of this branch at
+`/usr/libexec/cairn/cairn-guardian`, where the image puts it, Your
+account showed 37 pictures: KDE's 17 drawings in name order, then its
+20 photos in name order, and no game art. Tapping Owl said "Your
+picture is changed.", and the page and Plasma's lock screen showed the
+owl. Everything was put back afterwards, and the Guardian has no
+picture again, as before. Not checked yet: an image built with podman,
+where the build runs the script and the check.
 
 ## Consequences
 
