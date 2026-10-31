@@ -21,6 +21,9 @@ The Guardian's side of Cairn (ROADMAP P1-5). So far it has three pieces:
 Steam window, only the `cairn-guardian` group may run it, and the entry
 names it as its `TryExec`, so no one else's menu shows it. It is on the
 image only: hand provisioning installs neither it nor `cairn-family`.
+The entry's words name every page, "Children, games and your account",
+and its keywords include games and Steam, so a search in the menu for
+either finds it.
 
 Three buttons above the page, **Children**, **Games** and **Your
 account**, move between its pages. The window opens on Children.
@@ -64,11 +67,11 @@ The Games page (ADR-0041):
    still shows, last, marked "On the list, no longer shared". A child
    with no file has no games, as a new child does.
 3. A tap on a game, or Space or Enter, puts it on the list or takes it
-   off. Nothing is saved yet: the card says "Added, not saved yet" or
-   "Taken off, not saved yet", the child's name above says "not saved",
-   and a sentence names every child with changes. The parent can change
-   several children and save once. **Put back as saved** undoes the
-   changes for the child picked.
+   off. A key held down counts once. Nothing is saved yet: the card says
+   "Added, not saved yet" or "Taken off, not saved yet", the child's name
+   above says "not saved", and a sentence names every child with changes.
+   The parent can change several children and save once. **Put back as
+   saved** undoes the changes for the child picked.
 4. **Save** runs `cairn-family save-games` through `pkexec` once, with
    each changed child's whole new list, so one password covers the whole
    Save. It is ready only when there is something to save, and **Put
@@ -111,7 +114,8 @@ The Games page (ADR-0041):
 
 The Your account page (ADR-0043):
 
-1. The Guardian's name and picture.
+1. The Guardian's name and picture. With no picture, its frame says
+   "No picture yet".
 2. Plasma's own pictures, from `/usr/share/plasma/avatars`, and
    **Choose a picture of your own**, Qt's file dialog. A tap makes the
    picture a square of at most 256 pixels and hands it to
@@ -431,8 +435,11 @@ They cover turning games for two children and saving once, the exact
 arguments pkexec is given, a child held or a game left out, every
 refusal keeping the changes, every control waiting while a Save
 runs, a logged-in child's games greyed, the logout and why it did not
-finish, and the progress window. `loginsessions` checks the rule for a
-login, and asks the test machine's own logind when it has one;
+finish, and the progress window. `heldKey` sends the repeats of a key
+held down, which TestCase cannot, so the tests check that a game card, a
+button, a child, a level and a picture each count it once.
+`loginsessions` checks the rule for a login, and asks the test machine's
+own logind when it has one;
 `loginwatch` sends logind's signals on a bus of its own.
 Setting `CAIRN_SCREENSHOT=/path/family.png` when running
 `tst_familywindow` saves pictures of both pages beside that path.
