@@ -9,7 +9,9 @@ step in #130; part of ROADMAP P1-5. Once accepted, amends ADR-0033 and
 ADR-0041.
 **Amended by:** ADR-0046, proposed (a Save also fills the tools folder
 from the Guardian's Steam, as the Guardian, after the children's lists
-lose the games taken off and before the first copy, so after any move)
+lose the games taken off and before the first copy, so after any move);
+ADR-0047, proposed (the pictures folder also keeps the picture of a game
+still on a child's list after it leaves the family folder)
 
 ## Context
 

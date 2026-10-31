@@ -62,7 +62,10 @@ Colours, type, focus rings and radii come from `Cairn.Brand.Tokens`.
   `TileModel` and for the Steam-at-login check; `GamesFile` holds the
   games file's rules; `TilePicture` checks a `picture`. `Tile.qml` draws
   the picture inside the card in place of the title, and the title comes
-  back when there is no picture or Qt cannot draw it.
+  back when there is no picture or Qt cannot draw it. Since 2026-10-31 a
+  game's picture is the picture step's copy for its app id, in the folder
+  `--pictures` names, so a picture copied later reaches every child who
+  has the game, and the games file names none (ADR-0047, #205).
 - **Footprint (2026-09-08):** about 145 MB proportional idle in the VM,
   first frame 0.2 s after exec; the table is in
   `../docs/research/launcher-footprint.md`.
@@ -86,7 +89,8 @@ In the image, `cmake --install` puts the launcher in `/usr/libexec/cairn/`,
 `libCairnBrand.so` in `/usr/lib64/cairn/`, which the launcher finds through
 its rpath, and a wrapper made from `bin/cairn-launcher.in` in `/usr/bin/`
 (ADR-0038). The session runs the wrapper, which names the logged-in
-child's own games list (ADR-0041).
+child's own games list (ADR-0041) and the games' pictures folder
+(ADR-0047).
 The launcher has twenty-nine CTest tests, run offscreen: the wrapper the
 kiosk session starts, run with stand-ins, the tile model, the
 manifest reader, the manifest and the games file read together (the tile
@@ -204,6 +208,15 @@ markup in it is shown as written, never read, so it cannot load a picture
 from the network.
 `TileFiles` reads both files for the tiles and for the Steam-at-login
 check, so the two always agree.
+
+A game from the games file shows the picture the picture step copied for
+its app id: `<folder>/<appid>.jpg` in the folder `--pictures` names,
+`/var/lib/cairn/game-pictures` unless it says otherwise, when that is a
+plain file, not a link (ADR-0047). Both wrappers name that folder. A
+`picture` key in a games file is not read, so a picture copied after the
+file was written still shows. A game without a picture shows its title,
+and nothing goes to the journal: the Guardian's Family app names the game
+and says how to add one.
 `manifests/dev-pc.json` names Tux Paint for Draw and GCompris for Practice
 only; Build, Music and Story are empty until the catalogue survey (issue
 #26) picks a program for each. GCompris is a practice-folder app, never
