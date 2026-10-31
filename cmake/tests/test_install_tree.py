@@ -50,6 +50,7 @@ EXPECTED = {
     "usr/libexec/cairn/cairn-game-pictures": 0o644,
     "usr/libexec/cairn/cairn-guardian": 0o750,
     "usr/libexec/cairn/cairn-launcher": 0o755,
+    "usr/libexec/cairn/cairn-share-tools": 0o644,
     "usr/libexec/cairn/cairn-steam-for": 0o750,
     "usr/libexec/cairn/cairn-steam-visit": 0o755,
     "usr/libexec/cairn/kidscan.py": 0o644,

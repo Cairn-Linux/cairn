@@ -46,9 +46,10 @@ check_image() {
 # The steps below read what the image's helpers print, word by word. A
 # checkout of another commit may expect other words, and then drops lines
 # without a word, so each helper must be the checkout's own. This script no
-# longer runs the copy helpers, but cairn-family save-games does, so a
-# difference in them still means the checkout is not the image's. The build
-# changes /usr/local to /usr in each file it installs (cmake/CairnInstall.cmake).
+# longer runs the copy helpers or the tools step, but cairn-family
+# save-games does, so a difference in them still means the checkout is not
+# the image's. The build changes /usr/local to /usr in each file it
+# installs (cmake/CairnInstall.cmake).
 #
 # cairn-family is compiled, so it cannot be compared with the checkout. It
 # must be there; an image built before it is refused. Its answer is one
@@ -62,6 +63,7 @@ check_checkout() {
     local source installed
     for source in provision/cairn-copy-games.py:cairn-copy-games \
         provision/cairn-game-pictures.py:cairn-game-pictures \
+        provision/cairn-share-tools.py:cairn-share-tools \
         tools/kidscan/kidscan.py:kidscan.py \
         session/bin/cairn-steam-visit:cairn-steam-visit; do
         installed="$PREFIX/libexec/cairn/${source#*:}"
