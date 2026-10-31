@@ -609,8 +609,8 @@ Mechanism:
   Proton, from the parent's Steam: a Guardian's Save copies them into the
   child's own library with the child's new games, by reflink, so a first
   tap does not wait for them to download (ADR-0046, proposed). Each
-  child's Steam still updates its own copies, and a tool the parent's
-  Steam lacks, or a build newer than the parent's, still downloads when a
+  child's Steam still updates its own copies, and a tool Cairn has no
+  copy of, or a build newer than Cairn's copy, still downloads when a
   game first needs it.
 - Proton work happens in the background; the game comes up fullscreen.
 

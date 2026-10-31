@@ -39,13 +39,13 @@ ADR-0036's 10-minute limit.
 
 ### What the maintainer chose
 
-On 2026-10-30 Mason chose three fixes. Fixes 1 and 2, the launcher
-starting the child's Steam again once and tapping again, and the
-grown-up screen saying "Log out and back in, then try it again.", are
-ADR-0045, proposed, on their own branch. Fix 3 is "each child's Steam
-gets its tools ahead of time", with "Should provide the feedback that it
-will take time, and inform the parent of progress." In #206 and #181 each
-child's Steam downloads its own tools, each asked for by name.
+On 2026-10-30 Mason chose three fixes. Fix 1, the launcher starting the
+child's Steam again once and tapping again, is a dated section of
+ADR-0036 ("Steam stops part-way on a new child's first Linux game").
+Fix 2, the grown-up screen saying "Log out and back in, then try it
+again.", is ADR-0045. Both came with pull request #207. Fix 3 is "each
+child's Steam gets its tools ahead of time", with "Should provide the
+feedback that it will take time, and inform the parent of progress."
 
 ### What the VM showed
 
@@ -56,8 +56,9 @@ time and put back afterwards:
   `steam://rungameid/1391110` each opened Steam's Install dialog (soldier,
   646 MB, Install and Cancel), which waits for a click, hidden behind the
   launcher or minimised. Nothing downloaded, and Steam fetched nothing by
-  itself in 15 minutes. Steam's console and a simulated click, which no
-  document offers for this, were not tried.
+  itself in 15 minutes. `steam://validate`, `steam://launch`,
+  `-applaunch` with the tool's appid, Steam's console and a simulated
+  click were not tried.
 - **E1.** Reflink copies of the Guardian's four tools, each
   `common/<installdir>` without `var/`, manifest last, owned by `ada`,
   took about 3 s and 0 B (`btrfs filesystem du`). Her Steam loaded all
@@ -97,23 +98,23 @@ them or still has to download one.**
 
 Mason first picked each child's Steam downloading its own tools, asked
 for by name, with the parent told it takes a while and shown how far it
-has got. E9 found no way to ask a hidden Steam: every documented link
-opens a dialog that waits for a click nobody can give. E1 and E1b found
-that a copy needs no asking: seconds, no disk, nothing downloaded, and
-the games started. So the copy is the first-time path. With a copy
-little waiting is left, and the window says the tools are being copied
-and that this usually takes a few seconds. The long downloads that
-remain, Steam's update of itself and newer tool builds, keep the warning
-and the progress for #181's later piece. Mason confirms this change in
-the pull request.
+has got. E9 tried three documented links that install or run an app by
+its appid; each opened a dialog that waits for a click nobody can give.
+E1 and E1b found that a copy needs no asking: seconds, no disk, nothing
+downloaded, and the games started. So the copy is the first-time path,
+and the window says it usually takes a few seconds. The long downloads
+that remain, Steam's update of itself and newer tool builds, keep the
+warning and the progress for #181's later piece. Mason confirms this
+change in the pull request.
 
 ### Which tools
 
 - An app in one of the Guardian's libraries that kidscan's rule calls a
   tool (`is_steam_tool`: its appid, or a name starting "Proton", "Steam
-  Linux Runtime" or "Steamworks") and whose folder holds a
-  `toolmanifest.vdf`. Anything else is passed over without a word, so no
-  game of the parent's is ever named.
+  Linux Runtime" or "Steamworks"), whose folder, one plain folder name,
+  holds a `toolmanifest.vdf` (`tool_installdir`, which the copy step asks
+  too). Anything else is passed over without a word, so no game of the
+  parent's is ever named.
 - Every tool goes to every child: which tool Steam picks for a game sits
   in its binary app cache, which Valve does not document.
 - Steamworks Common Redistributables (228980) has no `toolmanifest.vdf`,
@@ -126,29 +127,34 @@ the pull request.
   Guardians change it; every account reads it. It is no Steam library,
   and nothing runs from it.
 - One folder per tool build, `<appid>-<buildid>`: the tool's manifest
-  byte for byte and its `common/<installdir>`, without `var/`. It is made
+  byte for byte and its `common/<installdir>`, without `var/`, made
   inside a folder only that run uses, with a name no one can guess, and
   renamed into place whole. The tool's other builds then go.
 - A build is never replaced by an older one, since a second Guardian's
-  Steam may be behind. After Valve rolls a tool back, the folder keeps the
-  higher build until Valve ships one higher still, and a child's Steam
-  that got it downloads Valve's current one at the first tap needing it.
-- Any account in `cairn-guardian` can make entries in the folder. The
-  step decides what a build is without following a link, removes anything
-  else under a build's name, and writes only inside its own folder. That
-  guards against mistakes and planted links, not one Guardian, an
-  administrator, against another.
+  Steam may be behind, and it stays until a newer build replaces it, so
+  the folder can hold a tool the saving Guardian's Steam no longer has.
+  After Valve rolls a tool back, the folder keeps the higher build until
+  Valve ships one higher still; a child's Steam that got it should then
+  download Valve's current one at the first tap needing it (not tested).
+- Any Guardian can make entries in the folder, so the step decides what a
+  build is without following a link, removes anything else under a
+  build's name, and writes only inside its own folder: a guard against
+  mistakes and planted links, not against another Guardian, who is an
+  administrator.
 - Nothing is written in the parent's home, so their Steam can stay open.
   Under sudo there is no Guardian, and the folder stays as it is.
 
 ### Filling it, as the Guardian
 
 - `provision/cairn-share-tools.py`, standard-library Python sharing
-  kidscan's rules, runs as a system job: `systemd-run --uid=LOGIN
-  --property=RuntimeMaxSec=300`, `python3 -I -B`.
-- `systemd-run --uid`, not the `setpriv` the visit helper uses for a
-  child, because systemd sets the account's own groups, `cairn-guardian`
-  among them, and its time limit stops the whole unit, `cp` included.
+  kidscan's rules, is installed as `/usr/libexec/cairn/cairn-share-tools`,
+  mode 644, beside `kidscan.py`, and runs as a system job: `systemd-run
+  --uid=LOGIN --property=RuntimeMaxSec=300`, `python3 -I -B`.
+- `systemd-run --uid` starts the step as the Guardian directly, with the
+  account's own groups, as `setpriv --init-groups` gives the visit
+  helper's copy, so no process of the job runs as root and no root-side
+  wrapper is needed; `RuntimeMaxSec` then stops the whole unit, `cp`
+  included.
 - As the Guardian, not as root like the picture step, because it follows
   the Guardian's library list, whose paths can name any folder, and copies
   whole trees: a planted link reaches nothing the Guardian could not
@@ -160,8 +166,10 @@ the pull request.
   copy.
 - A Save runs it after every child's list has lost the games taken off,
   so a step that takes its whole five minutes leaves those gone, and
-  before the first copy; after any move once ADR-0042 lands. The family's
-  setup compares it with the checkout.
+  before the first copy; after any move once ADR-0042 lands. Whether
+  ADR-0042's move step drops to the Guardian the same way is for that
+  step to decide. The family's setup compares this step with the
+  checkout.
 
 ### A child's copy of the tools
 
@@ -171,9 +179,11 @@ the pull request.
   state, is never touched: the child's Steam owns it and updates it.
 - It takes from the folder only what kidscan's rule calls a tool, which
   catches a game put there by mistake.
-- It reports a tool that the child's tools run in when neither the child
-  nor the folder has it, read from the folder's `toolmanifest.vdf`, never
-  the child's; E2 says that is a wait, not a stall.
+- It reports a tool that one the child now has runs in when the child's
+  library still lacks it after the copy (the folder had none, or its copy
+  was left out), read from the folder's `toolmanifest.vdf`, never the
+  child's. For scout without soldier, E2 saw a wait, not a stall, in one
+  run.
 - Each tool stands alone and changes nothing said about a game. With no
   tools folder, as after provisioning, it says nothing about tools. The
   child's Steam loads the copies at the next login (ADR-0027).
@@ -187,14 +197,14 @@ games with into Ada's Steam. This usually takes a few seconds, and Ada
 cannot log in until it ends."
 
 Last in each child's result, one of three sentences: the tools were
-copied, though one the parent's Steam lacks, or a newer version, still
-downloads and can make that game wait several minutes; Ada's Steam may
-not have every tool yet; or there were no tools to copy. The last two add
-"If that game does not start, log Ada out and back in, then try it
-again.", true with or without ADR-0045's restart. A child who had every
-tool, or whose copy was held, gets none. A Save in which a copy ran but a
-tool stayed out of the folder says so once. No sentence names a tool or
-promises that a later Save mends it.
+copied from Cairn's copies, though one Cairn has no copy of, or a newer
+version, still downloads and can make that game wait several minutes;
+Ada's Steam may not have every tool yet; or Cairn had no tools to copy.
+The last two add "If that game does not start, log Ada out and back in,
+then try it again.", true with or without ADR-0036's restart. A child who
+had every tool, or whose copy was held, gets none. A Save in which a copy
+ran but a tool stayed out of the folder says so once. No sentence names
+a tool or promises that a later Save mends it.
 
 ### What cairn-family says
 
@@ -203,22 +213,26 @@ ADR-0041 requires:
 
 | Line | Meaning |
 |---|---|
-| `tools made` or `tools kept` | The tools step finished, or the folder stays as it was |
+| `tools made` or `tools kept` | The tools step went to its end, or it did not (refused, failed, never started or stopped at its time limit); every build in the folder is whole either way, though a step stopped part-way may already have changed some |
 | `tool-not-shared APPID REASON` | A tool stayed out of the folder, which has no build of it |
 | `copying-tools LOGIN` | The first of the child's tools is being copied |
-| `tool-copied`, `tool-have`, `tool-missing LOGIN APPID` | The child has the tool now, or lacks one their tools run in |
+| `tool-copied`, `tool-have`, `tool-missing LOGIN APPID` | The child has the tool now, or still lacks one their tools run in |
 | `tool-skipped LOGIN APPID REASON` | A game's reason, `not-a-tool` or `no-reflink` |
 | `no-tools LOGIN`, `tools-unreadable LOGIN` | The folder held no tool, or could not be read |
 
 The step's own reasons are listed in `provision/cairn-share-tools.py`.
-`journalctl -t cairn-family` gets its lines but `tool-had`, and
-`journalctl -t cairn-steam-visit` each child's but `tool-have`.
+`journalctl -t cairn-family` gets `tools made` or `tools kept`, then the
+step's lines but `tool-had` and `finished`, each after `tools step:`. A
+step that did not finish and did not say why adds `no-answer` (no line
+at all: it could not start, or its time limit came before its first
+line) or `stopped` (some lines, then nothing more). `journalctl -t
+cairn-steam-visit` gets each child's lines but `tool-have`.
 
 ### Where it applies
 
-The image only, as ADR-0041. Provisioning makes no tools folder, and
-`docs/TRY.md`, which describes provisioning, keeps step 7's visit. The
-kids' laptop keeps the tools it was given by hand on 2026-10-07.
+The image only, as ADR-0041. Provisioning makes no tools folder, so
+`docs/TRY.md`, which describes provisioning, keeps step 7's visit, and
+the kids' laptop keeps the tools it was given by hand on 2026-10-07.
 
 ### Later (#181)
 
@@ -231,14 +245,14 @@ Nothing of it is built here.
 
 ## Consequences
 
-- No tool install and no #206 stall at a first tap, for every tool the
-  parent's Steam has, once check 1 holds.
+- No tool install and no #206 stall at a first tap, for every tool Cairn
+  has a copy of, once check 1 holds.
 - Limits: a copy is as new as the parent's Steam keeps it. Tools come
   only with new games, so a child with games from before gets them with
-  their next new game, or with #181. A tool the parent's Steam lacks or
-  could not give (an update waiting, a beta, private files, another
-  drive) downloads at the first tap, as today. A child whose Steam never
-  ran gets nothing. Fixes 1 and 2 stay the floor.
+  their next new game, or with #181. A tool Cairn has no copy of, because
+  no Guardian's Steam had it or could give it (an update waiting, a beta,
+  private files, another drive), downloads at the first tap, as today. A
+  child whose Steam never ran gets nothing. Fixes 1 and 2 stay the floor.
 - Disk: 0 B until a Steam updates a copy; the folder's build then holds
   its own blocks, up to about 3 GB, until the next Save or Look. Each
   child's Steam keeps every copied tool up to date, Protons only the
@@ -246,13 +260,15 @@ Nothing of it is built here.
 - Cairn copies tool manifests as it copies games' and writes none of
   Steam's files of its own. They carry the parent's SteamID, readable by
   every account, as the shared folder's game manifests do. If Steam stops
-  taking a copied tool, the child's Steam fetches it at the first tap.
+  taking a copied tool, the child's Steam is expected to fetch it at the
+  first tap, as before ADR-0046, with #206's restart and grown-up line as
+  the floor (not tested).
 - A Save and a Look gain a job of a few seconds, at most five minutes.
 - Once accepted it amends ADR-0033 (a child's first copy of each tool
-  comes with their games, with no visit), ADR-0038 (the folder, and the
-  setup's check), ADR-0041 (new lines and sentences) and ADR-0042 (the
-  Save's order; its move step should drop to the Guardian the same way).
-  DESIGN §8.3 gains a bullet.
+  comes with their games, with no visit), ADR-0038 (the tools folder, the
+  tools step in `/usr/libexec/cairn`, and the setup's check), ADR-0041
+  (new lines and sentences) and ADR-0042 (the Save's order). DESIGN §8.3
+  gains a bullet.
 - No new dependency, and nothing phones home: the copies use no network.
 
 ## Checks in the VM
@@ -265,37 +281,36 @@ In cairn-iso, with an image built from this change:
    `cairn-guardian`, readable by all. At the first taps `content_log.txt`
    shows no tool download or verify (an update of an older copy is
    allowed, and timed), and both games start.
-2. **A second Save, and a Look:** every tool `tool-had`, with the journal
-   lines.
+2. **A second Save, and a Look:** `tools made`, no `tools step:
+   tool-shared` line in `journalctl -t cairn-family` for that Save, and
+   the folder's builds unchanged (or run
+   `/usr/libexec/cairn/cairn-share-tools` by hand as the Guardian, with
+   `python3 -I -B`, and see `tool-had` for each tool).
 3. **`ada`, who has her own tools:** every tool `tool-have`, nothing of
    hers changed.
-4. **A Save while the parent's Proton updates:** `tool-kept` or
-   `tool-not-shared`, and the Save's sentence.
+4. **A Save while the parent's Proton updates:** `tool-kept` in the
+   journal or `tool-not-shared`, and the Save's sentence.
 5. **Under sudo** the folder is unchanged; a wheel-only grown-up gets
-   `refused folder` and `tools kept`.
-6. **A newer build from Valve** than a child's copy: what the child's
-   Steam does, and how long the tap waits.
+   `tools kept`, with `tools step: refused folder` in the journal.
+6. **A newer build from Valve** than a child's copy, and a copy Steam
+   does not take: what the child's Steam does, and how long the tap
+   waits.
 7. Neither journal shows a path or a name.
 
 ## Alternatives considered
 
-- **Each child's Steam downloads its own tools** (#181, #206): no
-  documented way asks a hidden Steam (E9); about 1 GB and minutes per
-  child with their login held; fresher builds.
+- **Each child's Steam downloads its own tools** (#181, #206): none of
+  the three links tried asks a hidden Steam without a click (E9); about
+  1 GB and minutes per child with their login held; fresher builds.
 - **The first fetch in a visit** (`docs/TRY.md` step 7): the parent stays
   at the screen, and it would probably stall on scout as in #206.
 - **A hand-written "needs installing" manifest:** one Steam misreads
   breaks every game on that tool (steam-for-linux #13199, #13480).
-- **steamcmd:** a new dependency, refused Steam Linux Runtime 4.0 when
+- **steamcmd:** a new dependency; it refused Steam Linux Runtime 4.0 when
   anonymous.
 - **One shared copy of the tools:** slow or failing for all but its owner
   (ADR-0033), and `var/` is each account's own (steam-runtime #845).
-- **Root copying from the parent's home, or the tools step as root:**
-  root would follow a home's links.
 - **Tools at every Save for every child named:** it takes the login lock
   for a Save that only takes games off.
-- **Only the tools a child's games need:** Steam's app cache is
-  undocumented.
-- **Taking a tool whose update is waiting:** revisit with #181.
 - **Fixes 1 and 2 alone:** no stall, but each child still waits for about
   1 GB at their first taps.

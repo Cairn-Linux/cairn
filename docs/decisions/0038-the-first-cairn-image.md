@@ -9,8 +9,9 @@ and P1-3
 copy of the games; a Guardian's Save on the Games page does);
 ADR-0044, proposed (the image builds its own initramfs, with Cairn's
 boot screen); ADR-0046, proposed (tmpfiles also makes
-/var/lib/cairn/steam-tools, and the family's setup also compares
-cairn-share-tools with the checkout)
+/var/lib/cairn/steam-tools, the build installs the tools step,
+cairn-share-tools, in /usr/libexec/cairn, and the family's setup also
+compares it with the checkout)
 
 ## Context
 
