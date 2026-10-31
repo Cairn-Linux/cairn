@@ -1139,7 +1139,7 @@
     </message>
     <message>
         <location filename="../qml/SteamForWords.qml" line="61"/>
-        <source>Your own Steam did not close. Quit it from Steam&apos;s own menu, then try again.</source>
+        <source>Your own Steam did not close. Right-click the Steam icon near the clock and choose Exit Steam. Then try again.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

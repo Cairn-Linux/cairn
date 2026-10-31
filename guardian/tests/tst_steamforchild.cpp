@@ -223,6 +223,30 @@ private slots:
         QCOMPARE(visit.reason(), Reason::OwnSteamStillOpen);
     }
 
+    // #217: a Steam that will not close is not said to be coming back.
+    // Quit by hand, as the window says, it comes back once the visit of
+    // Try again has closed.
+    void anOwnSteamQuitByHandComesBackAfterTheNextVisit() {
+        const StandIns standIns(true);
+        const QString proc = QString::fromLocal8Bit(qgetenv("CAIRN_TEST_PROC"));
+        QFile stubborn(proc + QStringLiteral("/stubborn"));
+        QVERIFY(stubborn.open(QIODevice::WriteOnly));
+        SteamForChild visit(standIns.setup(QStringLiteral("open")));
+        visit.open();
+        QTRY_COMPARE(visit.step(), Step::NotOpened);
+        QVERIFY(!visit.ownSteamComingBack());
+        QTest::qWait(200);
+        QVERIFY(!standIns.ownSteamStartedAgain());
+
+        QVERIFY(QDir(proc + QStringLiteral("/4242")).removeRecursively());
+        visit.open();
+        QTRY_COMPARE(visit.step(), Step::Open);
+        visit.done();
+        QTRY_COMPARE(visit.step(), Step::Closed);
+        QVERIFY(visit.ownSteamComingBack());
+        QTRY_VERIFY(standIns.ownSteamStartedAgain());
+    }
+
     void eachWordOfTheHelperHasItsReason() {
         QCOMPARE(SteamForChild::reasonFor(QStringLiteral("busy")), Reason::Busy);
         QCOMPARE(SteamForChild::reasonFor(QStringLiteral("copying")), Reason::Copying);

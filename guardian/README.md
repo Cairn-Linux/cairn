@@ -173,7 +173,12 @@ program the account cannot run. The window:
    autostart does) and says so.
 
 If the visit does not open, the window says why in one sentence and offers
-**Try again**. If a program of the child's would not end, it says to
+**Try again**.
+When the Guardian's own Steam has not closed after 30 seconds, it says to
+right-click the Steam icon near the clock and choose Exit Steam. That
+Steam is not started again while it still runs, and nothing says it is.
+Once it is quit, it starts again when the visit of **Try again** closes
+(#217). If a program of the child's would not end, it says to
 restart the computer before the child logs in again, and stays open until
 the Guardian has read it.
 
