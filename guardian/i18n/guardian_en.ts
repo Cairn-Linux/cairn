@@ -160,7 +160,7 @@
     </message>
     <message>
         <location filename="../qml/ChildGames.qml" line="44"/>
-        <source>Games on %1&apos;s list: %2. A game on the list is highlighted.</source>
+        <source>Games on %1&apos;s list: %2. Each game on the list is highlighted.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
