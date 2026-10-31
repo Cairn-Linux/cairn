@@ -5,13 +5,13 @@
 # ---- from brand/tokens.json ----
 ground.red = 0.109804;
 ground.green = 0.2;
-ground.blue = 0.235294;
+ground.blue = 0.235295;
 text.red = 0.956863;
 text.green = 0.929412;
-text.blue = 0.878431;
+text.blue = 0.878432;
 box_text.red = 0.109804;
 box_text.green = 0.2;
-box_text.blue = 0.235294;
+box_text.blue = 0.235295;
 stone_count = 4;
 refresh_rate = 50;
 # One stone every motion.stone milliseconds, each fading in over

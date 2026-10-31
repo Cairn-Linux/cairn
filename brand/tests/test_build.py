@@ -4,6 +4,7 @@
 import importlib.util
 import json
 import shutil
+import struct
 import subprocess
 import sys
 import tempfile
@@ -232,13 +233,16 @@ class BootScreenTests(unittest.TestCase):
         return boot_screen.rgb(self.tokens["color"][name]["hex"])
 
     def script_rgb(self, name):
-        """A colour the generated script sets, as 0-255 channels."""
+        """A colour the generated script sets, as the bytes Plymouth draws.
+
+        Plymouth multiplies each share by 255 and cuts off the fraction.
+        """
         script = self.file("cairn.script")
         channels = []
         for channel in ("red", "green", "blue"):
             prefix = f"{name}.{channel} = "
             line = next(line for line in script.splitlines() if line.startswith(prefix))
-            channels.append(round(float(line[len(prefix):].rstrip(";")) * 255))
+            channels.append(int(255 * float(line[len(prefix):].rstrip(";"))))
         return tuple(channels)
 
     @staticmethod
@@ -290,7 +294,8 @@ class BootScreenTests(unittest.TestCase):
 
     def test_the_script_draws_the_login_screens_colours(self):
         # greeter/theme/Main.qml draws on Tokens.darkGround, so the screen
-        # keeps one colour from the boot screen to the login screen.
+        # keeps one colour from the boot screen to the login screen, to the
+        # last bit of blue.
         semantic = self.tokens["semantic"]
         self.assertEqual(self.script_rgb("ground"), self.token_rgb(semantic["dark-ground"]))
         self.assertEqual(
@@ -299,6 +304,18 @@ class BootScreenTests(unittest.TestCase):
         self.assertEqual(
             self.script_rgb("box_text"), self.token_rgb(semantic["on"][semantic["card"]])
         )
+
+    def test_every_channel_comes_back_as_the_same_byte(self):
+        # Plymouth makes a byte of a share three ways: the ground in double
+        # precision, FreeType's text in single precision, and Pango's text
+        # through cairo's 16-bit colour.
+        for channel in range(256):
+            share = float(boot_screen.script_share(channel))
+            single = struct.unpack("f", struct.pack("f", share))[0]
+            single_product = struct.unpack("f", struct.pack("f", 255 * single))[0]
+            self.assertEqual(int(255 * share), channel)
+            self.assertEqual(int(single_product), channel)
+            self.assertEqual(int(share * 65535 + 0.5) >> 8, channel)
 
     def test_everything_drawn_stands_out_from_what_is_behind_it(self):
         ground = self.script_rgb("ground")

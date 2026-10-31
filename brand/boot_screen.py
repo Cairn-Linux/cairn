@@ -244,12 +244,23 @@ def entry_images(tokens, sizes):
     }
 
 
+def script_share(channel):
+    """A colour channel as the script wants it: a share of 255.
+
+    Plymouth makes a byte of the share again by cutting off what is after
+    the point, so a share rounded down would draw one below the token
+    (Ink's 60 of blue as 59). Rounded up at the sixth decimal place, every
+    byte comes back as it was, for the ground and for both text plugins.
+    """
+    return script_number(math.ceil(channel * 1_000_000 / 255) / 1_000_000)
+
+
 def color_lines(name, hex_color):
-    red, green, blue = (channel / 255 for channel in rgb(hex_color))
+    red, green, blue = rgb(hex_color)
     return [
-        f"{name}.red = {script_number(red)};",
-        f"{name}.green = {script_number(green)};",
-        f"{name}.blue = {script_number(blue)};",
+        f"{name}.red = {script_share(red)};",
+        f"{name}.green = {script_share(green)};",
+        f"{name}.blue = {script_share(blue)};",
     ]
 
 
