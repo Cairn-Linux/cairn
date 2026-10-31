@@ -740,6 +740,37 @@ private slots:
         QVERIFY(!wait.restartSteam());
     }
 
+    // A stall seen while Steam updates itself is waited for, and Steam is
+    // started again once the updated client has started: a look that could
+    // not start it again does not use up the tap's one restart.
+    void aRestartRefusedWhileSteamUpdatesComesOnceItIsReady() {
+        const QTemporaryDir root;
+        const QString log = root.filePath(QStringLiteral("console_log.txt"));
+        const QString bootstrap = root.filePath(QStringLiteral("bootstrap_log.txt"));
+        const QString content = root.filePath(QStringLiteral("content_log.txt"));
+        SteamGameWait wait(root.path(), log, bootstrap, content);
+        wait.startLaunch(pajamaSam2());
+        stuckRun(log, content, 90);
+        steamLine(bootstrap, 10, "Startup - updater built Oct 21 2026 21:09:45");
+        steamLine(bootstrap, 10, "Found pending update");
+        steamLine(bootstrap, 10, "Installing update...");
+        QVERIFY(wait.stillComing());
+        QVERIFY(wait.steamWorking());
+        QVERIFY(!wait.restartSteam());
+        QVERIFY(wait.stillComing());
+        QVERIFY(!wait.restartSteam());
+        steamLine(bootstrap, 2, "Update complete, launching Steam...");
+        steamLine(bootstrap, 2, "Shutdown");
+        steamLine(bootstrap, 2, "Startup - updater built Oct 28 2026 19:02:11");
+        steamLine(log, 1, "Client version: 1792618285");
+        steamLine(log, 1, ownStart());
+        QVERIFY(wait.stillComing());
+        QVERIFY(wait.restartSteam());
+        QVERIFY(!wait.restartSteam());
+        QVERIFY(wait.stillComing());
+        QVERIFY(!wait.restartSteam());
+    }
+
     // A stall seen while Steam cannot reach its servers: what Steam still
     // needs must come from them, so starting it again would not help. The
     // wait ends by #182's rules, and the journal names the connection, not

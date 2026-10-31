@@ -1468,6 +1468,49 @@ private slots:
         qputenv("PATH", path);
     }
 
+    // The test VM's working run: Steam took the game off its schedule and
+    // wrote the launch's next step in the same second. That is no stall,
+    // however long ago it was, so Steam is never stopped, and the game takes
+    // over from "Getting it ready".
+    void aWorkingRunIsNeverStopped() {
+        const QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        installStandIns(dir, "active");
+        const QByteArray path = qgetenv("PATH");
+        qputenv("PATH", dir.path().toUtf8() + ':' + path);
+        const QString runs = dir.filePath(QStringLiteral("runs"));
+        const QString console = QStringLiteral("console_log.txt");
+        forgetSteamsLogs();
+
+        AppLauncher launcher(this);
+        launcher.setSteadyMilliseconds(0);
+        launcher.setLaunchGraceMilliseconds(200);
+        QTest::ignoreMessage(QtInfoMsg, "Steam is getting Pajama Sam 2 ready before it starts.");
+        launcher.launch(QStringLiteral("Pajama Sam 2"), pajamaSam2());
+        steamLogs(console, 72, pajamaSam2Taken());
+        steamLogs(console, 70,
+                  "GameAction [AppID 292780, ActionID 1] : LaunchApp changed task to "
+                  "DownloadingDepots with \"\"");
+        steamLogs(QStringLiteral("content_log.txt"), 70,
+                  "AppID 292780 scheduler finished : removed from schedule (result Suspended, "
+                  "state 0xc) ");
+        steamLogs(console, 70,
+                  "GameAction [AppID 292780, ActionID 1] : LaunchApp changed task to "
+                  "RunningInstallScript with \"\"");
+        QTest::qWait(700); // three looks.
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+        QVERIFY(launcher.gettingReady());
+        steamSays("292780", "changed task to Completed with \"\"");
+        launcher.windowOpened(QStringLiteral("g1"), QStringLiteral("steam_app_292780"),
+                              QStringLiteral("Pajama Sam 2"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Running);
+        QCOMPARE(linesOf(runs).count(QStringLiteral("-shutdown")), 0);
+        QCOMPARE(linesOf(runs).count(QStringLiteral("-applaunch 292780")), 1);
+        launcher.giveUp();
+        forgetSteamsLogs();
+        qputenv("PATH", path);
+    }
+
     // Started again, Steam takes the tap and gets the game ready, but no
     // window comes: the grown-up screen still says to log out, and the
     // journal says starting Steam again did not bring the game.
