@@ -71,6 +71,26 @@
     <keybind key="XF86_AudioMute">
       <action name="Execute" command="wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle" />
     </keybind>
+    <!--
+      Ctrl+F5 never reaches a game (#215). In any ScummVM game it opens
+      ScummVM's own menu, whose Return to Launcher button leads to
+      ScummVM's game manager, which can add and start any game the child's
+      account can read. labwc keeps a key it has a binding for from the
+      window in front, so with this binding no game sees Ctrl+F5.
+      The action must be a real one: labwc throws away a binding whose
+      only action is None, and the key would reach the game again. This
+      one turns off scroll-wheel emulation, a setting for trackballs that
+      only an action turns on and nothing here does, so the keys change
+      nothing, even while labwc repeats a held key.
+      On press, not on release as Super+Q is: on release labwc keeps back
+      whichever key comes up first, and a game that never sees Ctrl let go
+      may go on treating it as held.
+      Plain F5 opens the same menu in SCUMM games and is not taken here
+      (docs/research/kiosk-containment.md).
+    -->
+    <keybind key="C-F5">
+      <action name="DisableScrollWheelEmulation" />
+    </keybind>
   </keyboard>
 
   <!--
