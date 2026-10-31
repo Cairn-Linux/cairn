@@ -3,6 +3,7 @@
 
 import importlib.util
 import json
+import re
 import shutil
 import struct
 import subprocess
@@ -304,18 +305,47 @@ class BootScreenTests(unittest.TestCase):
         self.assertEqual(
             self.script_rgb("box_text"), self.token_rgb(semantic["on"][semantic["card"]])
         )
+        # The login screen's box shows what is typed in Tokens.paperLabel
+        # (greeter/theme/PasswordRow.qml), and so do the dots here.
+        side = self.sizes["bullet"]
+        dot = self.rgba("bullet.png")[side // 2][side // 2]
+        self.assertEqual(dot, (*self.token_rgb(semantic["on"][semantic["card"]]), 255))
+
+    def drawn_in(self, start):
+        """The colour names on each line of the script that begins with start."""
+        lines = [
+            line.strip()
+            for line in self.file("cairn.script").splitlines()
+            if line.strip().startswith(start)
+        ]
+        self.assertTrue(lines, start)
+        return [sorted(set(re.findall(r"(\w+)\.(?:red|green|blue)\b", line))) for line in lines]
+
+    def test_the_script_draws_each_thing_in_its_colour(self):
+        # The colours above count only if the hand-written script draws
+        # with them: the ground in ground, the words on it in text, and an
+        # answer typed into the box in box_text. A colour name the script
+        # never sets would give Plymouth no number to draw with.
+        self.assertEqual(self.drawn_in("Window.SetBackground"), [["ground"], ["ground"]])
+        self.assertEqual(self.drawn_in("words_image = Image.Text("), [["text"]])
+        self.assertEqual(self.drawn_in("caps_lock = Sprite(Image.Text("), [["text"]])
+        self.assertEqual(self.drawn_in("typed_image = Image.Text("), [["box_text"]])
+        self.assertEqual(
+            self.file("cairn.script").count("Image.Text("), 3, "every text is checked above"
+        )
 
     def test_every_channel_comes_back_as_the_same_byte(self):
-        # Plymouth makes a byte of a share three ways: the ground in double
-        # precision, FreeType's text in single precision, and Pango's text
-        # through cairo's 16-bit colour.
+        # Plymouth makes a byte of a share three ways. The ground takes it
+        # in double precision. Both text plugins keep it in single
+        # precision: FreeType multiplies that by 255, and Pango hands it to
+        # cairo's 16-bit colour.
         for channel in range(256):
             share = float(boot_screen.script_share(channel))
             single = struct.unpack("f", struct.pack("f", share))[0]
             single_product = struct.unpack("f", struct.pack("f", 255 * single))[0]
             self.assertEqual(int(255 * share), channel)
             self.assertEqual(int(single_product), channel)
-            self.assertEqual(int(share * 65535 + 0.5) >> 8, channel)
+            self.assertEqual(int(single * 65535 + 0.5) >> 8, channel)
 
     def test_everything_drawn_stands_out_from_what_is_behind_it(self):
         ground = self.script_rgb("ground")

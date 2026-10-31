@@ -86,10 +86,11 @@ again with it.**
   Plymouth's script cannot wrap a line. The longest sentence, the first,
   is 769 px wide in the initramfs, where Plymouth draws text with
   FreeType, and 762 px after the root is mounted, where it uses Pango.
-  On an 800 by 600 screen that leaves 15 px on each side; a screen
-  640 px wide cuts it at both ends. Every laptop screen at the Minimum
-  tier (ADR-0003) is wider than 800 px, even where Plymouth draws at
-  double size, which Fedora's does only above about 236 dots per inch.
+  On an 800 by 600 screen that leaves at least 15 px on each side; a
+  screen 640 px wide cuts it at both ends. ADR-0003 leaves netbooks out,
+  and a laptop at its Minimum tier has a screen wider than 800 px, even
+  where Plymouth draws at double size, which Fedora's does only above
+  about 236 dots per inch.
 - **The `script` module, not `two-step`.** It is the only one of the two
   that lets the screen say a plain sentence for the password, and it
   needs four stone images instead of a frame for every 20 ms of the
