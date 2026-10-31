@@ -49,8 +49,9 @@ class GamesPage : public QObject {
     // The child picked has their games greyed: they are logged in, or the
     // logout, its warning or its outcome is about them.
     Q_PROPERTY(bool chosenCovered READ chosenCovered NOTIFY changed)
-    // Each game as a map: appId, title, picture (a file:// URL, or empty),
-    // saved, when it is on the child's list as last saved, and shared, for
+    // Each game as a map: appId, title, picture (the picture step's copy
+    // for its app id as a file:// URL, or empty), saved, when it is on the
+    // child's list as last saved, and shared, for
     // the child picked. The games on their saved list that the shared folder no
     // longer has come last, with shared false. Like listedChildren, it
     // changes only when one of those does, so turning a game keeps the
@@ -116,6 +117,9 @@ public:
         // does not give one. main() gives the Guardian's own.
         QString steamHome;
         QString sharedLibrary = QStringLiteral("/var/lib/cairn/steam-library");
+        // The picture step's copies, <appid>.jpg, which each card shows by
+        // its game's app id, as the child's tile does (ADR-0047).
+        QString pictures = QStringLiteral("/var/lib/cairn/game-pictures");
     };
 
     explicit GamesPage(Setup setup, QObject* parent = nullptr);

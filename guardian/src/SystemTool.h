@@ -7,7 +7,8 @@
 
 #include <optional>
 
-// Runs one of the system's tools as root, and says whether it succeeded.
+// Runs one of the system's tools as root, and says whether it succeeded,
+// or what it said.
 //
 // The program is named by its absolute path and started directly, never
 // through a shell, so no argument is ever read as shell syntax. It gets a
@@ -32,5 +33,11 @@ bool runWithInput(const QString& program, const QStringList& arguments, const QB
 // dropped, because it can name files in someone's home.
 std::optional<QByteArray> output(const QString& program, const QStringList& arguments,
                                  qint64 maxBytes);
+
+// Each whole line the tool printed on its standard output, whether it
+// succeeded or not, for a tool whose own lines say how far it got, such as
+// the picture step; none when it printed more than `maxBytes`. Its error
+// output is dropped, as for output().
+QStringList lines(const QString& program, const QStringList& arguments, qint64 maxBytes);
 
 } // namespace SystemTool

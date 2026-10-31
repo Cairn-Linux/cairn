@@ -25,6 +25,8 @@ SaveReport::SaveReport(const QStringList& logins) : m_logins(logins.begin(), log
 void SaveReport::take(const QString& line) {
     static const QRegularExpression made(
         pattern(QStringLiteral("(pictures|catalogue|tools) (made|kept)")));
+    static const QRegularExpression picture(
+        pattern(QStringLiteral("picture-(missing|refused) ") + appIdWord));
     static const QRegularExpression step(pattern(QStringLiteral("(copying|waiting) ") + loginWord));
     static const QRegularExpression game(
         pattern(QStringLiteral("(copied|have) ") + loginWord + ' ' + appIdWord));
@@ -42,6 +44,13 @@ void SaveReport::take(const QString& line) {
         m_stage = Stage::Looking;
     } else if (const QRegularExpressionMatch match = made.match(line); match.hasMatch()) {
         takeMade(match.captured(1), match.captured(2) == QLatin1String("kept"));
+    } else if (const QRegularExpressionMatch match = picture.match(line); match.hasMatch()) {
+        // Said after the full list, while the stage is the tools'.
+        if (match.captured(1) == QLatin1String("missing")) {
+            m_picturesMissing.append(match.captured(2));
+        } else {
+            m_picturesRefused.append(match.captured(2));
+        }
     } else if (const QRegularExpressionMatch match = step.match(line);
                match.hasMatch() && m_logins.contains(match.captured(2))) {
         m_stage = match.captured(1) == QLatin1String("copying") ? Stage::Copying : Stage::Waiting;
@@ -146,6 +155,14 @@ std::optional<bool> SaveReport::picturesKept() const {
 
 std::optional<bool> SaveReport::catalogueKept() const {
     return m_catalogueKept;
+}
+
+QStringList SaveReport::picturesMissing() const {
+    return m_picturesMissing;
+}
+
+QStringList SaveReport::picturesRefused() const {
+    return m_picturesRefused;
 }
 
 bool SaveReport::toolsLeftOut() const {

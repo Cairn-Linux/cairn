@@ -70,6 +70,7 @@ class GamesPageTest : public QObject {
         setup.steamFor = "/usr/bin/cairn-steam-for";
         setup.steamHome = m_steamHome;
         setup.sharedLibrary = path("steam-library");
+        setup.pictures = path("pictures");
         setup.accounts = [this] { return m_accounts; };
         setup.loggedIn = [this] { return loggedIn(); };
         setup.start = [this, starts](const QString& program, const QStringList& arguments) {
@@ -267,6 +268,24 @@ private slots:
         QVERIFY(second.value("picture").toUrl().isEmpty());
         QCOMPARE(second.value("saved").toBool(), true);
         QVERIFY(page->wanted().contains("1002"));
+    }
+
+    // A card shows the picture step's copy for its game's app id, as the
+    // child's tile does, and a game on the child's list that the shared
+    // folder no longer has keeps its own (ADR-0047).
+    void aPictureIsFoundByItsAppId() {
+        QVERIFY(QDir().mkpath(path("pictures")));
+        write(path("pictures/1003.jpg"), "jpeg");
+        write(path("pictures/2001.jpg"), "jpeg");
+        write(path("games/ada.json"), gamesFile({game("1002", "Game two"), game("2001", "Gone")}));
+        const auto page = makePage();
+        QCOMPARE(page->games().size(), 4);
+        QVERIFY(page->games().at(0).toMap().value("picture").toUrl().isEmpty());
+        QCOMPARE(page->games().at(2).toMap().value("picture").toUrl(),
+                 QUrl::fromLocalFile(path("pictures/1003.jpg")));
+        const QVariantMap gone = page->games().at(3).toMap();
+        QCOMPARE(gone.value("shared").toBool(), false);
+        QCOMPARE(gone.value("picture").toUrl(), QUrl::fromLocalFile(path("pictures/2001.jpg")));
     }
 
     void noChildrenPicksNoOne() {
@@ -689,6 +708,72 @@ private slots:
         QCOMPARE(page->saving()->copiedSoFar().size(), 1);
     }
 
+    // ---- games without a picture (ADR-0047) ----
+
+    // A game the command names without a picture is named by its title, as
+    // one list in words, apart from one whose picture was left out.
+    void aGameWithoutAPictureIsNamedByItsTitle_data() {
+        QTest::addColumn<QString>("scenario");
+        QTest::addColumn<QString>("missing");
+        QTest::addColumn<QString>("refused");
+        QTest::newRow("missing") << "save-pictures-missing" << "Game eight" << "";
+        QTest::newRow("left out") << "save-pictures-refused" << "" << "Game eight";
+        QTest::newRow("every picture") << "save-done" << "" << "";
+    }
+
+    void aGameWithoutAPictureIsNamedByItsTitle() {
+        QFETCH(const QString, scenario);
+        QFETCH(const QString, missing);
+        QFETCH(const QString, refused);
+        write(path("games.json"),
+              gamesFile({game("1001", "Game one"), game("1002", "Game two"),
+                         game("1003", "Game three"), game("1008", "Game eight")}));
+        const auto page = makePage();
+        page->turn("1001");
+        saveWith(*page, scenario);
+        QCOMPARE(page->saving()->step(), GamesSaving::Step::Saved);
+        QCOMPARE(page->saving()->picturesMissing(), missing);
+        QCOMPARE(page->saving()->picturesRefused(), refused);
+        QVERIFY(!page->saving()->picturesKept());
+    }
+
+    // A game a look has just found, which the page had not read, is still
+    // named by its title, from the full list the look made.
+    void aGameTheLookFoundIsNamedToo() {
+        const auto page = makePage();
+        write(path("games.json"),
+              gamesFile({game("1001", "Game one"), game("1008", "Game eight")}));
+        saveWith(*page, "save-pictures-missing", true);
+        QCOMPARE(page->saving()->kind(), GamesSaving::Kind::Look);
+        QCOMPARE(page->saving()->picturesMissing(), "Game eight");
+    }
+
+    // A game the full list does not name, which only a change since the
+    // command read it could leave, is named by its number.
+    void aGameNeverReadIsNamedByItsNumber() {
+        const auto page = makePage();
+        saveWith(*page, "save-pictures-missing", true);
+        QCOMPARE(page->saving()->picturesMissing(), "Game 1008");
+    }
+
+    // Pictures kept are said after a Save and after a look, until Close.
+    void thePicturesKeptAreSaid() {
+        const auto page = makePage();
+        page->turn("1001");
+        saveWith(*page, "save-pictures-kept");
+        QVERIFY(page->saving()->picturesKept());
+        page->saving()->close();
+        QVERIFY(!page->saving()->picturesKept());
+        saveWith(*page, "save-pictures-kept", true);
+        QCOMPARE(page->saving()->kind(), GamesSaving::Kind::Look);
+        QVERIFY(page->saving()->picturesKept());
+        page->saving()->close();
+        QVERIFY(!page->saving()->picturesKept());
+        saveWith(*page, "save-pictures-missing", true);
+        page->saving()->close();
+        QCOMPARE(page->saving()->picturesMissing(), QString());
+    }
+
     // Looking for new games names no child, so no list the page read, old
     // or unreadable, is written back.
     void lookForGamesChangesNoList() {
@@ -899,6 +984,7 @@ private slots:
         setup.command = FIXTURES "/no-such-cairn-family";
         setup.catalogue = path("games.json");
         setup.childLists = path("games");
+        setup.pictures = path("pictures");
         setup.accounts = [this] { return m_accounts; };
         setup.loggedIn = [this] { return loggedIn(); };
         GamesPage page(setup);

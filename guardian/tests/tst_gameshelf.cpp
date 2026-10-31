@@ -152,17 +152,33 @@ private slots:
         QCOMPARE(GameShelf::read(m_catalogue, {}).games().at(0).title, markup);
     }
 
-    void picturesAreCarried() {
-        const QString picture = path("1001.jpg");
+    // Each game shows the picture step's copy for its app id, as the
+    // child's tile does, and never one an entry names (ADR-0047).
+    void aPictureIsFoundByItsAppId() {
+        QVERIFY(QDir().mkpath(path("pictures")));
+        const QString picture = path("pictures/1001.jpg");
         write(picture, "jpeg");
-        QJsonObject withPicture = game("1001", "Game one");
-        withPicture["picture"] = picture;
-        QJsonObject missingPicture = game("1002", "Game two");
-        missingPicture["picture"] = path("1002.jpg");
-        write(m_catalogue, gamesFile({withPicture, missingPicture}));
-        const GameShelf shelf = GameShelf::read(m_catalogue, {});
+        write(path("named.jpg"), "jpeg");
+        QJsonObject named = game("1002", "Game two");
+        named["picture"] = path("named.jpg");
+        write(m_catalogue, gamesFile({game("1001", "Game one"), named}));
+        const GameShelf shelf = GameShelf::read(m_catalogue, {}, path("pictures"));
         QCOMPARE(shelf.games().at(0).picture, QUrl::fromLocalFile(picture));
         QVERIFY(shelf.games().at(1).picture.isEmpty());
+        // With no folder, no game has a picture.
+        QVERIFY(GameShelf::read(m_catalogue, {}).games().at(0).picture.isEmpty());
+    }
+
+    // A game on the child's list that the shared folder no longer has keeps
+    // the picture the picture step keeps for it, as their tile does.
+    void aGameNoLongerSharedKeepsItsPicture() {
+        QVERIFY(QDir().mkpath(path("pictures")));
+        write(path("pictures/2001.jpg"), "jpeg");
+        write(path("ada.json"), gamesFile({game("2001", "Gone one")}));
+        const GameShelf shelf = GameShelf::read(m_catalogue, path("ada.json"), path("pictures"));
+        QCOMPARE(shelf.games().size(), 4);
+        QVERIFY(!shelf.games().at(3).shared);
+        QCOMPARE(shelf.games().at(3).picture, QUrl::fromLocalFile(path("pictures/2001.jpg")));
     }
 
     // No shared folder list yet: no shared games, and the child's list is

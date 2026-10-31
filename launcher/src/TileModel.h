@@ -25,6 +25,11 @@ class TileModel : public QAbstractListModel, // NOLINT(misc-multiple-inheritance
     // The games file provisioning makes from the shared Steam library
     // (ADR-0033). Its tiles follow the manifest's. Empty means none.
     Q_PROPERTY(QString gamesPath READ gamesPath WRITE setGamesPath NOTIFY gamesPathChanged)
+    // The folder of the games' pictures, <appid>.jpg, which the picture step
+    // copies from a grown-up's Steam (ADR-0035, ADR-0047). Empty means the
+    // game tiles have none.
+    Q_PROPERTY(QString picturesFolder READ picturesFolder WRITE setPicturesFolder NOTIFY
+                   picturesFolderChanged)
     // A plain sentence when the manifest could not be used; empty otherwise.
     Q_PROPERTY(QString loadError READ loadError NOTIFY loadErrorChanged)
 
@@ -63,6 +68,8 @@ public:
     void setManifestPath(const QString& path);
     QString gamesPath() const;
     void setGamesPath(const QString& path);
+    QString picturesFolder() const;
+    void setPicturesFolder(const QString& folder);
     QString loadError() const;
 
     // A TileModel written in QML gets all its paths before it reads the
@@ -81,6 +88,7 @@ public:
 signals:
     void manifestPathChanged();
     void gamesPathChanged();
+    void picturesFolderChanged();
     void loadErrorChanged();
 
 private:
@@ -90,6 +98,7 @@ private:
     QList<Tile> m_tiles;
     QString m_manifestPath;
     QString m_gamesPath;
+    QString m_picturesFolder;
     QString m_loadError;
     bool m_loadsOnChange = true;
 };

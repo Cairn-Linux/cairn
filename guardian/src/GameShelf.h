@@ -26,7 +26,9 @@ public:
         QString appId;
         // From a Steam game's own name, so the page shows it as plain text.
         QString title;
-        // Empty when the game has no picture; the page shows the title.
+        // The picture step's copy for the game's app id, as the child's tile
+        // shows it (GamePicture); empty when there is none, and the page
+        // shows the title.
         QUrl picture;
         bool onList = false;
         // False for a game on the child's list that the shared folder no
@@ -36,8 +38,11 @@ public:
 
     // `catalogue` is the full games list, /var/lib/cairn/games.json, and
     // `childList` the child's own, /var/lib/cairn/games/<login>.json. An
-    // empty `childList` reads as a child with no file.
-    static GameShelf read(const QString& catalogue, const QString& childList);
+    // empty `childList` reads as a child with no file. `pictures` is the
+    // picture step's folder, /var/lib/cairn/game-pictures; "" means no game
+    // has a picture.
+    static GameShelf read(const QString& catalogue, const QString& childList,
+                          const QString& pictures = {});
 
     // The child's own list in `folder`, or "" when the login does not
     // follow cairn-family's rule for one: it goes into a file name, so any

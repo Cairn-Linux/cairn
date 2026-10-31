@@ -5,11 +5,13 @@ the Guardian's Steam (ADR-0033, ADR-0035), on folders made for each test.
 
 Standard library only. The program is installed into a temporary folder
 beside kidscan.py, as provisioning installs it, and run there with
-`python3 -I`. It always gets --home, --shared and --pictures, so it never
-reads this account's own Steam. The pictures are a few bytes that start as
-a JPEG does, made here; no game's art is ever part of the tests.
+`python3 -I`. It always gets --home, --shared, --pictures and --lists, so
+it never reads this account's own Steam or this computer's children's
+lists. The pictures are a few bytes that start as a JPEG does, made here;
+no game's art is ever part of the tests.
 """
 
+import json
 import os
 import pathlib
 import re
@@ -27,10 +29,12 @@ KIDSCAN = HERE.parents[1] / "tools" / "kidscan" / "kidscan.py"
 GRAMMAR = re.compile(
     r"(copied|removed|missing) [0-9]{1,10}"
     r"|refused [0-9]{1,10} (not-a-file|too-big|not-a-jpeg|unreadable)"
-    r"|refused folder|finished|failed"
+    r"|refused folder|refused lists|finished|failed"
 )
 
 LIMIT = 1 << 20
+# The most of a child's list the program reads.
+LIST_LIMIT = 4 << 20
 # Steam names the folder some games' art is kept in by a hash like these.
 HASH = "162664aa5da85f418105350c5d67ca565f6c3713"
 OTHER_HASH = "0a1b2c3d4e5f60718293a4b5c6d7e8f901234567"
@@ -62,15 +66,25 @@ def refusals(root):
     }
 
 
-def manifest_text(appid, state_flags="4"):
+def manifest_text(appid, state_flags="4", extra=""):
     return (f'"AppState"\n{{\n\t"appid"\t\t"{appid}"\n\t"name"\t\t"Game {appid}"\n'
-            f'\t"StateFlags"\t\t"{state_flags}"\n\t"installdir"\t\t"Game {appid}"\n}}\n')
+            f'\t"StateFlags"\t\t"{state_flags}"\n\t"installdir"\t\t"Game {appid}"\n{extra}}}\n')
+
+
+def list_entry(appid):
+    """A game on a child's list, as cairn-family save-games writes it."""
+    return {"id": f"steam-{appid}", "title": f"Game {appid}", "category": "games",
+            "engine": "steam", "exec": ["steam", "-applaunch", str(appid)]}
+
+
+def list_text(entries):
+    return json.dumps({"version": 1, "entries": entries}, indent=4).encode()
 
 
 class Machine:
     """A shared library, a Guardian's Steam with its picture cache, the
-    pictures folder provisioning makes, and the program installed beside
-    kidscan.py, all under one folder."""
+    pictures folder provisioning makes, the children's lists folder, and
+    the program installed beside kidscan.py, all under one folder."""
 
     def __init__(self, root):
         self.root = pathlib.Path(root)
@@ -82,15 +96,19 @@ class Machine:
         (self.shared / "steamapps").mkdir(parents=True)
         self.pictures = self.root / "var" / "game-pictures"
         self.pictures.mkdir()
+        # As systemd-tmpfiles makes it on the image, whatever the umask.
+        self.lists = self.root / "var" / "games"
+        self.lists.mkdir()
+        self.lists.chmod(0o755)
         self.home = self.root / "home" / "gina"
         self.cache = self.home / ".local" / "share" / "Steam" / "appcache" / "librarycache"
         self.cache.mkdir(parents=True)
 
-    def add_game(self, appid, state_flags="4"):
+    def add_game(self, appid, state_flags="4", extra=""):
         """A game in the shared library, installed as kidscan expects one
-        that gets a tile, unless state_flags says otherwise."""
+        that gets a tile, unless state_flags or extra says otherwise."""
         (self.shared / "steamapps" / f"appmanifest_{appid}.acf").write_text(
-            manifest_text(appid, state_flags))
+            manifest_text(appid, state_flags, extra))
         (self.shared / "steamapps" / "common" / f"Game {appid}").mkdir(parents=True, exist_ok=True)
 
     def remove_game(self, appid):
@@ -111,12 +129,19 @@ class Machine:
     def picture(self, appid):
         return self.pictures / f"{appid}.jpg"
 
+    def add_list(self, login, appids):
+        """A child's own list with these games, as cairn-family writes it."""
+        path = self.lists / f"{login}.json"
+        path.write_bytes(list_text([list_entry(appid) for appid in appids]))
+        return path
+
     def run(self, home=None, cwd=None):
         # A run that blocks fails the test rather than hanging it.
         done = subprocess.run(
             [sys.executable, "-I", str(self.libexec / "cairn-game-pictures"),
              "--home", str(self.home) if home is None else home,
-             "--shared", str(self.shared), "--pictures", str(self.pictures)],
+             "--shared", str(self.shared), "--pictures", str(self.pictures),
+             "--lists", str(self.lists)],
             cwd=cwd,
             stdin=subprocess.DEVNULL,
             capture_output=True,
@@ -579,6 +604,190 @@ class SharedFolderTest(PicturesTestCase):
         self.assertEqual(self.machine.run(), ["failed"])
         self.assertEqual(self.machine.code, 1)
         self.assertEqual(self.pictures(), ["100.jpg"])
+
+
+class ListedGameTest(PicturesTestCase):
+    """A game still on a child's own list keeps its picture when kidscan
+    leaves it out of the shared folder's tiles, as the child keeps its
+    tile (ADR-0047)."""
+
+    def pictured(self, appid=100, data=None):
+        self.machine.add_game(appid)
+        self.machine.add_header(appid, data)
+        self.assertEqual(self.run_finished(), [f"copied {appid}"])
+
+    def assertKept(self, appid=100, data=None):
+        self.assertEqual(self.run_finished(), [])
+        self.assertEqual(self.machine.picture(appid).read_bytes(), stand_in() if data is None else data)
+
+    def test_a_listed_game_keeps_its_picture_when_it_leaves_the_shared_folder(self):
+        self.pictured()
+        self.machine.add_list("ada", [100])
+        self.machine.remove_game(100)
+        self.assertKept()
+
+    def test_a_listed_game_keeps_its_picture_while_it_updates(self):
+        self.pictured()
+        self.machine.add_list("ada", [100])
+        self.machine.add_game(100, state_flags="1026")
+        self.assertKept()
+
+    def test_a_listed_game_keeps_its_picture_on_a_beta_branch(self):
+        self.pictured()
+        self.machine.add_list("ada", [100])
+        self.machine.add_game(100, extra='\t"UserConfig"\n\t{\n\t\t"BetaKey"\t\t"beta"\n\t}\n')
+        self.assertKept()
+
+    def test_any_childs_list_is_enough(self):
+        self.pictured()
+        self.machine.add_list("ada", [])
+        self.machine.add_list("ben", [200, 100])
+        self.machine.remove_game(100)
+        self.assertKept()
+
+    def test_a_kept_picture_is_never_copied_again(self):
+        # Root reads the Guardian's Steam only for a shared game.
+        self.pictured(data=stand_in("old"))
+        self.machine.add_list("ada", [100, 300])
+        self.machine.remove_game(100)
+        self.machine.add_header(100, stand_in("new"))
+        self.machine.add_header(300)
+        self.assertKept(data=stand_in("old"))
+        self.assertEqual(self.pictures(), ["100.jpg"])
+
+    def test_a_listed_game_without_a_picture_is_not_missing(self):
+        self.machine.add_list("ada", [300])
+        self.assertEqual(self.run_finished(), [])
+        self.assertEqual(self.pictures(), [])
+
+    def test_off_every_list_the_picture_goes(self):
+        self.pictured()
+        self.machine.add_list("ada", [100])
+        self.machine.remove_game(100)
+        self.assertKept()
+        self.machine.add_list("ada", [])
+        self.assertEqual(self.run_finished(), ["removed 100"])
+        self.assertEqual(self.pictures(), [])
+
+    def test_only_an_entry_the_launcher_gives_a_tile_counts(self):
+        untitled = dict(list_entry(101), title="")
+        made = dict(list_entry(102), category="make")
+        full_path = dict(list_entry(103), exec=["/usr/bin/steam", "-applaunch", "103"])
+        extra = dict(list_entry(104), exec=["steam", "-applaunch", "104", "-novid"])
+        leading_zero = dict(list_entry(105), exec=["steam", "-applaunch", "0105"])
+        number = dict(list_entry(106), exec=["steam", "-applaunch", 106])
+        odd = [untitled, made, full_path, extra, leading_zero, number, "steam -applaunch 107", [108]]
+        for appid in (101, 102, 103, 104, 105, 106, 107, 108, 109):
+            self.machine.picture(appid).write_bytes(stand_in())
+        (self.machine.lists / "ada.json").write_bytes(list_text(odd + [list_entry(109)]))
+        self.assertEqual(self.run_finished(), [f"removed {appid}" for appid in range(101, 109)])
+        self.assertEqual(self.pictures(), ["109.jpg"])
+
+    def test_a_list_that_cannot_be_used_keeps_nothing(self):
+        elsewhere = self.machine.root / "elsewhere.json"
+        elsewhere.write_bytes(list_text([list_entry(100)]))
+        good = list_text([list_entry(100)])
+        cases = {
+            "a link": lambda path: path.symlink_to(elsewhere),
+            "a fifo": os.mkfifo,
+            "a folder": lambda path: path.mkdir(),
+            "too big": lambda path: path.write_bytes(good.ljust(LIST_LIMIT + 1, b" ")),
+            "not JSON": lambda path: path.write_bytes(b"{" + good),
+            "not UTF-8": lambda path: path.write_bytes(good.replace(b"Game 100", b"Game \xff")),
+            "version 2": lambda path: path.write_bytes(good.replace(b'"version": 1', b'"version": 2')),
+            "version true": lambda path: path.write_bytes(good.replace(b'"version": 1', b'"version": true')),
+            "entries not a list": lambda path: path.write_text('{"version": 1, "entries": {"a": 1}}'),
+            "deeply nested": lambda path: path.write_bytes(b"[" * 100000),
+        }
+        for case, make in cases.items():
+            with self.subTest(case=case):
+                self.machine.picture(100).write_bytes(stand_in())
+                path = self.machine.lists / "ada.json"
+                make(path)
+                try:
+                    self.assertEqual(self.run_finished(), ["removed 100"])
+                finally:
+                    if path.is_dir() and not path.is_symlink():
+                        path.rmdir()
+                    else:
+                        path.unlink()
+
+    def test_a_list_of_exactly_the_limit_is_read(self):
+        self.machine.picture(100).write_bytes(stand_in())
+        good = list_text([list_entry(100)])
+        (self.machine.lists / "ada.json").write_bytes(good.ljust(LIST_LIMIT, b" "))
+        self.assertEqual(self.run_finished(), [])
+
+    def test_only_a_login_names_a_list(self):
+        names = ("Ada.json", "ada.json.Ab12Cd", ".ada.json", "ada.txt", "a" * 33 + ".json", "1ada.json")
+        for appid, name in enumerate(names, start=101):
+            self.machine.picture(appid).write_bytes(stand_in())
+            (self.machine.lists / name).write_bytes(list_text([list_entry(appid)]))
+        self.machine.picture(200).write_bytes(stand_in())
+        self.machine.add_list("dee", [200])
+        self.machine.picture(201).write_bytes(stand_in())
+        self.machine.add_list("_x-1", [201])
+        self.assertEqual(self.run_finished(), [f"removed {appid}" for appid in range(101, 107)])
+        self.assertEqual(self.pictures(), ["200.jpg", "201.jpg"])
+
+    @needs_not_root
+    def test_a_list_that_cannot_be_read_keeps_nothing(self):
+        self.machine.picture(100).write_bytes(stand_in())
+        self.machine.add_list("ada", [100]).chmod(0)
+        self.assertEqual(self.run_finished(), ["removed 100"])
+
+
+class ListsFolderTest(PicturesTestCase):
+    """The children's lists folder, which only root writes, as cairn-family
+    requires (ADR-0041)."""
+
+    def setUp(self):
+        super().setUp()
+        self.machine.add_game(100)
+        self.machine.add_header(100)
+        self.machine.picture(200).write_bytes(stand_in("kept"))
+        (self.machine.pictures / ".cairn-300.jpg").write_bytes(b"half")
+
+    def assertRefusedLists(self):
+        lines = self.machine.run()
+        self.assertOnlyGrammar(lines)
+        self.assertEqual(lines, ["refused lists"])
+        self.assertEqual(self.machine.code, 1)
+        # Nothing was touched: no leftover cleared, no copy, no removal.
+        self.assertEqual(self.pictures(), [".cairn-300.jpg", "200.jpg"])
+
+    def test_no_lists_folder_is_no_lists(self):
+        self.machine.lists.rmdir()
+        self.assertEqual(self.run_finished(), ["copied 100", "removed 200"])
+        self.assertEqual(self.pictures(), ["100.jpg"])
+
+    def test_a_link_for_the_lists_folder_is_refused(self):
+        elsewhere = self.machine.root / "elsewhere"
+        elsewhere.mkdir()
+        (elsewhere / "ada.json").write_bytes(list_text([list_entry(200)]))
+        self.machine.lists.rmdir()
+        self.machine.lists.symlink_to(elsewhere)
+        self.assertRefusedLists()
+
+    def test_a_file_for_the_lists_folder_is_refused(self):
+        self.machine.lists.rmdir()
+        self.machine.lists.write_bytes(list_text([list_entry(200)]))
+        self.assertRefusedLists()
+
+    def test_a_lists_folder_others_could_write_in_is_refused(self):
+        # Any child could then put a list there that keeps any picture.
+        for mode in (0o775, 0o757, 0o777):
+            with self.subTest(mode=oct(mode)):
+                self.machine.lists.chmod(mode)
+                self.assertRefusedLists()
+
+    @needs_not_root
+    def test_a_lists_folder_another_account_owns_is_refused(self):
+        # Root's own folder, which this test's account does not own. No
+        # group or other account can write in it, so only the owner rule
+        # refuses it.
+        self.machine.lists = pathlib.Path("/")
+        self.assertRefusedLists()
 
 
 class FolderTest(PicturesTestCase):
