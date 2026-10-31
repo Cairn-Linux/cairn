@@ -534,9 +534,9 @@ line too.
   `mark-currentcolor.svg` is not used, because
   Plasma recolours only its own colour classes, not `currentColor`.
   Since 2026-10-31, `build_files/kde-pictures.sh` also takes out the
-  game art Bazzite adds to Plasma's picture folder, so the picture a
-  Guardian chooses, which the lock screen shows, is one of KDE's
-  (ADR-0043, "Only KDE's pictures").
+  game art Bazzite adds to Plasma's picture folder, so the pictures
+  Family offers a Guardian are KDE's own (ADR-0043, "Only KDE's
+  pictures"). The lock screen shows the one they pick.
 - **#167, the Guardian tool.** Fedora's guidelines also ask for a notice
   where the system names itself: not provided or supported by the Fedora
   Project, official Fedora at https://fedoraproject.org/. KDE's About page

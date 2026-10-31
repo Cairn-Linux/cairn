@@ -310,6 +310,9 @@ KDE's 37 pictures and no other.
   offers Valve's game art as a picture. A Guardian who chose one of
   those before keeps it, because AccountsService keeps its own copy,
   until they choose another.
+- Only the image build removes the game art. A computer set up by hand
+  with `provision/cairn-provision.sh` keeps Bazzite's `/usr` as it is,
+  so Family there still offers the 15 game pictures beside KDE's 37.
 - Where a fingerprint reader is set up, polkit takes the Guardian's
   fingerprint in place of the current password, as in every other polkit
   box on the machine.

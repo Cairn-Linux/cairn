@@ -72,8 +72,9 @@ printf '%s\n' "$owners"
 
 
 # The image's build stage runs the tests without build_files/; the image's
-# own check, check-guardian-desktop.sh, covers the step there.
-@unittest.skipUnless(SCRIPT.exists(), "the build stage does not copy build_files")
+# own check, check-guardian-desktop.sh, covers the step there. Only the
+# missing folder skips, so a script renamed or gone fails here.
+@unittest.skipUnless(SCRIPT.parent.is_dir(), "the build stage does not copy build_files")
 class KdePicturesTest(unittest.TestCase):
     def setUp(self):
         self.folder = tempfile.TemporaryDirectory()

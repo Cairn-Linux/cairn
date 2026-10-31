@@ -412,6 +412,9 @@ done, and what could sink it. Decisions that change the design get an ADR in
   gone from System Settings, `systemsettings kcm_users`, `kcmshell6` and
   KRunner, the picture on the lock screen, and the password changed and
   back. Accepted once the same checks pass with the image's own paths.
+  Since 2026-10-31 the page offers only KDE's own pictures, its drawings
+  and then its photos: the image removes the game art Bazzite adds to
+  Plasma's picture folder (#166). So far the VM has seen a dry run.
   Adopting an account Cairn did not make stays #113's next part.
 - **ADR-0044 (2026-10-29, #165, proposed): the boot screen builds the
   stones.** From power-on to the login screen, and at shutdown, the
