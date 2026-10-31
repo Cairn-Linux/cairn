@@ -171,7 +171,7 @@ ADR-0041.
   It still starts, since provisioning's wrapper does not pass
   `--pictures`, which an older launcher would refuse.
 - Tested in Python, C++ and QML, and in the VM on 2026-10-31 (checks 1,
-  2, 4, 5, 6 and 8; see "Run on 2026-10-31").
+  2, 4, 5, 6, 7 and 8; see "Run on 2026-10-31").
 
 ## Checks in the VM
 
@@ -232,13 +232,20 @@ from the Family app itself.
    `catalogue kept`, and the journal `picture step: failed`, `catalogue
    kept` and `catalogue step: failed`. The games file did not change. Put
    back.
-7. Not run.
+7. Passed, simulated as check 2 was: with `2471140.jpg` moved out of
+   the pictures folder, the set-up script from this change's checkout,
+   run as `--guardian guardian --child ada`, said "changed: the picture
+   for Arthur's Birthday" and a "no picture yet" note for each test game,
+   and ended "done: 2 change(s)". The picture was back, byte for byte the
+   same, and ada's Arthur's Birthday tile showed it at her next login.
+   The games file lost its `picture` keys, and each child's list was byte
+   for byte the same. Not run: opening Steam until it shows a game.
 8. Passed: none of the 64 journal lines holds a `/` or a game title, and
    there was no AVC denial.
 
 The games file named no picture after the first Look, and each child's
 list was byte for byte the same before and after. This stays proposed
-until checks 3 and 7 run, unless the maintainer accepts it without them.
+until check 3 runs, unless the maintainer accepts it without it.
 
 ## Alternatives considered
 
