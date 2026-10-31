@@ -605,6 +605,13 @@ Mechanism:
   wait ends, such as one Steam holds behind a dialog the kiosk hides, ends
   on the grown-up screen, and its window still takes over if it comes late
   (ADR-0030).
+- A child's Steam gets Steam's own tools, the Steam Linux Runtimes and
+  Proton, from the parent's Steam: a Guardian's Save copies them into the
+  child's own library with the child's new games, by reflink, so a first
+  tap does not wait for them to download (ADR-0046, proposed). Each
+  child's Steam still updates its own copies, and a tool the parent's
+  Steam lacks, or a build newer than the parent's, still downloads when a
+  game first needs it.
 - Proton work happens in the background; the game comes up fullscreen.
 
 **Known failure modes.** Steam forces its window open for client updates, game

@@ -7,6 +7,11 @@ overturns a bullet of the Decision.
 **Closes:** (none) — the Games page of issue #167 and the parent's set-up
 step in #130; part of ROADMAP P1-5. Once accepted, amends ADR-0033 and
 ADR-0041.
+**Amended by:** ADR-0046, proposed (a Save also fills the tools folder
+from the Guardian's Steam, as the Guardian, after the children's lists
+lose the games taken off and before the first copy, so after any move;
+and the move step should drop to the Guardian as that step does, with
+`systemd-run --uid` and a time limit, rather than with `setpriv`)
 
 ## Context
 

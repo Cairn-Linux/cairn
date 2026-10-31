@@ -8,7 +8,9 @@ and P1-3
 **Amended by:** ADR-0041, proposed (the family's setup makes no child's
 copy of the games; a Guardian's Save on the Games page does);
 ADR-0044, proposed (the image builds its own initramfs, with Cairn's
-boot screen)
+boot screen); ADR-0046, proposed (tmpfiles also makes
+/var/lib/cairn/steam-tools, and the family's setup also compares
+cairn-share-tools with the checkout)
 
 ## Context
 
