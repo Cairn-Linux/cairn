@@ -4,7 +4,8 @@ import QtQuick.Window
 import QtTest
 
 // The real theme from greeter/theme with a stand-in for SDDM. Accounts: Ada
-// (L1), Ben (L3) and Sam (a Guardian), shown in that order.
+// (L1), Ben (L3) and Test Guardian (a Guardian, named as on the test VM),
+// shown in that order.
 TestCase {
     id: testCase
 
@@ -60,7 +61,7 @@ TestCase {
         compare(tiles.count, 3);
         compare(tiles.itemAtIndex(0).displayName, "Ada");
         compare(tiles.itemAtIndex(1).displayName, "Ben");
-        compare(tiles.itemAtIndex(2).displayName, "Sam");
+        compare(tiles.itemAtIndex(2).displayName, "Test Guardian");
         compare(tiles.itemAtIndex(0).Accessible.name, "Ada");
     }
 
@@ -77,6 +78,30 @@ TestCase {
         mouseClick(tiles.itemAtIndex(0));
         compare(logins.count, 1);
         compare(sddm.lastUser, "ada");
+    }
+
+    // On the test VM the grown-up's tile read "Test Gua…". A first and last
+    // name wrap onto two lines, whole, and the tile still fits its row.
+    function test_aLongNameWrapsToTwoLines() {
+        const tile = tiles.itemAtIndex(2);
+        const name = findChild(tile, "tileName");
+        compare(name.text, "Test Guardian");
+        compare(name.lineCount, 2);
+        verify(!name.truncated);
+        verify(name.contentWidth <= name.width);
+        verify(tile.height <= tiles.height);
+    }
+
+    // A name too long for the password box in any font ends in an ellipsis
+    // inside the box, rather than being cut off mid-letter at its edge.
+    function test_aLongNameStaysInsideThePasswordBox() {
+        mouseClick(tiles.itemAtIndex(2));
+        passwordRow.displayName = "Alexandra Montgomery-Smith";
+        const field = findChild(passwordRow, "passwordField");
+        const placeholder = findChild(passwordRow, "passwordPlaceholder");
+        verify(placeholder.visible);
+        verify(placeholder.truncated);
+        verify(placeholder.contentWidth <= field.width);
     }
 
     // The Guardian's tile never logs in by itself: it opens the password row.

@@ -83,13 +83,18 @@ Item {
         }
     }
 
+    // A first and last name are often wider than the tile, so the name
+    // wraps onto a second line before it ends in an ellipsis.
     Text {
         id: name
 
+        objectName: "tileName"
         anchors.top: circle.bottom
         anchors.topMargin: Tokens.headingSize / 2
         width: tile.width
         horizontalAlignment: Text.AlignHCenter
+        wrapMode: Text.Wrap
+        maximumLineCount: 2
         elide: Text.ElideRight
         text: tile.displayName
         font.family: Tokens.fontFamily
