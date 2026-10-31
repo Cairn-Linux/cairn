@@ -298,7 +298,7 @@ TestCase {
         standIns.ownSteamWillNotQuit(true);
         pressMainButton(window);
         tryCompare(window.visit, "step", SteamForChild.NotOpened);
-        verify(words(window).includes("Right-click the Steam icon near the clock and choose Exit Steam. Then try again."));
+        verify(words(window).includes("Right-click the Steam icon near the clock and choose Exit Steam. When its icon has gone, try again."));
         verify(!window.visit.ownSteamComingBack);
         verify(!words(window).includes("starting again"));
     }

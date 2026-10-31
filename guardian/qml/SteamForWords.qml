@@ -58,7 +58,7 @@ QtObject {
         case SteamForChild.NotAllowed:
             return qsTr("This account may not open a child's Steam. A grown-up's account can.");
         case SteamForChild.OwnSteamStillOpen:
-            return qsTr("Your own Steam did not close. Right-click the Steam icon near the clock and choose Exit Steam. Then try again.");
+            return qsTr("Your own Steam did not close. Right-click the Steam icon near the clock and choose Exit Steam. When its icon has gone, try again.");
         }
         return qsTr("The reason is in the system log. In a terminal: journalctl -t cairn-steam-for");
     }
