@@ -195,10 +195,15 @@ none of this.
   never writes over a tool the child has. It says `copying-tools` before
   the first, then `tool-copied APPID`, `tool-have APPID` or
   `tool-skipped APPID REASON` for each, `tool-missing APPID` for a tool
-  their tools run in that neither they nor the folder has, `no-tools`
-  when the folder is empty, and `tools-unreadable` when it could not be
-  read. The visit helper passes these lines on, and keeps all but
-  `tool-have` in the journal.
+  one of their tools runs in that their Steam still lacks after the copy
+  (the folder has no build of it, or that build was left out, and its
+  own `tool-skipped` line says why), `no-tools` when the folder is empty,
+  and `tools-unreadable` when it could not be read. The visit helper
+  passes these lines on, and keeps all but `tool-have` in the journal.
+- Both programs take what a tool is from kidscan, `tool_installdir` and
+  `TOOL_BUILD`, so they agree on it. A build stays in the folder until a
+  newer build of that tool replaces it, so the folder can hold a tool the
+  saving Guardian's Steam no longer has, and a child can be given it.
 
 ### Renumbering cairn-guardian
 

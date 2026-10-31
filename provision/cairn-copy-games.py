@@ -47,8 +47,10 @@ terminal. Provisioning turns them into sentences of its own.
                            the tool is left out; REASON is a game's word,
                            not-a-tool, or no-reflink
     tool-missing APPID     a tool the child now has runs inside this one,
-                           and neither the child's Steam nor the tools
-                           folder has it
+                           and the child's Steam still lacks it after this
+                           copy: the tools folder has no build of it, or
+                           that build was left out, and its own
+                           tool-skipped line says why
     no-tools               the tools folder holds no tool
     tools-unreadable       the tools folder could not be read, so no more
                            tools were copied
@@ -77,11 +79,10 @@ import kidscan  # noqa: E402
 SHARED = Path("/var/lib/cairn/steam-library/steamapps")
 OWN = Path(".local/share/Steam/steamapps")
 CP = "/usr/bin/cp"
-# Steam's tools, one folder for each build, <appid>-<buildid>, each holding
-# the tool's manifest and its common/<installdir> (ADR-0046).
+# Steam's tools, one folder for each build, named by kidscan's TOOL_BUILD,
+# <appid>-<buildid>, each holding the tool's manifest and its
+# common/<installdir> (ADR-0046).
 TOOLS = Path("/var/lib/cairn/steam-tools")
-TOOL_BUILD = re.compile(r"([1-9][0-9]{0,9})-([1-9][0-9]{0,9})")
-TOOL_MANIFEST = "toolmanifest.vdf"
 
 # Names only this program uses. Whatever an earlier run left under them is
 # removed before anything else; nothing else in the child's library is.
@@ -350,7 +351,7 @@ def newest_builds(tools):
     name is passed over."""
     newest = {}
     for entry in os.scandir(tools):
-        match = TOOL_BUILD.fullmatch(entry.name)
+        match = kidscan.TOOL_BUILD.fullmatch(entry.name)
         if not match or not entry.is_dir(follow_symlinks=False):
             continue
         appid, build = match.group(1), int(match.group(2))
@@ -360,29 +361,17 @@ def newest_builds(tools):
 
 
 def tool_folder(appid, data, build):
-    """The tool's installdir when the build's manifest is one of Steam's
-    tools by kidscan's rule, with its toolmanifest.vdf, or None. A game put
+    """The tool's installdir when the build holds one of Steam's tools by
+    kidscan's rule, the same one the tools step follows, or None. A game put
     in the tools folder by mistake never reaches a child this way."""
     state = app_state(data)
-    if state is None:
-        return None
-    name = kidscan.ci_get(state, "name", "")
-    installdir = kidscan.ci_get(state, "installdir")
-    if not isinstance(name, str) or not kidscan.is_steam_tool(appid, name):
-        return None
-    if not kidscan.plain_folder_name(installdir):
-        return None
-    try:
-        plain = stat.S_ISREG(os.lstat(build / "common" / installdir / TOOL_MANIFEST).st_mode)
-    except OSError:
-        plain = False
-    return installdir if plain else None
+    return None if state is None else kidscan.tool_installdir(appid, state, build)
 
 
 def runs_in(build, installdir):
     """The appid of the tool this one runs inside, from the tools folder's
     own toolmanifest.vdf, never from the child's files, or None."""
-    text = kidscan.read_manifest(build / "common" / installdir / TOOL_MANIFEST)
+    text = kidscan.read_manifest(build / "common" / installdir / kidscan.TOOL_MANIFEST)
     if text is None:
         return None
     try:

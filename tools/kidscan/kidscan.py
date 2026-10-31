@@ -204,6 +204,40 @@ def is_steam_tool(appid, name):
     return appid in APPID_DENYLIST or bool(PROTON_NAME_RE.match(name))
 
 
+# The file in a tool's folder that makes it one of Steam's tools, and names
+# the tool it runs in.
+TOOL_MANIFEST = "toolmanifest.vdf"
+
+# One build of a tool in the image's tools folder, <appid>-<buildid>, both
+# numbers by the rule for an appid (ADR-0046).
+TOOL_BUILD = re.compile(rf"({APPID.pattern})-({APPID.pattern})")
+
+
+def tool_installdir(appid, state, folder):
+    """The installdir of one of Steam's tools, from its manifest's AppState,
+    when the tool is in `folder`, a library's steamapps or a build in the
+    tools folder; otherwise None. A tool is an app is_steam_tool calls one,
+    whose installdir is one plain folder name, and whose common/<installdir>
+    is a real folder holding a plain toolmanifest.vdf, neither of them a
+    link. The tools step and the copy step both ask this, so the two agree
+    on what a tool build is."""
+    name = ci_get(state, "name", "")
+    installdir = ci_get(state, "installdir")
+    if not isinstance(name, str) or not is_steam_tool(appid, name):
+        return None
+    if not plain_folder_name(installdir):
+        return None
+    tool = Path(folder) / "common" / installdir
+    try:
+        if not stat.S_ISDIR(os.lstat(tool).st_mode):
+            return None
+        if not stat.S_ISREG(os.lstat(tool / TOOL_MANIFEST).st_mode):
+            return None
+    except OSError:
+        return None
+    return installdir
+
+
 def app_from_manifest(file_name, data, steamapps):
     """The game one appmanifest describes, or None when it gets no tile. A
     manifest is Steam's file, and anyone who can write the library can

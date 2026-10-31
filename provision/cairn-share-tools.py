@@ -76,7 +76,6 @@ import kidscan  # noqa: E402
 TOOLS = Path("/var/lib/cairn/steam-tools")
 STEAM = Path(".local/share/Steam")
 CP = "/usr/bin/cp"
-TOOL_MANIFEST = "toolmanifest.vdf"
 
 # Where a runtime keeps each account's own working files: pressure-vessel's
 # temporary folders, some of them private. Never copied.
@@ -88,10 +87,9 @@ VAR = "var"
 SCRATCH_PREFIX = ".cairn-tool-"
 GONE_PREFIX = ".cairn-tool-gone-"
 
-# A Steam manifest's file name, and a build's folder: the appid, then the
-# build. Both numbers follow kidscan's rule for an appid.
+# A Steam manifest's file name, by kidscan's rule for an appid. A build's
+# folder is named by kidscan's TOOL_BUILD, which the copy step reads too.
 MANIFEST_NAME = re.compile(rf"appmanifest_({kidscan.APPID.pattern})\.acf")
-BUILD_NAME = re.compile(rf"({kidscan.APPID.pattern})-({kidscan.APPID.pattern})")
 
 
 def say(*words):
@@ -102,13 +100,6 @@ def is_real_folder(path):
     """A folder, and not a link to one."""
     try:
         return stat.S_ISDIR(os.lstat(path).st_mode)
-    except OSError:
-        return False
-
-
-def is_plain_file(path):
-    try:
-        return stat.S_ISREG(os.lstat(path).st_mode)
     except OSError:
         return False
 
@@ -171,9 +162,10 @@ def libraries(home):
 
 
 def tools_in(steamapps):
-    """Each of Steam's tools in one library, in appid order, as (appid,
-    manifest bytes, AppState, installdir). Anything else is passed over
-    without a word, so no game of the Guardian's is ever named."""
+    """Each of Steam's tools in one library, by kidscan's rule for a tool, in
+    appid order, as (appid, manifest bytes, AppState, installdir). Anything
+    else is passed over without a word, so no game of the Guardian's is ever
+    named."""
     try:
         entries = sorted(os.scandir(steamapps), key=lambda entry: entry.name)
     except OSError:
@@ -185,16 +177,9 @@ def tools_in(steamapps):
         state = app_state(data) if data is not None else None
         if state is None or kidscan.ci_get(state, "appid") != match.group(1):
             continue
-        appid = match.group(1)
-        name = kidscan.ci_get(state, "name", "")
-        installdir = kidscan.ci_get(state, "installdir")
-        if not isinstance(name, str) or not kidscan.is_steam_tool(appid, name):
-            continue
-        if not kidscan.plain_folder_name(installdir):
-            continue
-        folder = steamapps / "common" / installdir
-        if is_real_folder(folder) and is_plain_file(folder / TOOL_MANIFEST):
-            found.append((appid, data, state, installdir))
+        installdir = kidscan.tool_installdir(match.group(1), state, steamapps)
+        if installdir is not None:
+            found.append((match.group(1), data, state, installdir))
     return sorted(found, key=lambda tool: int(tool[0]))
 
 
@@ -223,7 +208,7 @@ def builds_held(tools, appid):
     folder counts: a link or a file under a build's name is never one."""
     held = []
     for entry in os.scandir(tools):
-        match = BUILD_NAME.fullmatch(entry.name)
+        match = kidscan.TOOL_BUILD.fullmatch(entry.name)
         if match and match.group(1) == appid and entry.is_dir(follow_symlinks=False):
             held.append(int(match.group(2)))
     return held
@@ -356,7 +341,7 @@ def set_aside(tools, path):
 
 def remove_other_builds(tools, appid, kept):
     for entry in list(os.scandir(tools)):
-        match = BUILD_NAME.fullmatch(entry.name)
+        match = kidscan.TOOL_BUILD.fullmatch(entry.name)
         if match and match.group(1) == appid and int(match.group(2)) != kept:
             set_aside(tools, Path(entry.path))
 
@@ -366,7 +351,7 @@ def remove_leftovers(tools):
     under a build's name that is not a folder, which could otherwise stand
     in the way of a build for ever."""
     for entry in list(os.scandir(tools)):
-        if entry.name.startswith(SCRATCH_PREFIX) or BUILD_NAME.fullmatch(entry.name):
+        if entry.name.startswith(SCRATCH_PREFIX) or kidscan.TOOL_BUILD.fullmatch(entry.name):
             if not entry.is_dir(follow_symlinks=False):
                 unlink(entry.path)
             elif entry.name.startswith(SCRATCH_PREFIX):

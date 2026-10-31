@@ -843,6 +843,47 @@ class ToolsTest(CopyTestCase):
         (self.machine.library / "appmanifest_1493710.acf").write_bytes(manifest(1493710, "Proton - Experimental"))
         self.assertEqual(self.run_with_stand_in(), (0, ["tool-have 1493710", "tool-missing 4183110"]))
 
+    def test_a_tool_the_folder_has_but_left_out_is_still_missing(self):
+        # Soldier is in the tools folder, but its copy is left out, so the
+        # child's scout still lacks it after the copy.
+        self.machine.add_tool(**SCOUT)
+        self.machine.add_tool(**SOLDIER)
+        (self.machine.library / "common" / "SteamLinuxRuntime_soldier").mkdir()
+        self.assertEqual(self.run_with_stand_in(), (0, ["copying-tools", "tool-copied 1070560",
+                                                       "tool-skipped 1391110 folder-without-manifest",
+                                                       "tool-missing 1391110"]))
+
+    def test_a_tool_copy_that_fails_part_way_leaves_nothing_and_the_next_goes_on(self):
+        self.machine.add_tool(**SCOUT)
+        self.machine.add_tool(**SOLDIER)
+
+        def half_a_copy(source, target):
+            CopyTest.copy_tree(source, target)
+            return source.name != "SteamLinuxRuntime"
+
+        code, lines = self.run_with_stand_in(reflink_copy=half_a_copy)
+        self.assertEqual((code, lines), (0, ["copying-tools", "tool-skipped 1070560 copy-failed",
+                                             "tool-copied 1391110"]))
+        self.assertFalse(self.child_has("1070560"))
+        self.assertEqual(sorted(p.name for p in (self.machine.library / "common").iterdir()),
+                         ["SteamLinuxRuntime_soldier"])
+
+    def test_an_installdir_that_is_not_one_plain_folder_name(self):
+        # Even with a toolmanifest.vdf where it leads, which for ".." is the
+        # build's own folder.
+        for installdir in ("..", "a/b", ""):
+            with self.subTest(installdir=installdir):
+                shutil.rmtree(self.machine.tools, ignore_errors=True)
+                build = self.machine.add_tool(**SCOUT)
+                (build / "appmanifest_1070560.acf").write_bytes(
+                    manifest(1070560, installdir, extra='\t"buildid"\t\t"100"\n', name=SCOUT["name"]))
+                where = build / "common" / installdir
+                where.mkdir(parents=True, exist_ok=True)
+                (where / "toolmanifest.vdf").write_bytes(b'"manifest"\n{\n\t"version" "2"\n}\n')
+                self.assertEqual(self.run_with_stand_in(), (0, ["tool-skipped 1070560 not-a-tool"]))
+                self.assertEqual(sorted(p.name for p in self.machine.library.iterdir()), ["common"])
+                self.assertEqual(list((self.machine.library / "common").iterdir()), [])
+
     def test_an_empty_tools_folder(self):
         self.machine.tools.mkdir(parents=True)
         self.machine.add_game(100)

@@ -237,6 +237,23 @@ class WhichAppsTest(ShareTestCase):
         self.assertEqual(self.machine.run_with_stand_in(), (0, ["finished"]))
         self.assertEqual(self.machine.builds(), [])
 
+    def test_an_installdir_that_is_not_one_plain_folder_name(self):
+        # Even with a toolmanifest.vdf where it leads: such a build would
+        # hold the whole steamapps, or the whole common, in a folder every
+        # account reads.
+        library = self.machine.library
+        for installdir, where in (("..", library), ("a/b", library / "common" / "a" / "b"),
+                                  ("", library / "common")):
+            with self.subTest(installdir=installdir):
+                where.mkdir(parents=True, exist_ok=True)
+                (where / "toolmanifest.vdf").write_bytes(tool_manifest())
+                self.machine.manifest_of(SCOUT).write_bytes(manifest(SCOUT[0], SCOUT[1], installdir))
+                try:
+                    self.assertEqual(self.machine.run_with_stand_in(), (0, ["finished"]))
+                    self.assertEqual(self.machine.builds(), [])
+                finally:
+                    (where / "toolmanifest.vdf").unlink()
+
     def test_a_folder_that_is_a_link_or_a_toolmanifest_that_is_not_a_file(self):
         elsewhere = self.machine.root / "elsewhere"
         elsewhere.mkdir()
@@ -316,9 +333,38 @@ class AgainTest(ShareTestCase):
         self.assertEqual(self.machine.run_with_stand_in(), (0, ["tool-shared 1070560", "finished"]))
         build = self.machine.tools / "1070560-100"
         before = build.stat().st_ino
-        self.assertEqual(self.machine.run_with_stand_in(), (0, ["tool-had 1070560", "finished"]))
+        # Nothing is copied again, not even the probe.
+        copies = []
+
+        def recording_copy(sources, target):
+            copies.append(target)
+            return copy_tree(sources, target)
+
+        module = self.machine.load()
+        with mock.patch.object(module, "reflink_copy", recording_copy):
+            self.assertEqual(self.machine.run_in_process(module), (0, ["tool-had 1070560", "finished"]))
+        self.assertEqual(copies, [])
         self.assertEqual(build.stat().st_ino, before)
         self.assertEqual(self.machine.builds(), ["1070560-100"])
+
+    def test_a_build_of_that_name_that_came_meanwhile_is_had(self):
+        # Another Guardian's run put the same build in place first, so the
+        # rename finds a folder that holds something.
+        self.machine.add_tool(SCOUT)
+        module = self.machine.load()
+        real_rename = os.rename
+
+        def rename(source, target):
+            if pathlib.Path(target).name == "1070560-100":
+                (self.machine.tools / "1070560-100" / "common").mkdir(parents=True)
+            real_rename(source, target)
+
+        with (mock.patch.object(module, "reflink_copy", copy_tree),
+              mock.patch.object(module.os, "rename", rename)):
+            code, lines = self.machine.run_in_process(module)
+        self.assertEqual((code, lines), (0, ["tool-had 1070560", "finished"]))
+        self.assertEqual(self.machine.builds(), ["1070560-100"])
+        self.assertNoScratch()
 
     def test_a_newer_build_takes_the_older_ones_place(self):
         self.machine.add_tool(SCOUT, build="100")
