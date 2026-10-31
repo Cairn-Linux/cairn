@@ -3,6 +3,7 @@
 
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QTemporaryDir>
 #include <QTest>
 
@@ -41,18 +42,31 @@ private slots:
     }
 
     // Only a plain file in a folder named by its full path, on this
-    // computer.
+    // computer. The call is made from the temporary folder, and the test
+    // program holds a picture at :/pictures/1001.jpg (CMakeLists.txt), so
+    // the relative folder and the program's own each have a file there
+    // for the rule to refuse.
     void noFolderOrAnOddOneIsNoPicture_data() {
         QTest::addColumn<QString>("folder");
-        QTest::newRow("none") << QString();
-        QTest::newRow("relative") << QStringLiteral("pictures");
-        QTest::newRow("the program's own") << QStringLiteral(":/pictures");
-        QTest::newRow("missing") << path("no-such-folder");
+        QTest::addColumn<QString>("reachable");
+        QTest::newRow("none") << QString() << QString();
+        QTest::newRow("relative") << QStringLiteral("pictures")
+                                  << QStringLiteral("pictures/1001.jpg");
+        QTest::newRow("the program's own")
+            << QStringLiteral(":/pictures") << QStringLiteral(":/pictures/1001.jpg");
+        QTest::newRow("missing") << path("no-such-folder") << QString();
     }
 
     void noFolderOrAnOddOneIsNoPicture() {
         QFETCH(const QString, folder);
-        QVERIFY(GamePicture::forAppId(folder, "1001").isEmpty());
+        QFETCH(const QString, reachable);
+        const QString started = QDir::currentPath();
+        QVERIFY(QDir::setCurrent(m_temporary.path()));
+        const bool there = reachable.isEmpty() || QFileInfo(reachable).isFile();
+        const bool none = GamePicture::forAppId(folder, "1001").isEmpty();
+        QVERIFY(QDir::setCurrent(started));
+        QVERIFY2(there, qPrintable(reachable));
+        QVERIFY(none);
     }
 
     void aFolderOrALinkIsNoPicture() {

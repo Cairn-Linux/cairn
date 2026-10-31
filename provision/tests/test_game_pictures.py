@@ -781,6 +781,14 @@ class ListsFolderTest(PicturesTestCase):
                 self.machine.lists.chmod(mode)
                 self.assertRefusedLists()
 
+    @needs_not_root
+    def test_a_lists_folder_another_account_owns_is_refused(self):
+        # Root's own folder, which this test's account does not own. No
+        # group or other account can write in it, so only the owner rule
+        # refuses it.
+        self.machine.lists = pathlib.Path("/")
+        self.assertRefusedLists()
+
 
 class FolderTest(PicturesTestCase):
     def assertRefusedFolder(self):

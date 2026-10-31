@@ -5,6 +5,7 @@
 
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -293,7 +294,10 @@ private slots:
 
     // Only a plain file at <folder>/<appid>.jpg, with the folder a full
     // path, is a game's picture: not a link, not a folder, and nothing
-    // without a folder.
+    // without a folder. The files are read from the test's folder, which
+    // holds pictures/1001.jpg, and the test program holds a picture at
+    // :/pictures/1001.jpg (CMakeLists.txt), so the relative folder and the
+    // program's own each have a file there for the rule to refuse.
     void onlyAPlainFileInAFullFolderIsAPicture_data() {
         QTest::addColumn<QString>("folder");
         QTest::addColumn<QString>("make");
@@ -307,6 +311,9 @@ private slots:
     void onlyAPlainFileInAFullFolderIsAPicture() {
         QFETCH(const QString, folder);
         QFETCH(const QString, make);
+        QVERIFY(QDir(m_dir.path()).mkpath(QStringLiteral("pictures")));
+        QVERIFY(!write("pictures/1001.jpg", "stand-in picture").isEmpty());
+        QVERIFY(QFileInfo(QStringLiteral(":/pictures/1001.jpg")).isFile());
         const QString odd = m_dir.filePath(QStringLiteral("odd"));
         QDir(odd).removeRecursively();
         QVERIFY(QDir().mkpath(odd));
@@ -316,9 +323,13 @@ private slots:
         } else if (make == QStringLiteral("folder")) {
             QVERIFY(QDir().mkpath(odd + QStringLiteral("/1001.jpg")));
         }
+        // The manifest and the games file are named by their full paths.
         const QString games = writeGames("odd.json", {game("Game one", "1001")});
+        const QString started = QDir::currentPath();
+        QVERIFY(QDir::setCurrent(m_dir.path()));
         const TileFiles::Result result =
             TileFiles::read(m_manifest, games, make.isEmpty() ? folder : odd);
+        QVERIFY(QDir::setCurrent(started));
         QCOMPARE(result.tiles.size(), 3);
         QVERIFY(result.tiles.at(2).picture.isEmpty());
         QVERIFY(result.sentences.isEmpty());

@@ -102,6 +102,10 @@ add_test(NAME manifest COMMAND tst_manifest)
 qt_add_executable(tst_tilefiles tests/tst_tilefiles.cpp ${launcher_model_sources})
 target_include_directories(tst_tilefiles PRIVATE src)
 target_link_libraries(tst_tilefiles PRIVATE Qt6::Qml Qt6::Test)
+# A picture inside the test program, :/pictures/1001.jpg, for the rule to
+# refuse: a game's picture is a file on the computer.
+qt_add_resources(tst_tilefiles "picture_fixture" PREFIX "/pictures" BASE tests/fixtures
+    FILES tests/fixtures/1001.jpg)
 add_test(NAME tilefiles COMMAND tst_tilefiles)
 
 qt_add_executable(tst_applauncher tests/tst_applauncher.cpp ${launcher_model_sources})

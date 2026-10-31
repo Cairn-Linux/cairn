@@ -395,6 +395,10 @@ qt_add_executable(tst_gamepicture tests/tst_gamepicture.cpp src/GamePicture.h
     src/GamePicture.cpp)
 target_include_directories(tst_gamepicture PRIVATE src)
 target_link_libraries(tst_gamepicture PRIVATE Qt6::Core Qt6::Test)
+# A picture inside the test program, :/pictures/1001.jpg, for the rule to
+# refuse: a game's picture is a file on the computer.
+qt_add_resources(tst_gamepicture "picture_fixture" PREFIX "/pictures" BASE tests/fixtures
+    FILES tests/fixtures/1001.jpg)
 add_test(NAME gamepicture COMMAND tst_gamepicture)
 
 qt_add_executable(tst_gameshelf tests/tst_gameshelf.cpp src/GameShelf.h src/GameShelf.cpp
