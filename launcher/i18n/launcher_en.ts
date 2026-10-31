@@ -4,7 +4,7 @@
 <context>
     <name>AppLauncher</name>
     <message>
-        <location filename="../src/AppLauncher.cpp" line="201"/>
+        <location filename="../src/AppLauncher.cpp" line="218"/>
         <source>Another program</source>
         <translation type="unfinished"></translation>
     </message>
@@ -45,37 +45,42 @@
 <context>
     <name>GrownUpScreen</name>
     <message>
-        <location filename="../qml/GrownUpScreen.qml" line="44"/>
+        <location filename="../qml/GrownUpScreen.qml" line="49"/>
         <source>Something needs a grown-up.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GrownUpScreen.qml" line="44"/>
+        <location filename="../qml/GrownUpScreen.qml" line="49"/>
         <source>%1 is coming soon.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GrownUpScreen.qml" line="57"/>
+        <location filename="../qml/GrownUpScreen.qml" line="64"/>
         <source>%1 did not start.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GrownUpScreen.qml" line="57"/>
+        <location filename="../qml/GrownUpScreen.qml" line="64"/>
         <source>%1 opened on its own.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GrownUpScreen.qml" line="57"/>
+        <location filename="../qml/GrownUpScreen.qml" line="64"/>
         <source>It is not ready yet. Try something else.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GrownUpScreen.qml" line="71"/>
+        <location filename="../qml/GrownUpScreen.qml" line="81"/>
+        <source>Log out and back in, then try it again.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/GrownUpScreen.qml" line="97"/>
         <source>Back</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GrownUpScreen.qml" line="73"/>
+        <location filename="../qml/GrownUpScreen.qml" line="99"/>
         <source>Back to the tiles</source>
         <translation type="unfinished"></translation>
     </message>
@@ -137,8 +142,8 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="208"/>
         <location filename="../qml/Main.qml" line="210"/>
+        <location filename="../qml/Main.qml" line="212"/>
         <source>Log out</source>
         <translation type="unfinished"></translation>
     </message>

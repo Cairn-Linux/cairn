@@ -99,6 +99,43 @@ private slots:
         QCOMPARE(log.read(), Step::GameStarted);
     }
 
+    // A launch that stops while Steam says it is downloading is the stall of
+    // #206; the last step about the game says which it is.
+    void theLastStepSaysWhetherSteamIsDownloading() {
+        const QTemporaryDir dir;
+        const QString path = dir.filePath(QStringLiteral("console_log.txt"));
+        SteamLaunchLog log(path);
+        log.startLaunch(QStringLiteral("294650"));
+        QVERIFY(!log.downloading());
+        QCOMPARE(log.step(), Step::Nothing);
+        append(path, line("changed task to CheckShaderDepotManifest with \"\"") +
+                         line("changed task to DownloadingDepots with \"\""));
+        log.read();
+        QVERIFY(log.downloading());
+        QCOMPARE(log.step(), Step::Working);
+        // Another game's download says nothing about this one.
+        append(path, line("changed task to RunningInstallScript with \"\"") +
+                         line("changed task to DownloadingDepots with \"\"", "70"));
+        log.read();
+        QVERIFY(!log.downloading());
+        QCOMPARE(log.step(), Step::Working);
+        append(path, line("changed task to DownloadingDepots with \"\""));
+        log.read();
+        QVERIFY(log.downloading());
+        log.startLaunch(QStringLiteral("294650"));
+        QVERIFY(!log.downloading());
+        QCOMPARE(log.step(), Step::Nothing);
+        // A new, smaller log forgets it too.
+        append(path, line("changed task to DownloadingDepots with \"\""));
+        log.read();
+        QVERIFY(log.downloading());
+        QVERIFY(QFile::remove(path));
+        append(path, "[2026-10-20 15:31:00] System startup time: 16.79 seconds\n");
+        log.read();
+        QVERIFY(!log.downloading());
+        QCOMPARE(log.step(), Step::Nothing);
+    }
+
     // Steam may be part-way through a line; it is read once it is whole.
     void aHalfWrittenLineIsReadWhenWhole() {
         const QTemporaryDir dir;

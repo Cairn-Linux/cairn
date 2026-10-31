@@ -1,57 +1,39 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "SteamLaunchLog.h"
 
-#include <QFile>
+#include <QList>
 #include <QStandardPaths>
 
-#include <algorithm>
 #include <utility>
 
-namespace {
-// Steam's log grows by a few lines a second at most. A launch that has
-// gained more than this since the last look is read from its last part.
-constexpr qint64 mostReadAtOnce = qint64{4} * 1024 * 1024;
-} // namespace
-
-SteamLaunchLog::SteamLaunchLog(QString path) : m_path(std::move(path)) {}
+SteamLaunchLog::SteamLaunchLog(QString path) : m_tail(std::move(path)) {}
 
 void SteamLaunchLog::startLaunch(const QString& appId) {
     m_appId = appId;
     m_step = Step::Nothing;
+    m_downloading = false;
     m_reached = false;
     m_steamStartedAt.reset();
-    const QFile log(m_path);
-    m_offset = log.exists() ? log.size() : 0;
+    m_tail.skipToEnd();
 }
 
 SteamLaunchLog::Step SteamLaunchLog::read() {
     if (m_appId.isEmpty()) {
         return Step::Nothing;
     }
-    QFile log(m_path);
-    if (!log.open(QIODevice::ReadOnly)) {
-        return m_step;
-    }
-    const qint64 size = log.size();
-    if (size < m_offset) {
+    const QList<QByteArray> lines = m_tail.newLines();
+    if (m_tail.startedAgain()) {
         // Steam started again and began a new log; all of it is new.
-        m_offset = 0;
         m_step = Step::Nothing;
+        m_downloading = false;
     }
-    const qint64 from = std::max(m_offset, size - mostReadAtOnce);
-    if (!log.seek(from)) {
-        return m_step;
-    }
-    const QByteArray gained = log.read(size - from);
-    // A line Steam is still writing is read whole next time.
-    const qsizetype end = gained.lastIndexOf('\n') + 1;
-    m_offset = from + end;
     // The quote after the id keeps 294650 from matching 2946501.
     const QByteArray thisGame = "'-applaunch' '" + m_appId.toUtf8() + "'";
-    for (const QByteArray& line : gained.first(end).split('\n')) {
+    for (const QByteArray& line : lines) {
         const Step step = stepOf(line, m_appId);
         if (step != Step::Nothing) {
             m_step = step;
+            m_downloading = line.contains("changed task to DownloadingDepots ");
         }
         if (!line.contains("ExecCommandLine: ")) {
             continue;
@@ -72,6 +54,14 @@ bool SteamLaunchLog::reachedSteam() const {
 
 std::optional<QDateTime> SteamLaunchLog::steamStartedAt() const {
     return m_steamStartedAt;
+}
+
+SteamLaunchLog::Step SteamLaunchLog::step() const {
+    return m_step;
+}
+
+bool SteamLaunchLog::downloading() const {
+    return m_downloading;
 }
 
 SteamLaunchLog::Step SteamLaunchLog::stepOf(const QByteArray& line, const QString& appId) {

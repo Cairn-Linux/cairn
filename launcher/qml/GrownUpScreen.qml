@@ -5,7 +5,8 @@ import Cairn.Launcher
 
 // Shown instead of whatever the app printed when a launch went wrong, or when
 // a window opened that nobody asked for; and, with other words, when a tile
-// has nothing set up yet. Calm, short, and at most one thing to do: go back.
+// has nothing set up yet. Calm, short, and at most one thing to do: go back;
+// and, when the launcher knows, one line saying what will help (ADR-0045).
 Rectangle {
     id: screen
 
@@ -17,6 +18,9 @@ Rectangle {
     required property bool openedOnItsOwn
     // The tile has nothing set up yet. Not a grown-up's job, so it says so.
     required property bool comingSoon
+    // What will help, when the launcher knows: an AppLauncher.GrownUpStep.
+    // C++ decides which; this screen only says it.
+    required property int grownUpStep
 
     signal dismissed
 
@@ -24,6 +28,7 @@ Rectangle {
 
     Accessible.role: Accessible.Dialog
     Accessible.name: heading.text
+    Accessible.description: grownUpStep !== AppLauncher.None ? sentence.text + " " + step.text : sentence.text
 
     Keys.onEscapePressed: screen.dismissed()
 
@@ -50,6 +55,8 @@ Rectangle {
         }
 
         Text {
+            id: sentence
+
             objectName: "grownUpSentence"
             width: parent.width
             horizontalAlignment: Text.AlignHCenter
@@ -59,6 +66,25 @@ Rectangle {
             font.family: Tokens.fontFamily
             font.pixelSize: Tokens.headingSize
             color: Tokens.text
+        }
+
+        // One line, never a reason, only when the launcher knows what will
+        // help (ADR-0045).
+        Text {
+            id: step
+
+            objectName: "grownUpStep"
+            width: parent.width
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.WordWrap
+            visible: screen.grownUpStep !== AppLauncher.None
+            text: screen.grownUpStep === AppLauncher.LogOutAndBackIn ? qsTr("Log out and back in, then try it again.") : ""
+            textFormat: Text.PlainText
+            font.family: Tokens.fontFamily
+            font.pixelSize: Tokens.headingSize
+            color: Tokens.text
+            Accessible.role: Accessible.StaticText
+            Accessible.name: text
         }
 
         Tile {

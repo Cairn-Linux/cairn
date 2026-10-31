@@ -2,28 +2,17 @@
 #include "SteamGameWait.h"
 
 #include <QDateTime>
-#include <QDir>
-#include <QFile>
 #include <QFileInfo>
 
 #include <algorithm>
 #include <optional>
-#include <unistd.h>
 #include <utility>
 
-namespace {
-QByteArray readAll(const QString& path) {
-    QFile file(path);
-    if (!file.open(QIODevice::ReadOnly)) {
-        return {};
-    }
-    return file.readAll();
-}
-} // namespace
-
-SteamGameWait::SteamGameWait(QString processRoot, QString steamLog, QString steamStartupLog)
-    : m_processRoot(std::move(processRoot)), m_log(steamLog), m_startup(steamStartupLog, steamLog),
-      m_signIn(std::move(steamLog), std::move(steamStartupLog)) {}
+SteamGameWait::SteamGameWait(QString processRoot, QString steamLog, QString steamStartupLog,
+                             QString steamContentLog)
+    : m_reapers(std::move(processRoot)), m_log(steamLog), m_startup(steamStartupLog, steamLog),
+      m_signIn(std::move(steamLog), std::move(steamStartupLog)),
+      m_stall(std::move(steamContentLog)) {}
 
 void SteamGameWait::steamStartedAtLogin() {
     m_sinceSteamStarted.start();
@@ -31,13 +20,16 @@ void SteamGameWait::steamStartedAtLogin() {
 
 void SteamGameWait::startLaunch(const QStringList& exec) {
     m_appId = appIdOf(exec);
-    m_reapersBefore = m_appId.isEmpty() ? QStringList() : reapers();
+    m_reapersBefore = m_reapers.of(m_appId);
     m_log.startLaunch(m_appId);
+    m_stall.startLaunch(m_appId);
     m_lastStep = SteamLaunchLog::Step::Nothing;
     m_steamNow = SteamStartup::Now::Ready;
     m_signInNow = SteamSignIn::Now::Fine;
+    m_stallNow = SteamStall::Now::Fine;
     m_sentAgain = false;
     m_sinceLaunch.start();
+    m_sinceTapSent.start();
     m_sinceWork.start();
 }
 
@@ -49,17 +41,22 @@ bool SteamGameWait::stillComing() {
     if (m_appId.isEmpty() || !m_sinceLaunch.isValid()) {
         return false;
     }
+    const QDateTime now = QDateTime::currentDateTime();
     m_lastStep = m_log.read();
-    m_steamNow = m_startup.read(QDateTime::currentDateTime());
+    m_steamNow = m_startup.read(now);
+    m_stallNow = m_stall.read(m_log, m_steamNow, now);
     // Once Steam has the game in hand, its sign-in no longer matters: it
-    // starts games while it cannot reach its servers.
-    m_signInNow =
-        m_lastStep == SteamLaunchLog::Step::Nothing ? m_signIn.read() : SteamSignIn::Now::Fine;
-    if (m_signInNow == SteamSignIn::Now::Refused) {
+    // starts games while it cannot reach its servers. Unless it stopped
+    // getting the game ready: what it still needs must come from them.
+    const bool needsServers =
+        m_lastStep == SteamLaunchLog::Step::Nothing || m_stallNow == SteamStall::Now::Stalled;
+    m_signInNow = needsServers ? m_signIn.read() : SteamSignIn::Now::Fine;
+    if (m_signInNow == SteamSignIn::Now::Refused ||
+        (m_stallNow == SteamStall::Now::Stuck && !newReaper())) {
         return false;
     }
     if (m_signInNow == SteamSignIn::Now::NoConnection) {
-        return m_sinceLaunch.elapsed() < m_offlineLimitMilliseconds;
+        return m_sinceTapSent.elapsed() < m_offlineLimitMilliseconds;
     }
     if (steamWorking() && m_sinceLaunch.elapsed() < m_workLimitMilliseconds) {
         m_sinceWork.start();
@@ -84,12 +81,12 @@ bool SteamGameWait::steamWorking() const {
     // be asked again, or has just been.
     const bool tapToTake = m_log.steamStartedAt().has_value() && !m_log.reachedSteam();
     return m_lastStep == SteamLaunchLog::Step::Working || m_steamNow != SteamStartup::Now::Ready ||
-           tapToTake;
+           tapToTake || m_stallNow == SteamStall::Now::Mending;
 }
 
 bool SteamGameWait::sendAgain() {
     if (m_appId.isEmpty() || m_sentAgain || m_log.reachedSteam() ||
-        m_signInNow != SteamSignIn::Now::Fine) {
+        m_signInNow != SteamSignIn::Now::Fine || m_stallNow == SteamStall::Now::Stuck) {
         return false;
     }
     const std::optional<QDateTime> started = m_log.steamStartedAt();
@@ -100,6 +97,34 @@ bool SteamGameWait::sendAgain() {
     // The game gets its time for a first window from the new tap.
     m_sinceWork.start();
     return true;
+}
+
+bool SteamGameWait::restartSteam() {
+    if (m_stallNow != SteamStall::Now::Stalled || m_steamNow != SteamStartup::Now::Ready ||
+        m_signInNow != SteamSignIn::Now::Fine || newReaper() || !m_stall.askRestart()) {
+        return false;
+    }
+    m_stallNow = SteamStall::Now::Mending;
+    return true;
+}
+
+void SteamGameWait::steamRestarted(bool started) {
+    if (!m_stall.restarted(started)) {
+        return;
+    }
+    // What the old client wrote as it stopped says nothing about the game.
+    m_log.startLaunch(m_appId);
+    if (started) {
+        // The new client gets what a tap gets, however late in the tap's
+        // work limit the stall was seen.
+        m_sentAgain = false;
+        m_sinceTapSent.start();
+        m_sinceLaunch.start();
+    }
+}
+
+bool SteamGameWait::logOutWouldHelp() const {
+    return !steamGaveAReason() && m_stall.logOutWouldHelp();
 }
 
 SteamLaunchLog::Step SteamGameWait::lastStep() const {
@@ -128,11 +153,21 @@ QString SteamGameWait::journalNote(const QString& title) const {
     if (m_lastStep == SteamLaunchLog::Step::Refused) {
         return QStringLiteral("Steam refused to start %1.").arg(title);
     }
-    return {};
+    return m_stall.journalNote(title);
+}
+
+bool SteamGameWait::steamGaveAReason() const {
+    return m_signInNow != SteamSignIn::Now::Fine ||
+           m_lastStep == SteamLaunchLog::Step::WaitingForAnswer ||
+           m_lastStep == SteamLaunchLog::Step::Refused;
 }
 
 void SteamGameWait::setOfflineLimitMilliseconds(int milliseconds) {
     m_offlineLimitMilliseconds = milliseconds;
+}
+
+void SteamGameWait::setRetakeLimitMilliseconds(int milliseconds) {
+    m_stall.setRetakeLimitMilliseconds(milliseconds);
 }
 
 void SteamGameWait::setStartupMilliseconds(int milliseconds) {
@@ -162,30 +197,7 @@ QString SteamGameWait::appIdOf(const QStringList& exec) {
 }
 
 bool SteamGameWait::newReaper() const {
-    const QStringList now = reapers();
+    const QStringList now = m_reapers.of(m_appId);
     return std::ranges::any_of(
         now, [this](const QString& pid) { return !m_reapersBefore.contains(pid); });
-}
-
-QStringList SteamGameWait::reapers() const {
-    const QByteArray appIdArgument = QStringLiteral("AppId=%1").arg(m_appId).toUtf8();
-    const QDir root(m_processRoot);
-    const QStringList processes = root.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
-    QStringList found;
-    for (const QString& pid : processes) {
-        bool number = false;
-        pid.toUInt(&number);
-        if (!number || QFileInfo(root.filePath(pid)).ownerId() != getuid()) {
-            continue;
-        }
-        if (readAll(root.filePath(pid + QStringLiteral("/comm"))).trimmed() != "reaper") {
-            continue;
-        }
-        const QList<QByteArray> arguments =
-            readAll(root.filePath(pid + QStringLiteral("/cmdline"))).split('\0');
-        if (arguments.contains("SteamLaunch") && arguments.contains(appIdArgument)) {
-            found.append(pid);
-        }
-    }
-    return found;
 }

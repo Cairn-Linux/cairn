@@ -7,7 +7,8 @@ taken over from it.
 **Closes:** (none) — amends ADR-0029 and ADR-0030; part of ROADMAP P1-13
 **Amended by:** ADR-0037 (Steam updating itself is work too; a tap lost to
 its restart is sent again); the section "A Steam that cannot sign in"
-below (2026-10-29, #182)
+below (2026-10-29, #182); the section "Steam stops part-way on a new
+child's first Linux game" below (2026-10-30, #206)
 
 ## Context
 
@@ -159,7 +160,8 @@ again counts as no connection.
 - Neither counts as work, so neither shows "Getting it ready". Neither
   sends the tap again.
 
-Once Steam's log names the game, its sign-in no longer decides. Steam
+Once Steam's log names the game, its sign-in no longer decides, unless
+Steam stops getting the game ready part-way (#206, next section). Steam
 starts games while it cannot reach its servers, as on 2026-10-28 on the
 development laptop, and ADR-0030's offline cloud question still comes as
 before.
@@ -178,3 +180,216 @@ no sentence and no second tap. No connection gets the short wait, ends
 sooner if Steam signs in, and never stops a game Steam has in hand. Two
 `AppLauncher` tests run to the grown-up screen with the journal line: the
 evening of #182, and a Steam with no connection.
+
+## Steam stops part-way on a new child's first Linux game (2026-10-30, #206)
+
+A native Linux game runs in Steam Linux Runtime 1.0, scout (1070560).
+Scout itself runs inside Steam Linux Runtime 2.0, soldier (1391110): its
+`toolmanifest.vdf` says `"require_tool_appid" "1391110"`. Each account's
+Steam fetches its own tools (ADR-0033), so a new child's Steam has neither.
+
+On the test VM on 2026-10-30 a new child tapped Pajama Sam 2 (292780). It
+went the same way again after both tools were taken out of the child's
+Steam (2 of 2). Steam fetched scout, took the game off its download
+schedule, and never asked for soldier. Its launch stayed at
+`DownloadingDepots`, and nothing more happened:
+
+```
+17:10:08 console  GameAction [AppID 292780, ActionID 1] : LaunchApp changed task to DownloadingDepots with ""
+17:10:08 content  AppID 1070560 update started : download 0/75258128, store 0/0, reuse 0/0, delta 0/0, stage 0/223012461
+17:10:28 content  AppID 1070560 finished update, 1 mounted depots (BuildID 26115262) : 1070561 (8475493586714137016),
+17:10:28 content  AppID 292780 scheduler finished : removed from schedule (result Suspended, state 0xc)
+```
+
+`DownloadingDepots` counts as work, so the starting screen said "Getting it
+ready" for this ADR's 10 minutes, and then the grown-up screen came. A
+second tap was taken by the stuck launch. A launch that works writes the
+same "removed from schedule (result Suspended)" line for the game, and its
+next step, `RunningInstallScript`, in the same second (2 of 2 on the VM).
+A Windows game did not stop: for Arthur's Birthday, Steam scheduled Proton
+Experimental (1493710) and the runtime it needs (4183110) together.
+
+Starting only the child's Steam again mends it. By hand on the VM, `steam
+-shutdown` ended the `cairn-steam` service after 4 s. Steam was started
+again with the launcher's own command from the login, and the tap was sent
+again a few seconds after the new client's start line. Steam fetched
+soldier from 17:13:00 to 17:13:41, and the game started at 17:13:41, 58 s
+after the restart. The launcher, still inside its work limit, handed over
+to the game's window by itself.
+
+**When Steam stops this way, the launcher starts the child's Steam again,
+once in each tap, and sends the tap again. The child sees "Getting it
+ready" throughout.**
+
+`SteamContentLog` reads Steam's `content_log.txt` from the tap, as
+`SteamLaunchLog` reads `console_log.txt`, and `SteamStall` decides. At the
+end of a grace, the launch has stopped when all three hold:
+
+- The last launch step about the game since the tap is `DownloadingDepots`.
+- The last thing Steam did for the launch, in its content log, was taking
+  the game off its schedule (`scheduler finished : removed from schedule`),
+  whatever the result, and none of the launch's downloads still runs.
+- That line is at least a minute old, by its own time.
+
+Only the game and the apps Steam put at the front of its schedule since the
+tap (`scheduler update : Priority First`) count: those are the tools the
+launch needs. Steam resumes other games' downloads the moment a launch's
+apps leave the schedule (dev PC, 2026-10-30), so those do not count. Of
+the lines about the launch's apps, only those about the schedule and the
+downloads count: `scheduler update`, `scheduler finished`, `update
+started`, `update changed`, `finished update` and `update canceled`. A
+download ends at `finished update`, at `update canceled`, or at the app's
+own `scheduler finished` line, because a shader cache's download never
+writes `finished update` (dev PC, 2026-10-30).
+
+A minute is far past the second in which a launch that goes on writes its
+next step, even on a slow laptop. The restart took about a minute by hand,
+and the restarted Steam gets a 10-minute work limit of its own, so a stall
+seen late in the tap's, as after a game update, can still be mended. The
+rule does not fire on a slow download, because the game stays on the
+schedule until every download for it ends. It does not fire when Steam
+updated itself and lost the tap (ADR-0037), because the launch log then
+has no step about the game. "Result Suspended" alone does not make a
+stall.
+
+Steam is started again only when it has started (`SteamStartup` says it
+is ready, ADR-0037), has signed in (#182), and runs no new reaper for the
+game. A stall seen while Steam is updating itself, or runs a new reaper
+for the game, is waited for as work, and Steam is started again at a
+later look once it can be. A stall seen while Steam's sign-in is turned
+down, or while it cannot reach its servers, ends the wait at that look by
+#182's rules: what Steam still needs must come from its servers, and
+#182's minute from the tap has always passed by then. The journal names
+the sign-in or the connection, and the grown-up screen adds no line.
+
+To start Steam again, `SteamRestart`:
+
+1. Asks the child's systemd whether `cairn-steam` is active. If it is not,
+   it stops nothing. Asked to shut down when it is not running, Steam
+   starts instead, and only the client the launcher started at login is
+   its to stop. That leaves alone a Steam that a tile started, and the
+   dev PC's own Steam.
+2. Runs `steam -shutdown`, so Steam saves its state as it quits.
+3. Asks again every second, for up to 25 s as `cairn-steam-visit` waits
+   for a child's Steam, until the service is `inactive` or `failed`. A
+   service started with `--collect` has no process left then, and its
+   name is free.
+4. Starts Steam with `SteamAtLogin`'s command, as at login.
+
+It never kills Steam. Logging the child out ends it for certain, and that
+is what the journal asks for when the restart does not help.
+
+Once Steam runs again, only what the new client writes counts, in both
+logs. The tap is sent again by ADR-0037's rule: at the first look at least
+3 s after the new client's own start command, once. Until the new client
+takes the tap, the launch waits as work, so "Getting it ready" stays, even
+while the old client writes that its launch failed as it stopped. A
+restarted client that cannot reach its servers gets #182's minute from the
+restart, not from the tap.
+
+**If the restart does not help, the wait ends soon.** The launch ends on
+the grown-up screen at the next look after any of these:
+
+- Steam could not be started again.
+- Steam, started again and ready, has not taken the tap 2 minutes after its
+  own start command, or 2 minutes after it was started if it never runs
+  that command. Starting or updating itself before that is work, under a
+  10-minute limit counted from the restart.
+- The stall comes back after the tap sent again. There is no second
+  restart in the same tap.
+
+A game that still never comes after a good second tap ends by the 2-minute
+rule after the last work, as before, and the journal says that starting
+Steam again did not bring it. Steam takes a later tap on a game it keeps
+stuck and writes no step for it, only the tap's own line, so that tap ends
+at its first look. A game counts as kept stuck from the first look that
+sees its stall, also when the tap ends before Steam is started again, until
+Steam writes a step for it or is started again. Each of these ends with one
+more line on the grown-up screen, under "… did not start.": "Log out and
+back in, then try it again." (ADR-0045), unless Steam's logs gave another
+reason.
+
+The journal says:
+
+1. "Steam stopped getting Pajama Sam 2 ready; starting Steam again."
+2. "Steam is not running as the launcher started it, so it was not started
+   again."
+3. "Steam did not stop when asked, so it was not started again."
+4. "Steam could not be started again."
+5. "Steam stopped and was started again."
+6. "Steam started again without taking Pajama Sam 2; asking again."
+   (ADR-0037)
+7. "Steam stopped getting Pajama Sam 2 ready, so Pajama Sam 2 did not
+   start. Log the child out and back in, then try it again." This comes
+   when the wait ends after a stall, or on a later tap of a game Steam
+   keeps stuck, and Steam gave no other reason. When Steam was started
+   again, took the tap and went on, and the game still did not come, it
+   says instead: "Starting Steam again did not bring Pajama Sam 2. Log the
+   child out and back in, then try it again." A refused sign-in, no
+   connection, a question or a refusal is named instead of either, as
+   before.
+8. "Nothing of Pajama Sam 2 came on the screen in time." (ADR-0030)
+
+`systemctl --user restart cairn-steam` would end Steam with a signal, not
+with its own shutdown that saves its state. A longer wait would still
+never bring soldier.
+
+Consequences:
+
+- On the VM, a first tap that stops this way should bring the game about 3
+  minutes after the tap, with "Getting it ready" throughout.
+- A tap that Steam is started again for can wait one work limit more than
+  before: about 22 minutes at the most, when the stall is seen near the end
+  of the tap's 10 minutes and the restarted Steam works for all of its own.
+- The rule depends on the wording of two Steam logs. If Valve changes it,
+  the stall is not seen and the launcher waits as before: a lost feature,
+  not a wrong one.
+- Only `cairn-steam` is ever stopped. A Steam that will not stop is left
+  for logging out to end.
+- Both logs are read only when a grace ends.
+- A stall inside a "Steam for" visit is not handled.
+- Fetching each child's tools ahead of time (#181) would make the stall
+  rare.
+
+Tested in C++ with the VM's log lines. `SteamContentLog` finds the stuck
+run's removal, and loses it to every later line that means Steam went on;
+other games' downloads, Steam's own ticket, state, space and rate lines
+change nothing; a tool still downloading, or a shader cache's download
+before its scheduler line, is not the end. `SteamStall` sees the stuck run
+after a minute and not a second before, never the working run, nor a
+question, a refusal, a started game or no word; asks for one restart in
+each tap; waits for a Steam that is starting or updating itself again, and
+gives one that has started 2 minutes from its own start command; is stuck
+after a failed restart or a second stall; and remembers a stalled game for
+a later tap, also when its tap ended before Steam was started again, until
+Steam writes a step for it or is started again. `SteamRestart` runs against
+stand-ins: a Steam the launcher started stops and starts again with the
+login's command, one it did not start is never told to shut down, one that
+will not stop is not started again, a service still stopping is waited for,
+a failed start says so, and a restart cut short by the launcher ending says
+nothing more. `SteamGameWait` restarts once, keeps "Getting it ready" while
+Steam stops and starts again, sends the tap again once, and ends the wait
+after a second stall or a failed restart; after a restart that went on but
+brought no window it still says logging out would help, with its own
+journal line; it never restarts a Steam that is updating itself, offline or
+running a new reaper, and restarts one once it has finished updating; a
+stall seen while Steam cannot reach its servers, or while its sign-in is
+turned down, ends the wait on that reason, with its journal line and no
+log-out line; a restarted Steam gets its own offline wait, and its own work
+limit when the stall came late in the tap's. Three `AppLauncher` tests run
+the stuck run to the game's window with one restart and one tap again, a
+stall that comes back, and a Steam the launcher did not start; another runs
+a restart after which Steam gets the game ready and no window comes, to the
+grown-up screen with the line; another runs the working run, which is never
+stopped, to the game's window; another has a later tap of the stuck game
+end at its first look, and another a refused sign-in after the restart.
+
+Checked on the test VM on 2026-10-30, with scout and soldier taken out of
+a child's Steam and this change's build (#206). The first tap on Pajama
+Sam 2, at 21:04:00, fetched scout, and Steam took the game off its
+schedule at 21:04:28. At 21:05:30, 62 seconds later, the launcher found
+the launch stopped and started Steam again, which took 3 seconds. Once the
+new client had started, the launcher sent the tap again at 21:06:00, and
+Steam fetched soldier in 38 seconds. The game started at 21:06:42, 2
+minutes 42 seconds after the tap, with "Getting it ready" on the screen
+throughout and no grown-up.

@@ -111,6 +111,13 @@ private slots:
                               QStringLiteral("--setenv=WAYLAND_DISPLAY"), QStringLiteral("--"),
                               QStringLiteral("steam"), QStringLiteral("-silent")}));
     }
+
+    // The launcher starts Steam again under the same name, and only ever
+    // stops the service of that name (#206).
+    void theServiceHasOneName() {
+        QCOMPARE(SteamAtLogin::unit(), QStringLiteral("cairn-steam"));
+        QVERIFY(SteamAtLogin::command().contains(QStringLiteral("--unit=") + SteamAtLogin::unit()));
+    }
 };
 
 } // namespace

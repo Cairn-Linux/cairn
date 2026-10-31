@@ -87,13 +87,16 @@ In the image, `cmake --install` puts the launcher in `/usr/libexec/cairn/`,
 its rpath, and a wrapper made from `bin/cairn-launcher.in` in `/usr/bin/`
 (ADR-0038). The session runs the wrapper, which names the logged-in
 child's own games list (ADR-0041).
-The launcher has twenty-three CTest tests, run offscreen: the wrapper the
+The launcher has twenty-nine CTest tests, run offscreen: the wrapper the
 kiosk session starts, run with stand-ins, the tile model, the
 manifest reader, the manifest and the games file read together (the tile
 files), kidscan's manifest and games file written and read back (two
 tests), the app launcher, the windows of a launch, the wait for a Steam
-game, Steam's launch log, Steam starting or updating itself, the give-up
-watch, Steam at login, the app scope, the grid
+game, Steam's reapers, the lines a log gains, Steam's launch log,
+Steam's content log, a launch
+Steam stopped part-way, Steam starting or updating itself, Steam's
+sign-in, the give-up watch, Steam at login, starting Steam again (against
+stand-ins for steam, systemctl and systemd-run), the app scope, the grid
 scroller, the close request, Log out, the battery's look, the UPower
 reader (against a stand-in UPower on a bus of its own, under
 `dbus-run-session`), the window list, the compiled brand tokens, the
@@ -217,6 +220,8 @@ A launch that has put nothing on the screen when its wait ends (15 s), or
 whose program runs past the settle window and quits without a window, is a
 failed launch too (ADR-0030, #139): the grown-up screen says the tile did
 not start. Back at the tiles a child would press it again, and again.
+The screen gives no reason, but when the launcher knows what will help it
+adds one line saying so (ADR-0045).
 Until Back, a window that comes late is still the app's and takes over.
 A program whose window came and went returns to the tiles without comment.
 The launcher runs one program at a time; a second Enter while one is
@@ -252,6 +257,35 @@ Steam's `LogonFailure` lines: while Steam's log says nothing about the
 game, a refused sign-in such as `Access Denied` ends the wait at the next
 grace, and a Steam that cannot reach its servers gets a minute. Neither says "Getting
 it ready", and the journal says which it was (ADR-0036, #182).
+A new child's first Linux game can stop part-way (#206): Steam fetches one
+of the two tools the game runs in, takes the game off its download
+schedule, and its launch stays at `DownloadingDepots`.
+`SteamContentLog` reads Steam's `content_log.txt` from the tap, and
+`SteamStall` sees the stall when the launch still says it is downloading a
+minute after Steam took the game off its schedule, with nothing more done
+for the launch since.
+`SteamRestart` then tells the child's Steam to shut down, waits up to 25 s
+for `cairn-steam` to end, and starts it as at login; the tap is sent again
+once the new client has started (ADR-0037).
+That happens once per tap, the starting screen says "Getting it ready"
+throughout, and only `cairn-steam` is ever stopped.
+The restarted Steam gets a 10-minute work limit of its own, so a stall seen
+late in the tap's can still be mended.
+A stall seen while Steam updates itself, or runs a new reaper for the
+game, is waited for as work, and Steam is started again at a later look
+once it can be.
+A stall seen while Steam's sign-in is turned down, or while it cannot
+reach its servers, ends the wait at that look by #182's rules: the journal
+names the sign-in or the connection, and the grown-up screen adds no line.
+If Steam could not be started again, the stall comes back, or the new
+client does not take the tap, the wait ends at the next look, and the
+journal says to log the child out and back in.
+A later tap on a game Steam keeps stuck ends at its first look (ADR-0036).
+Either way the grown-up screen adds "Log out and back in, then try it
+again." under the sentence that names the tile, unless Steam's logs gave
+another reason, such as a refused sign-in or a question (ADR-0045).
+`AppLauncher.grownUpStep` says which line, if any; `GrownUpScreen.qml`
+draws it.
 With `--scope-apps`, which the kiosk wrapper passes, every program starts
 in a systemd user scope of its own, `cairn-app-<launcher pid>-<n>.scope`,
 so the grown-up's give-up key can end it and whatever it started
@@ -358,7 +392,9 @@ To compare what the launcher shows with UPower's own reading, run
   `Tokens.machine` / `Tokens.machineLabel` from
   `../brand/qml/Cairn/Brand/Tokens.qml`, never a literal.
 - Watches launches. Slow or failed launches show "Something needs a
-  grown-up", never whatever the app or Steam decided to display.
+  grown-up", never whatever the app or Steam decided to display, and at
+  most one line saying what will help when the launcher knows it
+  (ADR-0045).
 - Keyboard and mouse both work fully. A child typing at one character per
   five seconds is expected.
 - Motion only says something true (ADR-0028): the rows sliding into view,
