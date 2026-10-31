@@ -294,8 +294,8 @@ class ShareTest(ShareTestCase):
 
     @needs_reflink
     def test_every_account_can_read_the_build(self):
-        # Each child's copy step reads it. The tools folder is set up as the
-        # image makes it (tmpfiles.d/cairn.conf): setgid, with a default ACL
+        # Each child's copy step reads it. The tools folder is set up like
+        # the image's (tmpfiles.d/cairn.conf): setgid, with a default ACL
         # that takes the umask's place.
         tools = self.machine.tools
         tools.chmod(0o2775)

@@ -466,8 +466,9 @@ done, and what could sink it. Decisions that change the design get an ADR in
   five minutes), and a child's copy takes each tool their Steam lacks
   from there, with their new games, never over one they have. The
   Save's window says while the tools are taken and copied, and afterwards
-  whether each child got them. This changes Mason's first shape, which he
-  confirms in the pull request. Updating a child's Steam out of sight,
+  whether each child got them. This changes Mason's first shape, and he
+  confirmed it on 2026-10-30, with tools only with new games, every tool
+  to every child, and no tool taken while his Steam updates it. Updating a child's Steam out of sight,
   with a warning and its progress, is #181's later piece. In the VM that
   night, with the test child's own tools set aside, a Save copied the four
   tools in about a second, and both games started within 5 s of the tap

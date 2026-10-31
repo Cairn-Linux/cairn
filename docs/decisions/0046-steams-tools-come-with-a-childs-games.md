@@ -1,9 +1,9 @@
 # ADR-0046: Steam's tools come with a child's games
 
-**Status:** proposed. It becomes accepted when the maintainer has
-confirmed the copy in place of each child's Steam fetching its own tools,
-and the checks under "Checks in the VM" have run in the cairn-iso VM
-without overturning a bullet of the Decision.
+**Status:** proposed. The maintainer confirmed the copy in place of
+each child's Steam fetching its own tools on 2026-10-30. It becomes
+accepted when the checks under "Checks in the VM" have run in the
+cairn-iso VM without overturning a bullet of the Decision.
 **Date:** 2026-10-30
 **Closes:** (none) — the third of issue #206's three fixes, and the first
 part of #181; part of ROADMAP P1-5 and P1-13. Once accepted, amends
@@ -46,6 +46,10 @@ Fix 2, the grown-up screen saying "Log out and back in, then try it
 again.", is ADR-0045. Both came with pull request #207. Fix 3 is "each
 child's Steam gets its tools ahead of time", with "Should provide the
 feedback that it will take time, and inform the parent of progress."
+After the VM runs below he chose the copy instead ("Copying for sure"),
+and said yes to three more choices: tools come only with a child's new
+games, every tool goes to every child, and a tool his own Steam is still
+updating is not taken.
 
 ### What the VM showed
 
@@ -105,8 +109,8 @@ E1 and E1b found that a copy needs no asking: seconds, no disk, nothing
 downloaded, and the games started. So the copy is the first-time path,
 and the window says it usually takes a few seconds. The long downloads
 that remain, Steam's update of itself and newer tool builds, keep the
-warning and the progress for #181's later piece. Mason confirms this
-change in the pull request.
+warning and the progress for #181's later piece. Mason confirmed this
+change on 2026-10-30.
 
 ### Which tools
 
