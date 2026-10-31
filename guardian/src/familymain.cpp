@@ -34,6 +34,7 @@ int saveGames(const QStringList& arguments) {
     GamesSave::Setup setup;
     setup.catalogue.pictureStep = QStringLiteral(CAIRN_GAME_PICTURES);
     setup.catalogue.kidscan = QStringLiteral(CAIRN_KIDSCAN);
+    setup.tools.shareStep = QStringLiteral(CAIRN_SHARE_TOOLS);
     setup.copy.visitHelper = QStringLiteral(CAIRN_STEAM_VISIT);
     const GamesSave::Outcome outcome = GamesSave(setup).run(arguments, sayLine);
 
@@ -41,6 +42,9 @@ int saveGames(const QStringList& arguments) {
     sayLine(answer);
     note(outcome.refusal.has_value(),
          outcome.asked.isEmpty() ? answer : outcome.asked + QStringLiteral(": ") + answer);
+    for (const QString& line : outcome.tools) {
+        note(false, line);
+    }
     for (const QString& child : outcome.children) {
         note(false, child);
     }

@@ -614,6 +614,81 @@ private slots:
         QVERIFY(page->busy());
     }
 
+    // ---- Steam's tools (ADR-0046) ----
+
+    void eachResultSaysWhatTheCopyDidWithTheTools_data() {
+        QTest::addColumn<QString>("scenario");
+        QTest::addColumn<GamesSaving::Tools>("tools");
+        QTest::newRow("copied") << "save-tools" << GamesSaving::Tools::ToolsCopied;
+        QTest::newRow("missing") << "save-tools-missing" << GamesSaving::Tools::ToolsMissing;
+        QTest::newRow("none to copy") << "save-no-tools" << GamesSaving::Tools::NoToolsToCopy;
+        QTest::newRow("nothing to say") << "save-done" << GamesSaving::Tools::NoToolNews;
+    }
+
+    // Each child's result says what their copy did with Steam's tools. A
+    // tool never holds a child's games back.
+    void eachResultSaysWhatTheCopyDidWithTheTools() {
+        QFETCH(const QString, scenario);
+        QFETCH(const GamesSaving::Tools, tools);
+        const auto page = makePage();
+        page->turn("1001");
+        saveWith(*page, scenario);
+        QCOMPARE(page->saving()->step(), GamesSaving::Step::Saved);
+        const QVariantMap ada = page->saving()->results().constFirst().toMap();
+        QCOMPARE(ada.value("tools").toInt(), static_cast<int>(tools));
+        QVERIFY(page->saving()->allGiven());
+        QVERIFY(!page->saving()->toolsLeftOut());
+    }
+
+    // A tool left out of the tools folder is worth saying after a Save that
+    // gave a child something, and never after a look, which gives none.
+    void aToolLeftOutIsSaidOnlyForASave() {
+        const auto page = makePage();
+        page->turn("1001");
+        saveWith(*page, "save-tools-left-out");
+        QVERIFY(page->saving()->toolsLeftOut());
+        page->saving()->close();
+        QVERIFY(!page->saving()->toolsLeftOut());
+        saveWith(*page, "save-tools-left-out", true);
+        QCOMPARE(page->saving()->kind(), GamesSaving::Kind::Look);
+        QCOMPARE(page->saving()->step(), GamesSaving::Step::Saved);
+        QVERIFY(!page->saving()->toolsLeftOut());
+    }
+
+    // A Save whose every copy was held gave no child a tool, so a tools
+    // folder that was kept is nothing to say.
+    void aHeldCopyHasNoToolLeftOut() {
+        const auto page = makePage();
+        page->turn("1001");
+        saveWith(*page, "save-tools-kept-but-held");
+        QVERIFY(!page->saving()->toolsLeftOut());
+        QCOMPARE(page->saving()->results().constFirst().toMap().value("tools").toInt(),
+                 static_cast<int>(GamesSaving::Tools::NoToolNews));
+    }
+
+    void progressWhileTheToolsAreTaken() {
+        const auto page = makePage();
+        page->turn("1001");
+        qputenv("CAIRN_TEST_SCENARIO", "save-sharing-tools");
+        page->save();
+        QTRY_COMPARE_WITH_TIMEOUT(page->saving()->progress(), GamesSaving::Progress::SharingTools,
+                                  kAnswerMilliseconds);
+        QCOMPARE(page->saving()->progressName(), QString());
+        QVERIFY(page->busy());
+    }
+
+    void progressWhileAChildsToolsAreCopied() {
+        const auto page = makePage();
+        page->turn("1001");
+        qputenv("CAIRN_TEST_SCENARIO", "save-tools-copying");
+        page->save();
+        QTRY_COMPARE_WITH_TIMEOUT(page->saving()->progress(), GamesSaving::Progress::CopyingTools,
+                                  kAnswerMilliseconds);
+        QCOMPARE(page->saving()->progressName(), "Ada");
+        // The games copied so far still show; a tool is never one of them.
+        QCOMPARE(page->saving()->copiedSoFar().size(), 1);
+    }
+
     // Looking for new games names no child, so no list the page read, old
     // or unreadable, is written back.
     void lookForGamesChangesNoList() {

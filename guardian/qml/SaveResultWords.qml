@@ -3,8 +3,9 @@ import QtQuick
 import Cairn.Family
 
 // The words for what a Save did for each child (ADR-0041): what their list
-// holds now, what held their new games back, and which game was not given
-// and why. GamesSaving decides every value; this only picks the words.
+// holds now, what held their new games back, which game was not given and
+// why, and what the copy did with Steam's tools (ADR-0046). GamesSaving
+// decides every value; this only picks the words.
 QtObject {
     id: words
 
@@ -87,6 +88,21 @@ QtObject {
         return qsTr("%1 was not given to %2: Cairn does not copy it.").arg(title).arg(name);
     }
 
+    // What the child's copy did with Steam's tools. Nothing when there is
+    // nothing to say: the child had every tool, or their copy was held
+    // before it came to the tools.
+    function toolsSentence(tools, name) {
+        switch (tools) {
+        case GamesSaving.ToolsCopied:
+            return qsTr("Copied the tools your own Steam has into %1's Steam, so %1's first game does not have to download them. A tool your Steam does not have, or a newer version Valve has made since, still downloads the first time a game needs it, which can make that game wait several minutes.").arg(name);
+        case GamesSaving.ToolsMissing:
+            return qsTr("%1's Steam may not have every tool Steam runs games with yet. The first game that needs a missing one waits while %1's Steam downloads it, which can take several minutes. If that game does not start, log %1 out and back in, then try it again. The record is in the system log. In a terminal: journalctl -t cairn-steam-visit").arg(name);
+        case GamesSaving.NoToolsToCopy:
+            return qsTr("There were no tools from your own Steam to copy into %1's Steam. If %1's Steam does not have them yet, %1's first game waits while it downloads them, which can take several minutes. If that game does not start, log %1 out and back in, then try it again.").arg(name);
+        }
+        return "";
+    }
+
     // Everything a Save did for one child, in a few sentences. A look for
     // new games changes no list, so it says only what held one back.
     function resultSentence(result) {
@@ -104,6 +120,9 @@ QtObject {
             said.push(words.skipSentence(result.skipped[i], result.name));
         if (result.skipped.length > 0)
             said.push(qsTr("The games not given that are still shared stay chosen, so pressing Save again tries them again."));
+        const tools = words.toolsSentence(result.tools, result.name);
+        if (tools !== "")
+            said.push(tools);
         return said.join(" ");
     }
 }

@@ -14,6 +14,12 @@
 # save-looking says its first line, then makes the pictures for a long
 # time. The save-held-* scenarios count the games taken off against the child's list in
 # CAIRN_TEST_GAMES, as the real command does, and write nothing there.
+# The tools folder is made after the full list (ADR-0046): save-sharing-tools
+# takes a long time there, save-tools-left-out says a tool stayed out, and
+# save-tools-kept-but-held says the folder was kept and then holds every
+# child. Each child's copy gives them two of Steam's tools in save-tools,
+# one and a missing one in save-tools-missing, none in save-no-tools, and
+# save-tools-copying is still copying the tools.
 #
 # For set-own-password, when CAIRN_TEST_INPUT names a file, what came on
 # standard input is written to it, as the real command reads the new
@@ -72,6 +78,14 @@ save_games() {
     fi
     echo "pictures made"
     echo "catalogue made"
+    case "$scenario" in
+        save-sharing-tools) exec sleep 30 ;;
+        save-tools-kept-but-held) echo "tools kept" ;;
+        *) echo "tools made" ;;
+    esac
+    if [ "$scenario" = save-tools-left-out ]; then
+        echo "tool-not-shared 1493710 downloading"
+    fi
     for argument in "${@:2}"; do
         login="${argument%%=*}"
         ids="${argument#*=}"
@@ -111,6 +125,38 @@ save_games() {
                 ;;
             save-cut-off)
                 exit 1
+                ;;
+            save-tools | save-tools-missing | save-no-tools | save-tools-left-out)
+                echo "copying $login"
+                for id in ${ids//,/ }; do
+                    echo "copied $login $id"
+                done
+                case "$scenario" in
+                    save-tools)
+                        printf 'copying-tools %s\ntool-copied %s 1070560\ntool-copied %s 1391110\n' \
+                            "$login" "$login" "$login"
+                        ;;
+                    save-tools-missing)
+                        printf 'copying-tools %s\ntool-copied %s 1070560\ntool-missing %s 1391110\n' \
+                            "$login" "$login" "$login"
+                        ;;
+                    save-no-tools) echo "no-tools $login" ;;
+                    save-tools-left-out)
+                        printf 'copying-tools %s\ntool-copied %s 1070560\n' "$login" "$login"
+                        ;;
+                esac
+                write_list "$login" "$ids"
+                echo "child $login added $count removed 0"
+                ;;
+            save-tools-copying)
+                echo "copying $login"
+                echo "copied $login 1001"
+                echo "copying-tools $login"
+                exec sleep 30
+                ;;
+            save-tools-kept-but-held)
+                echo "copying $login"
+                echo "child $login added 0 removed 0 held logged-in"
                 ;;
         esac
     done

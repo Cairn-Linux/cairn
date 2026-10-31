@@ -32,6 +32,10 @@ Column {
         case GamesSaving.Asking:
             return qsTr("Confirm with your password, or your fingerprint, in the box that opened.");
         case GamesSaving.Saving:
+            // A Save and a look both take Steam's tools from the parent's
+            // own Steam (ADR-0046).
+            if (box.saving.progress === GamesSaving.SharingTools)
+                return qsTr("Getting the tools Steam runs games with from your own Steam. This usually takes a few seconds.");
             // A look names no child, so it has no list to write or copy.
             if (box.saving.kind === GamesSaving.Look)
                 return qsTr("Looking at the shared folder for games and their pictures.");
@@ -40,6 +44,8 @@ Column {
                 return qsTr("Saving the children's lists.");
             case GamesSaving.CopyingGames:
                 return qsTr("Copying games for %1. This can take a few minutes, and %1 cannot log in until it ends.").arg(name);
+            case GamesSaving.CopyingTools:
+                return qsTr("Copying the tools Steam runs games with into %1's Steam. This usually takes a few seconds, and %1 cannot log in until it ends.").arg(name);
             case GamesSaving.WaitingForLogout:
                 return qsTr("Waiting for %1's last login to end.").arg(name);
             }
@@ -55,14 +61,16 @@ Column {
     // A Save that could not give every child every new game never opens
     // by saying that each child sees their games.
     function savedSentence() {
-        let said = qsTr("Saved. Each child sees their games the next time they log in.");
+        const said = [qsTr("Saved. Each child sees their games the next time they log in.")];
         if (box.saving.kind === GamesSaving.Look)
-            said = qsTr("The shared folder was read again. Every game in it shows on the page.");
+            said[0] = qsTr("The shared folder was read again. Every game in it shows on the page.");
         else if (!box.saving.allGiven)
-            said = qsTr("Saved, but not every new game could be given. The sentences below say what each child has now, and what comes next.");
-        if (!box.saving.catalogueKept)
-            return said;
-        return said + " " + qsTr("The list of shared games could not be made again, so the page shows the one from before. The reason is in the system log. In a terminal: journalctl -t cairn-family");
+            said[0] = qsTr("Saved, but not every new game could be given. The sentences below say what each child has now, and what comes next.");
+        if (box.saving.catalogueKept)
+            said.push(qsTr("The list of shared games could not be made again, so the page shows the one from before. The reason is in the system log. In a terminal: journalctl -t cairn-family"));
+        if (box.saving.toolsLeftOut)
+            said.push(qsTr("Not every tool Steam runs games with could be taken from your own Steam, so a child who got new games may not have them all. Their Steam downloads what is missing the first time a game needs it, which can take several minutes. If that game does not start, log the child out and back in, then try it again. The reason is in the system log. In a terminal: journalctl -t cairn-family"));
+        return said.join(" ");
     }
 
     function reasonSentence() {

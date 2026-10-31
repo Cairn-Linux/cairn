@@ -433,9 +433,21 @@ TestCase {
 
     function test_theCommandsOwnPasswordRefusals_data() {
         return [
-            { tag: "failed", scenario: "refused-failed", words: "Your password did not change. Trying again is safe. If it fails again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian" },
-            { tag: "not-a-grown-up", scenario: "refused-not-a-grown-up", words: "Your password did not change. Only a grown-up's account can change its password here." },
-            { tag: "unknown", scenario: "garbage", words: "Cairn's family command did not answer as expected, so it is not known whether your password changed. Try the new one the next time a box asks; if it is not accepted, the old one still works. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian" }
+            {
+                tag: "failed",
+                scenario: "refused-failed",
+                words: "Your password did not change. Trying again is safe. If it fails again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian"
+            },
+            {
+                tag: "not-a-grown-up",
+                scenario: "refused-not-a-grown-up",
+                words: "Your password did not change. Only a grown-up's account can change its password here."
+            },
+            {
+                tag: "unknown",
+                scenario: "garbage",
+                words: "Cairn's family command did not answer as expected, so it is not known whether your password changed. Try the new one the next time a box asks; if it is not accepted, the old one still works. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian"
+            }
         ];
     }
 
@@ -907,6 +919,112 @@ TestCase {
         verify(progressWindow(window).visible);
         mouseClick(findChild(window, "childrenTab"));
         compare(window.showing, "games");
+    }
+
+    // ---- Steam's tools (ADR-0046) ----
+
+    // While Steam's tools are taken from the parent's own Steam, a Save
+    // says so, and so does a look for new games.
+    function test_takingTheToolsSaysSo() {
+        const window = makeWindow("done", {
+            "gamesScenario": "save-sharing-tools"
+        });
+        showGames(window);
+        mouseClick(card(window, 1));
+        mouseClick(findChild(window, "saveButton"));
+        tryCompare(window.gamesPage.saving, "progress", GamesSaving.SharingTools);
+        compare(saveOutcome(window), "Getting the tools Steam runs games with from your own Steam. This usually takes a few seconds.");
+        verify(findChild(window, "lidWarning").visible);
+    }
+
+    function test_aLookTakingTheToolsSaysSo() {
+        const window = makeWindow("done", {
+            "gamesScenario": "save-sharing-tools"
+        });
+        showGames(window);
+        mouseClick(findChild(window, "lookForGames"));
+        tryCompare(window.gamesPage.saving, "progress", GamesSaving.SharingTools);
+        compare(saveOutcome(window), "Getting the tools Steam runs games with from your own Steam. This usually takes a few seconds.");
+        verify(!findChild(window, "lidWarning").visible);
+    }
+
+    // Copying the tools into a child's Steam names the child, who cannot
+    // log in until it ends.
+    function test_copyingAChildsToolsSaysWhose() {
+        const window = makeWindow("done", {
+            "gamesScenario": "save-tools-copying"
+        });
+        showGames(window);
+        mouseClick(card(window, 1));
+        mouseClick(findChild(window, "saveButton"));
+        tryCompare(window.gamesPage.saving, "progress", GamesSaving.CopyingTools);
+        compare(saveOutcome(window), "Copying the tools Steam runs games with into Ada's Steam. This usually takes a few seconds, and Ada cannot log in until it ends.");
+        // The games copied so far still show, and no tool among them.
+        tryCompare(findChild(window, "copiedGames"), "count", 1);
+        compare(findChild(window, "copiedGames").itemAt(0).text, "Copied Putt-Putt Joins the Parade for Ada.");
+    }
+
+    function test_eachChildsToolsSentence_data() {
+        return [
+            {
+                "tag": "copied",
+                "scenario": "save-tools",
+                "words": "Copied the tools your own Steam has into Ada's Steam, so Ada's first game does not have to download them. A tool your Steam does not have, or a newer version Valve has made since, still downloads the first time a game needs it, which can make that game wait several minutes."
+            },
+            {
+                "tag": "missing",
+                "scenario": "save-tools-missing",
+                "words": "Ada's Steam may not have every tool Steam runs games with yet. The first game that needs a missing one waits while Ada's Steam downloads it, which can take several minutes. If that game does not start, log Ada out and back in, then try it again. The record is in the system log. In a terminal: journalctl -t cairn-steam-visit"
+            },
+            {
+                "tag": "none to copy",
+                "scenario": "save-no-tools",
+                "words": "There were no tools from your own Steam to copy into Ada's Steam. If Ada's Steam does not have them yet, Ada's first game waits while it downloads them, which can take several minutes. If that game does not start, log Ada out and back in, then try it again."
+            }
+        ];
+    }
+
+    // What each child's copy did with the tools comes last in their
+    // result. A tool never makes the Save say a game was not given.
+    function test_eachChildsToolsSentence(data) {
+        const window = makeWindow("done", {
+            "gamesScenario": data.scenario
+        });
+        showGames(window);
+        mouseClick(card(window, 1));
+        mouseClick(findChild(window, "saveButton"));
+        tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
+        compare(saveOutcome(window), "Saved. Each child sees their games the next time they log in.");
+        compare(result(window, 0).text, "Ada's list is saved. Added: 4. Taken off: 0. " + data.words);
+    }
+
+    // A tool the parent's Steam could not give is said once, for the whole
+    // Save, after what it saved.
+    function test_aToolLeftOutIsSaidForTheSave() {
+        const window = makeWindow("done", {
+            "gamesScenario": "save-tools-left-out"
+        });
+        showGames(window);
+        mouseClick(card(window, 1));
+        mouseClick(findChild(window, "saveButton"));
+        tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
+        compare(saveOutcome(window), "Saved. Each child sees their games the next time they log in. Not every tool Steam runs games with could be taken from your own Steam, so a child who got new games may not have them all. Their Steam downloads what is missing the first time a game needs it, which can take several minutes. If that game does not start, log the child out and back in, then try it again. The reason is in the system log. In a terminal: journalctl -t cairn-family");
+        verify(result(window, 0).text.startsWith("Ada's list is saved. Added: 4. Taken off: 0. Copied the tools your own Steam has into Ada's Steam,"));
+        if (standIns.screenshotPath() !== "") {
+            wait(300);
+            grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-games-tools.png"));
+        }
+    }
+
+    // A look gives no child anything, so it says nothing about the tools.
+    function test_aLookSaysNothingAboutToolsLeftOut() {
+        const window = makeWindow("done", {
+            "gamesScenario": "save-tools-left-out"
+        });
+        showGames(window);
+        mouseClick(findChild(window, "lookForGames"));
+        tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
+        compare(saveOutcome(window), "The shared folder was read again. Every game in it shows on the page.");
     }
 
     // Each game copied is named as it comes.

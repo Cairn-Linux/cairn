@@ -23,11 +23,11 @@ GamesSave::Outcome GamesSave::run(const QStringList& arguments, const Say& say) 
     const Caller caller =
         Caller::check(m_setup.euid, m_setup.pkexecUid, m_setup.lookUpUid, m_setup.lookUpHome);
     if (caller.refusal) {
-        return {.refusal = caller.refusal, .asked = {}, .children = {}};
+        return {.refusal = caller.refusal, .asked = {}, .children = {}, .tools = {}};
     }
     const GamesRequest request = GamesRequest::fromArguments(arguments);
     if (request.refusal) {
-        return {.refusal = request.refusal, .asked = {}, .children = {}};
+        return {.refusal = request.refusal, .asked = {}, .children = {}, .tools = {}};
     }
     const QString asked =
         (QStringList{QStringLiteral("save-games")} + request.logins()).join(QLatin1Char(' '));
@@ -37,7 +37,7 @@ GamesSave::Outcome GamesSave::run(const QStringList& arguments, const Say& say) 
     for (const GamesRequest::Child& wanted : request.children) {
         const std::optional<Account> account = m_setup.lookUp(wanted.login);
         if (!account || !account->isCairnChild()) {
-            return {.refusal = Refusal::NotAChild, .asked = asked, .children = {}};
+            return {.refusal = Refusal::NotAChild, .asked = asked, .children = {}, .tools = {}};
         }
         children.push_back(*account);
     }
@@ -47,7 +47,7 @@ GamesSave::Outcome GamesSave::run(const QStringList& arguments, const Say& say) 
     QLockFile lock(m_setup.lock);
     lock.setStaleLockTime(0);
     if (!lock.tryLock(0)) {
-        return {.refusal = Refusal::Busy, .asked = asked, .children = {}};
+        return {.refusal = Refusal::Busy, .asked = asked, .children = {}, .tools = {}};
     }
 
     // The first line comes before the slow part, so the window knows the
@@ -70,7 +70,20 @@ GamesSave::Outcome GamesSave::run(const QStringList& arguments, const Say& say) 
     for (std::size_t i = 0; i < children.size(); ++i) {
         before.push_back(ChildSave::takeOff(shared, children[i], tickedFor(request, i)));
     }
-    Outcome outcome{.refusal = std::nullopt, .asked = asked, .children = {}};
+    // The copies take Steam's tools from the folder this fills. It comes
+    // after the lists lose the games taken off, so a tools step that takes
+    // its whole time limit still leaves every game taken off gone.
+    const ToolsRefresh::Result tools = ToolsRefresh::run(m_setup.tools, caller.login);
+    const QString toolsLine =
+        tools.made ? QStringLiteral("tools made") : QStringLiteral("tools kept");
+    say(toolsLine);
+    for (const QString& line : tools.leftOut) {
+        say(line);
+    }
+    Outcome outcome{.refusal = std::nullopt,
+                    .asked = asked,
+                    .children = {},
+                    .tools = QStringList{toolsLine} + tools.notes};
     for (std::size_t i = 0; i < children.size(); ++i) {
         outcome.children.append(
             ChildSave::run(shared, children[i], tickedFor(request, i), before[i], say));

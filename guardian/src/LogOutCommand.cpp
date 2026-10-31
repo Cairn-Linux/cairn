@@ -54,7 +54,9 @@ LogOutCommand::Outcome LogOutCommand::run(const QStringList& arguments, const Sa
         {.systemdRun = m_setup.systemdRun,
          .unit = QStringLiteral("cairn-log-out-%1").arg(child->uid),
          .description = QStringLiteral("Cairn logs a child out for a grown-up"),
-         .command = {m_setup.visitHelper, QStringLiteral("--log-out"), login}},
+         .command = {m_setup.visitHelper, QStringLiteral("--log-out"), login},
+         .user = {},
+         .timeLimitSeconds = 0},
         [&](const QString& line) {
             if (finished || held) {
                 return;

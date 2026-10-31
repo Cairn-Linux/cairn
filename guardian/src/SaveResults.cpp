@@ -55,6 +55,21 @@ GamesSaving::Skip skipFor(const QString& word) {
     return skips.value(word, GamesSaving::Skip::OtherSkip);
 }
 
+// What the child's copy did with Steam's tools (ADR-0046). A tool they may
+// lack says more than the tools they got.
+GamesSaving::Tools toolsFor(const SaveReport::Child& child) {
+    if (child.noTools) {
+        return GamesSaving::Tools::NoToolsToCopy;
+    }
+    if (child.toolsMissing) {
+        return GamesSaving::Tools::ToolsMissing;
+    }
+    if (child.toolsCopied > 0) {
+        return GamesSaving::Tools::ToolsCopied;
+    }
+    return GamesSaving::Tools::NoToolNews;
+}
+
 } // namespace
 
 QHash<QString, QString> SaveResults::titlesOf(const QList<GameShelf::Game>& games) {
@@ -82,6 +97,7 @@ QVariantMap SaveResults::forChild(const SaveReport::Child& child, const QString&
         {QStringLiteral("removed"), child.removed.value_or(-1)},
         {QStringLiteral("held"), static_cast<int>(heldFor(child.held.value_or(QString())))},
         {QStringLiteral("skipped"), skipped},
+        {QStringLiteral("tools"), static_cast<int>(toolsFor(child))},
     };
 }
 

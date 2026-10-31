@@ -198,6 +198,7 @@ class InstallTree(unittest.TestCase):
                      "/usr/sbin/useradd\0", "/usr/bin/passwd\0", "/usr/bin/gpasswd\0",
                      "/usr/libexec/cairn/cairn-steam-visit\0",
                      "/usr/libexec/cairn/cairn-game-pictures\0",
+                     "/usr/libexec/cairn/cairn-share-tools\0",
                      "/usr/libexec/cairn/kidscan.py\0", "/usr/bin/systemd-run\0",
                      "/usr/bin/systemd-inhibit\0",
                      "/usr/bin/python3\0"):

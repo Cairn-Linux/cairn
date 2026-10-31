@@ -17,9 +17,10 @@ namespace SaveResults {
 QHash<QString, QString> titlesOf(const QList<GameShelf::Game>& games);
 
 // The child's result as a map: login, name, added, removed, held (a
-// GamesSaving::Held), and skipped, a list of maps with appId, title
-// and reason (a GamesSaving::Skip). added and removed are -1 when the
-// child's list was not written.
+// GamesSaving::Held), skipped, a list of maps with appId, title and
+// reason (a GamesSaving::Skip), and tools (a GamesSaving::Tools), what the
+// copy did with Steam's tools. added and removed are -1 when the child's
+// list was not written.
 QVariantMap forChild(const SaveReport::Child& child, const QString& name,
                      const QHash<QString, QString>& titles);
 
