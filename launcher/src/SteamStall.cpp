@@ -25,9 +25,12 @@ SteamStall::Now SteamStall::read(const SteamLaunchLog& launch, SteamStartup::Now
         m_stuckAppId.clear();
     }
     m_now = decide(launch, steam, now);
-    // Remembered from the first look that sees the stall, so a tap that ends
-    // before Steam is started again, or while it is, leaves it for the next.
-    if (m_now != Now::Fine) {
+    // Remembered from the first look that sees the stall while the client
+    // that stopped still runs, so a tap that ends before Steam is started
+    // again, or while it is, leaves it for the next.
+    const bool stoppedClientRuns =
+        m_now == Now::Stalled || (m_now == Now::Mending && m_restart == Restart::Asked);
+    if (stoppedClientRuns || m_now == Now::Stuck) {
         m_stuckAppId = m_appId;
     }
     return m_now;
@@ -77,8 +80,10 @@ bool SteamStall::restarted(bool started) {
     }
     m_restart = started ? Restart::Done : Restart::Failed;
     if (started) {
-        // Only what the new client does counts from now.
+        // Only what the new client does counts from now. The launch the old
+        // one kept stuck went with it.
         m_content.startLaunch(m_appId);
+        m_stuckAppId.clear();
         m_sinceRestart.start();
     }
     return true;

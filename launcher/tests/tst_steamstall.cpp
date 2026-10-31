@@ -363,6 +363,23 @@ private slots:
         QVERIFY(!run.stall.logOutWouldHelp());
     }
 
+    // A Steam started again no longer keeps the stuck launch: it went with
+    // the old client. A later tap is not taken for stuck, also when no look
+    // saw the new client's step, as when the game's window came first.
+    void aSteamStartedAgainNoLongerKeepsTheGameStuck() {
+        Launch run;
+        run.restartedAfterAStall();
+        QCOMPARE(run.read(at("2026-10-30 17:12:30")), Now::Mending);
+        QVERIFY(run.stall.logOutWouldHelp());
+
+        run.tap();
+        QVERIFY(!run.stall.logOutWouldHelp());
+        run.console(tapTaken("2026-10-30 17:20:00"));
+        QCOMPARE(run.read(at("2026-10-30 17:20:15")), Now::Fine);
+        QVERIFY(!run.stall.logOutWouldHelp());
+        QCOMPARE(run.stall.journalNote(QStringLiteral("Pajama Sam 2")), QString());
+    }
+
     void journalNoteSaysWhatToDo() {
         Launch run;
         run.tap();
