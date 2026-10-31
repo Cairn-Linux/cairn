@@ -1006,6 +1006,57 @@ private slots:
         qputenv("PATH", path);
     }
 
+    // #211 on the test VM: offline, Steam asked about Pajama Sam 2's cloud
+    // saves on a window the kiosk hides and kept the question. Each later
+    // tap, even once Steam had signed in again, made it write only the tap's
+    // own line. Each of those taps ends at its first look and names the
+    // question in the journal too, with no line on the grown-up screen.
+    void aGameHeldByAQuestionSaysSoAtEveryTap() {
+        const QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        QFile fake(dir.filePath(QStringLiteral("steam")));
+        QVERIFY(fake.open(QIODevice::WriteOnly));
+        fake.write("#!/bin/sh\nexit 0\n");
+        fake.close();
+        QVERIFY(fake.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
+        const QByteArray path = qgetenv("PATH");
+        qputenv("PATH", dir.path().toUtf8() + ':' + path);
+        forgetSteamsLogs();
+
+        AppLauncher launcher(this);
+        launcher.setLaunchGraceMilliseconds(200);
+        for (int tap = 0; tap < 3; ++tap) {
+            QTest::ignoreMessage(QtWarningMsg, "Steam is waiting for an answer about Pajama Sam 2 "
+                                               "on a window the kiosk hides.");
+            QTest::ignoreMessage(QtWarningMsg,
+                                 "Nothing of Pajama Sam 2 came on the screen in time.");
+        }
+        const QString console = QStringLiteral("console_log.txt");
+        steamLogs(console, 0, "LogonFailure No Connection");
+        launcher.launch(QStringLiteral("Pajama Sam 2"), pajamaSam2());
+        steamLogs(console, 0, pajamaSam2Taken());
+        steamSays("292780", "changed task to SynchronizingCloud with \"\"");
+        steamSays("292780", "waiting for user response to SynchronizingCloud \"syncfailed\"");
+        QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
+        QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::None);
+        launcher.dismiss();
+
+        steamLogs(console, 0, "Waiting for compat in post-logon took: 0.098334s");
+        for (int tap = 0; tap < 2; ++tap) {
+            QElapsedTimer sinceTap;
+            sinceTap.start();
+            launcher.launch(QStringLiteral("Pajama Sam 2"), pajamaSam2());
+            steamLogs(console, 0, pajamaSam2Taken());
+            QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
+            // At the first look, not after a wait.
+            QVERIFY(sinceTap.elapsed() < 2000);
+            QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::None);
+            launcher.dismiss();
+        }
+        forgetSteamsLogs();
+        qputenv("PATH", path);
+    }
+
     // Steam refused the launch, as when another game runs: the grown-up
     // screen at the grace, and the journal says Steam refused.
     void aRefusalNeedsAGrownUpAndSaysSo() {

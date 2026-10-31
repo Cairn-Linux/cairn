@@ -63,8 +63,13 @@ Column {
             Keys.onEnterPressed: row.submit()
             Keys.onEscapePressed: row.cancelled()
 
+            // As wide as the field, so a long name ends in an ellipsis
+            // instead of being cut off at the field's edge.
             Text {
+                objectName: "passwordPlaceholder"
                 anchors.verticalCenter: parent.verticalCenter
+                width: parent.width
+                elide: Text.ElideRight
                 text: qsTr("Password for %1").arg(row.displayName)
                 font: field.font
                 color: Tokens.fjord

@@ -11,6 +11,13 @@ Rectangle {
 
     signal chosen
 
+    // A held key repeats. Only the first press counts, so holding Enter or
+    // Space chooses the picture once.
+    function keyPressed(event) {
+        if (!event.isAutoRepeat)
+            tile.chosen();
+    }
+
     width: Tokens.headingSize * 4
     height: width
     radius: Tokens.radiusSm
@@ -24,9 +31,9 @@ Rectangle {
     Accessible.focusable: true
     Accessible.onPressAction: tile.chosen()
 
-    Keys.onReturnPressed: tile.chosen()
-    Keys.onEnterPressed: tile.chosen()
-    Keys.onSpacePressed: tile.chosen()
+    Keys.onReturnPressed: event => tile.keyPressed(event)
+    Keys.onEnterPressed: event => tile.keyPressed(event)
+    Keys.onSpacePressed: event => tile.keyPressed(event)
 
     Image {
         anchors.fill: parent

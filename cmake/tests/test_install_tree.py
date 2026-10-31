@@ -146,6 +146,19 @@ class InstallTree(unittest.TestCase):
         self.assertIn("Exec=/usr/bin/cairn-guardian", entry)
         self.assertIn("TryExec=/usr/bin/cairn-guardian", entry)
 
+    def test_guardian_menu_entry_names_every_page(self):
+        # A parent looking for where to give a child games searches the
+        # menu, which reads these lines (#224). The comment is the System
+        # Settings entry's.
+        entry = self.text("usr/share/applications/cairn-guardian.desktop").splitlines()
+        settings = self.text("usr/share/plasma/systemsettings/externalmodules/"
+                             "cairn-guardian-settings.desktop").splitlines()
+        self.assertIn("GenericName=Children, games and your account", entry)
+        self.assertIn("Keywords=children;child;level;games;Steam;password;picture;account;", entry)
+        comment = "Comment=The children, their levels and games, and your own password and picture"
+        self.assertIn(comment, entry)
+        self.assertIn(comment, settings)
+
     def test_system_settings_lists_family(self):
         # "Family" in System Settings, where the hidden Users page was
         # (ADR-0043), runs the same wrapper.

@@ -243,6 +243,48 @@ private slots:
         QVERIFY(!log.steamStartedAt());
     }
 
+    // A client that starts after the tap is a new one, whether it runs its
+    // own start command alone, starts with the tap, or begins a new log
+    // (#211). The tap's own line, a step, or a start from before the tap is
+    // not.
+    void aNewClientIsSeen_data() {
+        QTest::addColumn<QByteArray>("lines");
+        QTest::addColumn<bool>("newLog");
+        QTest::addColumn<bool>("started");
+        QTest::newRow("its own start")
+            << commandLine("'-srt-logger-opened' '-silent'") << false << true;
+        QTest::newRow("started with the tap")
+            << commandLine("'-srt-logger-opened' '-applaunch' '294650'") << false << true;
+        QTest::newRow("a new log")
+            << line("changed task to DownloadingDepots with \"\"") << true << true;
+        QTest::newRow("the tap alone") << commandLine("'-applaunch' '294650'") << false << false;
+        QTest::newRow("a step") << line("changed task to DownloadingDepots with \"\"") << false
+                                << false;
+    }
+
+    void aNewClientIsSeen() {
+        QFETCH(const QByteArray, lines);
+        QFETCH(const bool, newLog);
+        QFETCH(const bool, started);
+        const QTemporaryDir dir;
+        const QString path = dir.filePath(QStringLiteral("console_log.txt"));
+        append(path, commandLine("'-srt-logger-opened' '-silent'") + QByteArray(500, 'x') + '\n');
+        SteamLaunchLog log(path);
+        log.startLaunch(QStringLiteral("294650"));
+        log.read();
+        QVERIFY(!log.clientStarted());
+        if (newLog) {
+            QVERIFY(QFile::remove(path));
+        }
+        append(path, lines);
+        log.read();
+        QCOMPARE(log.clientStarted(), started);
+        log.read();
+        QCOMPARE(log.clientStarted(), started);
+        log.startLaunch(QStringLiteral("294650"));
+        QVERIFY(!log.clientStarted());
+    }
+
     void theTimeOfALine_data() {
         QTest::addColumn<QByteArray>("line");
         QTest::addColumn<bool>("valid");

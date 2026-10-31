@@ -13,6 +13,7 @@ void SteamLaunchLog::startLaunch(const QString& appId) {
     m_step = Step::Nothing;
     m_downloading = false;
     m_reached = false;
+    m_clientStarted = false;
     m_steamStartedAt.reset();
     m_tail.skipToEnd();
 }
@@ -26,6 +27,7 @@ SteamLaunchLog::Step SteamLaunchLog::read() {
         // Steam started again and began a new log; all of it is new.
         m_step = Step::Nothing;
         m_downloading = false;
+        m_clientStarted = true;
     }
     // The quote after the id keeps 294650 from matching 2946501.
     const QByteArray thisGame = "'-applaunch' '" + m_appId.toUtf8() + "'";
@@ -38,10 +40,15 @@ SteamLaunchLog::Step SteamLaunchLog::read() {
         if (!line.contains("ExecCommandLine: ")) {
             continue;
         }
+        // A client's own start command: `steam -silent` from the login, or a
+        // tap that found no Steam running and started one with the game.
+        const bool clientStart = line.contains("'-srt-logger-opened'");
+        if (clientStart) {
+            m_clientStarted = true;
+        }
         if (line.contains(thisGame)) {
             m_reached = true;
-        } else if (line.contains("'-srt-logger-opened'")) {
-            // A client's own start command, `steam -silent` from the login.
+        } else if (clientStart) {
             m_steamStartedAt = timeOf(line);
         }
     }
@@ -54,6 +61,10 @@ bool SteamLaunchLog::reachedSteam() const {
 
 std::optional<QDateTime> SteamLaunchLog::steamStartedAt() const {
     return m_steamStartedAt;
+}
+
+bool SteamLaunchLog::clientStarted() const {
+    return m_clientStarted;
 }
 
 SteamLaunchLog::Step SteamLaunchLog::step() const {
