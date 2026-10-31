@@ -72,6 +72,26 @@ GamesSaving::Tools toolsFor(const SaveReport::Child& child) {
 
 } // namespace
 
+GamesSaving::Progress SaveResults::progressFor(SaveReport::Stage stage) {
+    switch (stage) {
+    case SaveReport::Stage::Looking:
+        return GamesSaving::Progress::Looking;
+    case SaveReport::Stage::SharingTools:
+        return GamesSaving::Progress::SharingTools;
+    case SaveReport::Stage::Writing:
+        return GamesSaving::Progress::Writing;
+    case SaveReport::Stage::Copying:
+        return GamesSaving::Progress::CopyingGames;
+    case SaveReport::Stage::CopyingTools:
+        return GamesSaving::Progress::CopyingTools;
+    case SaveReport::Stage::Waiting:
+        return GamesSaving::Progress::WaitingForLogout;
+    case SaveReport::Stage::Starting:
+        break;
+    }
+    return GamesSaving::Progress::Starting;
+}
+
 QHash<QString, QString> SaveResults::titlesOf(const QList<GameShelf::Game>& games) {
     QHash<QString, QString> titles;
     for (const GameShelf::Game& game : games) {

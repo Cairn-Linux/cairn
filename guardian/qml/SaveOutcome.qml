@@ -5,9 +5,10 @@ import Cairn.Brand
 import Cairn.Family
 
 // What a Save on the Games page is doing, then what it did for each child,
-// or why nothing was saved, in the house's plain sentences (ADR-0041). The
-// Save's progress window shows it. GamesSaving decides every value; this
-// only picks the words for it.
+// which games have no picture and what helps (ADR-0047), or why nothing was
+// saved, in the house's plain sentences (ADR-0041). The Save's progress
+// window shows it. GamesSaving decides every value; this only picks the
+// words for it.
 Column {
     id: box
 
@@ -15,9 +16,11 @@ Column {
 
     spacing: Tokens.bodySize / 2
 
+    // Plain text, so a game's name from Steam shows exactly as written.
     component Sentence: Text {
         width: box.width
         wrapMode: Text.WordWrap
+        textFormat: Text.PlainText
         font.family: Tokens.fontFamily
         font.pixelSize: Tokens.bodySize
         lineHeight: Tokens.bodyLineHeight
@@ -66,6 +69,12 @@ Column {
             said[0] = qsTr("The shared folder was read again. Every game in it shows on the page.");
         else if (!box.saving.allGiven)
             said[0] = qsTr("Saved, but not every new game could be given. The sentences below say what each child has now, and what comes next.");
+        if (box.saving.picturesKept)
+            said.push(qsTr("The game pictures could not all be copied from your own Steam this time, so a game without one shows its name on a child's screen. Pictures copied before stay. Pressing Look for new games tries again. If it happens again, the reason is in the system log. In a terminal: journalctl -t cairn-family"));
+        if (box.saving.picturesMissing !== "")
+            said.push(qsTr("No picture yet: %1. On a child's screen a game without a picture shows its name instead. Your own Steam keeps a game's picture once its library has shown the game: open Steam in your own login, then press Look for new games. If only another grown-up's Steam has the game, they can do the same in their own login.").arg(box.saving.picturesMissing));
+        if (box.saving.picturesRefused !== "")
+            said.push(qsTr("Your own Steam has a picture that Cairn could not use for: %1. On a child's screen a game without a picture shows its name instead. The reason is in the system log. In a terminal: journalctl -t cairn-family").arg(box.saving.picturesRefused));
         if (box.saving.catalogueKept)
             said.push(qsTr("The list of shared games could not be made again, so the page shows the one from before. The reason is in the system log. In a terminal: journalctl -t cairn-family"));
         if (box.saving.toolsLeftOut)

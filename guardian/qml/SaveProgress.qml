@@ -26,9 +26,11 @@ Item {
     Accessible.role: Accessible.Dialog
     Accessible.name: heading.text
 
+    // Plain text, so a game's name from Steam shows exactly as written.
     component Line: Text {
         width: column.width
         wrapMode: Text.WordWrap
+        textFormat: Text.PlainText
         font.family: Tokens.fontFamily
         font.pixelSize: Tokens.bodySize
         lineHeight: Tokens.bodyLineHeight

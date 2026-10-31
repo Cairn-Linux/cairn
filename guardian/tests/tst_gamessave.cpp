@@ -150,6 +150,11 @@ private slots:
         }
         give("kidscan-output", sharedGames);
         QVERIFY(QDir().mkpath(path("games")));
+        // Every shared game has its picture, unless a test takes one away.
+        QVERIFY(QDir().mkpath(path("pictures")));
+        for (const char* appId : {"620", "504230", "12"}) {
+            give(QStringLiteral("pictures/%1.jpg").arg(appId), "jpeg");
+        }
         m_said.clear();
         m_euid = 0;
         m_pkexecUid = QStringLiteral("1001");
@@ -246,16 +251,85 @@ private slots:
     }
 
     // Under sudo the pictures and the tools folder stay; the rest goes
-    // ahead, and the copy still takes the tools the folder has.
+    // ahead, and the copy still takes the tools the folder has. The journal
+    // says why the pictures stayed, and no game is named.
     void sudoKeepsThePicturesAndTheTools() {
         m_pkexecUid = std::nullopt;
+        QVERIFY(QFile::remove(path("pictures/12.jpg")));
         const GamesSave::Outcome outcome = run({"save-games", "ada=620"});
         QCOMPARE(m_said.mid(0, 5), QStringList({"looking", "pictures kept", "catalogue made",
                                                 "tools kept", "copying ada"}));
         QCOMPARE(lines("python-calls").size(), 1);
         QVERIFY(!QFile::exists(path("tools/systemd-run-calls")));
         QVERIFY(!QFile::exists(path("tools/python-calls")));
+        QCOMPARE(outcome.pictures, QStringList({"pictures kept", "picture step: no-home"}));
         QCOMPARE(outcome.tools, QStringList({"tools kept"}));
+    }
+
+    // Each shared game whose tile shows its name for want of a picture is
+    // named after the full list, so the window can say what helps
+    // (ADR-0047). A picture the step left out is named apart.
+    void aGameWithoutAPictureIsSaid() {
+        QVERIFY(QFile::remove(path("pictures/504230.jpg")));
+        QVERIFY(QFile::remove(path("pictures/12.jpg")));
+        give("pictures-output", "missing 504230\nrefused 12 not-a-jpeg\nfinished\n");
+        const GamesSave::Outcome outcome = run({"save-games", "ada=620"});
+        QVERIFY(!outcome.refusal.has_value());
+        QCOMPARE(m_said.mid(1, 5),
+                 QStringList({"pictures made", "catalogue made", "picture-missing 504230",
+                              "picture-refused 12", "tools made"}));
+        QCOMPARE(outcome.pictures, QStringList({"pictures made", "picture step: missing 504230",
+                                                "picture step: refused 12 not-a-jpeg"}));
+    }
+
+    // The journal gets each step's own words, after its made or kept line,
+    // never a path or a name.
+    void theJournalHasEachStepsWords() {
+        give("pictures-output", "copied 620\nremoved 7\nfinished\n");
+        const GamesSave::Outcome outcome = run({"save-games"});
+        QCOMPARE(outcome.pictures, QStringList({"pictures made", "picture step: copied 620",
+                                                "picture step: removed 7"}));
+        QCOMPARE(outcome.catalogue, QStringList({"catalogue made"}));
+        QCOMPARE(outcome.tools, QStringList({"tools made"}));
+    }
+
+    // A picture step that did not go to its end leaves the pictures as they
+    // were. The Save goes on and names no game, since what helps is then
+    // unknown, and the journal says why.
+    void aPictureStepThatDoesNotFinishLetsTheSaveGoOn_data() {
+        QTest::addColumn<QByteArray>("output");
+        QTest::addColumn<bool>("fails");
+        QTest::addColumn<QStringList>("journal");
+        QTest::newRow("no answer")
+            << QByteArray() << true << QStringList{"pictures kept", "picture step: no-answer"};
+        QTest::newRow("stopped") << QByteArray("copied 620\n") << false
+                                 << QStringList{"pictures kept", "picture step: copied 620",
+                                                "picture step: stopped"};
+        QTest::newRow("refused folder")
+            << QByteArray("refused folder\n") << false
+            << QStringList{"pictures kept", "picture step: refused folder"};
+        QTest::newRow("refused lists")
+            << QByteArray("refused lists\n") << false
+            << QStringList{"pictures kept", "picture step: refused lists"};
+        QTest::newRow("failed") << QByteArray("failed\n") << false
+                                << QStringList{"pictures kept", "picture step: failed"};
+    }
+
+    void aPictureStepThatDoesNotFinishLetsTheSaveGoOn() {
+        QFETCH(const QByteArray, output);
+        QFETCH(const bool, fails);
+        QFETCH(const QStringList, journal);
+        QVERIFY(QFile::remove(path("pictures/504230.jpg")));
+        give("pictures-output", output);
+        if (fails) {
+            give("fail-pictures", "");
+        }
+        const GamesSave::Outcome outcome = run({"save-games", "ada=620"});
+        QVERIFY(!outcome.refusal.has_value());
+        QCOMPARE(m_said.mid(1),
+                 QStringList({"pictures kept", "catalogue made", "tools made", "copying ada",
+                              "copied ada 620", "child ada added 1 removed 0"}));
+        QCOMPARE(outcome.pictures, journal);
     }
 
     // The tools step runs as the Guardian pkexec names, after every child's
@@ -394,12 +468,14 @@ private slots:
     void noCatalogueIsNotNotShared() {
         give("fail-kidscan", "");
         give("games/ada.json", adaHasPortal);
-        run({"save-games", "ada=620,12"});
+        const GamesSave::Outcome outcome = run({"save-games", "ada=620,12"});
         QCOMPARE(m_said.mid(2),
                  QStringList({"catalogue kept", "tools made", "skipped ada 12 no-catalogue",
                               "child ada added 0 removed 0"}));
         QVERIFY(!QFile::exists(path("systemd-run-calls")));
         QVERIFY(read("games/ada.json").contains("\"620\""));
+        // The window sends the parent to the journal for the reason.
+        QCOMPARE(outcome.catalogue, QStringList({"catalogue kept", "catalogue step: failed"}));
     }
 
     // One child's file that cannot be written does not stop the others.
