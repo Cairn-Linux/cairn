@@ -648,6 +648,46 @@ private slots:
                                 "start. Log the child out and back in, then try it again."));
     }
 
+    // Started again, Steam took the tap, fetched soldier and started the
+    // game, but no window came and no reaper runs: logging out is still what
+    // helps, and the journal says starting Steam again did not bring it.
+    void aRestartThatBringsNoGameStillSaysToLogOut() {
+        const QTemporaryDir root;
+        const QString log = root.filePath(QStringLiteral("console_log.txt"));
+        const QString content = root.filePath(QStringLiteral("content_log.txt"));
+        SteamGameWait wait(root.path(), log, root.filePath(QStringLiteral("bootstrap_log.txt")),
+                           content);
+        restartedAfterAStall(wait, log, content);
+        steamLine(log, 5, ownStart());
+        QVERIFY(wait.stillComing());
+        QVERIFY(wait.sendAgain());
+        steamLine(log, 0, pajamaSam2Taken());
+        pajamaSam2Says(log, "changed task to DownloadingDepots with \"\"");
+        QVERIFY(wait.stillComing());
+        steamLine(content, 0,
+                  "AppID 1391110 scheduler update : Priority First, not played for 1 seconds, "
+                  "update disabled for 0 seconds");
+        steamLine(content, 0,
+                  "AppID 1391110 update started : download 0/192183760, store 0/0, reuse 0/0, "
+                  "delta 0/0, stage 0/677401998 ");
+        steamLine(content, 0, "AppID 1391110 finished update, 1 mounted depots : 1391111,");
+        steamLine(content, 0,
+                  "AppID 1391110 scheduler finished : removed from schedule (result No Error, "
+                  "state 0xc) ");
+        steamLine(content, 0,
+                  "AppID 292780 scheduler finished : removed from schedule (result Suspended, "
+                  "state 0xc) ");
+        pajamaSam2Says(log, "changed task to RunningInstallScript with \"\"");
+        QVERIFY(wait.stillComing());
+        pajamaSam2Says(log, "changed task to WaitingGameWindow with \"\"");
+        QVERIFY(!wait.stillComing());
+        QVERIFY(!wait.restartSteam());
+        QVERIFY(wait.logOutWouldHelp());
+        QCOMPARE(wait.journalNote(QStringLiteral("Pajama Sam 2")),
+                 QStringLiteral("Starting Steam again did not bring Pajama Sam 2. Log the child "
+                                "out and back in, then try it again."));
+    }
+
     void aRestartThatFailedEndsTheWait() {
         const QTemporaryDir root;
         const QString log = root.filePath(QStringLiteral("console_log.txt"));

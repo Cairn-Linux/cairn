@@ -299,14 +299,14 @@ the grown-up screen at the next look after any of these:
   restart in the same tap.
 
 A game that still never comes after a good second tap ends by the 2-minute
-rule after the last work, as before. Steam takes a later tap on a game it
-keeps stuck and writes no step for it, only the tap's own line, so that
-tap ends at its first look. A game counts as kept stuck from the first
-look that sees its stall, also when the tap ends before Steam is started
-again, until Steam writes a step for it.
-Each of these ends with one more line on the grown-up screen, under "…
-did not start.": "Log out and back in, then try it again." (ADR-0045),
-unless Steam's logs gave another reason.
+rule after the last work, as before, and the journal says that starting
+Steam again did not bring it. Steam takes a later tap on a game it keeps
+stuck and writes no step for it, only the tap's own line, so that tap ends
+at its first look. A game counts as kept stuck from the first look that
+sees its stall, also when the tap ends before Steam is started again, until
+Steam writes a step for it. Each of these ends with one more line on the
+grown-up screen, under "… did not start.": "Log out and back in, then try
+it again." (ADR-0045), unless Steam's logs gave another reason.
 
 The journal says:
 
@@ -321,8 +321,12 @@ The journal says:
 7. "Steam stopped getting Pajama Sam 2 ready, so Pajama Sam 2 did not
    start. Log the child out and back in, then try it again." This comes
    when the wait ends after a stall, or on a later tap of a game Steam
-   keeps stuck, and Steam gave no other reason. A refused sign-in, no
-   connection, a question or a refusal is named instead, as before.
+   keeps stuck, and Steam gave no other reason. When Steam was started
+   again, took the tap and went on, and the game still did not come, it
+   says instead: "Starting Steam again did not bring Pajama Sam 2. Log the
+   child out and back in, then try it again." A refused sign-in, no
+   connection, a question or a refusal is named instead of either, as
+   before.
 8. "Nothing of Pajama Sam 2 came on the screen in time." (ADR-0030)
 
 `systemctl --user restart cairn-steam` would end Steam with a signal, not
@@ -363,16 +367,19 @@ it did not start is never told to shut down, one that will not stop is not
 started again, a service still stopping is waited for, and a failed start
 says so. `SteamGameWait` restarts once, keeps "Getting it ready" while
 Steam stops and starts again, sends the tap again once, and ends the wait
-after a second stall or a failed restart; it never restarts a Steam that is
-updating itself, offline or running a new reaper; a stall seen while Steam
-cannot reach its servers, or while its sign-in is turned down, ends the
-wait on that reason, with its journal line and no log-out line; a restarted
-Steam gets its own offline wait, and its own work limit when the stall came
-late in the tap's. Three `AppLauncher` tests run the stuck run to the
-game's window with one restart and one tap again, a stall that comes back,
-and a Steam the launcher did not start; another has a later tap of the
-stuck game end at its first look, and another a refused sign-in after the
-restart.
+after a second stall or a failed restart; after a restart that went on but
+brought no window it still says logging out would help, with its own
+journal line; it never restarts a Steam that is updating itself, offline or
+running a new reaper; a stall seen while Steam cannot reach its servers, or
+while its sign-in is turned down, ends the wait on that reason, with its
+journal line and no log-out line; a restarted Steam gets its own offline
+wait, and its own work limit when the stall came late in the tap's. Three
+`AppLauncher` tests run the stuck run to the game's window with one restart
+and one tap again, a stall that comes back, and a Steam the launcher did
+not start; another runs a restart after which Steam gets the game ready and
+no window comes, to the grown-up screen with the line; another has a later
+tap of the stuck game end at its first look, and another a refused sign-in
+after the restart.
 
 This section is checked when, on the test VM with scout and soldier taken
 out of a child's Steam, the first tap on Pajama Sam 2 starts the game with

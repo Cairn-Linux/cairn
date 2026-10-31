@@ -84,6 +84,25 @@ void steamStopsPartWay(qint64 secondsAgo) {
               "0xc) ");
 }
 
+// The restarted Steam fetching soldier and taking the game off its schedule
+// in the same second, as on the test VM's working run (#206).
+void steamFetchesSoldier() {
+    const QString content = QStringLiteral("content_log.txt");
+    steamLogs(content, 0,
+              "AppID 1391110 scheduler update : Priority First, not played for 1 seconds, update "
+              "disabled for 0 seconds");
+    steamLogs(content, 0,
+              "AppID 1391110 update started : download 0/192183760, store 0/0, reuse 0/0, delta "
+              "0/0, stage 0/677401998 ");
+    steamLogs(content, 0, "AppID 1391110 finished update, 1 mounted depots : 1391111,");
+    steamLogs(content, 0,
+              "AppID 1391110 scheduler finished : removed from schedule (result No Error, state "
+              "0xc) ");
+    steamLogs(content, 0,
+              "AppID 292780 scheduler finished : removed from schedule (result Suspended, state "
+              "0xc) ");
+}
+
 // Steam's logs as no client has written them yet, so each case's lines are
 // its own.
 void forgetSteamsLogs() {
@@ -1444,6 +1463,49 @@ private slots:
         QCOMPARE(linesOf(runs).count(QStringLiteral("-shutdown")), 1);
         QCOMPARE(linesOf(dir.filePath(QStringLiteral("started"))).count(QStringLiteral("--user")),
                  1);
+        launcher.dismiss();
+        forgetSteamsLogs();
+        qputenv("PATH", path);
+    }
+
+    // Started again, Steam takes the tap and gets the game ready, but no
+    // window comes: the grown-up screen still says to log out, and the
+    // journal says starting Steam again did not bring the game.
+    void aRestartThatBringsNoGameSaysToLogOut() {
+        const QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        installStandIns(dir, "active");
+        const QByteArray path = qgetenv("PATH");
+        qputenv("PATH", dir.path().toUtf8() + ':' + path);
+        const QString runs = dir.filePath(QStringLiteral("runs"));
+        forgetSteamsLogs();
+
+        AppLauncher launcher(this);
+        launcher.setLaunchGraceMilliseconds(200);
+        const QSignalSpy restarted(restartOf(launcher), &SteamRestart::finished);
+        QTest::ignoreMessage(QtInfoMsg, "Steam stopped getting Pajama Sam 2 ready; starting Steam "
+                                        "again.");
+        QTest::ignoreMessage(QtInfoMsg, "Steam is getting Pajama Sam 2 ready before it starts.");
+        QTest::ignoreMessage(QtInfoMsg, "Steam stopped and was started again.");
+        QTest::ignoreMessage(QtInfoMsg,
+                             "Steam started again without taking Pajama Sam 2; asking again.");
+        QTest::ignoreMessage(QtWarningMsg, "Starting Steam again did not bring Pajama Sam 2. Log "
+                                           "the child out and back in, then try it again.");
+        QTest::ignoreMessage(QtWarningMsg, "Nothing of Pajama Sam 2 came on the screen in time.");
+        launcher.launch(QStringLiteral("Pajama Sam 2"), pajamaSam2());
+        steamStopsPartWay(70);
+        QTRY_COMPARE(restarted.count(), 1);
+        steamLogs(QStringLiteral("console_log.txt"), 5, steamStartsItself());
+        QTRY_COMPARE(linesOf(runs).count(QStringLiteral("-applaunch 292780")), 2);
+        steamLogs(QStringLiteral("console_log.txt"), 0, pajamaSam2Taken());
+        steamSays("292780", "changed task to DownloadingDepots with \"\"");
+        steamFetchesSoldier();
+        steamSays("292780", "changed task to RunningInstallScript with \"\"");
+        steamSays("292780", "changed task to WaitingGameWindow with \"\"");
+        QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
+        QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::LogOutAndBackIn);
+        QCOMPARE(linesOf(runs).count(QStringLiteral("-shutdown")), 1);
+        QCOMPARE(linesOf(runs).count(QStringLiteral("-applaunch 292780")), 2);
         launcher.dismiss();
         forgetSteamsLogs();
         qputenv("PATH", path);

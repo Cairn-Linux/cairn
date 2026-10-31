@@ -92,6 +92,12 @@ QString SteamStall::journalNote(const QString& title) const {
     if (!logOutWouldHelp()) {
         return {};
     }
+    if (m_restart == Restart::Done && m_now == Now::Fine) {
+        // The restarted Steam took the tap and went on; the game did not come.
+        return QStringLiteral("Starting Steam again did not bring %1. "
+                              "Log the child out and back in, then try it again.")
+            .arg(title);
+    }
     return QStringLiteral("Steam stopped getting %1 ready, so %1 did not start. "
                           "Log the child out and back in, then try it again.")
         .arg(title);

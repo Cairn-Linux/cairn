@@ -54,7 +54,8 @@ public:
     // this tap, or still keeps the game stuck from an earlier one.
     bool logOutWouldHelp() const;
     // The journal's sentence for the game called `title` when logging out
-    // would help, or empty.
+    // would help, or empty. It says whether Steam stopped part-way, or was
+    // started again and went on without bringing the game.
     QString journalNote(const QString& title) const;
 
     // Tests set this short.

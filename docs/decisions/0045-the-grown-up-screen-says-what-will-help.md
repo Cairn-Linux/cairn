@@ -77,9 +77,10 @@ again." belongs on this screen, or in the Guardian tool.
   layout. Each new one needs its own C++ case, its own string and its own
   tests.
 - Tested in C++: the line comes after a stall the launcher could not mend,
-  after a stall that came back after the restart, and on a later tap of the
-  stuck game, also one whose stall ended its tap before Steam was started
-  again; it does not come after a mended stall, after a stall followed by a
+  after a stall that came back after the restart, after a restart that got
+  the game ready but brought no window, and on a later tap of the stuck
+  game, also one whose stall ended its tap before Steam was started again;
+  it does not come after a mended stall, after a stall followed by a
   refused sign-in, after a stall seen while Steam could not reach its
   servers or sign in, after a launch that failed without a stall, nor for a
   window that opened on its own. In QML, the line is hidden without a step,
