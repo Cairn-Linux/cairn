@@ -364,23 +364,24 @@ a later tap, also when its tap ended before Steam was started again, until
 Steam writes a step for it. `SteamRestart` runs against stand-ins: a Steam
 the launcher started stops and starts again with the login's command, one
 it did not start is never told to shut down, one that will not stop is not
-started again, a service still stopping is waited for, and a failed start
-says so. `SteamGameWait` restarts once, keeps "Getting it ready" while
-Steam stops and starts again, sends the tap again once, and ends the wait
-after a second stall or a failed restart; after a restart that went on but
-brought no window it still says logging out would help, with its own
-journal line; it never restarts a Steam that is updating itself, offline or
-running a new reaper, and restarts one once it has finished updating; a
-stall seen while Steam cannot reach its servers, or while its sign-in is
-turned down, ends the wait on that reason, with its journal line and no
-log-out line; a restarted Steam gets its own offline wait, and its own work
-limit when the stall came late in the tap's. Three `AppLauncher` tests run
-the stuck run to the game's window with one restart and one tap again, a
-stall that comes back, and a Steam the launcher did not start; another runs
-a restart after which Steam gets the game ready and no window comes, to the
-grown-up screen with the line; another runs the working run, which is never
-stopped, to the game's window; another has a later tap of the stuck game
-end at its first look, and another a refused sign-in after the restart.
+started again, a service still stopping is waited for, a failed start says
+so, and a restart cut short by the launcher ending says nothing more.
+`SteamGameWait` restarts once, keeps "Getting it ready" while Steam stops
+and starts again, sends the tap again once, and ends the wait after a
+second stall or a failed restart; after a restart that went on but brought
+no window it still says logging out would help, with its own journal line;
+it never restarts a Steam that is updating itself, offline or running a new
+reaper, and restarts one once it has finished updating; a stall seen while
+Steam cannot reach its servers, or while its sign-in is turned down, ends
+the wait on that reason, with its journal line and no log-out line; a
+restarted Steam gets its own offline wait, and its own work limit when the
+stall came late in the tap's. Three `AppLauncher` tests run the stuck run
+to the game's window with one restart and one tap again, a stall that comes
+back, and a Steam the launcher did not start; another runs a restart after
+which Steam gets the game ready and no window comes, to the grown-up screen
+with the line; another runs the working run, which is never stopped, to the
+game's window; another has a later tap of the stuck game end at its first
+look, and another a refused sign-in after the restart.
 
 This section is checked when, on the test VM with scout and soldier taken
 out of a child's Steam, the first tap on Pajama Sam 2 starts the game with

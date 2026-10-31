@@ -4,6 +4,7 @@
 
 #include <QFile>
 #include <QFileInfo>
+#include <QRegularExpression>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTest>
@@ -41,6 +42,13 @@ public:
 
     ~StandIns() {
         qputenv("PATH", m_path);
+    }
+
+    // systemctl's stand-in writes down that it was asked, and then answers
+    // far later than any test waits.
+    void checksSlowly() const {
+        standIn(QStringLiteral("systemctl"), "printf '%s\\n' \"$*\" >> checks\n"
+                                             "exec sleep 30\n");
     }
 
     // systemd-run's stand-in ends with `code`.
@@ -178,6 +186,26 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(finished.count(), 1, answerMilliseconds);
         QCOMPARE(finished.at(0).at(0).toBool(), false);
         QCOMPARE(standIns.lines(QStringLiteral("started")), SteamAtLogin::command().mid(1));
+    }
+
+    // The launcher ends while its check of the service runs: the check ends
+    // with it, and the restart says nothing more, neither finished nor that
+    // Steam was not running as the launcher started it.
+    void aRestartEndedPartWaySaysNothing() {
+        const StandIns standIns;
+        standIns.checksSlowly();
+        bool finished = false;
+        {
+            SteamRestart restart;
+            connect(&restart, &SteamRestart::finished, this, [&finished] { finished = true; });
+            restart.start();
+            QTRY_VERIFY_WITH_TIMEOUT(standIns.wrote(QStringLiteral("checks")), answerMilliseconds);
+            QTest::ignoreMessage(QtWarningMsg,
+                                 QRegularExpression(QStringLiteral(
+                                     "^QProcess: Destroyed while process .*systemctl.* is still "
+                                     "running")));
+        }
+        QVERIFY(!finished);
     }
 
     // A restart asked for while one is under way is the same restart.

@@ -31,6 +31,14 @@ SteamRestart::SteamRestart(QObject* parent)
     });
 }
 
+SteamRestart::~SteamRestart() {
+    // A process destroyed while it runs says it finished from its own
+    // destructor, after this object's timer is gone. A restart the launcher
+    // ended part-way has nothing left to do or to say.
+    m_check.disconnect(this);
+    m_start.disconnect(this);
+}
+
 void SteamRestart::start() {
     if (m_step != Step::Idle) {
         return;

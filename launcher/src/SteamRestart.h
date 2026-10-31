@@ -25,6 +25,7 @@ class SteamRestart : public QObject {
 
 public:
     explicit SteamRestart(QObject* parent = nullptr);
+    ~SteamRestart() override;
 
     // Stops Steam and starts it again. Does nothing while a restart is under
     // way; that one's finished() answers both.
