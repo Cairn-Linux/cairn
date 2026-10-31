@@ -3,9 +3,9 @@
 """Runs bin/cairn-log-out with stand-ins on PATH (ADR-0021).
 
 Standard library only. `id` prints a uid, `pgrep` says whether Steam is
-running, and `steam` and `loginctl` write what they were asked to a log
-instead of doing it. The real run is in the VM
-(docs/research/kiosk-containment.md).
+running, and `steam`, `busctl` and `loginctl` write what they were asked to
+a log instead of doing it, so no test ever reaches the real SDDM or logind.
+The real run is in the VM (docs/research/kiosk-containment.md).
 """
 
 import os
@@ -17,7 +17,13 @@ import unittest
 HELPER = pathlib.Path(__file__).resolve().parent.parent / "bin" / "cairn-log-out"
 
 
-def run_log_out(steam_running):
+SWITCH_TO_GREETER = (
+    "busctl --timeout=5 call --system org.freedesktop.DisplayManager {seat} "
+    "org.freedesktop.DisplayManager.Seat SwitchToGreeter"
+)
+
+
+def run_log_out(steam_running, seat_path=None, busctl_fails=False):
     with tempfile.TemporaryDirectory() as bin_dir:
         log = pathlib.Path(bin_dir, "calls")
         # pgrep finds Steam until it has been told to shut down.
@@ -30,6 +36,7 @@ def run_log_out(steam_running):
             "id": "#!/bin/sh\necho 1002\n",
             "pgrep": pgrep,
             "steam": f'#!/bin/sh\necho "steam $*" >> {log}\n',
+            "busctl": f'#!/bin/sh\necho "busctl $*" >> {log}\nexit {1 if busctl_fails else 0}\n',
             "loginctl": f'#!/bin/sh\necho "loginctl $*" >> {log}\n',
         }
         for name, body in stubs.items():
@@ -37,6 +44,8 @@ def run_log_out(steam_running):
             stub.write_text(body)
             stub.chmod(0o755)
         env = {"PATH": f"{bin_dir}:/usr/bin:/bin"}
+        if seat_path:
+            env["XDG_SEAT_PATH"] = seat_path
         result = subprocess.run(
             [str(HELPER)], env=env, capture_output=True, text=True, check=False
         )
@@ -66,6 +75,28 @@ class LogOutHelperTest(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertIn("steam -shutdown", calls)
         self.assertLess(calls.index("steam -shutdown"), calls.index("loginctl terminate-user 1002"))
+
+    def test_asks_for_the_login_screen_before_ending_the_account(self):
+        # After a grown-up's Switch User, SDDM would otherwise go back to the
+        # grown-up's locked session (#213).
+        code, calls = run_log_out(
+            steam_running=True, seat_path="/org/freedesktop/DisplayManager/Seat1"
+        )
+        self.assertEqual(code, 0)
+        ask = SWITCH_TO_GREETER.format(seat="/org/freedesktop/DisplayManager/Seat1")
+        self.assertEqual([c for c in calls if c.startswith("busctl")], [ask])
+        self.assertLess(calls.index("steam -shutdown"), calls.index(ask))
+        self.assertLess(calls.index(ask), calls.index("loginctl terminate-user 1002"))
+
+    def test_without_a_seat_path_it_asks_seat0(self):
+        _, calls = run_log_out(steam_running=False)
+        ask = SWITCH_TO_GREETER.format(seat="/org/freedesktop/DisplayManager/Seat0")
+        self.assertIn(ask, calls)
+
+    def test_logs_out_even_when_sddm_does_not_answer(self):
+        code, calls = run_log_out(steam_running=False, busctl_fails=True)
+        self.assertEqual(code, 0)
+        self.assertEqual(calls[-1], "loginctl terminate-user 1002")
 
     def test_only_looks_for_the_users_own_steam(self):
         _, calls = run_log_out(steam_running=True)
