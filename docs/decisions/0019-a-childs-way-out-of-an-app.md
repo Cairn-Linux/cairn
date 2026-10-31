@@ -119,10 +119,11 @@ The option goes on the command line beside `--autosave --saveovernew`,
 not in a configuration file. The system-wide file the Flatpak reads,
 `/app/etc/tuxpaint/tuxpaint.conf`, is part of Flathub's build, so changing
 it would mean building Tux Paint ourselves. The user's own file,
-`~/.tuxpaintrc`, is outside what the sandbox can see: only `~/.tuxpaint`
-is kept for it, in `~/.var/app/org.tuxpaint.Tuxpaint/`. Using it would
-take a Flatpak override and a file in every child's home. The command
-line is read at every start and wins over both files.
+`~/.tuxpaintrc`, is outside what the sandbox can see. The sandbox gets
+`~/.tuxpaint`, kept in `~/.var/app/org.tuxpaint.Tuxpaint/`, and
+`~/Pictures/TuxPaint`, but not the rest of the home folder. Using the
+file would take a Flatpak override and a copy in every child's home. The
+command line is read at every start and wins over both files.
 
 - A child never meets a Print button that can only say "Sorry!".
 - The Draw tile and the Terminal's `open` both start Tux Paint from the

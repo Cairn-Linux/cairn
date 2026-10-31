@@ -428,13 +428,14 @@ done, and what could sink it. Decisions that change the design get an ADR in
   2026-10-29, the disk prompt included; accepted once seen on a real
   computer and with a disk encrypted at install.
 - **Draw's Print button is off (2026-10-31, #221, amends ADR-0019).** In
-  the user test on the VM, a child tapped Print in Draw, and Tux Paint
-  said "Sorry! Your picture could not be printed!". Its Flatpak prints
-  with `lpr` from a sandbox that cannot reach a printer. Draw now starts
-  Tux Paint with its own `--noprint` option, so the button is grey and
-  does nothing. A launcher test pins Draw's command line in the manifest
-  the image installs. Printing is looked at again when the Guardian tool
-  links to Plasma's printer settings (ADR-0040). Not yet seen on the VM.
+  the user test on the VM, the tester tapped Print in Draw as `ada`, and
+  Tux Paint said "Sorry! Your picture could not be printed!". Its Flatpak
+  prints with `lpr` from a sandbox that cannot reach a printer. Draw now
+  starts Tux Paint with its own `--noprint` option, so the button is grey
+  and does nothing. A launcher test pins Draw's command line in the
+  manifest the image installs. Printing is looked at again when the
+  Guardian tool links to Plasma's printer settings (ADR-0040).
+  Not yet seen on the VM.
 - **Steam updating itself at login keeps the tiles (2026-10-30, #183,
   amends ADR-0037).** On 2026-10-27 the kids' laptop showed the grown-up
   screen for 13 minutes at a login, with Steam's updater box and its
