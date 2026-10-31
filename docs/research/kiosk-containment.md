@@ -58,7 +58,7 @@ Where a row depends on how labwc is written, the 0.9.6 sources were read
 | A child can end their turn and leave nothing running (#44) | **Fail, then pass** (VM, 2026-09-30) | An L1 child had no way back to the login screen, and quitting the launcher would have left Flatpak apps and the Steam client running. A Log out button above the tiles now ends the child's whole account (ADR-0021); the matrix is under "Logging out" below. |
 | The first app after login comes up (#87) | **Fail, then pass** (VM, 2026-09-30) | Tux Paint launched right after login hung before drawing a window, and the launcher, handling one app at a time, ignored every other tile. PipeWire had been started on demand by that first app. `cairn-session` now starts it before the kiosk; see "Sound at login" below. |
 | X11 windows carry no server decorations | **Fail, then pass** (new row) | An xterm got a titlebar with minimise, maximise and close buttons: `<decoration>client</decoration>` only governs Wayland clients. `serverDecoration="no"` on every window removes it. |
-| A game cannot open ScummVM's own menu (#215) | **Fail** (VM, 2026-10-31); Ctrl+F5 **passes** nested and in the VM (2026-10-31); two ways in stay open | In Pajama Sam 2, Ctrl+F5 opened ScummVM's menu, whose Return to Launcher showed ScummVM's game manager. A binding in `rc.xml` now keeps Ctrl+F5 from every app, checked headless with labwc 0.9.6 and then in the VM: Ctrl+F5 in Pajama Sam 2 showed nothing and the game went on. Plain F5 opens the same menu in SCUMM games and is not taken; in the VM it still opened the menu. F5 held down before Ctrl reaches a game through Xwayland's key repeat, seen headless. See "ScummVM's own menu" below. |
+| A game cannot open ScummVM's own menu (#215) | **Fail** (VM, 2026-10-31); Ctrl+F5 **passes** headless and in the VM (2026-10-31); two ways in stay open | In Pajama Sam 2, Ctrl+F5 opened ScummVM's menu, whose Return to Launcher showed ScummVM's game manager. A binding in `rc.xml` now keeps Ctrl+F5 from every app, checked headless with labwc 0.9.6 and then in the VM: Ctrl+F5 in Pajama Sam 2 showed nothing and the game went on. Plain F5 opens the same menu in SCUMM games and is not taken; in the VM it still opened the menu. F5 held down before Ctrl reaches a game through Xwayland's key repeat, seen headless. See "ScummVM's own menu" below. |
 
 The launcher behaved as designed throughout: each window opened from the
 side terminal produced "Something needs a grown-up" naming the app id, and
@@ -457,6 +457,7 @@ with them, and a default build is not.
 
 | Row | Where | Check |
 |---|---|---|
+| A game cannot open ScummVM's own menu (#215) | A real computer, in a child's session, keys from its own keyboard | Ctrl+F5 in a ScummVM game shows nothing and the game goes on, as it did in the VM. The decision on #215 asked for this try on real hardware. |
 
 Screenshots and logs from the run are in the maintainer's work area, not the
 repository.

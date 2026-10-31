@@ -25,10 +25,10 @@ Files:
   app; the power button taps to ignore and holds to power off. The child's
   own way out (#77), missing in the first pilot, is Super+Q (ADR-0019),
   checked in the VM on 2026-09-29 against Tux Paint, GCompris, a Steam
-  game and the frame. Since 2026-10-31 the kiosk keeps Ctrl+F5 from
-  every app, so it no longer opens ScummVM's own menu over a game
-  (#215); whether a program can get past a labwc binding, and the
-  ScummVM keys still open, are written down there too.
+  game and the frame. The kiosk now keeps Ctrl+F5 from every app, so
+  it no longer opens ScummVM's own menu over a game (#215); whether a
+  program can get past a labwc binding, and the ScummVM keys still
+  open, are written down there too.
 - `steam-containment.md` — 2026-09-08 P0-10 spike in the VM with a
   signed-out client: which window rule hides Steam's windows and why, what
   the launcher shows, what Settings › Family offers now, and the client's
