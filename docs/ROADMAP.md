@@ -549,6 +549,16 @@ done, and what could sink it. Decisions that change the design get an ADR in
   ADR-0045 amended and is Mason's to decide. Tested in C++, and on the
   test VM the same day: a later tap on the held game named the question,
   and other games still started.
+- **The focus ring stands out on light grounds (2026-10-31, #216).** In
+  the user test on the test VM the ring at a child's tiles was hard to
+  find: Sky on Sand is 1.52:1, and WCAG 1.4.11 asks 3:1 of a focus ring.
+  `focus` is now Fjord, 5.77:1 on Sand and 6.29:1 on Paper, for the
+  launcher, the Family app and the boot screen's password box. A new
+  `focus-on-ink` keeps Sky, 7.45:1, for the login screen's Ink, where
+  Fjord would be 1.97:1. `brand/build.py --check` now refuses a focus
+  ring below 3:1 against the grounds each ring is for: Sand and Paper for
+  `focus`, Ink for `focus-on-ink`. Tested in Python and QML; not yet seen
+  on the test VM.
 - **Give-up spares Steam's interface again (2026-10-01, #117).** A Steam
   update moved Steam's own interface into a sandbox called `srt-bwrap`,
   which the give-up key's `bwrap` match caught. Flatpak's sandbox is now
