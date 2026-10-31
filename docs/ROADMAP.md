@@ -526,8 +526,9 @@ done, and what could sink it. Decisions that change the design get an ADR in
   launcher now remembers the question for its game, so each such tap names
   it in the journal, and `docs/TRY.md` says the game stays held until the
   child logs out and back in. A line for it on the grown-up screen needs
-  ADR-0045 amended and is Mason's to decide. Tested in C++; not yet run on
-  the VM.
+  ADR-0045 amended and is Mason's to decide. Tested in C++, and on the
+  test VM the same day: a later tap on the held game named the question,
+  and other games still started.
 - **Give-up spares Steam's interface again (2026-10-01, #117).** A Steam
   update moved Steam's own interface into a sandbox called `srt-bwrap`,
   which the give-up key's `bwrap` match caught. Flatpak's sandbox is now
