@@ -9,7 +9,9 @@ updater window hidden (#183).
 **Closes:** (none) — amends ADR-0029 and ADR-0036; part of ROADMAP P1-13
 **Amended by:** ADR-0036's section "Steam stops part-way on a new child's
 first Linux game" (2026-10-30, #206): a Steam the launcher started again
-counts as a new tap, so the tap is sent again once more.
+for a tap may be sent that tap again once more, by this ADR's rule, and
+gets a 10-minute work limit and #182's offline minute of its own; it is
+never started again a second time for that tap.
 
 ## Context
 

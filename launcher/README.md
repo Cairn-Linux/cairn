@@ -268,6 +268,8 @@ for `cairn-steam` to end, and starts it as at login; the tap is sent again
 once the new client has started (ADR-0037).
 That happens once per tap, the starting screen says "Getting it ready"
 throughout, and only `cairn-steam` is ever stopped.
+The restarted Steam gets a 10-minute work limit of its own, so a stall seen
+late in the tap's can still be mended.
 If Steam could not be started again, the stall comes back, or the new
 client does not take the tap, the wait ends at the next look, and the
 journal says to log the child out and back in.

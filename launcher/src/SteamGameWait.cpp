@@ -114,8 +114,11 @@ void SteamGameWait::steamRestarted(bool started) {
     // What the old client wrote as it stopped says nothing about the game.
     m_log.startLaunch(m_appId);
     if (started) {
+        // The new client gets what a tap gets, however late in the tap's
+        // work limit the stall was seen.
         m_sentAgain = false;
         m_sinceTapSent.start();
+        m_sinceLaunch.start();
     }
 }
 

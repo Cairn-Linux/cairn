@@ -750,6 +750,35 @@ private slots:
         QVERIFY(!wait.sendAgain());
     }
 
+    // A stall seen late in the tap's work limit, as after a game update: the
+    // Steam started again gets a work limit of its own, takes the tap sent
+    // again and fetches what the game needs. That limit still ends the wait.
+    void aRestartedSteamGetsAWorkLimitOfItsOwn() {
+        const QTemporaryDir root;
+        const QString log = root.filePath(QStringLiteral("console_log.txt"));
+        const QString content = root.filePath(QStringLiteral("content_log.txt"));
+        SteamGameWait wait(root.path(), log, root.filePath(QStringLiteral("bootstrap_log.txt")),
+                           content);
+        wait.setWorkLimitMilliseconds(1000);
+        wait.startLaunch(pajamaSam2());
+        stuckRun(log, content, 90);
+        QVERIFY(wait.stillComing());
+        QVERIFY(wait.restartSteam());
+        QTest::qWait(600);
+        wait.steamRestarted(true);
+        QTest::qWait(600); // past the work limit counted from the tap.
+        QVERIFY(wait.stillComing());
+        QVERIFY(wait.steamWorking());
+        steamLine(log, 5, ownStart());
+        QVERIFY(wait.stillComing());
+        QVERIFY(wait.sendAgain());
+        steamLine(log, 0, pajamaSam2Taken());
+        pajamaSam2Says(log, "changed task to DownloadingDepots with \"\"");
+        QVERIFY(wait.stillComing());
+        QVERIFY(wait.steamWorking());
+        QTRY_VERIFY(!wait.stillComing());
+    }
+
     // A Steam started again may install an update of itself first. That is
     // work under the work limit, not the time a started client gets to take
     // the tap.

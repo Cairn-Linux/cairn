@@ -80,13 +80,14 @@ private:
     QElapsedTimer m_sinceRestart;
     // How long a Steam started again gets to take the tap, from its own start
     // command, or from being started when it never gets that far. Its
-    // starting or updating itself before that is bounded by the work limit
-    // instead. On the test VM it took the tap 15 s after it was stopped; an
-    // update of itself at a login took 57 s (ADR-0037).
+    // starting or updating itself before that is bounded by the work limit,
+    // counted from the restart, instead. On the test VM it took the tap 15 s
+    // after it was stopped; an update of itself at a login took 57 s
+    // (ADR-0037).
     qint64 m_retakeLimitMilliseconds = 120000;
     // How long after Steam took the game off its schedule a launch still
     // downloading counts as stopped. When Steam goes on, it writes the
     // launch's next step in the same second (test VM, 2 of 2 working runs);
-    // a minute leaves most of the work limit for starting Steam again.
+    // a minute is far past that, even on a slow laptop.
     static constexpr qint64 stallSeconds = 60;
 };

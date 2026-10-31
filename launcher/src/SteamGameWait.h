@@ -44,8 +44,9 @@
 // game off its download schedule while its launch still says it is
 // downloading, and nothing more happens. SteamStall sees it a minute later;
 // Steam is then started again, once in each tap, and the tap is sent again
-// once the new client has started, all as work. If that does not bring the
-// game, the wait ends soon, and logging the child out is what will help.
+// once the new client has started, all as work, under a work limit of the
+// restarted client's own. If that does not bring the game, the wait ends
+// soon, and logging the child out is what will help.
 class SteamGameWait {
 public:
     explicit SteamGameWait(QString processRoot = QStringLiteral("/proc"),
@@ -87,7 +88,7 @@ public:
     bool restartSteam();
     // Starting Steam again is over; `started` when it runs again. From then
     // on only what Steam writes counts, as after a lost tap, and the new
-    // client gets an offline wait of its own.
+    // client gets a work limit and an offline wait of its own.
     void steamRestarted(bool started);
     // Logging the child out and back in would help, and Steam's logs gave no
     // other reason at the last stillComing(): the journal's note is the
@@ -133,6 +134,8 @@ private:
     SteamStall::Now m_stallNow = SteamStall::Now::Fine;
     bool m_sentAgain = false;
     QElapsedTimer m_sinceSteamStarted;
+    // Since the tap, or since Steam was started again for it: the work limit
+    // counts from here.
     QElapsedTimer m_sinceLaunch;
     // Since the tap, or since Steam was started again for it: a client that
     // cannot reach its servers gets the offline limit from here.
@@ -148,9 +151,10 @@ private:
     // game took 84 s from the tap to its first window on the first laptop
     // (#132).
     qint64 m_limitMilliseconds = 120000;
-    // The longest a Steam game is waited for while Steam works on it. Two
-    // runtime updates and an install script took 50 s on the kids' laptop's
-    // Wi-Fi (2026-10-20); a game update on a slow line takes minutes more.
+    // The longest a Steam game is waited for while Steam works on it, from
+    // the tap, or from Steam started again for it. Two runtime updates and an
+    // install script took 50 s on the kids' laptop's Wi-Fi (2026-10-20); a
+    // game update on a slow line takes minutes more.
     qint64 m_workLimitMilliseconds = 600000;
     // The longest a Steam game is waited for after the tap, or after Steam
     // was started again, while Steam cannot reach its servers and has not

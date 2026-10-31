@@ -242,12 +242,14 @@ own `scheduler finished` line, because a shader cache's download never
 writes `finished update` (dev PC, 2026-10-30).
 
 A minute is far past the second in which a launch that goes on writes its
-next step, even on a slow laptop, and leaves about 8 of the 10 minutes for
-the restart, which took about a minute by hand. The rule does not fire on
-a slow download, because the game stays on the schedule until every
-download for it ends. It does not fire when Steam updated itself and lost
-the tap (ADR-0037), because the launch log then has no step about the
-game. "Result Suspended" alone does not make a stall.
+next step, even on a slow laptop. The restart took about a minute by hand,
+and the restarted Steam gets a 10-minute work limit of its own, so a stall
+seen late in the tap's, as after a game update, can still be mended. The
+rule does not fire on a slow download, because the game stays on the
+schedule until every download for it ends. It does not fire when Steam
+updated itself and lost the tap (ADR-0037), because the launch log then
+has no step about the game. "Result Suspended" alone does not make a
+stall.
 
 Steam is started again only when it has started (`SteamStartup` says it
 is ready, ADR-0037), has signed in (#182), and runs no new reaper for the
@@ -282,8 +284,8 @@ the grown-up screen at the next look after any of these:
 - Steam could not be started again.
 - Steam, started again and ready, has not taken the tap 2 minutes after its
   own start command, or 2 minutes after it was started if it never runs
-  that command. Starting or updating itself before that is work, under the
-  10-minute limit.
+  that command. Starting or updating itself before that is work, under a
+  10-minute limit counted from the restart.
 - The stall comes back after the tap sent again. There is no second
   restart in the same tap.
 
@@ -319,6 +321,9 @@ Consequences:
 
 - On the VM, a first tap that stops this way should bring the game about 3
   minutes after the tap, with "Getting it ready" throughout.
+- A tap that Steam is started again for can wait one work limit more than
+  before: about 22 minutes at the most, when the stall is seen near the end
+  of the tap's 10 minutes and the restarted Steam works for all of its own.
 - The rule depends on the wording of two Steam logs. If Valve changes it,
   the stall is not seen and the launcher waits as before: a lost feature,
   not a wrong one.
@@ -346,7 +351,8 @@ waited for, and a failed start says so. `SteamGameWait` restarts once,
 keeps "Getting it ready" while Steam stops and starts again, sends the tap
 again once, and ends the wait after a second stall or a failed restart; it
 never restarts a Steam that is updating itself, offline or running a new
-reaper; a restarted Steam gets its own offline wait. Three `AppLauncher`
+reaper; a restarted Steam gets its own offline wait, and its own work
+limit when the stall came late in the tap's. Three `AppLauncher`
 tests run the stuck run to the game's window with one restart and one tap
 again, a stall that comes back, and a Steam the launcher did not start;
 another has a later tap of the stuck game end at its first look, and
