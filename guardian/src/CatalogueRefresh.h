@@ -36,8 +36,9 @@ struct Result {
 };
 
 // `home` is the Guardian's whose Steam has the pictures. Without one, under
-// sudo, the pictures stay as they are.
-Result run(const Setup& setup, const std::optional<QString>& home);
+// sudo, the pictures stay as they are. `lists` is the folder of each child's
+// own list: a game on one keeps its picture (ADR-0047).
+Result run(const Setup& setup, const std::optional<QString>& home, const QString& lists);
 
 // The games file as it is, with nothing made again; nothing when it cannot
 // be read.

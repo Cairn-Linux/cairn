@@ -92,14 +92,16 @@ private slots:
     // goes into the games file byte for byte, for everyone to read.
     void makesBoth() {
         qputenv("HOME", "/home/someone-else");
-        const CatalogueRefresh::Result result = CatalogueRefresh::run(setup(), "/var/home/gina");
+        const CatalogueRefresh::Result result =
+            CatalogueRefresh::run(setup(), "/var/home/gina", path("games"));
         QVERIFY(result.picturesMade);
         QVERIFY(result.catalogueMade);
         QVERIFY(result.catalogue.has_value());
         QVERIFY(result.catalogue.value_or(GameCatalogue()).has("620"));
         QCOMPARE(pythonCalls(),
                  QStringList({"-I -B /x/cairn-game-pictures --home /var/home/gina --shared " +
-                                  path("library") + " --pictures " + path("pictures"),
+                                  path("library") + " --pictures " + path("pictures") +
+                                  " --lists " + path("games"),
                               "-I -B /x/kidscan.py --no-scummvm --library " + path("library") +
                                   " --pictures " + path("pictures")}));
         QCOMPARE(read("games.json"), QByteArray(twoGames));
@@ -116,13 +118,14 @@ private slots:
     // The same list again changes nothing and labels nothing.
     void leavesTheSameListAlone() {
         give("games.json", twoGames);
-        QVERIFY(CatalogueRefresh::run(setup(), "/var/home/gina").catalogueMade);
+        QVERIFY(CatalogueRefresh::run(setup(), "/var/home/gina", path("games")).catalogueMade);
         QVERIFY(calls().isEmpty());
     }
 
     // Under sudo there is no Guardian's Steam, so the pictures stay.
     void sudoKeepsThePictures() {
-        const CatalogueRefresh::Result result = CatalogueRefresh::run(setup(), std::nullopt);
+        const CatalogueRefresh::Result result =
+            CatalogueRefresh::run(setup(), std::nullopt, path("games"));
         QVERIFY(!result.picturesMade);
         QVERIFY(result.catalogueMade);
         QCOMPARE(pythonCalls().size(), 1);
@@ -132,7 +135,8 @@ private slots:
     // The list is still made when the pictures are not.
     void aPictureFailureStillMakesTheList() {
         give("fail-pictures", "");
-        const CatalogueRefresh::Result result = CatalogueRefresh::run(setup(), "/var/home/gina");
+        const CatalogueRefresh::Result result =
+            CatalogueRefresh::run(setup(), "/var/home/gina", path("games"));
         QVERIFY(!result.picturesMade);
         QVERIFY(result.catalogueMade);
     }
@@ -156,7 +160,8 @@ private slots:
         if (fails) {
             give("fail-kidscan", "");
         }
-        const CatalogueRefresh::Result result = CatalogueRefresh::run(setup(), "/var/home/gina");
+        const CatalogueRefresh::Result result =
+            CatalogueRefresh::run(setup(), "/var/home/gina", path("games"));
         QVERIFY(!result.catalogueMade);
         QCOMPARE(read("games.json"), QByteArray(oneGame));
         QVERIFY(result.catalogue.value_or(GameCatalogue()).has("7"));
@@ -166,7 +171,8 @@ private slots:
     // With no list at all no game can be added.
     void noListAtAll() {
         give("fail-kidscan", "");
-        QVERIFY(!CatalogueRefresh::run(setup(), "/var/home/gina").catalogue.has_value());
+        QVERIFY(
+            !CatalogueRefresh::run(setup(), "/var/home/gina", path("games")).catalogue.has_value());
     }
 };
 

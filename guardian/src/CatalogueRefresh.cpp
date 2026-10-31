@@ -13,13 +13,14 @@ namespace {
 constexpr qint64 largestList = qint64{16} * 1024 * 1024;
 
 // The picture step reads the Guardian's Steam as root. It removes only the
-// pictures of games no longer shared, and keeps a picture it cannot find
-// again (provision/cairn-game-pictures.py).
-bool makePictures(const CatalogueRefresh::Setup& setup, const QString& home) {
+// pictures of games neither shared nor on a child's list, and keeps a
+// picture it cannot find again (provision/cairn-game-pictures.py).
+bool makePictures(const CatalogueRefresh::Setup& setup, const QString& home, const QString& lists) {
     return SystemTool::run(setup.python,
                            {QStringLiteral("-I"), QStringLiteral("-B"), setup.pictureStep,
                             QStringLiteral("--home"), home, QStringLiteral("--shared"),
-                            setup.library, QStringLiteral("--pictures"), setup.pictures});
+                            setup.library, QStringLiteral("--pictures"), setup.pictures,
+                            QStringLiteral("--lists"), lists});
 }
 
 // With --library kidscan reads only the shared folder, never a home, and
@@ -52,9 +53,10 @@ std::optional<GameCatalogue> CatalogueRefresh::read(const QString& gamesFile) {
 }
 
 CatalogueRefresh::Result CatalogueRefresh::run(const Setup& setup,
-                                               const std::optional<QString>& home) {
+                                               const std::optional<QString>& home,
+                                               const QString& lists) {
     Result result;
-    result.picturesMade = home && makePictures(setup, *home);
+    result.picturesMade = home && makePictures(setup, *home, lists);
     result.catalogueMade = makeList(setup);
     result.catalogue = read(setup.gamesFile);
     return result;

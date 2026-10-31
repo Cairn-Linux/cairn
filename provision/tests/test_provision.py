@@ -805,6 +805,9 @@ class GameTilesTest(unittest.TestCase):
         self.cache.mkdir(parents=True)
         self.pictures = self.state / "game-pictures"
         self.games = self.state / "games.json"
+        # The children's lists, which only the image has; not made here
+        # unless a test lists a game.
+        self.lists = self.state / "games"
         self.game(294690, "Pajama Sam")
 
     def tearDown(self):
@@ -822,6 +825,7 @@ class GameTilesTest(unittest.TestCase):
             f"SHARED_LIBRARY={shlex.quote(str(self.library))}\n"
             f"GAMES_FILE={shlex.quote(str(self.games))}\n"
             f"GAME_PICTURES={shlex.quote(str(self.pictures))}\n"
+            f"GAME_LISTS={shlex.quote(str(self.lists))}\n"
             f"guardian_home() {{ echo {shlex.quote(str(self.home))}; }}\n"
         )
 
@@ -955,7 +959,8 @@ class GameTilesTest(unittest.TestCase):
 
     def test_a_line_outside_the_grammar_is_never_printed(self):
         odd = ["/home/gina/.local/share/Steam", "copied 12 /home/gina", "refused 12 Beta",
-               "refused 12 not-a-file extra", "\x1b[2J", "copied 12345678901", "missing", "refused folder"]
+               "refused 12 not-a-file extra", "\x1b[2J", "copied 12345678901", "missing", "refused folder",
+               "refused lists"]
         snippet = self.variables() + "\n".join(f"picture_sentence {shlex.quote(line)}" for line in odd)
         snippet += '\necho "changes: $changes"'
         _, output, _ = run_steps(snippet)
@@ -980,6 +985,33 @@ class GameTilesTest(unittest.TestCase):
         self.assertIn("changed: the picture for Pajama Sam, which has no tile now, removed", said)
         self.assertEqual(list(self.pictures.iterdir()), [])
         self.assertEqual(self.entries(), [])
+
+    def list_for(self, login, appids):
+        """A child's own list, as the image's Save writes it (ADR-0041)."""
+        self.lists.mkdir(exist_ok=True)
+        self.lists.chmod(0o755)
+        entries = [{"id": f"steam-{appid}", "title": f"Game {appid}", "category": "games",
+                    "engine": "steam", "exec": ["steam", "-applaunch", str(appid)]} for appid in appids]
+        (self.lists / f"{login}.json").write_text(json.dumps({"version": 1, "entries": entries}))
+
+    def test_a_game_still_on_a_childs_list_keeps_its_picture(self):
+        # The child keeps its tile when the game leaves the shared folder or
+        # while Steam updates it, so the picture stays (ADR-0047).
+        update = '"StateFlags"\t\t"4"', '"StateFlags"\t\t"1026"'
+        manifest = self.steamapps / "appmanifest_294690.acf"
+        for case in ("gone", "updating"):
+            with self.subTest(case=case):
+                self.game(294690, "Pajama Sam", picture=None)
+                self.run_step()
+                self.list_for("ada", [294690])
+                if case == "gone":
+                    manifest.unlink()
+                else:
+                    manifest.write_text(manifest.read_text().replace(*update))
+                said = self.said(self.run_step())
+                self.assertFalse([line for line in said if "which has no tile now" in line], said)
+                self.assertEqual((self.pictures / "294690.jpg").read_bytes(), STAND_IN_PICTURE)
+                self.assertEqual(self.entries(), [])
 
     def test_a_steamapps_that_is_a_link_leaves_everything_alone(self):
         moved = self.state / "someone-elses-steamapps"
@@ -1009,7 +1041,8 @@ class GameTilesTest(unittest.TestCase):
 
     def test_a_picture_step_that_does_not_finish_gets_a_note(self):
         program = self.libexec / "cairn-game-pictures"
-        for body in ('print("copied 294690")', 'print("refused folder")', 'print("failed")', "raise SystemExit(1)"):
+        for body in ('print("copied 294690")', 'print("refused folder")', 'print("refused lists")',
+                     'print("failed")', "raise SystemExit(1)"):
             with self.subTest(body=body):
                 program.write_text(body + "\n")
                 said = self.said(self.run_step())

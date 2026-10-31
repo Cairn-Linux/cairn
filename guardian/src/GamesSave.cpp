@@ -53,7 +53,10 @@ GamesSave::Outcome GamesSave::run(const QStringList& arguments, const Say& say) 
     // The first line comes before the slow part, so the window knows the
     // password was accepted while the pictures and the full list are made.
     say(QStringLiteral("looking"));
-    const CatalogueRefresh::Result made = CatalogueRefresh::run(m_setup.catalogue, caller.home);
+    // The picture step keeps the pictures of the games on the lists this
+    // Save writes, in the folder it writes them in.
+    const CatalogueRefresh::Result made =
+        CatalogueRefresh::run(m_setup.catalogue, caller.home, m_setup.gamesFolder);
     say(made.picturesMade ? QStringLiteral("pictures made") : QStringLiteral("pictures kept"));
     say(made.catalogueMade ? QStringLiteral("catalogue made") : QStringLiteral("catalogue kept"));
 

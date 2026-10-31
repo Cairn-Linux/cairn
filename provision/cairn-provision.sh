@@ -36,6 +36,11 @@ SHARED_LIBRARY=/var/lib/cairn/steam-library
 # each one shows, copied from the Guardian's Steam (ADR-0033, ADR-0035).
 GAMES_FILE=/var/lib/cairn/games.json
 GAME_PICTURES=/var/lib/cairn/game-pictures
+# Each child's own list of games, which only the image's Save writes
+# (ADR-0041). The picture step reads them, so a game a child still has
+# keeps its picture when it leaves the shared folder (ADR-0047). A computer
+# set up by hand has no such folder, and so no lists.
+GAME_LISTS=/var/lib/cairn/games
 # What stays when that file is not made again, for make_game_tiles' notes.
 # The family's setup says it its own way: on the image each child's tiles
 # come from the list a Guardian saved, not from this file (ADR-0041).
@@ -824,7 +829,8 @@ make_game_tiles() {
             ended=yes
         fi
     done < <(python3 -I -B "$PREFIX/libexec/cairn/cairn-game-pictures" --home "$home" \
-        --shared "$SHARED_LIBRARY" --pictures "$GAME_PICTURES" < /dev/null 2> /dev/null || true)
+        --shared "$SHARED_LIBRARY" --pictures "$GAME_PICTURES" --lists "$GAME_LISTS" \
+        < /dev/null 2> /dev/null || true)
     if [ "$ended" = no ]; then
         echo "note: the game pictures were not all made; a tile without one shows the game's name."
     fi

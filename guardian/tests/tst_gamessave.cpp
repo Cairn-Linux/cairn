@@ -170,6 +170,9 @@ private slots:
         QCOMPARE(lines("helper-calls"),
                  QStringList({"--copy-games ada 620 12", "--copy-games ben 504230"}));
         QVERIFY(lines("python-calls").constFirst().contains("--home /var/home/user1001 "));
+        // The picture step keeps the pictures of the games on the lists in
+        // the folder the Save writes them in (ADR-0047).
+        QVERIFY(lines("python-calls").constFirst().endsWith(" --lists " + path("games")));
         const QByteArray ada = read("games/ada.json");
         QVERIFY(ada.contains("\"620\"") && ada.contains("\"12\"") && !ada.contains("504230"));
         QVERIFY(read("games/ben.json").contains("\"504230\""));

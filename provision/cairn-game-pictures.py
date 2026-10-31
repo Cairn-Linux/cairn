@@ -11,10 +11,12 @@ instead, in either place. In each folder header.jpg is looked for first,
 and <appid> is looked in before any <hash> folder below it. This copies
 the one picture it finds, and nothing else, for each game in the shared
 library that gets a tile by kidscan's rules, into
-/var/lib/cairn/game-pictures/<appid>.jpg. It downloads nothing.
+/var/lib/cairn/game-pictures/<appid>.jpg. It downloads nothing. The
+launcher and the Guardian's Games page show a game's picture from there by
+its app id (ADR-0047).
 
-Provisioning runs it as root, so that each child can read the pictures
-and none can change them. It is installed as
+Provisioning and cairn-family save-games run it as root, so that each
+child can read the pictures and none can change them. It is installed as
 /usr/local/libexec/cairn/cairn-game-pictures beside kidscan.py, whose app
 id rule it uses, and run with `python3 -I -B`, which keeps the files in
 the Guardian's home off Python's path and writes no cache beside it.
@@ -30,18 +32,42 @@ file of a sensible size that starts as a JPEG does, and one that is there
 and left out is never passed over for another. A steamapps in the shared
 folder that is a link stops the run.
 
+A picture also stays while its game is on any child's own list,
+/var/lib/cairn/games/<login>.json, which cairn-family save-games writes
+(ADR-0041), even when kidscan leaves the game out of the shared folder's
+tiles: uninstalled, moved back to the Guardian's own library, on a beta or
+being updated. The child keeps that tile, so it keeps its picture
+(ADR-0047). The lists only keep a picture; a picture is copied only for a
+game in the shared folder, so the Guardian's Steam is read only for those.
+Each list is read as the launcher reads it, but without following a link
+or waiting on a FIFO: only <login>.json names, by cairn-family's rule for
+a login, each a plain file of at most 4 MiB holding the launcher's games
+file, version 1, of which only the entries the launcher gives a tile
+count. A list that cannot be read that way keeps nothing; only root can
+put such a file in that folder, so it is a mistake, and the games on it
+then show their names when they leave the shared folder. No lists folder
+means no lists, as on a computer set up by hand. A lists folder that is a
+link, not a folder, not this program's own account's, or open to others
+for writing stops the run before anything is touched, as cairn-family
+refuses to write there.
+
 It prints only these lines, made of fixed words and appids, so nothing
 read from a home reaches the Guardian's terminal. Provisioning turns them
-into sentences of its own.
+into sentences of its own, and cairn-family passes them to the journal.
 
     copied APPID            the picture is new or changed, and now in place
-    removed APPID           its game has no tile any more, so it went
-    missing APPID           the Guardian's Steam has no picture for it yet
+    removed APPID           its game is neither among the shared folder's
+                            tiles nor on any child's list, so it went
+    missing APPID           the Guardian's Steam has no picture for a
+                            shared game yet
     refused APPID REASON    the picture there was left out, because it
                             is not-a-file, too-big, not-a-jpeg or
                             unreadable; one already in place stays
     refused folder          the pictures folder is a link or not a
                             folder, so nothing was touched
+    refused lists           the children's lists folder is a link, not
+                            a folder, or one others could write in, so
+                            nothing was touched
     finished                the last line of a run that went to the end
     failed                  something unexpected stopped the run
 
@@ -51,6 +77,7 @@ not a failure: its tile shows its name.
 
 import argparse
 import errno
+import json
 import os
 import re
 import stat
@@ -62,6 +89,12 @@ import kidscan  # noqa: E402
 
 SHARED = Path("/var/lib/cairn/steam-library")
 PICTURES = Path("/var/lib/cairn/game-pictures")
+# Each child's own list of games (ADR-0041), and cairn-family's rule for
+# the login in its name. A list of a thousand games is a few hundred
+# kilobytes; cairn-family and the Games page read at most 4 MiB of one.
+LISTS = Path("/var/lib/cairn/games")
+LIST_NAME = re.compile(r"[a-z_][a-z0-9_-]{0,31}\.json")
+LIST_LIMIT = 4 << 20
 # Where the Guardian's Steam keeps its library art, below their home.
 CACHE = (".local", "share", "Steam", "appcache", "librarycache")
 # The names Steam gives a game's picture, in the order they are looked for.
@@ -320,13 +353,91 @@ def remove_leftovers(pictures_fd):
 
 
 def remove_gone(pictures_fd, appids):
-    """The pictures of games that no longer get a tile: gone from the
-    shared folder, or left out by kidscan's rules."""
+    """The pictures of games that are neither shared by kidscan's rules nor
+    on any child's list."""
     for name in sorted(os.listdir(pictures_fd)):
         match = PICTURE_NAME.fullmatch(name)
         if match and match.group(1) not in appids:
             os.unlink(name, dir_fd=pictures_fd)
             say("removed", match.group(1))
+
+
+def listed_games(lists):
+    """The appids of the games on every child's own list, or None when the
+    lists folder is a link, not a folder, or a folder someone other than
+    this program's own account could write in: root in use, the test's own
+    account in a test, as cairn-family requires before it writes a list.
+    No folder means no lists."""
+    try:
+        folder = os.open(lists, FOLDER_NOT_LINK)
+    except FileNotFoundError:
+        return set()
+    except OSError as error:
+        if error.errno in (errno.ELOOP, errno.ENOTDIR):
+            return None
+        raise
+    try:
+        details = os.fstat(folder)
+        if details.st_uid != os.geteuid() or details.st_mode & (stat.S_IWGRP | stat.S_IWOTH):
+            return None
+        listed = set()
+        for name in sorted(os.listdir(folder)):
+            if LIST_NAME.fullmatch(name):
+                listed |= appids_on_list(folder, name)
+        return listed
+    finally:
+        os.close(folder)
+
+
+def appids_on_list(folder, name):
+    """The appids of the games one list gives a tile, or none when it is
+    not a plain file of at most LIST_LIMIT holding the launcher's games
+    file, version 1. It is opened without following a link or waiting for
+    a FIFO's writer."""
+    try:
+        descriptor = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=folder)
+    except OSError:
+        return set()
+    try:
+        details = os.fstat(descriptor)
+        if not stat.S_ISREG(details.st_mode) or details.st_size > LIST_LIMIT:
+            return set()
+        data = read_at_most(descriptor, LIST_LIMIT + 1)
+    except OSError:
+        return set()
+    finally:
+        os.close(descriptor)
+    if len(data) > LIST_LIMIT:
+        return set()
+    try:
+        document = json.loads(data)
+    except (ValueError, RecursionError):
+        return set()
+    if not isinstance(document, dict):
+        return set()
+    version = document.get("version")
+    entries = document.get("entries")
+    if isinstance(version, bool) or version != 1 or not isinstance(entries, list):
+        return set()
+    return {appid for appid in map(tile_appid, entries) if appid is not None}
+
+
+def tile_appid(entry):
+    """The appid of an entry the launcher gives a game tile: a title, the
+    category games, and exactly `steam -applaunch APPID`. None for any
+    other entry (launcher/src/GamesFile.cpp)."""
+    if not isinstance(entry, dict):
+        return None
+    title = entry.get("title")
+    words = entry.get("exec")
+    if not isinstance(title, str) or not title or entry.get("category") != "games":
+        return None
+    if not isinstance(words, list) or len(words) != 3 or words[:2] != ["steam", "-applaunch"]:
+        return None
+    appid = words[2]
+    if not isinstance(appid, str) or not kidscan.APPID.fullmatch(appid):
+        return None
+    return appid
 
 
 def open_pictures(pictures):
@@ -340,19 +451,24 @@ def open_pictures(pictures):
     return os.open(pictures, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
 
 
-def make_pictures(home, shared, pictures):
+def make_pictures(home, shared, pictures, lists):
     pictures_fd = open_pictures(pictures)
     if pictures_fd is None:
         say("refused", "folder")
         return 1
     cache_fd = None
     try:
+        listed = listed_games(lists)
+        if listed is None:
+            say("refused", "lists")
+            return 1
         remove_leftovers(pictures_fd)
         appids = shared_games(shared)
         cache_fd = open_cache(home)
+        # Only a shared game's picture is copied; a listed one only stays.
         for appid in appids:
             copy_picture(cache_fd, pictures_fd, appid)
-        remove_gone(pictures_fd, set(appids))
+        remove_gone(pictures_fd, set(appids) | listed)
     finally:
         os.close(pictures_fd)
         if cache_fd is not None:
@@ -368,11 +484,12 @@ def main(argv=None):
     # Provisioning passes its own; the tests move them.
     parser.add_argument("--shared", type=Path, default=SHARED, help=argparse.SUPPRESS)
     parser.add_argument("--pictures", type=Path, default=PICTURES, help=argparse.SUPPRESS)
+    parser.add_argument("--lists", type=Path, default=LISTS, help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
 
     os.umask(0o022)
     try:
-        return make_pictures(args.home, args.shared, args.pictures)
+        return make_pictures(args.home, args.shared, args.pictures, args.lists)
     except Exception:
         # What went wrong could name a file in a home, so it is not said.
         say("failed")
