@@ -87,15 +87,16 @@ In the image, `cmake --install` puts the launcher in `/usr/libexec/cairn/`,
 its rpath, and a wrapper made from `bin/cairn-launcher.in` in `/usr/bin/`
 (ADR-0038). The session runs the wrapper, which names the logged-in
 child's own games list (ADR-0041).
-The launcher has twenty-nine CTest tests, run offscreen: the wrapper the
+The launcher has thirty CTest tests, run offscreen: the wrapper the
 kiosk session starts, run with stand-ins, the tile model, the
 manifest reader, the manifest and the games file read together (the tile
 files), kidscan's manifest and games file written and read back (two
 tests), the app launcher, the windows of a launch, the wait for a Steam
 game, Steam's reapers, the lines a log gains, Steam's launch log,
 Steam's content log, a launch
-Steam stopped part-way, Steam starting or updating itself, Steam's
-sign-in, the give-up watch, Steam at login, starting Steam again (against
+Steam stopped part-way, the games Steam holds behind a question, Steam
+starting or updating itself, Steam's sign-in, the give-up watch, Steam at
+login, starting Steam again (against
 stand-ins for steam, systemctl and systemd-run), the app scope, the grid
 scroller, the close request, Log out, the battery's look, the UPower
 reader (against a stand-in UPower on a bus of its own, under
@@ -286,6 +287,15 @@ again." under the sentence that names the tile, unless Steam's logs gave
 another reason, such as a refused sign-in or a question (ADR-0045).
 `AppLauncher.grownUpStep` says which line, if any; `GrownUpScreen.qml`
 draws it.
+A question Steam asks on a window the kiosk hides, such as about a game's
+cloud saves while it is offline, ends the tap at the grace, and the
+journal says Steam is waiting for an answer (ADR-0036).
+Steam keeps the question, and for later taps on that game writes only the
+tap's own line, even once it is back online.
+`SteamQuestions` remembers the question for its game until Steam writes
+another step for it or a new client starts, so each of those taps ends at
+its first look with the same journal line, and the grown-up screen adds
+no line (#211).
 With `--scope-apps`, which the kiosk wrapper passes, every program starts
 in a systemd user scope of its own, `cairn-app-<launcher pid>-<n>.scope`,
 so the grown-up's give-up key can end it and whatever it started
