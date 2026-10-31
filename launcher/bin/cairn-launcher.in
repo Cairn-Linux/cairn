@@ -14,8 +14,11 @@ games=()
 if [[ "$login" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]]; then
     games=(--games "/var/lib/cairn/games/$login.json")
 fi
+# Each game's picture is the picture step's copy for its app id, which a
+# later Save brings to every child who has the game (ADR-0047).
 launcher=(@CAIRN_FULL_LIBEXECDIR@/cairn-launcher --manifest @CAIRN_FULL_DATADIR@/manifest.json
-    "${games[@]}" --log-out @CMAKE_INSTALL_FULL_BINDIR@/cairn-log-out
+    "${games[@]}" --pictures /var/lib/cairn/game-pictures
+    --log-out @CMAKE_INSTALL_FULL_BINDIR@/cairn-log-out
     --scope-apps --start-steam "$@")
 # The launcher's notes for a grown-up go to the journal under their own name
 # (#122): journalctl -t cairn-launcher. No journal must never mean no tiles.

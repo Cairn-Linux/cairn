@@ -15,14 +15,15 @@
 // library, /var/lib/cairn/games.json (ADR-0033). It has the manifest's form,
 // but the launcher trusts it less: it is made from Steam's files, so nothing
 // in it may choose a program. The one command an entry may hold is the Steam
-// client starting a game by its app id.
+// client starting a game by its app id. Nothing in it chooses a picture
+// either: a game's picture is the picture step's copy for its app id, so a
+// picture copied after the file was written still shows (ADR-0047).
 namespace GamesFile {
 
 struct Result {
     // Games tiles, each running exactly `steam -applaunch <appid>`.
     QList<TileModel::Tile> tiles;
-    // For the journal: the file could not be used, or an entry was left out
-    // or kept without its picture.
+    // For the journal: the file could not be used, or an entry was left out.
     QStringList sentences;
 };
 
@@ -34,6 +35,11 @@ struct Result {
 // does a game an earlier entry in the file gave one. Its entry is left out
 // before it is checked, so it gets no tile and no sentence: a parent is never
 // told about a tile that is not there.
-Result read(const QString& path, const QSet<QString>& appIdsToLeaveOut);
+//
+// Each game's picture is <picturesFolder>/<appid>.jpg (TilePicture). A game
+// without one shows its name, which is not a fault either, so nothing is
+// said: the Guardian's Family app names it.
+Result read(const QString& path, const QSet<QString>& appIdsToLeaveOut,
+            const QString& picturesFolder);
 
 } // namespace GamesFile

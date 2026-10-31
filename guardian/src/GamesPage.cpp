@@ -200,10 +200,8 @@ void GamesPage::reload() {
     }
     readShelf();
     m_choices.keepOnly(loginsOf(m_children), m_shelf.sharedIds());
-    m_ownSteamGames = m_setup.steamHome.isEmpty()
-                          ? QStringList()
-                          : OwnSteamGames::names(OwnSteamGames::find(
-                                m_setup.steamHome, m_setup.sharedLibrary, m_shelf.sharedIds()));
+    m_ownSteamGames = OwnSteamGames::names(
+        OwnSteamGames::find(m_setup.steamHome, m_setup.sharedLibrary, m_shelf.sharedIds()));
     if (!sameChildren) {
         emit listedChildrenChanged();
     }
@@ -212,7 +210,8 @@ void GamesPage::reload() {
 
 void GamesPage::readShelf() {
     m_shelf =
-        GameShelf::read(m_setup.catalogue, GameShelf::childListPath(m_setup.childLists, m_chosen));
+        GameShelf::read(m_setup.catalogue, GameShelf::childListPath(m_setup.childLists, m_chosen),
+                        m_setup.pictures);
     const QVariantList games = m_shelf.toVariantList();
     if (games != m_games) {
         m_games = games;

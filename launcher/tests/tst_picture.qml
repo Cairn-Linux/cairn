@@ -5,8 +5,9 @@ import Cairn.Brand
 import Cairn.Launcher
 
 // A tile with a picture of its game (#138, ADR-0035), and the game tiles
-// from the games file in the real Main.qml (ADR-0033). The stand-in picture
-// is the brand's own mark; no test uses a game's real picture.
+// from the games file in the real Main.qml (ADR-0033), each with the picture
+// found by its app id (ADR-0047). The stand-in picture is the brand's own
+// mark; no test uses a game's real picture.
 TestCase {
     id: testCase
 
@@ -139,5 +140,31 @@ TestCase {
             compare(tile.picture.toString(), "");
         }
         compare(grid.itemAtIndex(8).opensTerminal, true);
+    }
+
+    // The window passes the folder it was given (--pictures) to its tiles,
+    // and each game shows the picture there for its app id, though the games
+    // file names none. Game one has a stand-in; the other two show their
+    // names.
+    function test_aGameShowsThePictureForItsAppId() {
+        const launcher = createTemporaryObject(launcherComponent, testCase, {
+            "gamesPath": Qt.resolvedUrl("fixtures/games.json"),
+            "picturesFolder": standInPictures
+        });
+        verify(launcher !== null);
+        const grid = findChild(launcher, "tileGrid");
+        verify(grid !== null);
+        // The five built-in tiles, the three games, then the Terminal.
+        tryCompare(grid, "count", 9);
+        for (let i = 5; i < 8; ++i)
+            tryVerify(() => grid.itemAtIndex(i) !== null);
+        const gameOne = grid.itemAtIndex(5);
+        compare(gameOne.title, "Game one");
+        compare(gameOne.picture.toString(), "file://" + standInPictures + "/1001.jpg");
+        tryCompare(findChild(gameOne, "tilePicture"), "status", Image.Ready);
+        compare(findChild(gameOne, "tileTitle").visible, false);
+        compare(grid.itemAtIndex(6).picture.toString(), "");
+        compare(grid.itemAtIndex(7).picture.toString(), "");
+        compare(findChild(grid.itemAtIndex(6), "tileTitle").visible, true);
     }
 }

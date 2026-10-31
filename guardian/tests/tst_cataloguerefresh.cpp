@@ -89,7 +89,8 @@ private slots:
 
     // The pictures come from the home the caller check found, whatever
     // $HOME says, then kidscan reads only the shared folder, and its list
-    // goes into the games file byte for byte, for everyone to read.
+    // goes into the games file byte for byte, for everyone to read. It
+    // names no picture: a tile finds one by its app id (ADR-0047).
     void makesBoth() {
         qputenv("HOME", "/home/someone-else");
         const CatalogueRefresh::Result result =
@@ -102,8 +103,7 @@ private slots:
                  QStringList({"-I -B /x/cairn-game-pictures --home /var/home/gina --shared " +
                                   path("library") + " --pictures " + path("pictures") +
                                   " --lists " + path("games"),
-                              "-I -B /x/kidscan.py --no-scummvm --library " + path("library") +
-                                  " --pictures " + path("pictures")}));
+                              "-I -B /x/kidscan.py --no-scummvm --library " + path("library")}));
         QCOMPARE(read("games.json"), QByteArray(twoGames));
         struct stat status{};
         QVERIFY(stat(QFile::encodeName(path("games.json")).constData(), &status) == 0);

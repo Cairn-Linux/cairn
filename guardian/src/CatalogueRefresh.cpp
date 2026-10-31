@@ -25,12 +25,14 @@ bool makePictures(const CatalogueRefresh::Setup& setup, const QString& home, con
 
 // With --library kidscan reads only the shared folder, never a home, and
 // refuses a steamapps that is a link. Its list goes into the games file
-// byte for byte, so provisioning's install_file still sees no change.
+// byte for byte, so provisioning's install_file still sees no change. It
+// names no picture: a tile finds its game's picture by its app id
+// (ADR-0047).
 bool makeList(const CatalogueRefresh::Setup& setup) {
     const std::optional<QByteArray> list = SystemTool::output(
         setup.python,
         {QStringLiteral("-I"), QStringLiteral("-B"), setup.kidscan, QStringLiteral("--no-scummvm"),
-         QStringLiteral("--library"), setup.library, QStringLiteral("--pictures"), setup.pictures},
+         QStringLiteral("--library"), setup.library},
         largestList);
     if (!list || !GameCatalogue::fromJson(*list)) {
         return false;

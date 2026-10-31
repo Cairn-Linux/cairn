@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "TileFiles.h"
 #include "TileModel.h"
+#include "TilePicture.h"
 
+#include <QDir>
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -234,20 +236,15 @@ private slots:
     }
 
     // An entry left out because its game already has a tile is not checked,
-    // so a parent is never told about a picture or a title for a tile that
-    // is not there.
+    // so a parent is never told about a title for a tile that is not there.
     void aGameThatAlreadyHasATileGetsNoSentence() {
         const QString manifest = write("with-a-game.json", R"({"version": 1, "entries": [
             {"title": "Mine", "category": "games", "exec": ["steam", "-applaunch", "1001"]}]})");
-        QJsonObject missingPicture = game("Game one", "1001");
-        missingPicture.insert(QStringLiteral("picture"), m_dir.filePath("no-such-1001.jpg"));
-        QJsonObject relativePicture = game("Game three again", "1003");
-        relativePicture.insert(QStringLiteral("picture"), QStringLiteral("1003.jpg"));
         QJsonObject otherCategory = game("Game three made", "1003");
         otherCategory.insert(QStringLiteral("category"), QStringLiteral("make"));
         const QString games = writeGames(
-            "already.json", {missingPicture, game(QString(), "1001"), game("Game three", "1003"),
-                             relativePicture, otherCategory, game(QString(), "1003")});
+            "already.json", {game("Game one", "1001"), game(QString(), "1001"),
+                             game("Game three", "1003"), otherCategory, game(QString(), "1003")});
         const TileFiles::Result result = TileFiles::read(manifest, games);
         QCOMPARE(titles(result.tiles), (QStringList{"Mine", "Game three"}));
         QVERIFY2(result.sentences.isEmpty(), qPrintable(result.sentences.join(QLatin1Char('\n'))));
@@ -256,35 +253,102 @@ private slots:
     // An entry that was left out gave its game no tile, so a later entry for
     // the same game is still read, and is still checked.
     void aLaterEntryForAGameLeftOutIsStillRead() {
-        QJsonObject relativePicture = game("Game one", "1001");
-        relativePicture.insert(QStringLiteral("picture"), QStringLiteral("1001.jpg"));
-        const QString games =
-            writeGames("second-try.json", {game(QString(), "1001"), relativePicture});
+        QJsonObject made = game("Game one made", "1001");
+        made.insert(QStringLiteral("category"), QStringLiteral("make"));
+        const QString games = writeGames("second-try.json",
+                                         {game(QString(), "1001"), made, game("Game one", "1001")});
         const TileFiles::Result result = TileFiles::read(m_manifest, games);
         QCOMPARE(titles(result.tiles), (QStringList{"Paint", "Letters", "Game one"}));
         QCOMPARE(result.sentences.size(), 2);
         QVERIFY(result.sentences.at(0).contains(QStringLiteral(": (untitled). It was left out.")));
-        QVERIFY(result.sentences.at(1).contains(QStringLiteral("names a picture for Game one")));
+        QVERIFY(
+            result.sentences.at(1).contains(QStringLiteral(": Game one made. It was left out.")));
     }
 
-    void picturesAreCarried() {
-        const QString picture = write("1001.jpg", "stand-in picture");
-        QJsonObject withPicture = game("Game one", "1001");
-        withPicture.insert(QStringLiteral("picture"), picture);
-        QJsonObject badPicture = game("Game two", "1002");
-        badPicture.insert(QStringLiteral("picture"), QStringLiteral("1002.jpg"));
-        const QString games =
-            writeGames("pictures.json", {withPicture, badPicture, game("Game three", "1003")});
-        const TileFiles::Result result = TileFiles::read(m_manifest, games);
+    // A game's picture is the picture step's copy for its app id, never one
+    // the games file names, so a picture copied after the file was written
+    // still shows (ADR-0047). A game without one shows its name, which is
+    // not a fault, so nothing is said.
+    void aGamesPictureIsFoundByItsAppId() {
+        QVERIFY(QDir(m_dir.path()).mkpath(QStringLiteral("pictures")));
+        const QString pictures = m_dir.filePath(QStringLiteral("pictures"));
+        const QString picture = write("pictures/1001.jpg", "stand-in picture");
+        const QString named = write("named.jpg", "stand-in picture");
+        QJsonObject first = game("Game one", "1001");
+        first.insert(QStringLiteral("picture"), named);
+        QJsonObject second = game("Game two", "1002");
+        second.insert(QStringLiteral("picture"), named);
+        QJsonObject third = game("Game three", "1003");
+        third.insert(QStringLiteral("picture"), QStringLiteral("1003.jpg"));
+        const QString games = writeGames("by-appid.json", {first, second, third});
+        const TileFiles::Result result = TileFiles::read(m_manifest, games, pictures);
         QCOMPARE(result.tiles.size(), 5);
         QCOMPARE(result.tiles.at(2).picture, QUrl::fromLocalFile(picture));
         QVERIFY(result.tiles.at(3).picture.isEmpty());
         QVERIFY(result.tiles.at(4).picture.isEmpty());
-        QCOMPARE(result.sentences,
-                 QStringList{QStringLiteral("The games file %1 names a picture for Game two that "
-                                            "is not the full path of a file: 1002.jpg. The tile "
-                                            "shows its name.")
-                                 .arg(games)});
+        QVERIFY2(result.sentences.isEmpty(), qPrintable(result.sentences.join(QLatin1Char('\n'))));
+        // The manifest's tiles keep their own rule, and get none of these.
+        QVERIFY(result.tiles.at(0).picture.isEmpty());
+    }
+
+    // Only a plain file at <folder>/<appid>.jpg, with the folder a full
+    // path, is a game's picture: not a link, not a folder, and nothing
+    // without a folder.
+    void onlyAPlainFileInAFullFolderIsAPicture_data() {
+        QTest::addColumn<QString>("folder");
+        QTest::addColumn<QString>("make");
+        QTest::newRow("no folder") << QString() << QString();
+        QTest::newRow("a relative folder") << QStringLiteral("pictures") << QString();
+        QTest::newRow("the program's own") << QStringLiteral(":/pictures") << QString();
+        QTest::newRow("a link") << QStringLiteral("odd") << QStringLiteral("link");
+        QTest::newRow("a folder") << QStringLiteral("odd") << QStringLiteral("folder");
+    }
+
+    void onlyAPlainFileInAFullFolderIsAPicture() {
+        QFETCH(const QString, folder);
+        QFETCH(const QString, make);
+        const QString odd = m_dir.filePath(QStringLiteral("odd"));
+        QDir(odd).removeRecursively();
+        QVERIFY(QDir().mkpath(odd));
+        const QString elsewhere = write("elsewhere.jpg", "stand-in picture");
+        if (make == QStringLiteral("link")) {
+            QVERIFY(QFile::link(elsewhere, odd + QStringLiteral("/1001.jpg")));
+        } else if (make == QStringLiteral("folder")) {
+            QVERIFY(QDir().mkpath(odd + QStringLiteral("/1001.jpg")));
+        }
+        const QString games = writeGames("odd.json", {game("Game one", "1001")});
+        const TileFiles::Result result =
+            TileFiles::read(m_manifest, games, make.isEmpty() ? folder : odd);
+        QCOMPARE(result.tiles.size(), 3);
+        QVERIFY(result.tiles.at(2).picture.isEmpty());
+        QVERIFY(result.sentences.isEmpty());
+    }
+
+    // The path is built from the app id, so anything but an app id gives no
+    // picture, even when a file is there for it to reach.
+    void aPictureNeedsAnAppId_data() {
+        QTest::addColumn<QString>("appId");
+        QTest::addColumn<QString>("reachable");
+        QTest::newRow("up a folder") << QStringLiteral("../1001") << QStringLiteral("1001.jpg");
+        QTest::newRow("through a folder")
+            << QStringLiteral("1001/../1002") << QStringLiteral("pictures/1002.jpg");
+        QTest::newRow("a leading zero")
+            << QStringLiteral("01") << QStringLiteral("pictures/01.jpg");
+        QTest::newRow("a file name")
+            << QStringLiteral("1001.jpg") << QStringLiteral("pictures/1001.jpg.jpg");
+        QTest::newRow("nothing") << QString() << QStringLiteral("pictures/.jpg");
+    }
+
+    void aPictureNeedsAnAppId() {
+        QFETCH(const QString, appId);
+        QFETCH(const QString, reachable);
+        QVERIFY(QDir(m_dir.path()).mkpath(QStringLiteral("pictures/1001")));
+        QVERIFY(!write(reachable, "stand-in picture").isEmpty());
+        QVERIFY(TilePicture::forAppId(m_dir.filePath(QStringLiteral("pictures")), appId).isEmpty());
+        // The same folder gives an app id its picture.
+        write("pictures/1002.jpg", "stand-in picture");
+        QCOMPARE(TilePicture::forAppId(m_dir.filePath(QStringLiteral("pictures")), "1002"),
+                 QUrl::fromLocalFile(m_dir.filePath(QStringLiteral("pictures/1002.jpg"))));
     }
 
     // A manifest that cannot be used gives the built-in tiles, and the games

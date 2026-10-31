@@ -79,8 +79,12 @@ QStringList OwnSteamGames::libraries(const QString& root, const QString& home) {
     return found;
 }
 
+// A relative home would be read from wherever the window happened to start.
 QList<SteamManifest::Game> OwnSteamGames::find(const QString& home, const QString& sharedLibrary,
                                                const QSet<QString>& shared) {
+    if (!QDir::isAbsolutePath(home)) {
+        return {};
+    }
     const QString family = realFolder(sharedLibrary);
     QList<SteamManifest::Game> games;
     QSet<QString> seen = shared;

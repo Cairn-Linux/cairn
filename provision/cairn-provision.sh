@@ -431,7 +431,8 @@ install_launcher() {
 # Installed by provision/cairn-provision.sh; not the Phase 1 packaging.
 export LD_LIBRARY_PATH=/usr/local/lib64/cairn
 launcher=(/usr/local/libexec/cairn/cairn-launcher --manifest /usr/local/share/cairn/manifest.json
-    --games /var/lib/cairn/games.json --log-out /usr/local/bin/cairn-log-out --scope-apps --start-steam "$@")
+    --games /var/lib/cairn/games.json --pictures /var/lib/cairn/game-pictures
+    --log-out /usr/local/bin/cairn-log-out --scope-apps --start-steam "$@")
 # The launcher's notes for a grown-up go to the journal under their own name
 # (#122): journalctl -t cairn-launcher. No journal must never mean no tiles.
 if systemd-cat --identifier=cairn-launcher true > /dev/null 2>&1; then
@@ -779,8 +780,8 @@ picture_sentence() {
     elif [[ "$line" =~ ^refused\ ([0-9]{1,10})\ (not-a-file|too-big|not-a-jpeg|unreadable)$ ]]; then
         appid="${BASH_REMATCH[1]}"
         reason="${BASH_REMATCH[2]}"
-        # The picture step keeps a picture from an earlier run, and kidscan
-        # names it when it is a plain file.
+        # The picture step keeps a picture from an earlier run, and the
+        # launcher shows it when it is a plain file, not a link.
         if [ ! -L "$GAME_PICTURES/$appid.jpg" ] && [ -f "$GAME_PICTURES/$appid.jpg" ]; then
             shows="keeps the picture from an earlier run"
         else
@@ -793,10 +794,11 @@ picture_sentence() {
 # A picture for each shared game, copied from the Guardian's own Steam by
 # root into a folder only root can change, then the games file, from
 # kidscan over the shared folder only, as root with an empty HOME, so that
-# no home's Steam is read for it. This runs before the copies, which stop
-# early for a child who is logged in. The trace is off while the picture
-# step's lines are read, because it would print each line before it is
-# checked.
+# no home's Steam is read for it. The games file names no picture: each
+# tile shows the picture step's copy for its game's app id (ADR-0047). This
+# runs before the copies, which stop early for a child who is logged in.
+# The trace is off while the picture step's lines are read, because it
+# would print each line before it is checked.
 make_game_tiles() {
     local home line ended=no games
     # make_shared_library refuses a link here, so one now was put here while
@@ -838,7 +840,7 @@ make_game_tiles() {
     # install_file reports a change only when the bytes differ.
     games="$(mktemp)"
     if env HOME= python3 -I -B "$PREFIX/libexec/cairn/kidscan.py" --no-scummvm \
-        --library "$SHARED_LIBRARY" --pictures "$GAME_PICTURES" > "$games" 2> /dev/null; then
+        --library "$SHARED_LIBRARY" > "$games" 2> /dev/null; then
         install_file 644 "$games" "$GAMES_FILE"
     else
         echo "note: $TILES_NOT_MADE"

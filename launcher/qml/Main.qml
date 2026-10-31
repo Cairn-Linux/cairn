@@ -13,6 +13,9 @@ Window {
     // Set from the command line (--games): the games file provisioning makes
     // from the shared Steam library (ADR-0033). Empty means no game tiles.
     property string gamesPath: ""
+    // Set from the command line (--pictures): the folder of the games'
+    // pictures, <appid>.jpg (ADR-0047). Empty means no game has one.
+    property string picturesFolder: ""
     // The Terminal tile is open; the tiles are hidden behind it.
     property bool terminalOpen: false
     // Set from the command line (--log-out). Empty means no Log out.
@@ -42,6 +45,7 @@ Window {
 
         manifestPath: window.manifestPath
         gamesPath: window.gamesPath
+        picturesFolder: window.picturesFolder
     }
 
     // Windows of other programs, from the compositor. Nothing arrives on

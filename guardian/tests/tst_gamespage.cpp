@@ -70,6 +70,7 @@ class GamesPageTest : public QObject {
         setup.steamFor = "/usr/bin/cairn-steam-for";
         setup.steamHome = m_steamHome;
         setup.sharedLibrary = path("steam-library");
+        setup.pictures = path("pictures");
         setup.accounts = [this] { return m_accounts; };
         setup.loggedIn = [this] { return loggedIn(); };
         setup.start = [this, starts](const QString& program, const QStringList& arguments) {
@@ -267,6 +268,24 @@ private slots:
         QVERIFY(second.value("picture").toUrl().isEmpty());
         QCOMPARE(second.value("saved").toBool(), true);
         QVERIFY(page->wanted().contains("1002"));
+    }
+
+    // A card shows the picture step's copy for its game's app id, as the
+    // child's tile does, and a game on the child's list that the shared
+    // folder no longer has keeps its own (ADR-0047).
+    void aPictureIsFoundByItsAppId() {
+        QVERIFY(QDir().mkpath(path("pictures")));
+        write(path("pictures/1003.jpg"), "jpeg");
+        write(path("pictures/2001.jpg"), "jpeg");
+        write(path("games/ada.json"), gamesFile({game("1002", "Game two"), game("2001", "Gone")}));
+        const auto page = makePage();
+        QCOMPARE(page->games().size(), 4);
+        QVERIFY(page->games().at(0).toMap().value("picture").toUrl().isEmpty());
+        QCOMPARE(page->games().at(2).toMap().value("picture").toUrl(),
+                 QUrl::fromLocalFile(path("pictures/1003.jpg")));
+        const QVariantMap gone = page->games().at(3).toMap();
+        QCOMPARE(gone.value("shared").toBool(), false);
+        QCOMPARE(gone.value("picture").toUrl(), QUrl::fromLocalFile(path("pictures/2001.jpg")));
     }
 
     void noChildrenPicksNoOne() {
@@ -899,6 +918,7 @@ private slots:
         setup.command = FIXTURES "/no-such-cairn-family";
         setup.catalogue = path("games.json");
         setup.childLists = path("games");
+        setup.pictures = path("pictures");
         setup.accounts = [this] { return m_accounts; };
         setup.loggedIn = [this] { return loggedIn(); };
         GamesPage page(setup);

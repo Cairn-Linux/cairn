@@ -30,6 +30,15 @@ int main(int argc, char* argv[]) {
                        "game."),
         QStringLiteral("file"));
     parser.addOption(gamesOption);
+    // The image's and provisioning's wrappers name it; a launcher installed
+    // by hand under an older wrapper still finds the pictures.
+    const QCommandLineOption picturesOption(
+        QStringLiteral("pictures"),
+        QStringLiteral("The folder of the games' pictures, <appid>.jpg, which the picture step "
+                       "copies from a grown-up's Steam. Each game from the games file shows its "
+                       "own."),
+        QStringLiteral("folder"), QStringLiteral("/var/lib/cairn/game-pictures"));
+    parser.addOption(picturesOption);
     const QCommandLineOption logOutOption(
         QStringLiteral("log-out"),
         QStringLiteral("The program that ends the session when the child chooses Log out. "
@@ -62,6 +71,7 @@ int main(int argc, char* argv[]) {
     engine.setInitialProperties({
         {QStringLiteral("manifestPath"), parser.value(manifestOption)},
         {QStringLiteral("gamesPath"), parser.value(gamesOption)},
+        {QStringLiteral("picturesFolder"), parser.value(picturesOption)},
         {QStringLiteral("logOutProgram"), parser.value(logOutOption)},
         {QStringLiteral("scopeApps"), parser.isSet(scopeAppsOption)},
         {QStringLiteral("giveUpFile"), GiveUpWatch::sessionPath()},

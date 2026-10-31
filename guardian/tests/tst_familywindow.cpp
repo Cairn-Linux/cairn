@@ -23,8 +23,9 @@
 namespace {
 
 // A stand-in for a game's Steam header: a plain colour, different for each
-// game, with the game's title on it.
-bool makePicture(const QString& path, const QString& title, int index) {
+// game, with the game's title on it, saved as `format`: JPEG, as the
+// picture step copies one, or PNG, as Plasma's pictures are.
+bool makePicture(const QString& path, const QString& title, int index, const char* format = "PNG") {
     QImage image(460, 215, QImage::Format_RGB32);
     image.fill(QColor::fromHsv((index * 47) % 360, 90, 200));
     QPainter painter(&image);
@@ -34,7 +35,7 @@ bool makePicture(const QString& path, const QString& title, int index) {
     painter.setFont(font);
     painter.drawText(image.rect(), Qt::AlignCenter, title);
     painter.end();
-    return image.save(path, "PNG");
+    return image.save(path, format);
 }
 
 bool writeFile(const QString& path, const QByteArray& bytes) {
@@ -91,8 +92,9 @@ public:
     }
 
     // The window's GamesPage over files of its own: eight shared games,
-    // each with a picture but the last, Ada with three on her list, Ben
-    // with none and Cy with two, one of them no longer shared. Its Steam
+    // each with a picture but the last, in the pictures folder by its app
+    // id (ADR-0047), Ada with three on her list, Ben with none and Cy with
+    // two, one of them no longer shared, which has no picture. Its Steam
     // window start answers as `steamStarts` says, and is written down in
     // startedSteam(). Its Save runs the stand-ins, which answer as
     // `scenario` says, when one is given, and write the children's lists
@@ -106,6 +108,8 @@ public:
                                      bool withOwnSteamGames = false) {
         const QDir files(m_files.path());
         setLoggedIn(loggedIn);
+        QDir(files.filePath("pictures")).removeRecursively();
+        files.mkpath("pictures");
         QJsonArray shared;
         const QStringList titles{"Putt-Putt Joins the Parade",
                                  "Freddi Fish",
@@ -117,13 +121,12 @@ public:
                                  "A game with a long name that will not fit on one line"};
         for (int i = 0; withGames && i < titles.size(); ++i) {
             const QString appId = QString::number(1001 + i);
-            QJsonObject entry{{"id", "steam-" + appId},
-                              {"title", titles.at(i)},
-                              {"category", "games"},
-                              {"exec", QJsonArray{"steam", "-applaunch", appId}}};
-            const QString picture = files.filePath(appId + ".png");
-            if (i < titles.size() - 1 && makePicture(picture, titles.at(i), i)) {
-                entry.insert("picture", picture);
+            const QJsonObject entry{{"id", "steam-" + appId},
+                                    {"title", titles.at(i)},
+                                    {"category", "games"},
+                                    {"exec", QJsonArray{"steam", "-applaunch", appId}}};
+            if (i < titles.size() - 1) {
+                makePicture(files.filePath("pictures/" + appId + ".jpg"), titles.at(i), i, "JPEG");
             }
             shared.append(entry);
         }
@@ -171,6 +174,7 @@ public:
         setup.steamFor = "/usr/bin/cairn-steam-for";
         setup.steamHome = ownSteamHome(withOwnSteamGames);
         setup.sharedLibrary = files.filePath("steam-library");
+        setup.pictures = files.filePath("pictures");
         setup.accounts = [accounts] { return accounts; };
         setup.loggedIn = [this] {
             QFile file(loggedInFile());

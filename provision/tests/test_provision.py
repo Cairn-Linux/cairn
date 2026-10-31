@@ -263,6 +263,7 @@ class LauncherWrapperTest(unittest.TestCase):
             result.stdout.strip(),
             "systemd-cat --identifier=cairn-launcher /usr/local/libexec/cairn/cairn-launcher"
             " --manifest /usr/local/share/cairn/manifest.json --games /var/lib/cairn/games.json"
+            " --pictures /var/lib/cairn/game-pictures"
             " --log-out /usr/local/bin/cairn-log-out --scope-apps --start-steam --extra",
         )
 
@@ -879,7 +880,8 @@ class GameTilesTest(unittest.TestCase):
         [entry] = self.entries()
         self.assertEqual(entry["id"], "steam-294690")
         self.assertEqual(entry["exec"], ["steam", "-applaunch", "294690"])
-        self.assertEqual(entry["picture"], str(picture))
+        # The tile finds the picture by the game's app id (ADR-0047).
+        self.assertNotIn("picture", entry)
         self.assertIn("+ true after", output, "the trace comes back")
 
     def test_a_second_run_changes_nothing(self):
@@ -899,9 +901,7 @@ class GameTilesTest(unittest.TestCase):
         self.assertIn("note: Freddi Fish has no picture yet, so its tile shows its name. Your own Steam keeps a "
                       "game's picture once its library has shown the game: open Steam in your own login, then run "
                       "this again.", said)
-        tiles = {entry["title"]: entry for entry in self.entries()}
-        self.assertNotIn("picture", tiles["Freddi Fish"])
-        self.assertIn("picture", tiles["Pajama Sam"])
+        self.assertEqual(sorted(path.name for path in self.pictures.iterdir()), ["294690.jpg"])
 
     def test_a_refused_picture_gives_the_note(self):
         header = self.cache / "294690" / "header.jpg"
@@ -910,7 +910,7 @@ class GameTilesTest(unittest.TestCase):
         said = self.said(self.run_step())
         self.assertIn("note: the picture your Steam keeps for Pajama Sam was left out, because it is not a plain "
                       "file, so its tile shows its name.", said)
-        self.assertNotIn("picture", self.entries()[0])
+        self.assertEqual(list(self.pictures.iterdir()), [])
 
     def test_a_refused_picture_with_one_kept_says_the_tile_keeps_it(self):
         self.run_step()
@@ -918,7 +918,6 @@ class GameTilesTest(unittest.TestCase):
         said = self.said(self.run_step())
         self.assertIn("note: the picture your Steam keeps for Pajama Sam was left out, because it is not a JPEG "
                       "picture, so its tile keeps the picture from an earlier run.", said)
-        self.assertEqual(self.entries()[0]["picture"], str(self.pictures / "294690.jpg"))
         self.assertEqual((self.pictures / "294690.jpg").read_bytes(), STAND_IN_PICTURE)
 
     def test_every_refusal_has_its_sentence(self):
@@ -941,7 +940,7 @@ class GameTilesTest(unittest.TestCase):
                     ])
 
     def test_only_a_plain_file_counts_as_a_kept_picture(self):
-        # kidscan names no other kind of file as a tile's picture.
+        # The launcher shows no other kind of file as a tile's picture.
         self.pictures.mkdir()
         elsewhere = self.state / "elsewhere.jpg"
         elsewhere.write_bytes(STAND_IN_PICTURE)
