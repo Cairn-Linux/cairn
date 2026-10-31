@@ -379,10 +379,12 @@ class BootScreenTests(unittest.TestCase):
             for line in script.splitlines()
             if line.endswith('";') and "_words = " in line
         ]
+        # Plymouth cannot wrap a line. A longer sentence must be seen again
+        # on the narrowest screen (ADR-0044) before it goes in here.
         self.assertEqual(
             words,
             [
-                "Type the password to start this computer.",
+                "A grown-up needs to type the password to start this computer.",
                 "That password did not work. Type it again.",
                 "Caps Lock is on.",
             ],

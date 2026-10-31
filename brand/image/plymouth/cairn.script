@@ -46,8 +46,9 @@ screen_width = Window.GetWidth();
 screen_height = Window.GetHeight();
 
 # Plymouth's own text, as plain as the launcher's. Its script language has
-# no way to translate (ADR-0044).
-password_words = "Type the password to start this computer.";
+# no way to translate (ADR-0044). Nor can it wrap a line, so each sentence
+# must fit across the narrowest screen on its own.
+password_words = "A grown-up needs to type the password to start this computer.";
 retry_words = "That password did not work. Type it again.";
 caps_lock_words = "Caps Lock is on.";
 
