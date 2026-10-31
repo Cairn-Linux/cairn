@@ -5,7 +5,8 @@
 **Closes:** (none) — addresses issue #139; amends ADR-0026, ADR-0028 and
 ADR-0029
 **Amended by:** ADR-0036 (a game Steam is getting ready waits instead of
-ending on the grown-up screen)
+ending on the grown-up screen), ADR-0045 (when the launcher knows
+what will help, the grown-up screen adds one line saying it)
 
 ## Context
 

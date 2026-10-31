@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "AppLauncher.h"
+#include "SteamAtLogin.h"
 
 #include <QCoreApplication>
 #include <QDateTime>
 #include <QDir>
+#include <QElapsedTimer>
 #include <QFile>
 #include <QFileInfo>
 #include <QRegularExpression>
@@ -47,6 +49,116 @@ void steamLogs(const QString& name, qint64 secondsAgo, const QByteArray& says) {
 QByteArray steamStartsItself() {
     return "ExecCommandLine: \"'/var/home/child/.local/share/Steam/ubuntu12_32/steam' "
            "'-srt-logger-opened' '-silent'\"";
+}
+
+// Steam taking a tap on Pajama Sam 2.
+QByteArray pajamaSam2Taken() {
+    return "ExecCommandLine: \"'~/.steam/root/ubuntu12_32/steam' '-applaunch' '292780'\"";
+}
+
+QStringList pajamaSam2() {
+    return {QStringLiteral("steam"), QStringLiteral("-applaunch"), QStringLiteral("292780")};
+}
+
+// The test VM's stuck run (#206): Steam took the tap, fetched scout and took
+// the game off its schedule `secondsAgo`, and the launch stayed at
+// DownloadingDepots.
+void steamStopsPartWay(qint64 secondsAgo) {
+    const QString content = QStringLiteral("content_log.txt");
+    steamLogs(QStringLiteral("console_log.txt"), secondsAgo + 22, pajamaSam2Taken());
+    steamSays("292780", "changed task to DownloadingDepots with \"\"");
+    steamLogs(content, secondsAgo + 20,
+              "AppID 1070560 scheduler update : Priority First, not played for 1 seconds, update "
+              "disabled for 0 seconds");
+    steamLogs(content, secondsAgo + 20,
+              "AppID 1070560 update started : download 0/75258128, store 0/0, reuse 0/0, delta "
+              "0/0, stage 0/223012461 ");
+    steamLogs(content, secondsAgo,
+              "AppID 1070560 finished update, 1 mounted depots (BuildID 26115262) : 1070561 "
+              "(8475493586714137016),");
+    steamLogs(content, secondsAgo,
+              "AppID 1070560 scheduler finished : removed from schedule (result No Error, state "
+              "0xc) ");
+    steamLogs(content, secondsAgo,
+              "AppID 292780 scheduler finished : removed from schedule (result Suspended, state "
+              "0xc) ");
+}
+
+// The restarted Steam fetching soldier and taking the game off its schedule
+// in the same second, as on the test VM's working run (#206).
+void steamFetchesSoldier() {
+    const QString content = QStringLiteral("content_log.txt");
+    steamLogs(content, 0,
+              "AppID 1391110 scheduler update : Priority First, not played for 1 seconds, update "
+              "disabled for 0 seconds");
+    steamLogs(content, 0,
+              "AppID 1391110 update started : download 0/192183760, store 0/0, reuse 0/0, delta "
+              "0/0, stage 0/677401998 ");
+    steamLogs(content, 0, "AppID 1391110 finished update, 1 mounted depots : 1391111,");
+    steamLogs(content, 0,
+              "AppID 1391110 scheduler finished : removed from schedule (result No Error, state "
+              "0xc) ");
+    steamLogs(content, 0,
+              "AppID 292780 scheduler finished : removed from schedule (result Suspended, state "
+              "0xc) ");
+}
+
+// Steam's logs as no client has written them yet, so each case's lines are
+// its own.
+void forgetSteamsLogs() {
+    for (const QString& name :
+         {QStringLiteral("console_log.txt"), QStringLiteral("content_log.txt"),
+          QStringLiteral("bootstrap_log.txt")}) {
+        QFile::remove(dataHome().filePath(QStringLiteral("Steam/logs/") + name));
+    }
+}
+
+// Stand-ins in `dir` for steam, systemctl and systemd-run, so starting Steam
+// again (#206) runs against them. steam writes down how it was run, and
+// -shutdown ends the service; systemctl prints the service's state from the
+// file `unit` and succeeds only when it is active; systemd-run writes down
+// what it was asked and makes the service active again.
+void installStandIns(const QTemporaryDir& dir, const QByteArray& unitState) {
+    const QByteArray folder = dir.path().toUtf8();
+    const auto standIn = [&dir](const QString& name, const QByteArray& body) {
+        QFile file(dir.filePath(name));
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write("#!/bin/sh\n" + body);
+        file.close();
+        QVERIFY(file.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
+    };
+    standIn(QStringLiteral("steam"), "echo \"$@\" >> '" + folder +
+                                         "/runs'\n"
+                                         "if [ \"$1\" = -shutdown ]; then\n"
+                                         "    echo inactive > '" +
+                                         folder +
+                                         "/unit'\n"
+                                         "fi\n"
+                                         "exit 0\n");
+    standIn(QStringLiteral("systemctl"), "state=$(cat '" + folder +
+                                             "/unit')\n"
+                                             "echo \"$state\"\n"
+                                             "[ \"$state\" = active ]\n");
+    standIn(QStringLiteral("systemd-run"), R"(printf '%s\n' "$@" >> ')" + folder +
+                                               "/started'\necho active > '" + folder + "/unit'\n");
+    QFile unit(dir.filePath(QStringLiteral("unit")));
+    QVERIFY(unit.open(QIODevice::WriteOnly));
+    unit.write(unitState + '\n');
+}
+
+// The launcher's own SteamRestart, a child of it, whose finished signal says
+// Steam was stopped and started again.
+const SteamRestart* restartOf(const AppLauncher& launcher) {
+    return launcher.findChild<SteamRestart*>();
+}
+
+// The lines of a file a stand-in wrote, or none.
+QStringList linesOf(const QString& path) {
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly)) {
+        return {};
+    }
+    return QString::fromUtf8(file.readAll()).split(QLatin1Char('\n'), Qt::SkipEmptyParts);
 }
 
 // Cases about whose a window is set the steady wait to zero, so the app is
@@ -1257,6 +1369,341 @@ private slots:
         QVERIFY(!launcher.gettingReady());
         QVERIFY(QFile::remove(dataHome().filePath(QStringLiteral("Steam/logs/bootstrap_log.txt"))));
         QVERIFY(QFile::remove(dataHome().filePath(QStringLiteral("Steam/logs/console_log.txt"))));
+        qputenv("PATH", path);
+    }
+
+    // #206, acceptance 1: a new child's first tap on a Linux game, and
+    // Steam stops part-way. The launcher starts Steam again once and sends
+    // the tap again once; the child sees "Getting it ready" until the game.
+    void aFirstGameSteamStopsOnIsMendedOnce() {
+        const QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        installStandIns(dir, "active");
+        const QByteArray path = qgetenv("PATH");
+        qputenv("PATH", dir.path().toUtf8() + ':' + path);
+        const QString runs = dir.filePath(QStringLiteral("runs"));
+        const QString started = dir.filePath(QStringLiteral("started"));
+        forgetSteamsLogs();
+
+        AppLauncher launcher(this);
+        launcher.setSteadyMilliseconds(0);
+        launcher.setLaunchGraceMilliseconds(200);
+        const QSignalSpy ready(&launcher, &AppLauncher::gettingReadyChanged);
+        const QSignalSpy restarted(restartOf(launcher), &SteamRestart::finished);
+        QTest::ignoreMessage(QtInfoMsg, "Steam stopped getting Pajama Sam 2 ready; starting Steam "
+                                        "again.");
+        QTest::ignoreMessage(QtInfoMsg, "Steam is getting Pajama Sam 2 ready before it starts.");
+        QTest::ignoreMessage(QtInfoMsg, "Steam stopped and was started again.");
+        QTest::ignoreMessage(QtInfoMsg,
+                             "Steam started again without taking Pajama Sam 2; asking again.");
+        launcher.launch(QStringLiteral("Pajama Sam 2"), pajamaSam2());
+        steamStopsPartWay(70);
+        QTRY_COMPARE(linesOf(runs).count(QStringLiteral("-shutdown")), 1);
+        // The new client's lines count once Steam has been started again.
+        QTRY_COMPARE(restarted.count(), 1);
+        QVERIFY(QFileInfo::exists(started));
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+        QVERIFY(launcher.gettingReady());
+        steamLogs(QStringLiteral("console_log.txt"), 5, steamStartsItself());
+        QTRY_COMPARE(linesOf(runs).count(QStringLiteral("-applaunch 292780")), 2);
+        QVERIFY(launcher.gettingReady());
+        steamLogs(QStringLiteral("console_log.txt"), 0, pajamaSam2Taken());
+        steamSays("292780", "changed task to Completed with \"\"");
+        launcher.windowOpened(QStringLiteral("g1"), QStringLiteral("steam_app_292780"),
+                              QStringLiteral("Pajama Sam 2"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Running);
+        QTest::qWait(600);
+        QCOMPARE(linesOf(runs).count(QStringLiteral("-applaunch 292780")), 2);
+        QCOMPARE(linesOf(runs).count(QStringLiteral("-shutdown")), 1);
+        QCOMPARE(linesOf(started), SteamAtLogin::command().mid(1));
+        // "Getting it ready" from the first look until the game.
+        QCOMPARE(ready.count(), 2);
+        QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::None);
+        launcher.giveUp();
+        forgetSteamsLogs();
+        qputenv("PATH", path);
+    }
+
+    // Started again, Steam takes the tap and stops the same way: no second
+    // restart, and the grown-up screen comes at the next look.
+    void aStallThatComesBackSaysToLogOut() {
+        const QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        installStandIns(dir, "active");
+        const QByteArray path = qgetenv("PATH");
+        qputenv("PATH", dir.path().toUtf8() + ':' + path);
+        const QString runs = dir.filePath(QStringLiteral("runs"));
+        forgetSteamsLogs();
+
+        AppLauncher launcher(this);
+        launcher.setLaunchGraceMilliseconds(200);
+        const QSignalSpy restarted(restartOf(launcher), &SteamRestart::finished);
+        QTest::ignoreMessage(QtInfoMsg, "Steam stopped getting Pajama Sam 2 ready; starting Steam "
+                                        "again.");
+        QTest::ignoreMessage(QtInfoMsg, "Steam is getting Pajama Sam 2 ready before it starts.");
+        QTest::ignoreMessage(QtInfoMsg, "Steam stopped and was started again.");
+        QTest::ignoreMessage(QtInfoMsg,
+                             "Steam started again without taking Pajama Sam 2; asking again.");
+        QTest::ignoreMessage(QtWarningMsg,
+                             "Steam stopped getting Pajama Sam 2 ready, so Pajama Sam 2 did not "
+                             "start. Log the child out and back in, then try it again.");
+        QTest::ignoreMessage(QtWarningMsg, "Nothing of Pajama Sam 2 came on the screen in time.");
+        launcher.launch(QStringLiteral("Pajama Sam 2"), pajamaSam2());
+        steamStopsPartWay(70);
+        QTRY_COMPARE(restarted.count(), 1);
+        steamLogs(QStringLiteral("console_log.txt"), 5, steamStartsItself());
+        QTRY_COMPARE(linesOf(runs).count(QStringLiteral("-applaunch 292780")), 2);
+        steamLogs(QStringLiteral("console_log.txt"), 0, pajamaSam2Taken());
+        steamSays("292780", "changed task to DownloadingDepots with \"\"");
+        steamLogs(QStringLiteral("content_log.txt"), 65,
+                  "AppID 292780 scheduler finished : removed from schedule (result Suspended, "
+                  "state 0xc) ");
+        QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
+        QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::LogOutAndBackIn);
+        QCOMPARE(linesOf(runs).count(QStringLiteral("-shutdown")), 1);
+        QCOMPARE(linesOf(dir.filePath(QStringLiteral("started"))).count(QStringLiteral("--user")),
+                 1);
+        launcher.dismiss();
+        forgetSteamsLogs();
+        qputenv("PATH", path);
+    }
+
+    // The test VM's working run: Steam took the game off its schedule and
+    // wrote the launch's next step in the same second. That is no stall,
+    // however long ago it was, so Steam is never stopped, and the game takes
+    // over from "Getting it ready".
+    void aWorkingRunIsNeverStopped() {
+        const QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        installStandIns(dir, "active");
+        const QByteArray path = qgetenv("PATH");
+        qputenv("PATH", dir.path().toUtf8() + ':' + path);
+        const QString runs = dir.filePath(QStringLiteral("runs"));
+        const QString console = QStringLiteral("console_log.txt");
+        forgetSteamsLogs();
+
+        AppLauncher launcher(this);
+        launcher.setSteadyMilliseconds(0);
+        launcher.setLaunchGraceMilliseconds(200);
+        QTest::ignoreMessage(QtInfoMsg, "Steam is getting Pajama Sam 2 ready before it starts.");
+        launcher.launch(QStringLiteral("Pajama Sam 2"), pajamaSam2());
+        steamLogs(console, 72, pajamaSam2Taken());
+        steamLogs(console, 70,
+                  "GameAction [AppID 292780, ActionID 1] : LaunchApp changed task to "
+                  "DownloadingDepots with \"\"");
+        steamLogs(QStringLiteral("content_log.txt"), 70,
+                  "AppID 292780 scheduler finished : removed from schedule (result Suspended, "
+                  "state 0xc) ");
+        steamLogs(console, 70,
+                  "GameAction [AppID 292780, ActionID 1] : LaunchApp changed task to "
+                  "RunningInstallScript with \"\"");
+        QTest::qWait(700); // three looks.
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+        QVERIFY(launcher.gettingReady());
+        steamSays("292780", "changed task to Completed with \"\"");
+        launcher.windowOpened(QStringLiteral("g1"), QStringLiteral("steam_app_292780"),
+                              QStringLiteral("Pajama Sam 2"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Running);
+        QCOMPARE(linesOf(runs).count(QStringLiteral("-shutdown")), 0);
+        QCOMPARE(linesOf(runs).count(QStringLiteral("-applaunch 292780")), 1);
+        launcher.giveUp();
+        forgetSteamsLogs();
+        qputenv("PATH", path);
+    }
+
+    // Started again, Steam takes the tap and gets the game ready, but no
+    // window comes: the grown-up screen still says to log out, and the
+    // journal says starting Steam again did not bring the game.
+    void aRestartThatBringsNoGameSaysToLogOut() {
+        const QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        installStandIns(dir, "active");
+        const QByteArray path = qgetenv("PATH");
+        qputenv("PATH", dir.path().toUtf8() + ':' + path);
+        const QString runs = dir.filePath(QStringLiteral("runs"));
+        forgetSteamsLogs();
+
+        AppLauncher launcher(this);
+        launcher.setLaunchGraceMilliseconds(200);
+        const QSignalSpy restarted(restartOf(launcher), &SteamRestart::finished);
+        QTest::ignoreMessage(QtInfoMsg, "Steam stopped getting Pajama Sam 2 ready; starting Steam "
+                                        "again.");
+        QTest::ignoreMessage(QtInfoMsg, "Steam is getting Pajama Sam 2 ready before it starts.");
+        QTest::ignoreMessage(QtInfoMsg, "Steam stopped and was started again.");
+        QTest::ignoreMessage(QtInfoMsg,
+                             "Steam started again without taking Pajama Sam 2; asking again.");
+        QTest::ignoreMessage(QtWarningMsg, "Starting Steam again did not bring Pajama Sam 2. Log "
+                                           "the child out and back in, then try it again.");
+        QTest::ignoreMessage(QtWarningMsg, "Nothing of Pajama Sam 2 came on the screen in time.");
+        launcher.launch(QStringLiteral("Pajama Sam 2"), pajamaSam2());
+        steamStopsPartWay(70);
+        QTRY_COMPARE(restarted.count(), 1);
+        steamLogs(QStringLiteral("console_log.txt"), 5, steamStartsItself());
+        QTRY_COMPARE(linesOf(runs).count(QStringLiteral("-applaunch 292780")), 2);
+        steamLogs(QStringLiteral("console_log.txt"), 0, pajamaSam2Taken());
+        steamSays("292780", "changed task to DownloadingDepots with \"\"");
+        steamFetchesSoldier();
+        steamSays("292780", "changed task to RunningInstallScript with \"\"");
+        steamSays("292780", "changed task to WaitingGameWindow with \"\"");
+        QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
+        QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::LogOutAndBackIn);
+        QCOMPARE(linesOf(runs).count(QStringLiteral("-shutdown")), 1);
+        QCOMPARE(linesOf(runs).count(QStringLiteral("-applaunch 292780")), 2);
+        launcher.dismiss();
+        forgetSteamsLogs();
+        qputenv("PATH", path);
+    }
+
+    // A Steam the launcher did not start as cairn-steam is not stopped; the
+    // grown-up screen comes at the next look.
+    void aStallTheLauncherCannotMendSaysToLogOut() {
+        const QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        installStandIns(dir, "inactive");
+        const QByteArray path = qgetenv("PATH");
+        qputenv("PATH", dir.path().toUtf8() + ':' + path);
+        forgetSteamsLogs();
+
+        AppLauncher launcher(this);
+        launcher.setLaunchGraceMilliseconds(200);
+        QTest::ignoreMessage(QtInfoMsg, "Steam stopped getting Pajama Sam 2 ready; starting Steam "
+                                        "again.");
+        QTest::ignoreMessage(QtInfoMsg, "Steam is getting Pajama Sam 2 ready before it starts.");
+        QTest::ignoreMessage(
+            QtWarningMsg,
+            "Steam is not running as the launcher started it, so it was not started again.");
+        QTest::ignoreMessage(QtWarningMsg,
+                             "Steam stopped getting Pajama Sam 2 ready, so Pajama Sam 2 did not "
+                             "start. Log the child out and back in, then try it again.");
+        QTest::ignoreMessage(QtWarningMsg, "Nothing of Pajama Sam 2 came on the screen in time.");
+        launcher.launch(QStringLiteral("Pajama Sam 2"), pajamaSam2());
+        steamStopsPartWay(70);
+        QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
+        QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::LogOutAndBackIn);
+        QCOMPARE(linesOf(dir.filePath(QStringLiteral("runs"))).count(QStringLiteral("-shutdown")),
+                 0);
+        QVERIFY(!QFileInfo::exists(dir.filePath(QStringLiteral("started"))));
+        launcher.dismiss();
+        forgetSteamsLogs();
+        qputenv("PATH", path);
+    }
+
+    // Steam keeps a stuck launch and takes a later tap on the game, writing
+    // no step for it, only the tap's own line. That tap ends at its first
+    // look, and Steam is not started again for it.
+    void aStuckGameTappedAgainStillSaysToLogOut() {
+        const QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        installStandIns(dir, "inactive");
+        const QByteArray path = qgetenv("PATH");
+        qputenv("PATH", dir.path().toUtf8() + ':' + path);
+        forgetSteamsLogs();
+
+        AppLauncher launcher(this);
+        launcher.setLaunchGraceMilliseconds(200);
+        QTest::ignoreMessage(QtInfoMsg, "Steam stopped getting Pajama Sam 2 ready; starting Steam "
+                                        "again.");
+        QTest::ignoreMessage(QtInfoMsg, "Steam is getting Pajama Sam 2 ready before it starts.");
+        QTest::ignoreMessage(
+            QtWarningMsg,
+            "Steam is not running as the launcher started it, so it was not started again.");
+        for (int note = 0; note < 2; ++note) {
+            QTest::ignoreMessage(QtWarningMsg,
+                                 "Steam stopped getting Pajama Sam 2 ready, so Pajama Sam 2 did "
+                                 "not start. Log the child out and back in, then try it again.");
+            QTest::ignoreMessage(QtWarningMsg,
+                                 "Nothing of Pajama Sam 2 came on the screen in time.");
+        }
+        launcher.launch(QStringLiteral("Pajama Sam 2"), pajamaSam2());
+        steamStopsPartWay(70);
+        QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
+        QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::LogOutAndBackIn);
+        launcher.dismiss();
+        QCOMPARE(launcher.state(), AppLauncher::State::Idle);
+        QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::None);
+
+        QElapsedTimer sinceTap;
+        sinceTap.start();
+        launcher.launch(QStringLiteral("Pajama Sam 2"), pajamaSam2());
+        steamLogs(QStringLiteral("console_log.txt"), 0, pajamaSam2Taken());
+        QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
+        // At the first look, not after a wait.
+        QVERIFY(sinceTap.elapsed() < 2000);
+        QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::LogOutAndBackIn);
+        QCOMPARE(linesOf(dir.filePath(QStringLiteral("runs"))).count(QStringLiteral("-shutdown")),
+                 0);
+        launcher.dismiss();
+        forgetSteamsLogs();
+        qputenv("PATH", path);
+    }
+
+    // Started again, Steam's saved sign-in is turned down: the journal says
+    // that, not the stall's advice.
+    void aSignInRefusedAfterTheRestartSaysSo() {
+        const QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        installStandIns(dir, "active");
+        const QByteArray path = qgetenv("PATH");
+        qputenv("PATH", dir.path().toUtf8() + ':' + path);
+        forgetSteamsLogs();
+
+        AppLauncher launcher(this);
+        launcher.setLaunchGraceMilliseconds(200);
+        const QSignalSpy restarted(restartOf(launcher), &SteamRestart::finished);
+        QTest::ignoreMessage(QtInfoMsg, "Steam stopped getting Pajama Sam 2 ready; starting Steam "
+                                        "again.");
+        QTest::ignoreMessage(QtInfoMsg, "Steam is getting Pajama Sam 2 ready before it starts.");
+        QTest::ignoreMessage(QtInfoMsg, "Steam stopped and was started again.");
+        QTest::ignoreMessage(QtWarningMsg, "Steam could not sign in, so Pajama Sam 2 did not "
+                                           "start. Steam needs to be signed in again.");
+        QTest::ignoreMessage(QtWarningMsg, "Nothing of Pajama Sam 2 came on the screen in time.");
+        launcher.launch(QStringLiteral("Pajama Sam 2"), pajamaSam2());
+        steamStopsPartWay(70);
+        QTRY_COMPARE(restarted.count(), 1);
+        steamLogs(QStringLiteral("console_log.txt"), 0, "LogonFailure Access Denied");
+        QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
+        QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::None);
+        launcher.dismiss();
+        forgetSteamsLogs();
+        qputenv("PATH", path);
+    }
+
+    // The line is only for a launch Steam stopped on part-way (ADR-0045):
+    // never for another failure, nor for a window that opened on its own.
+    void aFailedLaunchWithoutAStallAddsNoLine() {
+        const QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        installStandIns(dir, "active");
+        const QByteArray path = qgetenv("PATH");
+        qputenv("PATH", dir.path().toUtf8() + ':' + path);
+        forgetSteamsLogs();
+
+        AppLauncher launcher(this);
+        launcher.setLaunchGraceMilliseconds(200);
+        QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::None);
+        QTest::ignoreMessage(QtWarningMsg, "Nothing of Draw came on the screen in time.");
+        launcher.launch(QStringLiteral("Draw"),
+                        {shell(), QStringLiteral("-c"), QStringLiteral("exit 0")});
+        QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
+        QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::None);
+        launcher.dismiss();
+
+        QTest::ignoreMessage(QtWarningMsg, "Nothing of Pajama Sam 2 came on the screen in time.");
+        launcher.launch(QStringLiteral("Pajama Sam 2"), pajamaSam2());
+        QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
+        QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::None);
+        launcher.dismiss();
+
+        launcher.setSteadyMilliseconds(0);
+        QTest::ignoreMessage(QtWarningMsg, "Steam opened a window on its own.");
+        launcher.windowOpened(QStringLiteral("w1"), QStringLiteral("steam"),
+                              QStringLiteral("Steam"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Interrupted);
+        QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::None);
+        launcher.windowClosed(QStringLiteral("w1"));
+        QCOMPARE(linesOf(dir.filePath(QStringLiteral("runs"))).count(QStringLiteral("-shutdown")),
+                 0);
+        forgetSteamsLogs();
         qputenv("PATH", path);
     }
 

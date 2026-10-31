@@ -377,6 +377,7 @@ Window {
         appTitle: launcher.title
         openedOnItsOwn: launcher.state === AppLauncher.Interrupted
         comingSoon: launcher.state === AppLauncher.ComingSoon
+        grownUpStep: launcher.grownUpStep
         onDismissed: launcher.dismiss()
         onVisibleChanged: {
             if (visible)

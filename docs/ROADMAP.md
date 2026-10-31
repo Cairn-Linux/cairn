@@ -459,6 +459,38 @@ done, and what could sink it. Decisions that change the design get an ADR in
   "Getting it ready", and the journal says which it was. Tested in C++
   with lines from both laptops; not yet run on the kids' laptop. A line
   for the grown-up on the grown-up screen is still open.
+- **Steam stops part-way on a new child's first Linux game (2026-10-30,
+  #206, amends ADR-0036 and ADR-0037).** On the test VM a new child's first
+  tap on Pajama Sam 2 showed "Getting it ready" for 10 minutes and then the
+  grown-up screen, 2 of 2: Steam fetched scout, took the game off its
+  download schedule and never asked for soldier, which scout runs inside.
+  Stopping the child's Steam and starting it again by hand, then tapping
+  again, brought the game a minute later. The launcher now does that itself:
+  when the launch still says it is downloading a minute after Steam took the
+  game off its schedule, it starts the child's `cairn-steam` again once per
+  tap and sends the tap again, with "Getting it ready" throughout. If that
+  does not help, the wait ends soon, and the grown-up screen adds its first
+  line saying what will help: "Log out and back in, then try it again."
+  (ADR-0045, amends ADR-0030). Tested in C++ and QML with the VM's log
+  lines, and on the test VM on 2026-10-30 with scout and soldier taken out
+  of a child's Steam: the first tap started the game 2 minutes 42 seconds
+  later, with one restart and no grown-up. The line was checked with a
+  stall the launcher cannot mend, a child's Steam started under a unit name
+  other than `cairn-steam`: the launch ended on the grown-up screen with
+  the line 1 minute 46 seconds after the tap, and after logging out and
+  back in the game started 41 seconds after the next tap (ADR-0045,
+  "Checking it").
+  Fetching each child's tools ahead of time, with the parent told it takes
+  a while and shown progress, is #181.
+- **ADR-0045 (2026-10-30, #206, accepted): the grown-up screen says what
+  will help, when the launcher knows.** ADR-0030 kept that screen free of
+  reasons. When the launcher knows the remedy, it now adds one line under
+  "… did not start.", chosen in C++ and drawn in QML at the sentence's
+  size, and read out with the screen. The only line so far is "Log out and
+  back in, then try it again.", after a launch Steam stopped on part-way
+  that starting Steam again did not mend; it gives way to any other reason
+  Steam's logs give. Whether a Steam that cannot sign in gets a line
+  (#182) is still open.
 - **Give-up spares Steam's interface again (2026-10-01, #117).** A Steam
   update moved Steam's own interface into a sandbox called `srt-bwrap`,
   which the give-up key's `bwrap` match caught. Flatpak's sandbox is now
@@ -589,7 +621,7 @@ first-boot wizard, quick-actions overlay, signed image, CI, ISO.
 | P1-10 | Update policy: `bootc upgrade` timer, apply on reboot; rollback documented as a one-command Guardian operation. |
 | P1-11 | Documentation site skeleton: install, hardware tiers stated plainly, "what this does not do" (no remote management), rollback, getting creations out. |
 | P1-12 | Guardian-loss recovery path (DESIGN §14 Q9) decided and documented. |
-| P1-13 | Steam integration (moved from Phase 3 by ADR-0004): client `-silent` at login (done for a child with a Steam tile, ADR-0027), `steam -applaunch` tiles from the `kidscan` manifest (game tiles from the shared folder, with pictures, ADR-0033 and ADR-0035), launch watchdog with the "needs a grown-up" screen (a game Steam is getting ready waits and says so, ADR-0036, proposed; a tap lost to Steam's own update is sent again, ADR-0037, proposed; a Steam that cannot sign in ends the wait soon, #182; Steam's updater windows are hidden while it updates itself, #183), the child role in a Steam Family, Steam Families documented as the family's relationship with Valve, Flatpak-vs-RPM client decision. Builds on P0-10. From P0-10 (ADR-0031): what a child-role account's client locks, once the family has a child member; Steam's toast over a running game; and what a client update, a Steam Guard prompt or a sign-in expiry puts on the child's screen (`docs/research/steam-containment.md`). |
+| P1-13 | Steam integration (moved from Phase 3 by ADR-0004): client `-silent` at login (done for a child with a Steam tile, ADR-0027), `steam -applaunch` tiles from the `kidscan` manifest (game tiles from the shared folder, with pictures, ADR-0033 and ADR-0035), launch watchdog with the "needs a grown-up" screen (a game Steam is getting ready waits and says so, ADR-0036, proposed; a tap lost to Steam's own update is sent again, ADR-0037, proposed; a Steam that cannot sign in ends the wait soon, #182; Steam's updater windows are hidden while it updates itself, #183; a launch Steam stops on part-way gets Steam started again once and otherwise says to log out and back in, #206 and ADR-0045), the child role in a Steam Family, Steam Families documented as the family's relationship with Valve, Flatpak-vs-RPM client decision. Builds on P0-10. From P0-10 (ADR-0031): what a child-role account's client locks, once the family has a child member; Steam's toast over a running game; and what a client update, a Steam Guard prompt or a sign-in expiry puts on the child's screen (`docs/research/steam-containment.md`). |
 | P1-14 | Base image compliance. Checklist in `docs/research/base-image-policy.md`. Done in the image on 2026-10-21 (ADR-0038, slice 5): `os-release` rewritten, `fedora-logos` swapped for `generic-logos` (a `cairn-logos` package can follow with P1-2), no `fedora-release-notes`, Bazzite's terminal banner and support links removed, Bazzite, Universal Blue and Fedora in `NOTICE`. The boot screen is Cairn's own since 2026-10-29 (#165, ADR-0044, proposed): the stones building on Sand at boot and shutdown, a plain disk-password prompt, and an initramfs the image builds again, so a computer that updated from Bazzite is called `cairn` and has "Cairn Linux" boot titles (checked in the VM that day). The grown-up's start-menu button shows the Cairn mark under both names it may hold, existing accounts included (#166 step 1, 2026-10-30); the Guardian's wallpaper, colours, loading splash and lock screen are the rest of #166. Left: the Fedora "not provided or supported" notice on the Guardian tool's About page (#167) and the website, the installer's artwork (bootc-image-builder installs `fedora-logos` there, slice 6), Bazzite's updater and portal menu entries (P1-1), and Cairn's own version in the image labels (P1-3). Blocks publishing any image. |
 | P1-15 | High-contrast and large-text modes as per-child Guardian settings, driven by token-set variants from `brand/build.py` (ADR-0008). |
 | P1-17 | **Child test 2** (ADR-0031): what Phase 0 did not see. A child opens something from the Terminal, once #83 decides how a child who cannot read meets it; a child leaves an app on their own (#77); a child meets the grown-up screen and presses Back (ADR-0030); Steam games with the overlay off (#74) and a Guardian's way to step in (#88), or no Steam in that run, as #8 asked. Also #8's script rows, none of which an evening ran: a native ScummVM game scanned, launched, quit and launched again; ScummVM frozen and ended with Ctrl-Alt-Home; every help button and outside link in the allowed apps; a stale or unrelated window that cannot trap the child; a sibling at the login screen and the Guardian tile; a level change interrupted part-way, which fails closed; no path from a child's session to Plasma. A child at the tiles with the battery low, and whether a child who cannot read notices the battery's fill (ADR-0034). Whether a game's picture tells the younger child which game it is, and whether the pictures pull the children away from Draw (ADR-0035). On a Minimum-tier laptop if the project has one by then. Blocks publishing any image, like P1-14 and #86. |

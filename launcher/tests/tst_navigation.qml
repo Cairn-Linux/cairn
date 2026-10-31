@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import QtQuick
 import QtTest
+import Cairn.Brand
 import Cairn.Launcher
 
 TestCase {
@@ -29,6 +30,12 @@ TestCase {
         id: startingComponent
 
         StartingScreen {}
+    }
+
+    Component {
+        id: grownUpComponent
+
+        GrownUpScreen {}
     }
 
     Component {
@@ -257,6 +264,10 @@ TestCase {
         compare(appLauncher.state, AppLauncher.Failed);
         compare(grownUp.appTitle, "Quits cleanly");
         compare(grownUp.openedOnItsOwn, false);
+        // A launch Steam did not stop on part-way gets no line (ADR-0045).
+        compare(appLauncher.grownUpStep, AppLauncher.None);
+        compare(findChild(grownUp, "grownUpStep").visible, false);
+        compare(grownUp.Accessible.description, "Quits cleanly did not start.");
         const back = findChild(grownUp, "backTile");
         tryCompare(back, "activeFocus", true);
         keyClick(Qt.Key_Escape);
@@ -868,5 +879,50 @@ TestCase {
         verify(ready !== null);
         compare(ready.visible, data.gettingReady);
         compare(starting.Accessible.name, data.name);
+    }
+
+    // When the launcher knows what will help, the grown-up screen says it in
+    // one line under the sentence, at a size a child can read, and a screen
+    // reader hears it with the screen (ADR-0045). Otherwise there is no line.
+    function test_theGrownUpScreenSaysWhatWillHelp_data() {
+        return [
+            {
+                tag: "nothing to add",
+                step: AppLauncher.None,
+                shown: false,
+                description: "Pajama Sam 2 did not start."
+            },
+            {
+                tag: "log out and back in",
+                step: AppLauncher.LogOutAndBackIn,
+                shown: true,
+                description: "Pajama Sam 2 did not start. Log out and back in, then try it again."
+            }
+        ];
+    }
+
+    function test_theGrownUpScreenSaysWhatWillHelp(data) {
+        // Inside the launcher's window, which is on the screen, so the
+        // line's visibility is its own.
+        const screen = createTemporaryObject(grownUpComponent, launcher.contentItem, {
+            "appTitle": "Pajama Sam 2",
+            "openedOnItsOwn": false,
+            "comingSoon": false,
+            "grownUpStep": data.step,
+            "width": 800,
+            "height": 600
+        });
+        verify(screen !== null);
+        const step = findChild(screen, "grownUpStep");
+        verify(step !== null);
+        compare(step.visible, data.shown);
+        compare(screen.Accessible.description, data.description);
+        if (!data.shown)
+            return;
+        compare(step.text, "Log out and back in, then try it again.");
+        compare(step.Accessible.name, step.text);
+        verify(step.font.pixelSize >= Tokens.minChild);
+        verify(step.y > findChild(screen, "grownUpSentence").y);
+        verify(step.y < findChild(screen, "backTile").y);
     }
 }

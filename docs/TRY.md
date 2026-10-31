@@ -148,7 +148,11 @@ made while installing Bazzite cannot change the shared folder.
    did not get their copies in this run. Until a later run copies the
    game for that child, its tile ends on "Something needs a grown-up".
 7. Open **Steam for** the child and start one game, so Steam fetches the
-   tools it needs out of the child's sight.
+   tools it needs out of the child's sight. With a Linux game this may not
+   be enough: the child's Steam can stop part-way here too (#206; not yet
+   checked in a visit). If the game has not started after a few minutes,
+   close **Steam for**. The launcher deals with it at the child's first
+   tap (see "If something goes wrong").
 
 A new game's tile reaches every child at their next login, and the game
 itself the next time you run the set-up command with that child logged
@@ -222,6 +226,18 @@ themselves.
   your own account, and sign in again. If it says "Steam could not reach
   the internet", check the Wi-Fi; games Steam has already set up may still
   start without it.
+- The first time a child taps a Linux game, the child's Steam sometimes
+  stops part-way while it fetches the tools the game runs in (#206). The
+  launcher starts the child's Steam again by itself and taps the game
+  again; the child keeps seeing "Getting it ready", and the game comes a
+  minute or two later. The journal says "Steam stopped getting … ready;
+  starting Steam again." If the game still does not start, the screen adds
+  "Log out and back in, then try it again." and the journal says "Steam
+  stopped getting … ready, so … did not start." or "Starting Steam again
+  did not bring …". Log the child out, log them back in, and tap the game
+  again. If the journal also says "Steam did not stop when asked", "Steam
+  could not be started again" or "Steam is not running as the launcher
+  started it", please report it.
 - Right after a child logs in, Steam sometimes updates itself, which can
   take ten minutes or more on slow Wi-Fi. The child sees the tiles, and
   Steam's update window is hidden; a game tapped then says "Getting it
