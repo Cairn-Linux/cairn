@@ -196,6 +196,48 @@ def fully_installed(state):
     return (int(flags) & FULLY_INSTALLED) != 0
 
 
+def is_steam_tool(appid, name):
+    """Whether an app is one of Steam's own tools, a runtime, Proton or a
+    redistributable, rather than a game. Three programs take the rule from
+    here: kidscan leaves these apps out of the tiles, and on the image the
+    tools step and the copy step take only these apps (ADR-0046)."""
+    return appid in APPID_DENYLIST or bool(PROTON_NAME_RE.match(name))
+
+
+# The file in a tool's folder that makes it one of Steam's tools, and names
+# the tool it runs in.
+TOOL_MANIFEST = "toolmanifest.vdf"
+
+# One build of a tool in the image's tools folder, <appid>-<buildid>, both
+# numbers by the rule for an appid (ADR-0046).
+TOOL_BUILD = re.compile(rf"({APPID.pattern})-({APPID.pattern})")
+
+
+def tool_installdir(appid, state, folder):
+    """The installdir of one of Steam's tools, from its manifest's AppState,
+    when the tool is in `folder`, a library's steamapps or a build in the
+    tools folder; otherwise None. A tool is an app is_steam_tool calls one,
+    whose installdir is one plain folder name, and whose common/<installdir>
+    is a real folder holding a plain toolmanifest.vdf, neither of them a
+    link. The tools step and the copy step both ask this, so the two agree
+    on what a tool build is."""
+    name = ci_get(state, "name", "")
+    installdir = ci_get(state, "installdir")
+    if not isinstance(name, str) or not is_steam_tool(appid, name):
+        return None
+    if not plain_folder_name(installdir):
+        return None
+    tool = Path(folder) / "common" / installdir
+    try:
+        if not stat.S_ISDIR(os.lstat(tool).st_mode):
+            return None
+        if not stat.S_ISREG(os.lstat(tool / TOOL_MANIFEST).st_mode):
+            return None
+    except OSError:
+        return None
+    return installdir
+
+
 def app_from_manifest(file_name, data, steamapps):
     """The game one appmanifest describes, or None when it gets no tile. A
     manifest is Steam's file, and anyone who can write the library can
@@ -215,7 +257,7 @@ def app_from_manifest(file_name, data, steamapps):
         return None
     if not fully_installed(state) or on_beta_branch(state):
         return None
-    if appid in APPID_DENYLIST or PROTON_NAME_RE.match(name):
+    if is_steam_tool(appid, name):
         return None
 
     path = steamapps / "common" / installdir
@@ -224,11 +266,11 @@ def app_from_manifest(file_name, data, steamapps):
     return {"appid": appid, "name": name or installdir, "path": path}
 
 
-def read_manifest(path):
-    """A manifest's text, or None when it is not a plain file of at most
-    MANIFEST_LIMIT bytes. Steam never links or pipes a manifest; one that
-    is a link or a FIFO could make root read another file, or wait for
-    ever."""
+def read_plain_file(path):
+    """A file's bytes, exactly as they are, or None when it is not a plain
+    file of at most MANIFEST_LIMIT bytes. Steam never links or pipes one of
+    its files; one that is a link or a FIFO could make root read another
+    file, or make any reader wait for ever."""
     try:
         descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
     except OSError:
@@ -249,7 +291,14 @@ def read_manifest(path):
         os.close(descriptor)
     if len(data) > MANIFEST_LIMIT:
         return None
-    return data.decode("utf-8", errors="replace")
+    return data
+
+
+def read_manifest(path):
+    """A manifest's text, or None when it is not a plain file of at most
+    MANIFEST_LIMIT bytes (read_plain_file)."""
+    data = read_plain_file(path)
+    return None if data is None else data.decode("utf-8", errors="replace")
 
 
 def installed_apps(steamapps):

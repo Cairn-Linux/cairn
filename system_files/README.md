@@ -15,7 +15,9 @@ Only a file the image needs and provisioning does not belongs here:
   `cairn-guardian`, with fixed numbers. Provisioning reads the numbers
   from here too, and a computer with this file runs the image.
 - `usr/lib/tmpfiles.d/cairn.conf`: `/var/lib/cairn`, its folders,
-  `/var/lib/faillock`, and the folder for the family's menu entries.
+  among them the tools folder a Save copies Steam's tools into
+  (ADR-0046), `/var/lib/faillock`, and the folder for the family's menu
+  entries.
 - `usr/lib/systemd/system-preset/40-cairn.preset`: SDDM, not Plasma Login
   Manager, after a first boot's presets.
 - `etc/xdg/kcm-about-distrorc`: empty, so System Settings' About page

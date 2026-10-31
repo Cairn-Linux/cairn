@@ -669,118 +669,133 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveOutcome.qml" line="40"/>
+        <location filename="../qml/SaveOutcome.qml" line="44"/>
         <source>Saving the children&apos;s lists.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveOutcome.qml" line="42"/>
+        <location filename="../qml/SaveOutcome.qml" line="46"/>
         <source>Copying games for %1. This can take a few minutes, and %1 cannot log in until it ends.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveOutcome.qml" line="44"/>
+        <location filename="../qml/SaveOutcome.qml" line="50"/>
         <source>Waiting for %1&apos;s last login to end.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveOutcome.qml" line="37"/>
-        <location filename="../qml/SaveOutcome.qml" line="46"/>
+        <location filename="../qml/SaveOutcome.qml" line="41"/>
+        <location filename="../qml/SaveOutcome.qml" line="52"/>
         <source>Looking at the shared folder for games and their pictures.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveOutcome.qml" line="58"/>
+        <location filename="../qml/SaveOutcome.qml" line="38"/>
+        <source>Getting the tools Steam runs games with from your own Steam. This usually takes a few seconds.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="48"/>
+        <source>Copying the tools Steam runs games with into %1&apos;s Steam. This usually takes a few seconds, and %1 cannot log in until it ends.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="64"/>
         <source>Saved. Each child sees their games the next time they log in.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveOutcome.qml" line="60"/>
+        <location filename="../qml/SaveOutcome.qml" line="66"/>
         <source>The shared folder was read again. Every game in it shows on the page.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveOutcome.qml" line="62"/>
+        <location filename="../qml/SaveOutcome.qml" line="68"/>
         <source>Saved, but not every new game could be given. The sentences below say what each child has now, and what comes next.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveOutcome.qml" line="65"/>
+        <location filename="../qml/SaveOutcome.qml" line="70"/>
         <source>The list of shared games could not be made again, so the page shows the one from before. The reason is in the system log. In a terminal: journalctl -t cairn-family</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveOutcome.qml" line="74"/>
-        <source>Nothing was saved. It needs your password: the box was closed, or the password was not accepted. Your changes are still here.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/SaveOutcome.qml" line="76"/>
-        <source>Cairn&apos;s family command could not be started, so nothing was saved. Your changes are still here. The reason is in the system log. In a terminal: journalctl -t cairn-guardian</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/SaveOutcome.qml" line="78"/>
-        <source>This account may not change the children&apos;s games. A grown-up&apos;s account can.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/SaveOutcome.qml" line="80"/>
-        <source>Cairn&apos;s family command did not get the rights it needs, so nothing was saved. Close Family and open it again. If it happens again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
+        <location filename="../qml/SaveOutcome.qml" line="72"/>
+        <source>Not every tool Steam runs games with could be taken from your own Steam, so a child who got new games may not have every tool yet. Their Steam downloads what is missing the first time a game needs it, which can take several minutes. If that game does not start, log the child out and back in, then try it again. The reason is in the system log. In a terminal: journalctl -t cairn-family</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/SaveOutcome.qml" line="82"/>
-        <source>This window asked Cairn&apos;s family command for something it does not do, so nothing was saved. The window and the command may come from different versions of Cairn. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
+        <source>Nothing was saved. It needs your password: the box was closed, or the password was not accepted. Your changes are still here.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/SaveOutcome.qml" line="84"/>
-        <source>One of the children is not a child&apos;s account on this computer any more, so nothing was saved. The page shows the children there are now.</source>
+        <source>Cairn&apos;s family command could not be started, so nothing was saved. Your changes are still here. The reason is in the system log. In a terminal: journalctl -t cairn-guardian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/SaveOutcome.qml" line="86"/>
-        <source>Another Save is still running, perhaps from another login, so nothing was saved. Wait until it ends, then press Save again.</source>
+        <source>This account may not change the children&apos;s games. A grown-up&apos;s account can.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/SaveOutcome.qml" line="88"/>
+        <source>Cairn&apos;s family command did not get the rights it needs, so nothing was saved. Close Family and open it again. If it happens again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="90"/>
+        <source>This window asked Cairn&apos;s family command for something it does not do, so nothing was saved. The window and the command may come from different versions of Cairn. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="92"/>
+        <source>One of the children is not a child&apos;s account on this computer any more, so nothing was saved. The page shows the children there are now.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="94"/>
+        <source>Another Save is still running, perhaps from another login, so nothing was saved. Wait until it ends, then press Save again.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="96"/>
         <source>Cairn&apos;s family command did not answer as expected. Some lists may have been saved, and the page shows what is saved now. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveOutcome.qml" line="97"/>
+        <location filename="../qml/SaveOutcome.qml" line="105"/>
         <source>The shared folder was not looked at again. It needs your password: the box was closed, or the password was not accepted.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveOutcome.qml" line="99"/>
+        <location filename="../qml/SaveOutcome.qml" line="107"/>
         <source>This account may not look for new games for the children. A grown-up&apos;s account can.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveOutcome.qml" line="101"/>
+        <location filename="../qml/SaveOutcome.qml" line="109"/>
         <source>A Save is still running, perhaps from another login, so the shared folder was not looked at again. Wait until it ends, then press Look for new games again.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveOutcome.qml" line="103"/>
+        <location filename="../qml/SaveOutcome.qml" line="111"/>
         <source>Cairn&apos;s family command could not be started, so the shared folder was not looked at again. The reason is in the system log. In a terminal: journalctl -t cairn-guardian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveOutcome.qml" line="105"/>
+        <location filename="../qml/SaveOutcome.qml" line="113"/>
         <source>This window asked Cairn&apos;s family command for something it does not do, so the shared folder was not looked at again. The window and the command may come from different versions of Cairn. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveOutcome.qml" line="107"/>
+        <location filename="../qml/SaveOutcome.qml" line="115"/>
         <source>Cairn&apos;s family command did not get the rights it needs, so the shared folder was not looked at again. Close Family and open it again. If it happens again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveOutcome.qml" line="109"/>
+        <location filename="../qml/SaveOutcome.qml" line="117"/>
         <source>Cairn&apos;s family command did not answer as expected. No child&apos;s list was changed, and the page shows the games there are now. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
         <translation type="unfinished"></translation>
     </message>
@@ -826,177 +841,192 @@
 <context>
     <name>SaveResultWords</name>
     <message>
-        <location filename="../qml/SaveResultWords.qml" line="22"/>
+        <location filename="../qml/SaveResultWords.qml" line="23"/>
         <source>%1 is logged in, so their new games could not be copied. They come after %1 logs out and you press Save again. The games taken off are already gone from %1&apos;s list.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveResultWords.qml" line="23"/>
+        <location filename="../qml/SaveResultWords.qml" line="24"/>
         <source>%1 is logged in, so their new games could not be copied. They come after %1 logs out and you press Save again.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveResultWords.qml" line="25"/>
+        <location filename="../qml/SaveResultWords.qml" line="26"/>
         <source>Steam for a child is open from a grown-up&apos;s login, so %1&apos;s new games could not be copied. Press Done in that window, then press Save again.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveResultWords.qml" line="27"/>
+        <location filename="../qml/SaveResultWords.qml" line="28"/>
         <source>A child is being logged out, so %1&apos;s new games could not be copied. Wait a moment, then press Save again.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveResultWords.qml" line="29"/>
+        <location filename="../qml/SaveResultWords.qml" line="30"/>
         <source>Another copy of games is still running, so %1&apos;s new games could not be copied. Wait a few minutes, then press Save again.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveResultWords.qml" line="31"/>
+        <location filename="../qml/SaveResultWords.qml" line="32"/>
         <source>A program of %1&apos;s was still running from their last login, so their new games could not be copied. Wait a minute, then press Save again. If it happens again, restart the computer first.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveResultWords.qml" line="33"/>
+        <location filename="../qml/SaveResultWords.qml" line="34"/>
         <source>Copying %1&apos;s games was stopped before it began. Press Save again.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveResultWords.qml" line="35"/>
+        <location filename="../qml/SaveResultWords.qml" line="36"/>
         <source>No games were copied for %1: the list that keeps a child from logging in during a copy is not set up on this computer. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-steam-visit</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveResultWords.qml" line="37"/>
+        <location filename="../qml/SaveResultWords.qml" line="38"/>
         <source>%1&apos;s Steam has not run yet, so it has no place for games. Open Steam for %1 and sign in, then press Save again.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveResultWords.qml" line="39"/>
+        <location filename="../qml/SaveResultWords.qml" line="40"/>
         <source>There is no shared game folder, /var/lib/cairn/steam-library, so no games were copied for %1. Restarting the computer makes the folder again; then press Save again. If it happens again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-steam-visit</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveResultWords.qml" line="41"/>
+        <location filename="../qml/SaveResultWords.qml" line="42"/>
         <source>%1&apos;s Steam lists the shared game folder as its own, so no games were copied for %1. Open Steam for %1, remove that folder in Steam&apos;s Settings, under Storage, then press Save again.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveResultWords.qml" line="43"/>
+        <location filename="../qml/SaveResultWords.qml" line="44"/>
         <source>No games were copied for %1: their Steam&apos;s list of game folders is not a plain file, so Cairn does not read it. It is libraryfolders.vdf, in .local/share/Steam/config or .local/share/Steam/steamapps in %1&apos;s home. Once it is a plain file again, press Save again. The record is in the system log. In a terminal: journalctl -t cairn-family -t cairn-steam-visit</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveResultWords.qml" line="45"/>
+        <location filename="../qml/SaveResultWords.qml" line="46"/>
         <source>No games were copied for %1: this computer&apos;s disk cannot make a copy that shares the original&apos;s space, and full copies would fill it.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveResultWords.qml" line="47"/>
+        <location filename="../qml/SaveResultWords.qml" line="48"/>
         <source>Copying %1&apos;s games stopped early. Pressing Save again is safe. If it fails again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-steam-visit</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveResultWords.qml" line="49"/>
+        <location filename="../qml/SaveResultWords.qml" line="50"/>
         <source>The copy for %1 could not start. Pressing Save again is safe. If it happens again, the reason is in the system log. In a terminal: journalctl -t cairn-family</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveResultWords.qml" line="51"/>
+        <location filename="../qml/SaveResultWords.qml" line="52"/>
         <source>%1&apos;s list could not be written after the copy, so it holds none of the new games, and the counts say what it holds. Pressing Save again is safe. If it fails again, the reason is in the system log. In a terminal: journalctl -t cairn-family</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveResultWords.qml" line="53"/>
+        <location filename="../qml/SaveResultWords.qml" line="54"/>
         <source>Not all of %1&apos;s new games could be given. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-steam-visit</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveResultWords.qml" line="58"/>
+        <location filename="../qml/SaveResultWords.qml" line="59"/>
         <source>Game %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveResultWords.qml" line="61"/>
+        <location filename="../qml/SaveResultWords.qml" line="62"/>
         <source>%1 was not given to %2: it is no longer in the shared folder.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveResultWords.qml" line="63"/>
+        <location filename="../qml/SaveResultWords.qml" line="64"/>
         <source>%1 was not given to %2: the list of shared games could not be read.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveResultWords.qml" line="65"/>
+        <location filename="../qml/SaveResultWords.qml" line="66"/>
         <source>%1 was not given to %2: Steam&apos;s file for it cannot be read.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveResultWords.qml" line="67"/>
+        <location filename="../qml/SaveResultWords.qml" line="68"/>
         <source>%1 was not given to %2: Steam&apos;s file for it names another game.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveResultWords.qml" line="69"/>
+        <location filename="../qml/SaveResultWords.qml" line="70"/>
         <source>%1 was not given to %2: Steam&apos;s file for it names its folder in a way Cairn does not copy.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveResultWords.qml" line="71"/>
+        <location filename="../qml/SaveResultWords.qml" line="72"/>
         <source>%1 was not given to %2: it is on a beta branch, which %2&apos;s Steam account may not have.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveResultWords.qml" line="73"/>
+        <location filename="../qml/SaveResultWords.qml" line="74"/>
         <source>%1 was not given to %2: it is not fully installed, or an update is waiting. Let your own Steam finish it.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveResultWords.qml" line="75"/>
+        <location filename="../qml/SaveResultWords.qml" line="76"/>
         <source>%1 was not given to %2: Steam is still downloading it.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveResultWords.qml" line="77"/>
+        <location filename="../qml/SaveResultWords.qml" line="78"/>
         <source>%1 was not given to %2: its folder is missing from the shared folder.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveResultWords.qml" line="79"/>
+        <location filename="../qml/SaveResultWords.qml" line="80"/>
         <source>%1 was not given to %2: %2&apos;s Steam already has a folder for it, which may hold %2&apos;s saves, so Cairn leaves it alone.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveResultWords.qml" line="81"/>
+        <location filename="../qml/SaveResultWords.qml" line="82"/>
         <source>%1 was not given to %2: Steam changed it during the copy.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveResultWords.qml" line="83"/>
+        <location filename="../qml/SaveResultWords.qml" line="84"/>
         <source>%1 was not given to %2: the copy did not work.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveResultWords.qml" line="85"/>
+        <location filename="../qml/SaveResultWords.qml" line="86"/>
         <source>%1 was not given to %2: some of its files can be read only by your own account, so they cannot be copied.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveResultWords.qml" line="87"/>
+        <location filename="../qml/SaveResultWords.qml" line="88"/>
         <source>%1 was not given to %2: Cairn does not copy it.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveResultWords.qml" line="96"/>
+        <location filename="../qml/SaveResultWords.qml" line="101"/>
+        <source>Cairn had no copies of the tools Steam runs games with to give %1&apos;s Steam. If %1&apos;s Steam does not have them yet, %1&apos;s first game waits while it downloads them, which can take several minutes. If that game does not start, log %1 out and back in, then try it again.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveResultWords.qml" line="99"/>
+        <source>%1&apos;s Steam may not have every tool Steam runs games with yet. The first game that needs a missing one waits while %1&apos;s Steam downloads it, which can take several minutes. If that game does not start, log %1 out and back in, then try it again. The record is in the system log. In a terminal: journalctl -t cairn-steam-visit</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveResultWords.qml" line="97"/>
+        <source>Copied the tools Steam runs games with into %1&apos;s Steam, so %1&apos;s first game does not have to download them. A tool Cairn has no copy of, or a newer version Valve has made since, still downloads the first time a game needs it, which can make that game wait several minutes.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveResultWords.qml" line="112"/>
         <source>%1&apos;s list is saved, with no change.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveResultWords.qml" line="98"/>
+        <location filename="../qml/SaveResultWords.qml" line="114"/>
         <source>%1&apos;s list is saved. Added: %2. Taken off: %3.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveResultWords.qml" line="106"/>
+        <location filename="../qml/SaveResultWords.qml" line="122"/>
         <source>The games not given that are still shared stay chosen, so pressing Save again tries them again.</source>
         <translation type="unfinished"></translation>
     </message>

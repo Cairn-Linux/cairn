@@ -38,12 +38,14 @@
 # "refused appid".
 #
 # It says "waiting" as a visit does, then passes on only the copy program's
-# own lines ("copied APPID", "skipped APPID REASON", ...; see
+# own lines ("copied APPID", "skipped APPID REASON", and for Steam's tools
+# "tool-copied APPID", "tool-skipped APPID REASON", ...; see
 # provision/cairn-copy-games.py), and ends with "finished", or "failed" when
 # the copy program did not end well. "refused REASON" means nothing was
 # copied. A visit tried meanwhile is refused with "copying". Provisioning
 # prints only sentences of its own, so a copy also leaves a record of each of
-# these lines but "have" in the journal, and of why it was refused or failed.
+# these lines but "have" and "tool-have" in the journal, and of why it was
+# refused or failed.
 #
 # The same list lets a grown-up log a child out before choosing their games
 # (ADR-0041), as root and never through pkexec:
@@ -415,11 +417,16 @@ release_copy() {
 }
 
 # The copy program's own lines (provision/cairn-copy-games.py), and only
-# those: fixed words and appids, never anything from the child's home.
+# those: fixed words and appids, never anything from the child's home. The
+# tool-* lines are about Steam's tools, which it copies after the games
+# (ADR-0046).
 is_copy_line() {
     [[ "$1" =~ ^(copied|have)\ [0-9]{1,10}$ ]] ||
         [[ "$1" =~ ^skipped\ [0-9]{1,10}\ [a-z-]{1,32}$ ]] ||
-        [[ "$1" =~ ^(unnumbered|no-library|no-shared|lists-shared|unreadable-config|no-reflink)$ ]]
+        [[ "$1" =~ ^tool-(copied|have|missing)\ [0-9]{1,10}$ ]] ||
+        [[ "$1" =~ ^tool-skipped\ [0-9]{1,10}\ [a-z-]{1,32}$ ]] ||
+        [[ "$1" =~ ^(unnumbered|no-library|no-shared|lists-shared|unreadable-config|no-reflink)$ ]] ||
+        [[ "$1" =~ ^(copying-tools|no-tools|tools-unreadable)$ ]]
 }
 
 # The copy runs as the child, from a root-owned program, with nothing of
@@ -441,7 +448,7 @@ run_copy() {
         while IFS= read -r line; do
             is_copy_line "$line" || continue
             say "$line"
-            [[ "$line" =~ ^have\  ]] || note "copying $child's games: $line"
+            [[ "$line" =~ ^(tool-)?have\  ]] || note "copying $child's games: $line"
         done || status=$?
     set -x
     return "$status"

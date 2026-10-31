@@ -612,6 +612,13 @@ Mechanism:
   (ADR-0030). If starting Steam again does not bring the game, the
   grown-up screen adds one line: "Log out and back in, then try it again."
   (ADR-0045).
+- A child's Steam gets Steam's own tools, the Steam Linux Runtimes and
+  Proton, from the parent's Steam: a Guardian's Save copies them into the
+  child's own library with the child's new games, by reflink, so a first
+  tap does not wait for them to download (ADR-0046, proposed). Each
+  child's Steam still updates its own copies, and a tool Cairn has no
+  copy of, or a build newer than Cairn's copy, still downloads when a
+  game first needs it.
 - Proton work happens in the background; the game comes up fullscreen.
 
 **Known failure modes.** Steam forces its window open for client updates, game

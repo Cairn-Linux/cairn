@@ -37,14 +37,17 @@ class GamesSaving : public QObject {
     // For the progress window while the copies run.
     Q_PROPERTY(QVariantList copiedSoFar READ copiedSoFar NOTIFY changed)
     // Each child the command answered for, as a map: login, name, added,
-    // removed, held (a Held), and skipped, a list of maps with appId,
-    // title and reason (a Skip). added and removed are -1 when the child's
-    // list was not written.
+    // removed, held (a Held), skipped, a list of maps with appId, title
+    // and reason (a Skip), and tools (a Tools). added and removed are -1
+    // when the child's list was not written.
     Q_PROPERTY(QVariantList results READ results NOTIFY changed)
     // No child the command answered for was held or had a game left out.
     Q_PROPERTY(bool allGiven READ allGiven NOTIFY changed)
     // The full games list stays as it was before the Save.
     Q_PROPERTY(bool catalogueKept READ catalogueKept NOTIFY changed)
+    // A Save in which some child's copy ran could not take every one of
+    // Steam's tools from the Guardian's own Steam (ADR-0046).
+    Q_PROPERTY(bool toolsLeftOut READ toolsLeftOut NOTIFY changed)
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
 
 public:
@@ -72,8 +75,10 @@ public:
     enum class Progress : std::uint8_t {
         Starting,
         Looking,
+        SharingTools,
         Writing,
         CopyingGames,
+        CopyingTools,
         WaitingForLogout,
     };
     Q_ENUM(Progress)
@@ -116,6 +121,10 @@ public:
         OtherSkip,
     };
     Q_ENUM(Skip)
+    // What a child's copy did with Steam's tools (ADR-0046): nothing to
+    // say, copied some, may still lack one, or there were none to copy.
+    enum class Tools : std::uint8_t { NoToolNews, ToolsCopied, ToolsMissing, NoToolsToCopy };
+    Q_ENUM(Tools)
 
     GamesSaving(const QString& pkexec, const QString& command, QObject* parent = nullptr);
 
@@ -128,6 +137,7 @@ public:
     QVariantList results() const;
     bool allGiven() const;
     bool catalogueKept() const;
+    bool toolsLeftOut() const;
     bool busy() const;
 
     // Starts cairn-family with these arguments, "save-games" first, once

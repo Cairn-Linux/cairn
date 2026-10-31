@@ -122,6 +122,48 @@ private slots:
         QVERIFY(!result.held.has_value());
     }
 
+    // Steam's tools, which the copy program copies after the games
+    // (ADR-0046): each line goes on with the login from the request, never
+    // from the helper, whatever games were asked for.
+    void passesOnSteamsToolLines() {
+        give("lines-ada", "copied 620\n"
+                          "copying-tools\n"
+                          "tool-copied 1070560\n"
+                          "tool-have 1391110\n"
+                          "tool-skipped 1493710 not-a-tool\n"
+                          "tool-missing 4183110\n"
+                          "no-tools\n"
+                          "tools-unreadable\n"
+                          "tool-copied ben 1070560\n"
+                          "tool-copied 01070560\n"
+                          "tool-copied 1070560 /home/ada\n"
+                          "tool-skipped 1493710 Not A Tool\n"
+                          "tool-had 1070560\n"
+                          "copying-tools ben\n"
+                          "finished\n");
+        const CopyJob::Result result = run({"620"});
+        QCOMPARE(m_said,
+                 QStringList({"copied ada 620", "copying-tools ada", "tool-copied ada 1070560",
+                              "tool-have ada 1391110", "tool-skipped ada 1493710 not-a-tool",
+                              "tool-missing ada 4183110", "no-tools ada", "tools-unreadable ada"}));
+        // A tool is never one of the child's games.
+        QCOMPARE(result.copied, QStringList({"620"}));
+        QVERIFY(!result.held.has_value());
+    }
+
+    // No tool line holds the child's games back, not even a tool left out
+    // for want of reflink.
+    void aToolNeverHoldsTheGames() {
+        give("lines-ada", "have 620\n"
+                          "tool-skipped 1070560 no-reflink\n"
+                          "no-tools\n"
+                          "tools-unreadable\n"
+                          "finished\n");
+        const CopyJob::Result result = run({"620"});
+        QVERIFY(!result.held.has_value());
+        QCOMPARE(result.copied, QStringList({"620"}));
+    }
+
     // Only so many lines are read; the copy still ends as it says.
     void readsAtMostSoManyLines() {
         QByteArray text;

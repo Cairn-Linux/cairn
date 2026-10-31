@@ -71,8 +71,9 @@ What is here:
   runs it from a terminal, and on the image `cairn-family save-games`
   runs it as a system job with `systemd-run` (ADR-0041). It takes the same list, runs
   `../provision/cairn-copy-games.py` as the child, and passes on only that
-  program's fixed lines (ADR-0033). It notes each line but `have`, and why
-  a copy was refused or failed, in the journal. A visit tried meanwhile is
+  program's fixed lines (ADR-0033), those about Steam's tools among them
+  (ADR-0046). It notes each line but `have` and `tool-have`, and why a
+  copy was refused or failed, in the journal. A visit tried meanwhile is
   refused with `copying`, and the Guardian's window says games are being
   copied. Its third mode, `--log-out CHILD`, also root's alone, only logs
   a child out for a grown-up who will choose their games next: under the

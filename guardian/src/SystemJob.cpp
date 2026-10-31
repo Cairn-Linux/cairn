@@ -27,18 +27,31 @@ void prepare(QProcess& process) {
 
 // --pipe hands the service this program's pipe, so the helper's lines come
 // straight back, and --wait waits for the service to end. --collect lets a
-// failed job's name be used again.
+// failed job's name be used again. For --uid, systemd sets the account's own
+// groups as a login would, and RuntimeMaxSec stops the whole service, cp
+// and all.
 int SystemJob::run(const Job& job, const Take& take) {
+    QStringList arguments{
+        QStringLiteral("--quiet"),
+        QStringLiteral("--collect"),
+        QStringLiteral("--wait"),
+        QStringLiteral("--pipe"),
+        QStringLiteral("--no-ask-password"),
+        QStringLiteral("--service-type=exec"),
+        QStringLiteral("--expand-environment=no"),
+        QStringLiteral("--unit=") + job.unit,
+        QStringLiteral("--description=") + job.description,
+    };
+    if (!job.user.isEmpty()) {
+        arguments.append(QStringLiteral("--uid=") + job.user);
+    }
+    if (job.timeLimitSeconds > 0) {
+        arguments.append(QStringLiteral("--property=RuntimeMaxSec=%1").arg(job.timeLimitSeconds));
+    }
+    arguments.append(QStringLiteral("--"));
     QProcess process;
     prepare(process);
-    process.start(
-        job.systemdRun,
-        QStringList{QStringLiteral("--quiet"), QStringLiteral("--collect"),
-                    QStringLiteral("--wait"), QStringLiteral("--pipe"),
-                    QStringLiteral("--no-ask-password"), QStringLiteral("--service-type=exec"),
-                    QStringLiteral("--expand-environment=no"), QStringLiteral("--unit=") + job.unit,
-                    QStringLiteral("--description=") + job.description, QStringLiteral("--")} +
-            job.command);
+    process.start(job.systemdRun, arguments + job.command);
     const int lines = read(process, take);
     process.waitForFinished(-1);
     return lines;

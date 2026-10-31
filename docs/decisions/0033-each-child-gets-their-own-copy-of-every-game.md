@@ -10,7 +10,9 @@ live; once accepted, amends ADR-0024
 the games on their own list, not of every game); ADR-0042, proposed
 (on the image Cairn moves a game the parent picks from their own Steam
 into the shared folder, and adds that folder to their Steam itself,
-instead of the Settings › Storage step)
+instead of the Settings › Storage step); ADR-0046, proposed (on the image
+a child's first copy of each of Steam's tools comes from the parent's
+Steam with their games, so no visit is needed for the first fetch)
 
 ## Context
 

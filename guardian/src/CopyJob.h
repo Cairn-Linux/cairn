@@ -38,7 +38,9 @@ public:
 
     // Says each of the helper's lines as it comes, with the child's login
     // put in from `login`, never from the helper. Only lines about the games
-    // in `appIds` are said.
+    // in `appIds` are said, and every line about Steam's tools, which the
+    // copy program copies after the games (ADR-0046). A tool is never a
+    // copied game, and never holds the child's games back.
     static Result run(const Setup& setup, const QString& login, unsigned int uid,
                       const QStringList& appIds, const Say& say);
 
@@ -49,6 +51,8 @@ private:
     CopyJob(QString login, QStringList appIds, Say say);
 
     void take(const QString& line);
+    bool takeGame(const QString& line);
+    bool takeTool(const QString& line);
 
     QString m_login;
     QStringList m_appIds;

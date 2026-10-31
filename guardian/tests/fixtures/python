@@ -1,12 +1,16 @@
 #!/bin/sh
 # SPDX-License-Identifier: Apache-2.0
 #
-# A stand-in for python3 running the picture step or kidscan, for
-# cairn-family save-games' tests. A test links it as "python" in a folder of
-# its own. It writes its arguments, one call to a line, to "python-calls"
-# there, and the environment it was given to "python-environment". The
-# picture step fails with "fail-pictures" in the folder. kidscan prints
-# "kidscan-output", and fails with status 2 with "fail-kidscan".
+# A stand-in for python3 running the picture step, kidscan or the tools
+# step, for cairn-family save-games' tests. A test links it as "python" in a
+# folder of its own. It writes its arguments, one call to a line, to
+# "python-calls" there, and the environment it was given to
+# "python-environment". The picture step fails with "fail-pictures" in the
+# folder. kidscan prints "kidscan-output", and fails with status 2 with
+# "fail-kidscan". The tools step prints "share-tools-output", or "finished"
+# when there is none, and with "fail-share-tools" prints nothing and fails.
+# With "see" in the folder, naming a folder, the tools step first copies
+# that folder to "seen", so a test sees it as the step found it.
 here="${0%/*}"
 echo "$*" >> "$here/python-calls"
 env > "$here/python-environment"
@@ -14,6 +18,15 @@ case "$3" in
 */kidscan.py)
     [ ! -e "$here/fail-kidscan" ] || exit 2
     cat "$here/kidscan-output"
+    ;;
+*/cairn-share-tools)
+    [ ! -e "$here/see" ] || cp -R "$(cat "$here/see")" "$here/seen"
+    [ ! -e "$here/fail-share-tools" ] || exit 1
+    if [ -e "$here/share-tools-output" ]; then
+        cat "$here/share-tools-output"
+    else
+        echo finished
+    fi
     ;;
 *)
     [ ! -e "$here/fail-pictures" ]

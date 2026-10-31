@@ -83,10 +83,10 @@ private slots:
     // Every line is passed on, in order, the last one too.
     void everyLineIsPassedOn() {
         const Heard heard = hear(QStringLiteral("save-done"));
-        QCOMPARE(heard.lines,
-                 QStringList({"looking", "pictures made", "catalogue made", "copying ada",
-                              "copied ada 1001", "copied ada 1002", "child ada added 2 removed 0",
-                              "child ben added 0 removed 0", "done"}));
+        QCOMPARE(heard.lines, QStringList({"looking", "pictures made", "catalogue made",
+                                           "tools made", "copying ada", "copied ada 1001",
+                                           "copied ada 1002", "child ada added 2 removed 0",
+                                           "child ben added 0 removed 0", "done"}));
     }
 
     // A line too long to be the command's is dropped, whole.
@@ -104,8 +104,8 @@ private slots:
         const QSignalSpy lines(&run, &SaveRun::lineRead);
         const QSignalSpy finished(&run, &SaveRun::finished);
         QVERIFY(run.start(saveTwo()));
-        QTRY_COMPARE_WITH_TIMEOUT(lines.size(), 4, kAnswerMilliseconds);
-        QCOMPARE(lines.at(3).constFirst().toString(), QStringLiteral("copying ada"));
+        QTRY_COMPARE_WITH_TIMEOUT(lines.size(), 5, kAnswerMilliseconds);
+        QCOMPARE(lines.at(4).constFirst().toString(), QStringLiteral("copying ada"));
         QVERIFY(run.running());
         QVERIFY(finished.isEmpty());
     }

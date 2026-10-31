@@ -544,6 +544,81 @@ class ManifestRulesTests(unittest.TestCase):
         self.assertFalse(kidscan.plain_folder_name(".."))
         self.assertTrue(kidscan.on_beta_branch({"UserConfig": {"BetaKey": "beta"}}))
 
+    def test_which_apps_are_steams_tools(self):
+        # The rule the tiles leave out, and the image's tools step and copy
+        # step take (ADR-0046): by appid, or by a name Valve gives a tool.
+        for appid, name in (("1070560", ""), ("1391110", "anything"), ("1628350", "x"), ("1493710", ""),
+                            ("228980", "Steamworks Common Redistributables"),
+                            ("2805730", "Proton 9.0"), ("4183110", "Steam Linux Runtime 4.0"),
+                            ("3000001", "proton hotfix"), ("3000002", "Steamworks Shared")):
+            with self.subTest(appid=appid, name=name):
+                self.assertTrue(kidscan.is_steam_tool(appid, name))
+        for appid, name in (("620", "Portal 2"), ("4690330", "Legacy Steam Runtime"),
+                            ("292780", "Pajama Sam 2: Proton and Lightning"), ("100", "")):
+            with self.subTest(appid=appid, name=name):
+                self.assertFalse(kidscan.is_steam_tool(appid, name))
+
+    def test_what_a_tool_build_is(self):
+        # The image's tools step and copy step both ask this (ADR-0046), so
+        # the two agree on what a tool is.
+        tool_manifest = '"manifest"\n{\n\t"version" "2"\n}\n'
+        folder = self.steamapps / "common" / "SteamLinuxRuntime"
+        folder.mkdir()
+        (folder / "toolmanifest.vdf").write_text(tool_manifest)
+        scout = {"appid": "1070560", "name": "Steam Linux Runtime 1.0 (scout)", "installdir": "SteamLinuxRuntime"}
+        self.assertEqual(kidscan.tool_installdir("1070560", scout, self.steamapps), "SteamLinuxRuntime")
+        self.assertEqual(kidscan.tool_installdir("2805730", dict(scout, name="Proton 9.0"), str(self.steamapps)),
+                         "SteamLinuxRuntime")
+        # A game with a toolmanifest.vdf is still a game, and a name that is
+        # a block is no tool's.
+        (self.steamapps / "common" / "A Game" / "toolmanifest.vdf").write_text(tool_manifest)
+        self.assertIsNone(kidscan.tool_installdir("620", {"name": "Portal 2", "installdir": "A Game"}, self.steamapps))
+        self.assertIsNone(kidscan.tool_installdir("1070560", dict(scout, name={"a": "b"}), self.steamapps))
+        # An installdir that is not one plain folder name, even with a
+        # toolmanifest.vdf where it leads.
+        for where in (self.steamapps, self.steamapps / "common", self.steamapps / "common" / "a" / "b"):
+            (where / "toolmanifest.vdf").write_text(tool_manifest)
+        for installdir in ("..", "a/b", "", ".", None, {"a": "b"}):
+            with self.subTest(installdir=installdir):
+                self.assertIsNone(kidscan.tool_installdir("1070560", dict(scout, installdir=installdir),
+                                                          self.steamapps))
+        # A tool's folder that is a link, or missing.
+        (self.steamapps / "common" / "Linked").symlink_to(folder)
+        for installdir in ("Linked", "Missing"):
+            with self.subTest(installdir=installdir):
+                self.assertIsNone(kidscan.tool_installdir("1070560", dict(scout, installdir=installdir),
+                                                          self.steamapps))
+        # A toolmanifest.vdf that is missing, a link, a FIFO or a folder.
+        manifest = folder / "toolmanifest.vdf"
+        real = Path(self.tmp.name) / "real.vdf"
+        real.write_text(tool_manifest)
+        manifest.unlink()
+        for kind, make in (("missing", lambda: None), ("a link", lambda: manifest.symlink_to(real)),
+                           ("a FIFO", lambda: os.mkfifo(manifest)), ("a folder", manifest.mkdir)):
+            with self.subTest(manifest=kind):
+                make()
+                self.assertIsNone(kidscan.tool_installdir("1070560", scout, self.steamapps))
+                if manifest.is_dir() and not manifest.is_symlink():
+                    manifest.rmdir()
+                else:
+                    manifest.unlink(missing_ok=True)
+        # A build's name in the tools folder: two numbers by the appid rule.
+        self.assertEqual(kidscan.TOOL_BUILD.fullmatch("1070560-26115262").groups(), ("1070560", "26115262"))
+        for name in ("1070560-0100", "01070560-100", "1070560", "1070560-", "1070560-100-1", ".cairn-tool-1-2"):
+            with self.subTest(name=name):
+                self.assertIsNone(kidscan.TOOL_BUILD.fullmatch(name))
+
+    def test_a_plain_file_is_read_byte_for_byte(self):
+        # The tools step copies a tool's manifest as Steam wrote it.
+        path = Path(self.tmp.name) / "appmanifest_100.acf"
+        path.write_bytes(b'"AppState"\r\n{\xff}\n')
+        self.assertEqual(kidscan.read_plain_file(path), b'"AppState"\r\n{\xff}\n')
+        self.assertEqual(kidscan.read_manifest(path), '"AppState"\r\n{�}\n')
+        path.unlink()
+        os.mkfifo(path)
+        self.assertIsNone(kidscan.read_plain_file(path))
+        self.assertIsNone(kidscan.read_plain_file(Path(self.tmp.name) / "missing"))
+
     def test_a_block_appid_never_stops_main(self):
         (self.steamapps / "appmanifest_100.acf").write_text(raw_acf(appid='{ "a" "b" }'))
         (self.steamapps / "appmanifest_200.acf").write_text(raw_acf(appid='"200"'))

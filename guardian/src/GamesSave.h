@@ -6,6 +6,7 @@
 #include "CatalogueRefresh.h"
 #include "CopyJob.h"
 #include "Refusal.h"
+#include "ToolsRefresh.h"
 
 #include <QString>
 #include <QStringList>
@@ -16,9 +17,11 @@
 // cairn-family save-games: the root side of the Guardian tool's Save on its
 // Games page (ADR-0041). It checks the caller and every value, then makes
 // the pictures and the full games list again, then takes the games taken
-// off out of every child's own games file, then copies each child's newly
-// ticked games and writes their file again with them. With no child named
-// it only makes the pictures and the full games list again: the window's
+// off out of every child's own games file, then fills the tools folder from
+// the Guardian's own Steam, as the Guardian (ADR-0046), then copies each
+// child's newly ticked games, and Steam's tools with them, and writes their
+// file again with the games. With no child named it only makes the
+// pictures, the full games list and the tools folder again: the window's
 // look for new games, which changes no child's list.
 //
 // It answers in lines of fixed words, checked login names and appids, as it
@@ -39,6 +42,7 @@ public:
         Caller::LookUpUid lookUpUid = lookUpAccountByUid;
         Caller::LookUpHome lookUpHome = ::lookUpHome;
         CatalogueRefresh::Setup catalogue;
+        ToolsRefresh::Setup tools;
         CopyJob::Setup copy;
         // Each child's own games file, and the uid that folder belongs to.
         QString gamesFolder = QStringLiteral("/var/lib/cairn/games");
@@ -54,6 +58,9 @@ public:
         // each child's last line.
         QString asked;
         QStringList children;
+        // `tools made` or `tools kept`, then each of the tools step's own
+        // fixed lines after `tools step: `, for the journal too.
+        QStringList tools;
     };
 
     explicit GamesSave(Setup setup);

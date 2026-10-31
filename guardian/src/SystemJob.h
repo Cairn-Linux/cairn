@@ -8,14 +8,16 @@
 
 class QProcess;
 
-// One root helper run as a system job: a transient service of its own,
-// started by systemd-run, that waits for it and hands back its lines
-// (ADR-0041). The job is not in the Guardian's session, so a Guardian who
-// logs out ends cairn-family and not the job. cairn-family runs the copy of
-// a child's games and a child's logout this way.
+// One helper run as a system job, as root or as the account `user` names: a
+// transient service of its own, started by systemd-run, that waits for it
+// and hands back its lines (ADR-0041). The job is not in the Guardian's
+// session, so a Guardian who logs out ends cairn-family and not the job.
+// cairn-family runs the copy of a child's games, a child's logout and the
+// tools step, which fills the tools folder from the Guardian's own Steam
+// (ADR-0046), this way.
 //
-// It waits as long as the job takes, with no time limit, and never kills
-// it.
+// It waits as long as the job takes and never kills it. Only systemd stops
+// a job, and only one with a time limit.
 class SystemJob {
 public:
     using Take = std::function<void(const QString&)>;
@@ -28,6 +30,12 @@ public:
         QString description;
         // The program and its arguments.
         QStringList command;
+        // The account the job runs as, by login, with its own groups from
+        // the account database; empty means root.
+        QString user;
+        // systemd stops the job, and everything it started, after this many
+        // seconds; 0 means no limit, as for a copy.
+        int timeLimitSeconds = 0;
     };
 
     // Hands each whole line of the job's output to `take`, at most

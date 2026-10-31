@@ -16,8 +16,15 @@ Without it, it copies every game in the shared library, which provisioning
 on the kids' laptop still relies on. An appid that is not a plain number
 stops it before anything changes.
 
-It prints only these lines, one per game or condition, made of fixed words
-and appids, so nothing from the child's home reaches the Guardian's
+After the games it copies each of Steam's tools, its runtimes and Protons,
+that the child's library lacks, from the tools folder cairn-share-tools
+fills from a Guardian's Steam (ADR-0046), by a game's own rules. It never
+writes over a tool the child has, in any state, and takes nothing from
+there that kidscan's rule does not call a tool. With no tools folder, as on
+a computer set up by provisioning, it says nothing about tools.
+
+It prints only these lines, one per game, tool or condition, made of fixed
+words and appids, so nothing from the child's home reaches the Guardian's
 terminal. Provisioning turns them into sentences of its own.
 
     copied APPID           the game is now in the child's library
@@ -32,11 +39,27 @@ terminal. Provisioning turns them into sentences of its own.
     unreadable-config      the child's Steam's library list is not a plain
                            file of a sensible size, so nothing is copied
     no-reflink             the disk cannot reflink, so nothing is copied
+    copying-tools          the first of Steam's tools is being copied
+    tool-copied APPID      the tool is now in the child's library
+    tool-have APPID        the child has the tool already, and nothing
+                           changed
+    tool-skipped APPID REASON
+                           the tool is left out; REASON is a game's word,
+                           not-a-tool, or no-reflink
+    tool-missing APPID     a tool the child now has runs inside this one,
+                           and the child's Steam still lacks it after this
+                           copy: the tools folder has no build of it, or
+                           that build was left out, and its own
+                           tool-skipped line says why
+    no-tools               the tools folder holds no tool
+    tools-unreadable       the tools folder could not be read, so no more
+                           tools were copied
     refused root           it was run as root, and did nothing
     refused appid          a listed appid was not a plain number, and it
                            did nothing
 
-It exits 0 when it did what it could; a game left out is not a failure.
+It exits 0 when it did what it could; a game or a tool left out is not a
+failure.
 """
 
 import argparse
@@ -56,6 +79,10 @@ import kidscan  # noqa: E402
 SHARED = Path("/var/lib/cairn/steam-library/steamapps")
 OWN = Path(".local/share/Steam/steamapps")
 CP = "/usr/bin/cp"
+# Steam's tools, one folder for each build, named by kidscan's TOOL_BUILD,
+# <appid>-<buildid>, each holding the tool's manifest and its
+# common/<installdir> (ADR-0046).
+TOOLS = Path("/var/lib/cairn/steam-tools")
 
 # Names only this program uses. Whatever an earlier run left under them is
 # removed before anything else; nothing else in the child's library is.
@@ -78,8 +105,13 @@ def say(*words):
 
 
 def read_manifest(path):
-    with open(path, "rb") as file:
-        return file.read(MANIFEST_LIMIT + 1)
+    """A manifest's bytes, exactly as they are. Every Guardian can write the
+    folders they come from, and a FIFO there would block a plain open for
+    ever, so anything but a plain file of a sensible size is an OSError."""
+    data = kidscan.read_plain_file(path)
+    if data is None:
+        raise OSError("not a plain file of a sensible size")
+    return data
 
 
 def app_state(data):
@@ -312,7 +344,95 @@ def manifests(shared, only):
     return found
 
 
-def copy_games(shared, library, only=None):
+def newest_builds(tools):
+    """The newest build of each tool in the tools folder, as (appid, build
+    folder), in appid order. Only a real folder named <appid>-<buildid>
+    counts: a link, a file, a leftover of cairn-share-tools or any other
+    name is passed over."""
+    newest = {}
+    for entry in os.scandir(tools):
+        match = kidscan.TOOL_BUILD.fullmatch(entry.name)
+        if not match or not entry.is_dir(follow_symlinks=False):
+            continue
+        appid, build = match.group(1), int(match.group(2))
+        if appid not in newest or build > newest[appid][0]:
+            newest[appid] = (build, Path(entry.path))
+    return [(appid, newest[appid][1]) for appid in sorted(newest, key=int)]
+
+
+def tool_folder(appid, data, build):
+    """The tool's installdir when the build holds one of Steam's tools by
+    kidscan's rule, the same one the tools step follows, or None. A game put
+    in the tools folder by mistake never reaches a child this way."""
+    state = app_state(data)
+    return None if state is None else kidscan.tool_installdir(appid, state, build)
+
+
+def runs_in(build, installdir):
+    """The appid of the tool this one runs inside, from the tools folder's
+    own toolmanifest.vdf, never from the child's files, or None."""
+    text = kidscan.read_manifest(build / "common" / installdir / kidscan.TOOL_MANIFEST)
+    if text is None:
+        return None
+    try:
+        manifest = kidscan.ci_get(kidscan.parse_vdf(text), "manifest")
+    except ValueError:
+        return None
+    needed = kidscan.ci_get(manifest, "require_tool_appid") if isinstance(manifest, dict) else None
+    return needed if isinstance(needed, str) and kidscan.APPID.fullmatch(needed) else None
+
+
+def copy_tools(tools, library, reflink):
+    """Each tool the child's library lacks, from its newest build in the
+    tools folder, by a game's own rules: decide() and copy_game(). Each tool
+    stands alone, and none changes what was said about a game. `reflink` is
+    what the games found out, or None when no game was copied."""
+    builds = newest_builds(tools)
+    if not builds:
+        say("no-tools")
+        return
+    copying = False
+    needed = set()
+    for appid, build in builds:
+        manifest = build / f"appmanifest_{appid}.acf"
+        try:
+            data = read_manifest(manifest)
+        except OSError:
+            say("tool-skipped", appid, "unreadable")
+            continue
+        installdir = tool_folder(appid, data, build)
+        if installdir is None:
+            say("tool-skipped", appid, "not-a-tool")
+            continue
+        decision = decide(appid, data, build, library)
+        if decision[0] == "skipped":
+            say("tool-skipped", appid, decision[1])
+            continue
+        if decision[0] == "copy":
+            if reflink is None:
+                reflink = can_reflink(manifest, library / "common")
+            # Never the bare no-reflink, which holds back a child's games.
+            if not reflink:
+                say("tool-skipped", appid, "no-reflink")
+                continue
+            if not copying:
+                say("copying-tools")
+                copying = True
+            reason = copy_game(appid, data, manifest, installdir, build, library)
+            if reason is not None:
+                say("tool-skipped", appid, reason)
+                continue
+            say("tool-copied", appid)
+        else:
+            say("tool-have", appid)
+        needed.add(runs_in(build, installdir))
+    # Steam does not fetch soldier by itself for a scout it fetched (#206).
+    for appid in sorted(needed - {None}, key=int):
+        if not os.path.lexists(library / f"appmanifest_{appid}.acf"):
+            say("tool-missing", appid)
+
+
+def copy_games(shared, library, only=None, tools=None):
     (library / "common").mkdir(mode=0o755, exist_ok=True)
     remove_leftovers(library)
     reflink = None
@@ -346,6 +466,13 @@ def copy_games(shared, library, only=None):
             say("copied", appid)
         else:
             say("skipped", appid, reason)
+    # Any account in cairn-guardian can write the tools folder. Whatever is
+    # wrong there ends the tools, never the games already said.
+    try:
+        if tools is not None and is_real_folder(tools):
+            copy_tools(tools, library, reflink)
+    except (OSError, ValueError):
+        say("tools-unreadable")
 
 
 def main(argv=None):
@@ -353,6 +480,7 @@ def main(argv=None):
     # Only the tests move these; provisioning passes nothing.
     parser.add_argument("--shared", type=Path, default=SHARED, help=argparse.SUPPRESS)
     parser.add_argument("--library", type=Path, default=None, help=argparse.SUPPRESS)
+    parser.add_argument("--tools", type=Path, default=TOOLS, help=argparse.SUPPRESS)
     parser.add_argument("--only", nargs="+", metavar="APPID", help="copy only these games")
     args = parser.parse_args(argv)
 
@@ -381,7 +509,7 @@ def main(argv=None):
     if listed is not None:
         say(listed)
         return 0
-    copy_games(args.shared, library, only)
+    copy_games(args.shared, library, only, args.tools)
     return 0
 
 

@@ -62,6 +62,7 @@ set(games_save_sources
     src/GamesRequest.h src/GamesRequest.cpp
     src/GameCatalogue.h src/GameCatalogue.cpp
     src/CatalogueRefresh.h src/CatalogueRefresh.cpp
+    src/ToolsRefresh.h src/ToolsRefresh.cpp
     src/ChildGameList.h src/ChildGameList.cpp
     src/ChildGamesFile.h src/ChildGamesFile.cpp
     src/SystemJob.h src/SystemJob.cpp
@@ -81,14 +82,15 @@ target_compile_definitions(cairn-family PRIVATE
     CAIRN_STEAM_FOR="${CMAKE_INSTALL_FULL_BINDIR}/cairn-steam-for"
     CAIRN_APPLICATIONS="/usr/local/share/applications"
 )
-# save-games runs the visit helper's copy, the picture step and kidscan,
-# where this build installs them, and log-out the helper's logout.
-# systemd-run, systemd-inhibit and python3 are the system's own, at their
-# fixed paths.
+# save-games runs the visit helper's copy, the picture step, kidscan and
+# the tools step (ADR-0046), where this build installs them, and log-out the
+# helper's logout. systemd-run, systemd-inhibit and python3 are the
+# system's own, at their fixed paths.
 target_compile_definitions(cairn-family PRIVATE
     CAIRN_STEAM_VISIT="${CAIRN_FULL_LIBEXECDIR}/cairn-steam-visit"
     CAIRN_GAME_PICTURES="${CAIRN_FULL_LIBEXECDIR}/cairn-game-pictures"
     CAIRN_KIDSCAN="${CAIRN_FULL_LIBEXECDIR}/kidscan.py"
+    CAIRN_SHARE_TOOLS="${CAIRN_FULL_LIBEXECDIR}/cairn-share-tools"
 )
 install(TARGETS cairn-family RUNTIME DESTINATION "${CAIRN_LIBEXECDIR}")
 
@@ -287,6 +289,13 @@ target_link_libraries(tst_cataloguerefresh PRIVATE Qt6::Core Qt6::Test)
 target_compile_definitions(tst_cataloguerefresh PRIVATE FIXTURES="${guardian_fixtures}")
 add_test(NAME cataloguerefresh COMMAND tst_cataloguerefresh)
 
+qt_add_executable(tst_toolsrefresh tests/tst_toolsrefresh.cpp src/ToolsRefresh.h
+    src/ToolsRefresh.cpp src/SystemJob.h src/SystemJob.cpp)
+target_include_directories(tst_toolsrefresh PRIVATE src)
+target_link_libraries(tst_toolsrefresh PRIVATE Qt6::Core Qt6::Test)
+target_compile_definitions(tst_toolsrefresh PRIVATE FIXTURES="${guardian_fixtures}")
+add_test(NAME toolsrefresh COMMAND tst_toolsrefresh)
+
 qt_add_executable(tst_copyjob tests/tst_copyjob.cpp src/CopyJob.h src/CopyJob.cpp
     src/SystemJob.h src/SystemJob.cpp)
 target_include_directories(tst_copyjob PRIVATE src)
@@ -471,7 +480,8 @@ add_test(NAME hideuserspage
     COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_hide_users_page.py")
 
 set_tests_properties(steamvisit ownsteam screenlockwatch steamforchild steamwindow familycommand
-    caller gamesrequest childgamelist childgamesfile cataloguerefresh copyjob logoutcommand gamessave
+    caller gamesrequest childgamelist childgamesfile cataloguerefresh toolsrefresh copyjob
+    logoutcommand gamessave
     steamentry
     loginname childlist familychange saverun savereport loginsessions loginwatch childlogout
     gamechoices childrenpage

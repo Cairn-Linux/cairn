@@ -29,10 +29,14 @@ GamesSaving::Progress GamesSaving::progress() const {
     switch (m_report.stage()) {
     case SaveReport::Stage::Looking:
         return Progress::Looking;
+    case SaveReport::Stage::SharingTools:
+        return Progress::SharingTools;
     case SaveReport::Stage::Writing:
         return Progress::Writing;
     case SaveReport::Stage::Copying:
         return Progress::CopyingGames;
+    case SaveReport::Stage::CopyingTools:
+        return Progress::CopyingTools;
     case SaveReport::Stage::Waiting:
         return Progress::WaitingForLogout;
     case SaveReport::Stage::Starting:
@@ -73,6 +77,12 @@ bool GamesSaving::allGiven() const {
 
 bool GamesSaving::catalogueKept() const {
     return m_report.catalogueKept().value_or(false);
+}
+
+// Only about a Save that gave some child something: a look gives no child
+// anything, and neither does a Save whose copies were all held.
+bool GamesSaving::toolsLeftOut() const {
+    return m_kind == Kind::Save && m_report.toolsLeftOut() && m_report.copiedForSomeone();
 }
 
 bool GamesSaving::busy() const {

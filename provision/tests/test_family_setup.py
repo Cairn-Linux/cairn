@@ -172,6 +172,7 @@ class CheckoutTest(Scenario):
     FILES = {
         "provision/cairn-copy-games.py": "cairn-copy-games",
         "provision/cairn-game-pictures.py": "cairn-game-pictures",
+        "provision/cairn-share-tools.py": "cairn-share-tools",
         "tools/kidscan/kidscan.py": "kidscan.py",
         "session/bin/cairn-steam-visit": "cairn-steam-visit",
     }
@@ -656,6 +657,17 @@ class ImageFoldersTest(unittest.TestCase):
         tmpfiles = (HERE.parent / "system_files/usr/lib/tmpfiles.d/cairn.conf").read_text()
         lines = [line.split() for line in tmpfiles.splitlines() if line and not line.startswith("#")]
         self.assertIn(["d", "/var/lib/cairn/games", "0755", "root", "root", "-"], lines)
+
+    def test_steams_tools_have_a_folder_guardians_change_and_everyone_reads(self):
+        # The tools step writes it as a Guardian, and the copy step reads it
+        # as each child (ADR-0046), with the shared folder's own ACL.
+        tmpfiles = (HERE.parent / "system_files/usr/lib/tmpfiles.d/cairn.conf").read_text()
+        lines = [line.split() for line in tmpfiles.splitlines() if line and not line.startswith("#")]
+        self.assertIn(["d", "/var/lib/cairn/steam-tools", "2775", "root", "cairn-guardian", "-"], lines)
+        acls = {line[1]: line[6] for line in lines if line[0] == "a"}
+        self.assertEqual(acls["/var/lib/cairn/steam-tools"], acls["/var/lib/cairn/steam-library"])
+        self.assertIn("d:g:cairn-guardian:rwx", acls["/var/lib/cairn/steam-tools"])
+        self.assertIn("d:o::r-x", acls["/var/lib/cairn/steam-tools"])
 
 
 if __name__ == "__main__":

@@ -81,7 +81,15 @@ reads with `--games`.
    The copy step in `provision/` takes `APPID`, `plain_folder_name` and
    `on_beta_branch` from here, so those rules cannot drift apart. Its own
    `StateFlags` rule is stricter: it copies only a game with nothing
-   pending.
+   pending. On the image the tools step and the copy step take only the
+   apps `is_steam_tool` calls Steam's tools, the same rule that leaves
+   them out of the tiles, and read Steam's files with `read_plain_file`
+   (ADR-0046). Both take what a tool build is from here too, so the two
+   cannot drift apart: `tool_installdir` gives a tool's folder name when
+   `is_steam_tool` holds, its `installdir` is one plain folder name, and
+   its folder is a real folder with a plain `toolmanifest.vdf`, neither a
+   link, and `TOOL_BUILD` is the `<appid>-<buildid>` name of a build in
+   the tools folder.
 4. **Runs `scummvm --detect` per install directory.** Titles ScummVM
    recognises get a native launch command, one tile per detected game (a
    Steam "pack" can hold several). Everything else gets

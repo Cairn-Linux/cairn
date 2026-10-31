@@ -84,6 +84,11 @@ class GamesSaveTest : public QObject {
         setup.catalogue.pictures = path("pictures");
         setup.catalogue.gamesFile = path("games.json");
         setup.catalogue.restorecon = path("restorecon");
+        // The tools step's stand-ins have a folder of their own, so a test
+        // tells its calls from the copies'.
+        setup.tools.systemdRun = path("tools/systemd-run");
+        setup.tools.python = path("tools/python");
+        setup.tools.shareStep = QStringLiteral("/x/cairn-share-tools");
         setup.copy.systemdRun = path("systemd-run");
         setup.copy.systemdInhibit = path("systemd-inhibit");
         setup.copy.visitHelper = path("cairn-steam-visit");
@@ -97,6 +102,8 @@ class GamesSaveTest : public QObject {
     void nothingChanged() const {
         QVERIFY(!QFile::exists(path("python-calls")));
         QVERIFY(!QFile::exists(path("systemd-run-calls")));
+        QVERIFY(!QFile::exists(path("tools/python-calls")));
+        QVERIFY(!QFile::exists(path("tools/systemd-run-calls")));
         QVERIFY(!QFile::exists(path("games.json")));
         QVERIFY(QDir(path("games")).isEmpty());
     }
@@ -137,6 +144,10 @@ private slots:
         for (auto link = links.cbegin(); link != links.cend(); ++link) {
             QVERIFY(QFile::link(QStringLiteral(FIXTURES "/") + link.value(), path(link.key())));
         }
+        QVERIFY(QDir().mkpath(path("tools")));
+        for (const char* name : {"systemd-run", "python"}) {
+            QVERIFY(QFile::link(QStringLiteral(FIXTURES "/") + name, path("tools/") + name));
+        }
         give("kidscan-output", sharedGames);
         QVERIFY(QDir().mkpath(path("games")));
         m_said.clear();
@@ -144,15 +155,15 @@ private slots:
         m_pkexecUid = QStringLiteral("1001");
     }
 
-    // Two children, each in turn: the pictures and the list first, then each
-    // child's copy and file.
+    // Two children, each in turn: the pictures, the list and the tools
+    // folder first, then each child's copy and file.
     void savesTwoChildren() {
         const GamesSave::Outcome outcome = run({"save-games", "ada=620,12", "ben=504230"});
         QVERIFY(!outcome.refusal.has_value());
-        QCOMPARE(m_said,
-                 QStringList({"looking", "pictures made", "catalogue made", "copying ada",
-                              "copied ada 620", "copied ada 12", "child ada added 2 removed 0",
-                              "copying ben", "copied ben 504230", "child ben added 1 removed 0"}));
+        QCOMPARE(m_said, QStringList({"looking", "pictures made", "catalogue made", "tools made",
+                                      "copying ada", "copied ada 620", "copied ada 12",
+                                      "child ada added 2 removed 0", "copying ben",
+                                      "copied ben 504230", "child ben added 1 removed 0"}));
         QCOMPARE(outcome.asked, QStringLiteral("save-games ada ben"));
         QCOMPARE(outcome.children,
                  QStringList({"child ada added 2 removed 0", "child ben added 1 removed 0"}));
@@ -165,13 +176,15 @@ private slots:
         QCOMPARE(read("games.json"), QByteArray(sharedGames));
     }
 
-    // With no child named, only the pictures and the full list are made
-    // again, and no child's file is touched, even one that cannot be read.
+    // With no child named, only the pictures, the full list and the tools
+    // folder are made again, and no child's file is touched, even one that
+    // cannot be read.
     void aLookChangesNoList() {
         give("games/ada.json", "not a list");
         const GamesSave::Outcome outcome = run({"save-games"});
         QVERIFY(!outcome.refusal.has_value());
-        QCOMPARE(m_said, QStringList({"looking", "pictures made", "catalogue made"}));
+        QCOMPARE(m_said, QStringList({"looking", "pictures made", "catalogue made", "tools made"}));
+        QCOMPARE(lines("tools/python-calls"), QStringList({"-I -B /x/cairn-share-tools"}));
         QCOMPARE(outcome.asked, QStringLiteral("save-games"));
         QVERIFY(outcome.children.isEmpty());
         QVERIFY(!QFile::exists(path("systemd-run-calls")));
@@ -229,12 +242,87 @@ private slots:
         nothingChanged();
     }
 
-    // Under sudo the pictures stay; the rest goes ahead.
-    void sudoKeepsThePictures() {
+    // Under sudo the pictures and the tools folder stay; the rest goes
+    // ahead, and the copy still takes the tools the folder has.
+    void sudoKeepsThePicturesAndTheTools() {
         m_pkexecUid = std::nullopt;
-        run({"save-games", "ada=620"});
-        QCOMPARE(m_said.mid(0, 3), QStringList({"looking", "pictures kept", "catalogue made"}));
+        const GamesSave::Outcome outcome = run({"save-games", "ada=620"});
+        QCOMPARE(m_said.mid(0, 5), QStringList({"looking", "pictures kept", "catalogue made",
+                                                "tools kept", "copying ada"}));
         QCOMPARE(lines("python-calls").size(), 1);
+        QVERIFY(!QFile::exists(path("tools/systemd-run-calls")));
+        QVERIFY(!QFile::exists(path("tools/python-calls")));
+        QCOMPARE(outcome.tools, QStringList({"tools kept"}));
+    }
+
+    // The tools step runs as the Guardian pkexec names, after every child's
+    // list has lost the games taken off and before the first copy, which
+    // takes the tools from the folder it fills (ADR-0046).
+    void theToolsComeAfterTheListsAndBeforeTheCopies() {
+        give("games/ada.json", adaHasPortal);
+        give("tools/see", path("games").toUtf8());
+        const GamesSave::Outcome outcome = run({"save-games", "ada=12"});
+        QVERIFY(!outcome.refusal.has_value());
+        QCOMPARE(m_said.mid(2, 3), QStringList({"catalogue made", "tools made", "copying ada"}));
+        QVERIFY(lines("tools/systemd-run-calls").constFirst().contains(" --uid=gina "));
+        QVERIFY(lines("tools/systemd-run-calls")
+                    .constFirst()
+                    .endsWith(" -- " + path("tools/python") + " -I -B /x/cairn-share-tools"));
+        // Portal 2 was taken off before the tools step looked.
+        QVERIFY(QFile::exists(path("tools/seen/ada.json")));
+        QVERIFY(!read("tools/seen/ada.json").contains("\"620\""));
+        QCOMPARE(outcome.tools, QStringList({"tools made"}));
+    }
+
+    // The tools left out are said, and every line worth one goes to the
+    // journal with the Save's.
+    void toolsLeftOutAreSaid() {
+        give("tools/share-tools-output", "tool-shared 1070560\n"
+                                         "tool-had 1391110\n"
+                                         "tool-not-shared 4183110 other-drive\n"
+                                         "finished\n");
+        const GamesSave::Outcome outcome = run({"save-games", "ada=620"});
+        QCOMPARE(m_said.mid(3, 3),
+                 QStringList({"tools made", "tool-not-shared 4183110 other-drive", "copying ada"}));
+        QCOMPARE(outcome.tools, QStringList({"tools made", "tools step: tool-shared 1070560",
+                                             "tools step: tool-not-shared 4183110 other-drive"}));
+    }
+
+    // The tools step went to its end, or it did not (refused, failed, never
+    // started or stopped at its time limit); every build in the folder is
+    // whole either way, though a step stopped part-way may already have
+    // changed some. The Save says `tools kept` and goes on, and the journal
+    // says why.
+    void aToolsStepThatDoesNotFinishLetsTheSaveGoOn_data() {
+        QTest::addColumn<QString>("given");
+        QTest::addColumn<QByteArray>("output");
+        QTest::addColumn<QStringList>("journal");
+        QTest::newRow("failed") << "fail-share-tools" << QByteArray()
+                                << QStringList{"tools kept", "tools step: no-answer"};
+        QTest::newRow("stopped mid-way")
+            << "" << QByteArray("tool-shared 1070560\n")
+            << QStringList{"tools kept", "tools step: tool-shared 1070560", "tools step: stopped"};
+        QTest::newRow("not started")
+            << "fail-start" << QByteArray() << QStringList{"tools kept", "tools step: no-answer"};
+        QTest::newRow("refused folder") << "" << QByteArray("refused folder\n")
+                                        << QStringList{"tools kept", "tools step: refused folder"};
+    }
+
+    void aToolsStepThatDoesNotFinishLetsTheSaveGoOn() {
+        QFETCH(const QString, given);
+        QFETCH(const QByteArray, output);
+        QFETCH(const QStringList, journal);
+        if (!given.isEmpty()) {
+            give("tools/" + given, "");
+        }
+        if (!output.isEmpty()) {
+            give("tools/share-tools-output", output);
+        }
+        const GamesSave::Outcome outcome = run({"save-games", "ada=620"});
+        QVERIFY(!outcome.refusal.has_value());
+        QCOMPARE(m_said.mid(3), QStringList({"tools kept", "copying ada", "copied ada 620",
+                                             "child ada added 1 removed 0"}));
+        QCOMPARE(outcome.tools, journal);
     }
 
     // A logged-in child loses the game taken off at once and gets the new
@@ -245,7 +333,7 @@ private slots:
         give("status-ada", "1");
         const GamesSave::Outcome outcome = run({"save-games", "ada=12", "ben=620"});
         QVERIFY(!outcome.refusal.has_value());
-        QCOMPARE(m_said.mid(3),
+        QCOMPARE(m_said.mid(4),
                  QStringList({"copying ada", "child ada added 0 removed 1 held logged-in",
                               "copying ben", "copied ben 620", "child ben added 1 removed 0"}));
         QVERIFY(!read("games/ada.json").contains("\"620\""));
@@ -255,7 +343,7 @@ private slots:
     // A game no longer shared is never passed to the copy.
     void aGameNotSharedIsSkipped() {
         run({"save-games", "ada=999,620"});
-        QCOMPARE(m_said.mid(3, 2), QStringList({"skipped ada 999 not-shared", "copying ada"}));
+        QCOMPARE(m_said.mid(4, 2), QStringList({"skipped ada 999 not-shared", "copying ada"}));
         QCOMPARE(lines("helper-calls"), QStringList({"--copy-games ada 620"}));
         QVERIFY(!read("games/ada.json").contains("999"));
     }
@@ -273,7 +361,7 @@ private slots:
         m_said.clear();
         run({"save-games", "ada=620,12"});
         QVERIFY(!QFile::exists(path("systemd-run-calls")));
-        QCOMPARE(m_said.mid(3), QStringList({"child ada added 0 removed 0"}));
+        QCOMPARE(m_said.mid(4), QStringList({"child ada added 0 removed 0"}));
     }
 
     // Every child's games taken off are gone before the first copy starts,
@@ -304,8 +392,9 @@ private slots:
         give("fail-kidscan", "");
         give("games/ada.json", adaHasPortal);
         run({"save-games", "ada=620,12"});
-        QCOMPARE(m_said.mid(2), QStringList({"catalogue kept", "skipped ada 12 no-catalogue",
-                                             "child ada added 0 removed 0"}));
+        QCOMPARE(m_said.mid(2),
+                 QStringList({"catalogue kept", "tools made", "skipped ada 12 no-catalogue",
+                              "child ada added 0 removed 0"}));
         QVERIFY(!QFile::exists(path("systemd-run-calls")));
         QVERIFY(read("games/ada.json").contains("\"620\""));
     }

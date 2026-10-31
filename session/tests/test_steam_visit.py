@@ -624,6 +624,35 @@ class SteamVisitTest(unittest.TestCase):
         self.assertNotIn("/home/ada/.local", trace, "the trace never shows a line before it is checked")
         self.assertNotIn("a word on the error output", trace)
 
+    def test_the_copy_programs_lines_about_steams_tools_are_passed_on(self):
+        # Steam's tools, copied after the games (ADR-0046).
+        good = [
+            "copying-tools",
+            "tool-copied 1070560",
+            "tool-have 1391110",
+            "tool-skipped 1493710 not-a-tool",
+            "tool-skipped 4183110 no-reflink",
+            "tool-missing 1391110",
+            "no-tools",
+            "tools-unreadable",
+        ]
+        self.scenario.set("copy-says", "\n".join(good + [
+            "tool-copied ../1",
+            "tool-copied 1 x",
+            "tool-copied 01x",
+            "tool-skipped 7 Not A Word",
+            "tool-skipped 7",
+            "tool-had 1070560",
+            "tool-copied /var/home/ada/.local/share/Steam",
+            "copying-tools now",
+            "tool-missing 12345678901",
+        ]))
+        run = self.copy()
+        self.assertEqual(run.said, good + ["finished"])
+        trace = (self.scenario.state / "trace").read_text()
+        self.assertNotIn("/var/home/ada", trace, "the trace never shows a line before it is checked")
+        self.assertNotIn("Not A Word", trace)
+
     def notes(self, run):
         return [c.split(" -- ", 1)[1] for c in run.called("logger --tag cairn-steam-visit")]
 
@@ -641,6 +670,22 @@ class SteamVisitTest(unittest.TestCase):
             "copying ada's games: copied 294690",
             "copying ada's games: skipped 7 copy-failed",
             "copying ada's games: unreadable-config",
+            "finished copying ada's games",
+        ])
+
+    def test_a_copy_keeps_a_record_of_steams_tools_but_those_the_child_had(self):
+        self.scenario.set("copy-says", "\n".join([
+            "copying-tools", "tool-copied 1070560", "tool-have 1391110", "tool-skipped 1493710 changed",
+            "tool-missing 4183110", "no-tools", "tools-unreadable",
+        ]))
+        self.assertEqual(self.notes(self.copy()), [
+            "copying ada's games",
+            "copying ada's games: copying-tools",
+            "copying ada's games: tool-copied 1070560",
+            "copying ada's games: tool-skipped 1493710 changed",
+            "copying ada's games: tool-missing 4183110",
+            "copying ada's games: no-tools",
+            "copying ada's games: tools-unreadable",
             "finished copying ada's games",
         ])
 

@@ -75,7 +75,7 @@ What it leaves on the machine:
 | `/usr/local/libexec/cairn/cairn-copy-games`, `/usr/local/libexec/cairn/cairn-game-pictures`, `/usr/local/libexec/cairn/kidscan.py` | The copy step (`cairn-copy-games.py`, ADR-0033), the picture step (`cairn-game-pictures.py`, ADR-0035) and kidscan, whose rules both share, mode 0644, run with `python3 -I` |
 | `/var/lib/cairn/game-pictures/` | The picture on each game's tile (ADR-0035): `<appid>.jpg`, root-owned, mode 0644, in a folder made, or put right, root-owned, mode 0755. On every run that finds the shared folder, the picture step copies the header picture of each shared game that gets a tile from the Steam of the account named with `--guardian`: `header.jpg`, or `library_header.jpg`, the name Steam gives some games' header, from `~/.local/share/Steam/appcache/librarycache/<appid>/`, or from the one folder below it named by a 40-character hash, where Steam keeps some games' pictures, and downloads nothing. It takes the home from the account database and follows no link from the home down, and copies only a plain file of at most 1 MiB that starts as a JPEG does. A picture already in place stays when the Guardian's Steam has none or one that is left out, and the `note:` line says so; the picture of a game that no longer gets a tile is removed. A game with no picture gets a `note:` line saying to open Steam in the Guardian's own login, then run the script again. A link or a file in place of the folder is refused, and a link in place of the shared `steamapps` leaves the pictures and the games file as they were, with a `note:` line |
 | `/var/lib/cairn/games.json` | The children's game tiles (ADR-0033), which the launcher reads with `--games`: kidscan run as root with an empty `HOME` and `python3 -I`, with `--no-scummvm` over the shared folder only (`--library`), and `--pictures` naming each game's picture. Written on every run that finds the shared folder, and reported as changed only when it differs. With no shared folder, or when kidscan fails, the file from the last run stays |
-| each child's `~/.local/share/Steam/steamapps/` | A copy of each game in the shared folder, by reflink, with its manifest copied byte for byte after it. Made on every run that finds a game in the shared folder, one child at a time, by `cairn-steam-visit --copy-games CHILD --all`, which lists the child in `/run/cairn/steam-visits` as a visit does, waits until nothing of theirs is running, and runs the copy as the child. A game the child already has is never touched. A child who is logged in, on a visit, or whose Steam has not run yet gets a `note:` line and their copies at a later run, and so does a game left out, with the reason. Without reflink nothing is copied. The helper keeps a record of each copy in the journal, under `cairn-steam-visit`. Provisioning copies every game; `cairn-steam-visit --copy-games CHILD APPID...` (`cairn-copy-games --only APPID...`) copies only those games, for a child's own list (ADR-0041), copies nothing when given no appids, reports a listed game that is not in the shared folder as `skipped APPID not-shared`, and refuses an appid that is not a plain number before anything changes |
+| each child's `~/.local/share/Steam/steamapps/` | A copy of each game in the shared folder, by reflink, with its manifest copied byte for byte after it. Made on every run that finds a game in the shared folder, one child at a time, by `cairn-steam-visit --copy-games CHILD --all`, which lists the child in `/run/cairn/steam-visits` as a visit does, waits until nothing of theirs is running, and runs the copy as the child. A game the child already has is never touched. A child who is logged in, on a visit, or whose Steam has not run yet gets a `note:` line and their copies at a later run, and so does a game left out, with the reason. Without reflink nothing is copied. The helper keeps a record of each copy in the journal, under `cairn-steam-visit`. Provisioning copies every game; `cairn-steam-visit --copy-games CHILD APPID...` (`cairn-copy-games --only APPID...`) copies only those games, for a child's own list (ADR-0041), copies nothing when given no appids, reports a listed game that is not in the shared folder as `skipped APPID not-shared`, and refuses an appid that is not a plain number before anything changes. On the image the same step then copies Steam's tools the child lacks from the tools folder ([below](#steams-tools-on-the-image)); provisioning makes no tools folder, so here it copies none and says nothing about tools |
 | `/usr/local/bin/cairn-launcher` | Wrapper that runs the release launcher from `/usr/local/libexec/cairn` with the manifest in `/usr/local/share/cairn/manifest.json`, `--games /var/lib/cairn/games.json`, which adds a tile for each shared game after the manifest's (ADR-0033), and `--log-out /usr/local/bin/cairn-log-out`, which gives the tiles a Log out button, `--scope-apps`, which starts each program in a scope the give-up key can end (ADR-0025), and `--start-steam`, which starts the Steam client at login for a child with a Steam tile (ADR-0027). The launcher writes to the journal under `cairn-launcher` (#122). Its Draw tile runs Tux Paint with `--autosave --saveovernew`, so a child who leaves with Super+Q never loses a picture (ADR-0019) |
 
 When something needed a grown-up, the reason is in the journal, kept
@@ -116,9 +116,9 @@ are checked the same way. The children come from the image's own
 too (ADR-0039). It runs only its own list of steps:
 
 1. The checks: the names, the computer runs the image, and the checkout
-   matches it. The image's copy step, picture step, visit helper and
-   kidscan must be the checkout's files, though it runs only the picture
-   step and kidscan itself, with `/usr/local` changed to
+   matches it. The image's copy step, picture step, tools step, visit
+   helper and kidscan must be the checkout's files, though it runs only
+   the picture step and kidscan itself, with `/usr/local` changed to
    `/usr` as the build changes it. On any difference it refuses and says
    to check out the commit the image was built from. `cairn-family` is
    compiled, so it cannot be compared; it must be there, and an image
@@ -163,6 +163,47 @@ What it leaves on the computer:
 | Tux Paint and GCompris | System Flatpaks from Flathub, which the image has as a remote |
 | `/usr/local/share/applications/cairn-steam-for-CHILD.desktop` | "Steam for <child>" in a Guardian's menu, running `/usr/bin/cairn-steam-for`. On Bazzite `/usr/local` is a link to `/var/usrlocal`, which belongs to the computer, and a Guardian's Plasma reads it. The image's `tmpfiles.d` makes the folder at boot. The image's window is `root:cairn-guardian`, mode 0750, so only a Guardian sees the entries |
 | `/var/lib/cairn/games.json`, `/var/lib/cairn/game-pictures/` | The full list of shared games and their pictures, as above, made by the image's kidscan and picture step in `/usr/libexec/cairn`. On the image the launcher does not read it: each child's launcher reads their own list, `/var/lib/cairn/games/<login>.json`, which the Games page's Save writes |
+
+### Steam's tools on the image
+
+A child's games are copies, so the child's own Steam never installs them,
+and would first meet the tools they run in, the Steam Linux Runtimes and
+Proton, at the child's first tap (#206). On the image a Guardian's Save
+brings those tools with the games instead (ADR-0046). Provisioning does
+none of this.
+
+- `/var/lib/cairn/steam-tools`, made by the image's `tmpfiles.d`, is
+  `root:cairn-guardian`, mode 2775, with the shared folder's default ACL.
+  It holds one folder for each tool build, `<appid>-<buildid>`, with the
+  tool's manifest byte for byte and its `common/<installdir>`, never its
+  `var/`.
+- `cairn-share-tools` (`cairn-share-tools.py`) fills it. `cairn-family
+  save-games` runs it at every Save and every Look for new games, as the
+  Guardian whose password opened it, as a system job systemd stops after
+  five minutes. It reads every library of that Guardian's Steam, takes
+  each app kidscan's rule calls a tool whose folder has a
+  `toolmanifest.vdf`, and copies it by reflink when Steam has fully
+  installed it, on no beta branch, and every account can read its files.
+  Each build is made in a folder of the run's own and renamed into place
+  whole, and the tool's older builds go. It refuses to run as root, writes
+  nothing in the Guardian's home, and says only `tool-shared APPID`,
+  `tool-had APPID`, `tool-kept APPID REASON`, `tool-not-shared APPID
+  REASON`, `no-steam`, `refused root`, `refused folder`, `finished` or
+  `failed`.
+- The copy step, after a child's games, copies each tool the child's
+  library lacks from the newest build there, by a game's own rules, and
+  never writes over a tool the child has. It says `copying-tools` before
+  the first, then `tool-copied APPID`, `tool-have APPID` or
+  `tool-skipped APPID REASON` for each, `tool-missing APPID` for a tool
+  one of their tools runs in that their Steam still lacks after the copy
+  (the folder has no build of it, or that build was left out, and its
+  own `tool-skipped` line says why), `no-tools` when the folder is empty,
+  and `tools-unreadable` when it could not be read. The visit helper
+  passes these lines on, and keeps all but `tool-have` in the journal.
+- Both programs take what a tool is from kidscan, `tool_installdir` and
+  `TOOL_BUILD`, so they agree on it. A build stays in the folder until a
+  newer build of that tool replaces it, so the folder can hold a tool the
+  saving Guardian's Steam no longer has, and a child can be given it.
 
 ### Renumbering cairn-guardian
 
