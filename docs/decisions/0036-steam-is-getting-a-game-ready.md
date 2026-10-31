@@ -384,6 +384,12 @@ grown-up screen with the line; another runs the working run, which is never
 stopped, to the game's window; another has a later tap of the stuck game
 end at its first look, and another a refused sign-in after the restart.
 
-This section is checked when, on the test VM with scout and soldier taken
-out of a child's Steam, the first tap on Pajama Sam 2 starts the game with
-no grown-up (#206).
+Checked on the test VM on 2026-10-30, with scout and soldier taken out of
+a child's Steam and this change's build (#206). The first tap on Pajama
+Sam 2, at 21:04:00, fetched scout, and Steam took the game off its
+schedule at 21:04:28. At 21:05:30, 62 seconds later, the launcher found
+the launch stopped and started Steam again, which took 3 seconds. Once the
+new client had started, the launcher sent the tap again at 21:06:00, and
+Steam fetched soldier in 38 seconds. The game started at 21:06:42, 2
+minutes 42 seconds after the tap, with "Getting it ready" on the screen
+throughout and no grown-up.

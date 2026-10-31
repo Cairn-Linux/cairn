@@ -1,10 +1,9 @@
 # ADR-0045: The grown-up screen says what will help, when the launcher knows
 
-**Status:** proposed. It becomes accepted when the line has been seen on
-the grown-up screen in a child's session, after a launch that starting
-Steam again did not mend, and logging the child out and back in then
-started the game (#206). "Checking it" below gives a repeatable case on
-the test VM.
+**Status:** accepted (2026-10-30). The line was seen on the grown-up
+screen in a child's session on the test VM, after a launch that starting
+Steam again could not mend, and logging the child out and back in then
+started the game (#206; "Checking it", below).
 **Date:** 2026-10-30
 **Closes:** (none) — part of issue #206; amends ADR-0030; part of ROADMAP
 P1-13
@@ -120,3 +119,12 @@ one it will not stop, and the stall stays unmended. To see the line:
    of Pajama Sam 2 came on the screen in time."
 4. Log the child out and back in, and tap Pajama Sam 2 again. The game
    starts.
+
+Done on the test VM on 2026-10-30 with this change's build. The tap at
+21:08:41 fetched scout, and Steam took the game off its schedule at
+21:09:07. At 21:10:12 the launcher found that Steam was not running as it
+had started it, and left it alone. At 21:10:27 the launch ended on the
+grown-up screen with the line, 1 minute 46 seconds after the tap, where it
+used to wait 10 minutes. The journal had the four lines above, in that
+order. After the child logged out and back in, the next tap fetched
+soldier in 37 seconds, and the game started 41 seconds after the tap.
