@@ -2,7 +2,9 @@
 
 **Status:** proposed. It becomes accepted when the line has been seen on
 the grown-up screen in a child's session, after a launch that starting
-Steam again did not mend (#206).
+Steam again did not mend, and logging the child out and back in then
+started the game (#206). "Checking it" below gives a repeatable case on
+the test VM.
 **Date:** 2026-10-30
 **Closes:** (none) — part of issue #206; amends ADR-0030; part of ROADMAP
 P1-13
@@ -14,14 +16,20 @@ start." on the screen for a launch that shows nothing, with Back and no
 reason. The launcher could not read Steam's dialogs, and a guess would be
 worse than nothing. The reason goes to the journal, and `docs/TRY.md`
 tells the grown-up what each journal line means.
+[DESIGN §8.3](../DESIGN.md#83-steam-and-proton-available-but-never-visible),
+mitigation 2, asks for a plain "something needs a grown-up" screen; this
+ADR adds one line to it, and §8.3 now says so.
 
 Since then the launcher has learned to tell some cases apart from Steam's
 logs. In one of them it also knows the remedy. A new child's first Linux
 game can stop part-way: Steam takes the game off its download schedule and
 never asks for the second tool the game runs in (#206). The launcher now
 starts Steam again once to mend it (ADR-0036). When that does not help,
-logging the child out and back in does: on the test VM on 2026-10-30, the
-game then started within a minute, both times. The grown-up screen did
+logging the child out and back in is what is left. On the test VM on
+2026-10-30, logging out and back in mended the first stall, and the game
+started within a minute; starting only Steam again mended the second.
+Logging out ends every process of the child's Steam, so it also covers a
+restart that could not be done or did not help. The grown-up screen did
 not say so, and a grown-up who does not read the journal would not know.
 PR #196 asked the same question for a Steam that cannot sign in (#182).
 
@@ -85,3 +93,30 @@ again." belongs on this screen, or in the Guardian tool.
   servers or sign in, after a launch that failed without a stall, nor for a
   window that opened on its own. In QML, the line is hidden without a step,
   and shown, named for a screen reader and at least 18 px with one.
+
+## Checking it
+
+On the test VM a new child's Steam stopped part-way at the first tap on
+Pajama Sam 2, and did so again once scout and soldier were taken out of
+it: 2 times of 2 (ADR-0036). The launcher stops only the Steam it started
+at login, `cairn-steam`, so a child's Steam started under another name is
+one it will not stop, and the stall stays unmended. To see the line:
+
+1. Take scout (1070560) and soldier (1391110) out of a child's Steam.
+2. In that child's session, stop Steam with `steam -shutdown`, and start
+   it again under another unit name:
+
+   ```
+   systemd-run --user --unit=other-steam --collect --quiet --setenv=DISPLAY --setenv=WAYLAND_DISPLAY -- steam -silent
+   ```
+
+3. Tap Pajama Sam 2. "Getting it ready" shows for a minute or two, and
+   then the launch ends on the grown-up screen with "Log out and back in,
+   then try it again." The journal's lines include, in this order: "Steam
+   stopped getting Pajama Sam 2 ready; starting Steam again.", "Steam is
+   not running as the launcher started it, so it was not started again.",
+   "Steam stopped getting Pajama Sam 2 ready, so Pajama Sam 2 did not
+   start. Log the child out and back in, then try it again." and "Nothing
+   of Pajama Sam 2 came on the screen in time."
+4. Log the child out and back in, and tap Pajama Sam 2 again. The game
+   starts.

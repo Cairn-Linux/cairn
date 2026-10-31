@@ -148,7 +148,11 @@ made while installing Bazzite cannot change the shared folder.
    did not get their copies in this run. Until a later run copies the
    game for that child, its tile ends on "Something needs a grown-up".
 7. Open **Steam for** the child and start one game, so Steam fetches the
-   tools it needs out of the child's sight.
+   tools it needs out of the child's sight. With a Linux game this may not
+   be enough: the child's Steam can stop part-way here too (#206; not yet
+   checked in a visit). If the game has not started after a few minutes,
+   close **Steam for**. The launcher deals with it at the child's first
+   tap (see "If something goes wrong").
 
 A new game's tile reaches every child at their next login, and the game
 itself the next time you run the set-up command with that child logged
