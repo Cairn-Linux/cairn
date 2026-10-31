@@ -14,6 +14,13 @@ Rectangle {
 
     signal chosen
 
+    // A held key repeats. Only the first press counts, so holding Enter or
+    // Space picks the child once.
+    function keyPressed(event) {
+        if (!event.isAutoRepeat)
+            choice.chosen();
+    }
+
     width: ring.width + label.implicitWidth + Tokens.bodySize * 3 + (choice.unsaved ? unsavedLabel.implicitWidth + Tokens.bodySize / 2 : 0)
     height: Tokens.headingSize * 2
     radius: Tokens.radiusSm
@@ -30,9 +37,9 @@ Rectangle {
     Accessible.focusable: true
     Accessible.onPressAction: choice.chosen()
 
-    Keys.onReturnPressed: choice.chosen()
-    Keys.onEnterPressed: choice.chosen()
-    Keys.onSpacePressed: choice.chosen()
+    Keys.onReturnPressed: event => choice.keyPressed(event)
+    Keys.onEnterPressed: event => choice.keyPressed(event)
+    Keys.onSpacePressed: event => choice.keyPressed(event)
 
     Rectangle {
         anchors.fill: parent
