@@ -207,7 +207,8 @@ class WhichAppsTest(ShareTestCase):
         (library / "common" / "Portal 2").mkdir()
         (library / "appmanifest_700.acf").write_bytes(b'"AppState"\n{\n\t"appid" "700"\n')
         (library / "appmanifest_701.acf").write_bytes(b"\xff\xfe" + manifest("701", "Proton 9.0", "P"))
-        (library / "appmanifest_1070560.acf").write_bytes(manifest("1070561", *SCOUT[1:3]))
+        # A whole tool, but its manifest names another appid.
+        self.machine.add_tool(SCOUT, data=manifest("1070561", *SCOUT[1:3]))
         (library / "appmanifest_x.acf").write_bytes(manifest("1391110", *SOLDIER[1:3]))
         # Steamworks has no toolmanifest.vdf, and Legacy Steam Runtime is
         # not in kidscan's rule.
@@ -292,6 +293,23 @@ class ShareTest(ShareTestCase):
         self.assertEqual((build / "appmanifest_1070560.acf").stat().st_mode & 0o777, 0o644)
 
     @needs_reflink
+    def test_every_account_can_read_the_build(self):
+        # Each child's copy step reads it. The tools folder is set up as the
+        # image makes it (tmpfiles.d/cairn.conf): setgid, with a default ACL
+        # that takes the umask's place.
+        tools = self.machine.tools
+        tools.chmod(0o2775)
+        if shutil.which("setfacl"):
+            subprocess.run(["setfacl", "-m", "d:u::rwx,d:g::rwx,d:o::r-x", str(tools)], capture_output=True,
+                           check=False)
+        self.machine.add_tool(SCOUT)
+        self.assertEqual(self.machine.run(), ["tool-shared 1070560", "finished"], self.machine.stderr)
+        build = tools / "1070560-100"
+        for path in [build, *build.rglob("*")]:
+            wanted = 0o005 if path.is_dir() else 0o004
+            self.assertEqual(path.stat().st_mode & wanted, wanted, path.relative_to(tools))
+
+    @needs_reflink
     def test_the_four_tools_of_the_vm(self):
         for tool in (PROTON, SCOUT, SLR4, SOLDIER):
             self.machine.add_tool(tool)
@@ -300,6 +318,26 @@ class ShareTest(ShareTestCase):
                                  "tool-shared 4183110", "finished"], self.machine.stderr)
         self.assertEqual(self.machine.builds(), ["1070560-100", "1391110-100", "1493710-100", "4183110-100"])
         self.assertOnlyGrammar(lines)
+
+    @needs_reflink
+    def test_a_manifest_that_is_a_fifo_or_a_link_is_passed_over(self):
+        # Steam makes neither: a FIFO would hold a plain read for ever, and a
+        # link could lead to any file. Here both are in a library the
+        # Guardian's list names, and the run goes on to its other tools.
+        second = self.machine.root / "drives" / "second" / "steamapps"
+        (second / "common").mkdir(parents=True)
+        (self.machine.library / "libraryfolders.vdf").write_text(
+            f'"libraryfolders"\n{{\n\t"1"\n\t{{\n\t\t"path"\t\t"{second.parent}"\n\t}}\n}}\n')
+        for tool in (SCOUT, SOLDIER, PROTON, SLR4):
+            self.machine.add_tool(tool, library=second)
+        real = self.machine.root / "appmanifest_1391110.acf"
+        self.machine.manifest_of(SOLDIER, second).rename(real)
+        self.machine.manifest_of(SOLDIER, second).symlink_to(real)
+        self.machine.manifest_of(PROTON, second).unlink()
+        os.mkfifo(self.machine.manifest_of(PROTON, second))
+        lines = self.machine.run()
+        self.assertEqual(lines, ["tool-shared 1070560", "tool-shared 4183110", "finished"], self.machine.stderr)
+        self.assertEqual(self.machine.builds(), ["1070560-100", "4183110-100"])
 
     @needs_reflink
     def test_the_copy_step_takes_what_this_makes(self):
@@ -390,6 +428,27 @@ class AgainTest(ShareTestCase):
         shutil.copytree(self.machine.tools / "1070560-300", self.machine.tools / "1070560-50")
         self.assertEqual(self.machine.run_with_stand_in(), (0, ["tool-had 1070560", "finished"]))
         self.assertEqual(self.machine.builds(), ["1070560-300"])
+
+    def test_other_tools_builds_stay(self):
+        # Each tool at a build of its own, as on the test VM. A run sets
+        # aside only the older builds of the tool it shares or has.
+        for tool, build in ((SCOUT, "26115262"), (SOLDIER, "26115965"), (PROTON, "26306234"), (SLR4, "26116036")):
+            self.machine.add_tool(tool, build=build)
+        self.assertEqual(self.machine.run_with_stand_in(), (0, ["tool-shared 1070560", "tool-shared 1391110",
+                                                               "tool-shared 1493710", "tool-shared 4183110",
+                                                               "finished"]))
+        self.assertEqual(self.machine.builds(), ["1070560-26115262", "1391110-26115965", "1493710-26306234",
+                                                 "4183110-26116036"])
+        # Steam updates soldier: its older build goes, and the others stay
+        # as they were.
+        others = ["1070560-26115262", "1493710-26306234", "4183110-26116036"]
+        before = {name: (self.machine.tools / name).stat().st_ino for name in others}
+        self.machine.manifest_of(SOLDIER).write_bytes(manifest(*SOLDIER[:3], build="26400000"))
+        self.assertEqual(self.machine.run_with_stand_in(), (0, ["tool-had 1070560", "tool-shared 1391110",
+                                                               "tool-had 1493710", "tool-had 4183110", "finished"]))
+        self.assertEqual(self.machine.builds(), ["1070560-26115262", "1391110-26400000", "1493710-26306234",
+                                                 "4183110-26116036"])
+        self.assertEqual({name: (self.machine.tools / name).stat().st_ino for name in others}, before)
 
     def test_leftovers_go_and_nothing_else(self):
         tools = self.machine.tools

@@ -804,9 +804,11 @@ class ToolsTest(CopyTestCase):
     def test_anything_but_a_builds_folder_is_passed_over(self):
         self.machine.add_tool(**SOLDIER, build=100)
         tools = self.machine.tools
-        # A newer build that is a link, a file, a half-made build and odd
-        # names: none of them is a build.
-        (tools / "1391110-900").symlink_to(tools / "1391110-100")
+        # A newer build that is a link to a whole build outside the folder,
+        # a file, a half-made build and odd names: none of them is a build.
+        elsewhere = self.machine.root / "elsewhere"
+        self.machine.add_tool(**SOLDIER, build=900).rename(elsewhere)
+        (tools / "1391110-900").symlink_to(elsewhere)
         (tools / "1391110-901").write_bytes(b"not a build")
         shutil.copytree(tools / "1391110-100", tools / ".cairn-tool-abc")
         shutil.copytree(tools / "1391110-100", tools / "1391110-0100")
