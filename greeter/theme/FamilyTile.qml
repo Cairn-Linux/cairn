@@ -84,7 +84,11 @@ Item {
     }
 
     // A first and last name are often wider than the tile, so the name
-    // wraps onto a second line before it ends in an ellipsis.
+    // wraps onto a second line before it ends in an ellipsis. It breaks only
+    // between words, as a word split with a stray letter is hard for an
+    // early reader to recognise. So one word too wide for the tile ends in
+    // an ellipsis, and a first word too wide runs a little into the gap
+    // beside the tile.
     Text {
         id: name
 
@@ -93,7 +97,7 @@ Item {
         anchors.topMargin: Tokens.headingSize / 2
         width: tile.width
         horizontalAlignment: Text.AlignHCenter
-        wrapMode: Text.Wrap
+        wrapMode: Text.WordWrap
         maximumLineCount: 2
         elide: Text.ElideRight
         text: tile.displayName

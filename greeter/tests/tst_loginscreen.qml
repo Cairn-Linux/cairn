@@ -92,6 +92,19 @@ TestCase {
         verify(tile.height <= tiles.height);
     }
 
+    // A name breaks only between words. "Christopher" is wider than the
+    // tile. Split at any letter, it read "Christophe" over "r", which is
+    // hard for an early reader to recognise. Now it stays on one line and
+    // ends in an ellipsis inside the tile.
+    function test_aLongWordIsNeverSplit() {
+        const tile = tiles.itemAtIndex(0);
+        tile.displayName = "Christopher";
+        const name = findChild(tile, "tileName");
+        compare(name.lineCount, 1);
+        verify(name.truncated);
+        verify(name.contentWidth <= name.width);
+    }
+
     // A name too long for the password box in any font ends in an ellipsis
     // inside the box, rather than being cut off mid-letter at its edge.
     function test_aLongNameStaysInsideThePasswordBox() {
