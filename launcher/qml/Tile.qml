@@ -17,6 +17,13 @@ Rectangle {
     // Enter, Space or a click. The launcher decides what happens next.
     signal activated
 
+    // A held key repeats. Only the first press counts, so a child holding
+    // Enter on Music does not flip between it and Back many times a second.
+    function keyPressed(event) {
+        if (!event.isAutoRepeat)
+            tile.activated();
+    }
+
     radius: Tokens.radiusTile
     color: {
         switch (kind) {
@@ -40,9 +47,9 @@ Rectangle {
     Accessible.focusable: true
     Accessible.onPressAction: tile.activated()
 
-    Keys.onReturnPressed: tile.activated()
-    Keys.onEnterPressed: tile.activated()
-    Keys.onSpacePressed: tile.activated()
+    Keys.onReturnPressed: event => tile.keyPressed(event)
+    Keys.onEnterPressed: event => tile.keyPressed(event)
+    Keys.onSpacePressed: event => tile.keyPressed(event)
 
     Rectangle {
         anchors.fill: parent

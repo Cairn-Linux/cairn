@@ -239,6 +239,42 @@ TestCase {
         tryCompare(grid.currentItem, "activeFocus", true);
     }
 
+    // A child holding a key down opens the tile once. Each repeat of the
+    // held key used to press Back and then the tile again, so the screen
+    // flashed about ten times a second until the key came up.
+    function test_aHeldKeyOpensATileOnce_data() {
+        return [
+            {
+                tag: "return",
+                key: Qt.Key_Return
+            },
+            {
+                tag: "enter",
+                key: Qt.Key_Enter
+            },
+            {
+                tag: "space",
+                key: Qt.Key_Space
+            }
+        ];
+    }
+
+    function test_aHeldKeyOpensATileOnce(data) {
+        focusTile(3);
+        keyPress(data.key);
+        tryCompare(grownUp, "visible", true);
+        const back = findChild(grownUp, "backTile");
+        tryCompare(back, "activeFocus", true);
+        for (let i = 0; i < 5; ++i) {
+            heldKey.repeat(launcher, data.key);
+            wait(20);
+        }
+        keyRelease(data.key);
+        compare(grownUp.visible, true);
+        compare(appLauncher.state, AppLauncher.ComingSoon);
+        compare(back.activeFocus, true);
+    }
+
     function test_missingProgramShowsGrownUpScreen() {
         focusTile(2);
         keyClick(Qt.Key_Return);
@@ -547,6 +583,29 @@ TestCase {
         tryCompare(screen, "visible", false);
         compare(launcher.logOutAsked, false);
         tryCompare(logOutTile, "activeFocus", true);
+    }
+
+    // Held down on Log out, Enter asks once and leaves the question up.
+    function test_aHeldKeyAsksOnce() {
+        giveLogOut(fixturePath("log-out"));
+        const logOutTile = findChild(launcher, "logOutTile");
+        const screen = findChild(launcher, "logOutScreen");
+        const logOut = findChild(launcher, "logOut");
+        keyClick(Qt.Key_Up);
+        tryCompare(logOutTile, "activeFocus", true);
+        keyPress(Qt.Key_Return);
+        tryCompare(screen, "visible", true);
+        const stay = findChild(screen, "stayTile");
+        tryCompare(stay, "activeFocus", true);
+        for (let i = 0; i < 5; ++i) {
+            heldKey.repeat(launcher, Qt.Key_Return);
+            wait(20);
+        }
+        keyRelease(Qt.Key_Return);
+        compare(screen.visible, true);
+        compare(stay.activeFocus, true);
+        compare(launcher.logOutAsked, true);
+        compare(logOut.state, LogOut.Idle);
     }
 
     function test_escapeStays() {

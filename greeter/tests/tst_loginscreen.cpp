@@ -35,8 +35,8 @@ public slots:
     void qmlEngineAvailable(QQmlEngine* engine) {
         auto* users = new QStandardItemModel(engine);
         users->setItemRoleNames({{nameRole, "name"}, {realNameRole, "realName"}});
-        for (const auto& [name, realName] :
-             {std::pair{"guardian", "Sam"}, std::pair{"ben", "Ben"}, std::pair{"ada", "Ada"}}) {
+        for (const auto& [name, realName] : {std::pair{"guardian", "Test Guardian"},
+                                             std::pair{"ben", "Ben"}, std::pair{"ada", "Ada"}}) {
             auto* item = new QStandardItem;
             item->setData(QString::fromLatin1(name), nameRole);
             item->setData(QString::fromLatin1(realName), realNameRole);

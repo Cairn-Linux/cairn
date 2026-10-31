@@ -221,6 +221,10 @@ themselves.
   logging the child out is planned.
   The journal command above also says it for each such launch: "Steam is
   waiting for an answer about …" or "Steam refused to start …".
+  Steam keeps the question for that game. The game stays held after the
+  internet comes back, until the child logs out and back in, and each tap
+  on it says "did not start" again, with the same journal line. Other
+  games still start.
 - If the journal says "Steam could not sign in", Steam no longer accepts the
   child's saved sign-in. Log the child out, open Steam for the child from
   your own account, and sign in again. If it says "Steam could not reach
