@@ -115,8 +115,8 @@ step 4, and ADR-0041 says how they work.
   any account or group already has the login, it adds 2, 3 and so on, so
   the Add form never names an existing child, whom `create-child` would
   change instead. Spaces at either end of the name are dropped. A name a
-  child on the list already has is refused before any of this (the last
-  section, #212). Then the window checks the whole request with
+  child on the list already has is refused before the login name is made
+  (the last section, #212). Then the window checks the whole request with
   `cairn-family`'s own rule (`FamilyRequest`), so a name the command
   would refuse is refused before the password is asked for.
 - **Move to level N:** one button per level the page can give, the same
@@ -212,12 +212,13 @@ whatever the case of its letters, before the password is asked for.**
   another child, give them a different name, such as one with an
   initial.", with the name as the parent typed it. Like every refusal,
   it leaves the form filled in, and focus goes back to the name.
-- The check comes before the short name is asked for, so a name in
-  another alphabet that a child already has is refused at once.
+- The check comes before the one for a missing short name. A name in
+  another alphabet that a child already has is refused even with the
+  short name left empty.
 - Trying an add again still works. The same name, whatever the case of
   its letters, gets the remembered login, as "Trying an add again" says.
-  It is not refused because the child the failed add made is on the list
-  now.
+  The child the failed add made is on the list by then, but the retry is
+  not refused for having that child's name.
 - The login rule stays. A login that another account or a group already
   has still gets 2, 3 and so on, so the form never names an existing
   account. That now happens only for a different name that makes the
@@ -226,9 +227,9 @@ whatever the case of its letters, before the password is asked for.**
 
 ### Consequences
 
-- The form can no longer make two children who look the same on every
-  screen. A family with two children of one name gives one of them an
-  initial, as the sentence says.
+- The form can no longer make two children with one name. A family with
+  two children of one name gives one of them an initial, as the sentence
+  says.
 - Only children are compared. A child may still get a grown-up's name;
   a grown-up's tile asks for a password, so a child cannot land in that
   account with a tap.

@@ -177,7 +177,7 @@ private slots:
     // A name a child on the list has, whatever the case of its letters, is
     // refused before the password is asked for, with the name as typed. A
     // child with no full name is listed, and named on the login screen, by
-    // their login. The short name is never asked for first.
+    // their login. A missing short name is not asked for first.
     void aNameAChildHasIsRefused_data() {
         QTest::addColumn<QString>("name");
         QTest::addColumn<QString>("subject");
@@ -375,12 +375,25 @@ private slots:
         QCOMPARE(logins, QStringList({"cy", "cy", "dee", "cy"}));
     }
 
-    // Another account took the login meanwhile, so it is not used again.
+    // Another account took the login meanwhile, so it is not used again:
+    // an account that is not a child, or another child, whom create-child
+    // would change.
+    void anUnfinishedLoginNowSomeoneElsesIsNotUsed_data() {
+        QTest::addColumn<QStringList>("groups");
+        QTest::addColumn<QString>("fullName");
+
+        QTest::newRow("not a child") << QStringList{"cy"} << QString();
+        QTest::newRow("another child") << QStringList{"cy", "cairn-l1"} << QStringLiteral("Cy B");
+    }
+
     void anUnfinishedLoginNowSomeoneElsesIsNotUsed() {
+        QFETCH(const QStringList, groups);
+        QFETCH(const QString, fullName);
         StandInFamily family(QStringLiteral("refused-failed"));
         family.page->addChild(QStringLiteral("Cy"), QString(), 1);
         QVERIFY(family.waitUntilAnswered());
-        family.accounts.push_back({.uid = 1005, .groups = {"cy"}, .login = "cy", .fullName = {}});
+        family.accounts.push_back(
+            {.uid = 1005, .groups = groups, .login = "cy", .fullName = fullName});
         family.page->reload();
         StandInFamily::answerWith(QStringLiteral("done"));
         family.page->addChild(QStringLiteral("Cy"), QString(), 1);
