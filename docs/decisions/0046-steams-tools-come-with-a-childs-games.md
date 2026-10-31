@@ -33,9 +33,9 @@ them ("Runs in" is each tool's `require_tool_appid`):
 On 2026-10-30 `ada`'s first tap on Pajama Sam 2 (292780), a native game,
 fetched scout and never soldier. She saw "Getting it ready" for 10
 minutes, then "Something needs a grown-up", twice out of two (#206).
-Arthur's Birthday (2471140), a Windows game, started after about two and
-a half minutes for 688 MB of tools; on slow Wi-Fi that takes longer than
-ADR-0036's 10-minute limit.
+Arthur's Birthday (2471140), a Windows game, started 2 minutes 39
+seconds after the tap, once her Steam had downloaded 688 MB of tools; on
+slow Wi-Fi that takes longer than ADR-0036's 10-minute limit.
 
 ### What the maintainer chose
 
@@ -96,10 +96,11 @@ them or still has to download one.**
 
 ### This is not the mechanism first picked
 
-Mason first picked each child's Steam downloading its own tools, asked
-for by name, with the parent told it takes a while and shown how far it
-has got. E9 tried three documented links that install or run an app by
-its appid; each opened a dialog that waits for a click nobody can give.
+Mason first picked each child's Steam fetching its own tools ahead of
+time, with the parent told it takes a while and shown how far it has
+got. A Steam nobody sees would have to be asked for each tool by its
+appid: E9 tried three documented links that install or run an app that
+way, and each opened a dialog that waits for a click nobody can give.
 E1 and E1b found that a copy needs no asking: seconds, no disk, nothing
 downloaded, and the games started. So the copy is the first-time path,
 and the window says it usually takes a few seconds. The long downloads
@@ -197,8 +198,8 @@ games with into Ada's Steam. This usually takes a few seconds, and Ada
 cannot log in until it ends."
 
 Last in each child's result, one of three sentences: the tools were
-copied from Cairn's copies, though one Cairn has no copy of, or a newer
-version, still downloads and can make that game wait several minutes;
+copied, though one Cairn has no copy of, or a newer version, still
+downloads and can make that game wait several minutes;
 Ada's Steam may not have every tool yet; or Cairn had no tools to copy.
 The last two add "If that game does not start, log Ada out and back in,
 then try it again.", true with or without ADR-0036's restart. A child who
@@ -296,6 +297,40 @@ In cairn-iso, with an image built from this change:
    does not take: what the child's Steam does, and how long the tap
    waits.
 7. Neither journal shows a path or a name.
+
+### First run, 2026-10-30
+
+In cairn-iso, on a build of this branch put over the image's `/usr`, with
+the VM's clock in EDT:
+
+- tmpfiles made the tools folder, mode 2775, `root:cairn-guardian`, with
+  the shared folder's default ACL.
+- A Save that only took two games off `ada`'s list said `tools made` at
+  23:54:37. The step ran as the Guardian for 1.3 s; systemd gave it
+  `cairn-guardian`, so it could write the folder. The folder held four
+  builds, `1070560-26115262`, `1391110-26115965`, `1493710-26306234` and
+  `4183110-26116036`: the Guardian's, group `cairn-guardian`, no `var/`,
+  2.96 GiB with 0 B of their own.
+- With `ada`'s own four tools and their five depot-cache files set aside,
+  a Save gave her the two games back at 23:55:04: the games `have`, then
+  `copying-tools ada` and four `tool-copied`, in 1.2 s for the whole Save.
+  The copies were hers, without `var/`, with the SELinux types Steam gave
+  her own install, manifests byte for byte the folder's, 0 B of their own.
+- At her login her Steam loaded all four tools. Pajama Sam 2 started 1 s
+  after the tap (23:59:34) and Arthur's Birthday 5 s after it (00:00:28),
+  both in the copies, with no download, no verify and no depot-cache file
+  fetched. An earlier tap at 23:56:36 never reached the launcher (the
+  VM's pointer; no line in any log).
+- Check 2 held: a second Save said `tools made` and shared nothing, and
+  the step run by hand as the Guardian said `tool-had` four times.
+- Check 3 held: a Save that gave her Pajama Sam 2 again, with every tool,
+  said `tool-have` four times and left her manifests as they were.
+- Check 5 held under `sudo`: `tools kept`, the folder unchanged. A
+  wheel-only grown-up was not tried.
+- Check 7 held: the journals name appids and the child's login only.
+- Her Steam had installed these tools that day, so check 1 still needs a
+  child whose Steam never had them; checks 4 and 6 are still to run.
+  `ada`'s own tools were put back afterwards.
 
 ## Alternatives considered
 

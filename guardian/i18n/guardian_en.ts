@@ -1001,11 +1001,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveResultWords.qml" line="97"/>
-        <source>Copied the tools Steam runs games with into %1&apos;s Steam, from the copies Cairn keeps of the grown-ups&apos; tools, so %1&apos;s first game does not have to download them. A tool Cairn has no copy of, or a newer version Valve has made since, still downloads the first time a game needs it, which can make that game wait several minutes.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <location filename="../qml/SaveResultWords.qml" line="101"/>
         <source>Cairn had no copies of the tools Steam runs games with to give %1&apos;s Steam. If %1&apos;s Steam does not have them yet, %1&apos;s first game waits while it downloads them, which can take several minutes. If that game does not start, log %1 out and back in, then try it again.</source>
         <translation type="unfinished"></translation>
@@ -1013,6 +1008,11 @@
     <message>
         <location filename="../qml/SaveResultWords.qml" line="99"/>
         <source>%1&apos;s Steam may not have every tool Steam runs games with yet. The first game that needs a missing one waits while %1&apos;s Steam downloads it, which can take several minutes. If that game does not start, log %1 out and back in, then try it again. The record is in the system log. In a terminal: journalctl -t cairn-steam-visit</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveResultWords.qml" line="97"/>
+        <source>Copied the tools Steam runs games with into %1&apos;s Steam, so %1&apos;s first game does not have to download them. A tool Cairn has no copy of, or a newer version Valve has made since, still downloads the first time a game needs it, which can make that game wait several minutes.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

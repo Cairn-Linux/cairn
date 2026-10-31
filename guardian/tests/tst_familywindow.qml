@@ -969,7 +969,7 @@ TestCase {
             {
                 "tag": "copied",
                 "scenario": "save-tools",
-                "words": "Copied the tools Steam runs games with into Ada's Steam, from the copies Cairn keeps of the grown-ups' tools, so Ada's first game does not have to download them. A tool Cairn has no copy of, or a newer version Valve has made since, still downloads the first time a game needs it, which can make that game wait several minutes."
+                "words": "Copied the tools Steam runs games with into Ada's Steam, so Ada's first game does not have to download them. A tool Cairn has no copy of, or a newer version Valve has made since, still downloads the first time a game needs it, which can make that game wait several minutes."
             },
             {
                 "tag": "missing",

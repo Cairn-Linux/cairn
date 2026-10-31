@@ -94,7 +94,7 @@ QtObject {
     function toolsSentence(tools, name) {
         switch (tools) {
         case GamesSaving.ToolsCopied:
-            return qsTr("Copied the tools Steam runs games with into %1's Steam, from the copies Cairn keeps of the grown-ups' tools, so %1's first game does not have to download them. A tool Cairn has no copy of, or a newer version Valve has made since, still downloads the first time a game needs it, which can make that game wait several minutes.").arg(name);
+            return qsTr("Copied the tools Steam runs games with into %1's Steam, so %1's first game does not have to download them. A tool Cairn has no copy of, or a newer version Valve has made since, still downloads the first time a game needs it, which can make that game wait several minutes.").arg(name);
         case GamesSaving.ToolsMissing:
             return qsTr("%1's Steam may not have every tool Steam runs games with yet. The first game that needs a missing one waits while %1's Steam downloads it, which can take several minutes. If that game does not start, log %1 out and back in, then try it again. The record is in the system log. In a terminal: journalctl -t cairn-steam-visit").arg(name);
         case GamesSaving.NoToolsToCopy:
