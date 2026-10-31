@@ -46,9 +46,12 @@ bool ChildrenPage::needsShortName(const QString& name) const {
     return !name.trimmed().isEmpty() && !loginFromName(name.trimmed()).has_value();
 }
 
-// The login name comes from the name, or from the short name when the name
-// gives none, and is never one an account or group already has: given an
-// existing child's login, create-child would change that child instead.
+// A name a child on the list already has is refused, unless the add
+// finishes a failed one: two children with one name look the same on
+// every screen (#212). The login name comes from the name, or from the
+// short name when the name gives none, and is never one an account or
+// group already has: given an existing child's login, create-child would
+// change that child instead.
 void ChildrenPage::addChild(const QString& name, const QString& shortName, int level) {
     if (busy()) {
         return;
@@ -60,6 +63,11 @@ void ChildrenPage::addChild(const QString& name, const QString& shortName, int l
         setStep(Step::NotChanged, Reason::NoName);
         return;
     }
+    const std::optional<QString> unfinished = unfinishedLogin(fullName);
+    if (!unfinished && childNamed(m_children, fullName) != nullptr) {
+        setStep(Step::NotChanged, Reason::SameName);
+        return;
+    }
     std::optional<QString> login = loginFromName(fullName);
     if (!login) {
         login = loginFromName(shortName.trimmed());
@@ -68,7 +76,10 @@ void ChildrenPage::addChild(const QString& name, const QString& shortName, int l
         setStep(Step::NotChanged, Reason::NoShortName);
         return;
     }
-    const std::optional<QString> free = loginToAdd(*login, fullName);
+    std::optional<QString> free = unfinished;
+    if (!free) {
+        free = freeLogin(*login, m_setup.nameInUse);
+    }
     if (!free) {
         setStep(Step::NotChanged, Reason::Taken);
         return;
@@ -79,22 +90,21 @@ void ChildrenPage::addChild(const QString& name, const QString& shortName, int l
         Step::Added);
 }
 
-// After an add that may have stopped part way, adding the same name again
-// gives create-child the same login, so the second run finishes the first
-// (ADR-0039) instead of making a second account with that name. It does
-// only while that login is free or is still that very child.
-std::optional<QString> ChildrenPage::loginToAdd(const QString& login,
-                                                const QString& fullName) const {
-    if (m_unfinished && m_unfinished->fullName == fullName) {
-        const QString& earlier = m_unfinished->login;
-        const bool sameChild = std::ranges::any_of(m_children, [&](const ListedChild& child) {
-            return child.login == earlier && child.name == fullName;
-        });
-        if (sameChild || !m_setup.nameInUse(earlier)) {
-            return earlier;
-        }
+// After an add that may have stopped part way, adding that name again,
+// whatever the case of its letters, gives create-child the same login, so
+// the second run finishes the first (ADR-0039) instead of making a second
+// account with that name. It does only while that login is free or is
+// still that very child.
+std::optional<QString> ChildrenPage::unfinishedLogin(const QString& fullName) const {
+    if (!m_unfinished || !sameName(m_unfinished->fullName, fullName)) {
+        return std::nullopt;
     }
-    return freeLogin(login, m_setup.nameInUse);
+    const QString& earlier = m_unfinished->login;
+    const ListedChild* child = childWithLogin(m_children, earlier);
+    if ((child != nullptr && sameName(child->name, fullName)) || !m_setup.nameInUse(earlier)) {
+        return earlier;
+    }
+    return std::nullopt;
 }
 
 // Only a child the page lists, so the page never names another account.

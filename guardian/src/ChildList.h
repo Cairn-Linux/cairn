@@ -28,6 +28,14 @@ std::vector<ListedChild> childrenAmong(std::vector<Account> accounts);
 // The child with this login among them, or nullptr.
 const ListedChild* childWithLogin(const std::vector<ListedChild>& children, const QString& login);
 
+// Whether the two are one name to a family: the same but for the case of
+// their letters and spaces at either end, as "Cy" and " cy ". An accent
+// counts, so "Zoe" is not "Zoë".
+bool sameName(const QString& one, const QString& other);
+
+// The first child among them with this name, by sameName(), or nullptr.
+const ListedChild* childNamed(const std::vector<ListedChild>& children, const QString& name);
+
 // Their logins, in the same order.
 QStringList loginsOf(const std::vector<ListedChild>& children);
 
