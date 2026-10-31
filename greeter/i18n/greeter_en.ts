@@ -29,17 +29,17 @@
     <message>
         <location filename="../theme/PasswordRow.qml" line="18"/>
         <location filename="../theme/PasswordRow.qml" line="59"/>
-        <location filename="../theme/PasswordRow.qml" line="68"/>
+        <location filename="../theme/PasswordRow.qml" line="73"/>
         <source>Password for %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../theme/PasswordRow.qml" line="82"/>
+        <location filename="../theme/PasswordRow.qml" line="87"/>
         <source>Back</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../theme/PasswordRow.qml" line="88"/>
+        <location filename="../theme/PasswordRow.qml" line="93"/>
         <source>Log in</source>
         <translation type="unfinished"></translation>
     </message>

@@ -136,6 +136,41 @@ private slots:
         QCOMPARE(paused.first().first().toBool(), false);
         QVERIFY(steam.running());
     }
+
+    // #217: Steam had stopped acting on -shutdown. While it still runs,
+    // nothing starts it again or says it is coming back.
+    void aSteamThatWillNotCloseIsNotStartedAgain() {
+        const StandInProc proc;
+        proc.addProcess(QStringLiteral("4242"), "steam");
+        proc.makeStubborn();
+        OwnSteam steam(getuid(), programsFor(proc));
+        const QSignalSpy paused(&steam, &OwnSteam::paused);
+        steam.pause();
+        QTRY_COMPARE(paused.count(), 1);
+        QVERIFY(!steam.resume());
+        QTest::qWait(200);
+        QVERIFY(proc.started().isEmpty());
+    }
+
+    // #217: the Guardian quit it from its icon, as the window said, and
+    // tried again. It comes back after that visit, as the first screen
+    // said it would.
+    void aSteamQuitByHandAfterItWouldNotCloseComesBackLater() {
+        const StandInProc proc;
+        proc.addProcess(QStringLiteral("4242"), "steam");
+        proc.makeStubborn();
+        OwnSteam steam(getuid(), programsFor(proc));
+        const QSignalSpy paused(&steam, &OwnSteam::paused);
+        steam.pause();
+        QTRY_COMPARE(paused.count(), 1);
+        QVERIFY(!steam.resume());
+        QVERIFY(QDir(proc.path() + QStringLiteral("/4242")).removeRecursively());
+        steam.pause();
+        QTRY_COMPARE(paused.count(), 2);
+        QCOMPARE(paused.last().first().toBool(), true);
+        QVERIFY(steam.resume());
+        QTRY_COMPARE(proc.started(), QByteArray("bazzite-steam -silent\n"));
+    }
 };
 
 } // namespace

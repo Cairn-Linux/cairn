@@ -26,4 +26,13 @@ if pgrep --uid "$me" --exact steam > /dev/null; then
     done
 fi
 
+# The next person needs the login screen. When the session ends, SDDM makes
+# one only if no other session is open; otherwise it goes back to the last
+# one, and after a grown-up's Switch User that is the grown-up's lock screen
+# (#213). So ask for one first, as Switch User does. If SDDM does not answer,
+# logging out still goes ahead.
+busctl --timeout=5 call --system org.freedesktop.DisplayManager \
+    "${XDG_SEAT_PATH:-/org/freedesktop/DisplayManager/Seat0}" \
+    org.freedesktop.DisplayManager.Seat SwitchToGreeter || true
+
 exec loginctl terminate-user "$me"

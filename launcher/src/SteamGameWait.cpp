@@ -23,6 +23,7 @@ void SteamGameWait::startLaunch(const QStringList& exec) {
     m_reapersBefore = m_reapers.of(m_appId);
     m_log.startLaunch(m_appId);
     m_stall.startLaunch(m_appId);
+    m_questions.startLaunch(m_appId);
     m_lastStep = SteamLaunchLog::Step::Nothing;
     m_steamNow = SteamStartup::Now::Ready;
     m_signInNow = SteamSignIn::Now::Fine;
@@ -42,11 +43,13 @@ bool SteamGameWait::stillComing() {
         return false;
     }
     const QDateTime now = QDateTime::currentDateTime();
-    m_lastStep = m_log.read();
+    m_log.read();
+    m_lastStep = m_questions.read(m_log);
     m_steamNow = m_startup.read(now);
     m_stallNow = m_stall.read(m_log, m_steamNow, now);
     // Once Steam has the game in hand, its sign-in no longer matters: it
-    // starts games while it cannot reach its servers. Unless it stopped
+    // starts games while it cannot reach its servers, and signing in again
+    // does not free a game it holds behind a question. Unless it stopped
     // getting the game ready: what it still needs must come from them.
     const bool needsServers =
         m_lastStep == SteamLaunchLog::Step::Nothing || m_stallNow == SteamStall::Now::Stalled;
@@ -109,6 +112,9 @@ bool SteamGameWait::restartSteam() {
 }
 
 void SteamGameWait::steamRestarted(bool started) {
+    if (started) {
+        m_questions.steamRestarted();
+    }
     if (!m_stall.restarted(started)) {
         return;
     }
