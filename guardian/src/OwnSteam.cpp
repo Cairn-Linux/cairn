@@ -66,7 +66,9 @@ void OwnSteam::pause() {
 }
 
 bool OwnSteam::resume() {
-    if (!m_askedToShutDown) {
+    // A Steam still running never went, so it is not coming back. It stays
+    // asked, and comes back once it has gone and a later visit ends.
+    if (!m_askedToShutDown || running()) {
         return false;
     }
     m_askedToShutDown = false;

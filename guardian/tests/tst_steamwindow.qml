@@ -291,6 +291,18 @@ TestCase {
         verifyFits(window, "not-opened-own-steam-still-open");
     }
 
+    // #217: it named no place to quit Steam from, and said Steam was
+    // starting again when it had never stopped.
+    function test_ownSteamThatWillNotCloseSaysWhereToQuitIt() {
+        const window = makeWindow("open", true);
+        standIns.ownSteamWillNotQuit(true);
+        pressMainButton(window);
+        tryCompare(window.visit, "step", SteamForChild.NotOpened);
+        verify(words(window).includes("Right-click the Steam icon near the clock and choose Exit Steam. When its icon has gone, try again."));
+        verify(!window.visit.ownSteamComingBack);
+        verify(!words(window).includes("starting again"));
+    }
+
     function test_askingFits() {
         const window = makeWindow("asking", false);
         pressMainButton(window);

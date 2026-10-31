@@ -49,6 +49,17 @@ public:
         return QFile::exists(m_proc.filePath(QStringLiteral("started")));
     }
 
+    // The Guardian's own Steam stops acting on -shutdown, as in #217.
+    void ownSteamWillNotQuit() const {
+        QFile stubborn(m_proc.filePath(QStringLiteral("stubborn")));
+        QVERIFY(stubborn.open(QIODevice::WriteOnly));
+    }
+
+    // It has gone after all: quit by hand, or done saving at last.
+    void ownSteamGone() const {
+        QVERIFY(QDir(m_proc.filePath(QStringLiteral("4242"))).removeRecursively());
+    }
+
 private:
     QTemporaryDir m_proc;
 };
@@ -221,6 +232,104 @@ private slots:
         visit.open();
         QTRY_COMPARE(visit.step(), Step::NotOpened);
         QCOMPARE(visit.reason(), Reason::OwnSteamStillOpen);
+    }
+
+    // #217: a Steam that will not close is not said to be coming back.
+    // Quit by hand, as the window says, it comes back once the visit of
+    // Try again has closed.
+    void anOwnSteamQuitByHandComesBackAfterTheNextVisit() {
+        const StandIns standIns(true);
+        standIns.ownSteamWillNotQuit();
+        SteamForChild visit(standIns.setup(QStringLiteral("open")));
+        visit.open();
+        QTRY_COMPARE(visit.step(), Step::NotOpened);
+        QVERIFY(!visit.ownSteamComingBack());
+        QTest::qWait(200);
+        QVERIFY(!standIns.ownSteamStartedAgain());
+
+        standIns.ownSteamGone();
+        visit.open();
+        QTRY_COMPARE(visit.step(), Step::Open);
+        visit.done();
+        QTRY_COMPARE(visit.step(), Step::Closed);
+        QVERIFY(visit.ownSteamComingBack());
+        QTRY_VERIFY(standIns.ownSteamStartedAgain());
+    }
+
+    // #217: quit by hand, then the Try again is refused. Steam was closed
+    // for a visit that did not happen, so it comes back, and the window
+    // says so.
+    void aRefusedTryAgainAfterAQuitByHandBringsItBack() {
+        const StandIns standIns(true);
+        standIns.ownSteamWillNotQuit();
+        SteamForChild visit(standIns.setup(QStringLiteral("dismissed")));
+        visit.open();
+        QTRY_COMPARE(visit.step(), Step::NotOpened);
+        QCOMPARE(visit.reason(), Reason::OwnSteamStillOpen);
+        standIns.ownSteamGone();
+        visit.open();
+        QTRY_COMPARE(visit.reason(), Reason::NoPassword);
+        QVERIFY(visit.ownSteamComingBack());
+        QTRY_VERIFY(standIns.ownSteamStartedAgain());
+    }
+
+    // #217: Steam saved for longer than the wait and went after the window
+    // said it did not close. Closing the window, rather than trying again,
+    // brings it back, as the first screen said.
+    void closingTheWindowAfterTheOwnSteamWentLateBringsItBack() {
+        const StandIns standIns(true);
+        standIns.ownSteamWillNotQuit();
+        SteamForChild visit(standIns.setup(QStringLiteral("open")));
+        visit.open();
+        QTRY_COMPARE(visit.reason(), Reason::OwnSteamStillOpen);
+        standIns.ownSteamGone();
+        QVERIFY(visit.leave());
+        QTRY_VERIFY(standIns.ownSteamStartedAgain());
+    }
+
+    // While it still runs, closing the window starts nothing.
+    void closingTheWindowWhileTheOwnSteamStillRunsStartsNothing() {
+        const StandIns standIns(true);
+        standIns.ownSteamWillNotQuit();
+        SteamForChild visit(standIns.setup(QStringLiteral("open")));
+        visit.open();
+        QTRY_COMPARE(visit.reason(), Reason::OwnSteamStillOpen);
+        QVERIFY(visit.leave());
+        QTest::qWait(200);
+        QVERIFY(!standIns.ownSteamStartedAgain());
+    }
+
+    // #217: the close button while a Steam that will not close was being
+    // closed. It is still there, so nothing starts it or says it comes back.
+    void closingTheWindowWhileTheOwnSteamWillNotCloseStartsNothing() {
+        const StandIns standIns(true);
+        standIns.ownSteamWillNotQuit();
+        SteamForChild visit(standIns.setup(QStringLiteral("open")));
+        const QSignalSpy quit(&visit, &SteamForChild::quitRequested);
+        visit.open();
+        QVERIFY(!visit.leave());
+        QTRY_COMPARE(quit.count(), 1);
+        QVERIFY(!visit.ownSteamComingBack());
+        QTest::qWait(200);
+        QVERIFY(!standIns.ownSteamStartedAgain());
+    }
+
+    // #217: locked while a Steam that will not close was being closed. The
+    // window starts over with Steam still there; once Steam has gone,
+    // closing the window brings it back.
+    void aLockWhileTheOwnSteamWillNotCloseBringsItBackOnceItHasGone() {
+        const StandIns standIns(true);
+        standIns.ownSteamWillNotQuit();
+        SteamForChild visit(standIns.setup(QStringLiteral("open")));
+        visit.open();
+        visit.screenLocked();
+        QTRY_COMPARE(visit.step(), Step::Ready);
+        QVERIFY(!visit.ownSteamComingBack());
+        QTest::qWait(200);
+        QVERIFY(!standIns.ownSteamStartedAgain());
+        standIns.ownSteamGone();
+        QVERIFY(visit.leave());
+        QTRY_VERIFY(standIns.ownSteamStartedAgain());
     }
 
     void eachWordOfTheHelperHasItsReason() {
