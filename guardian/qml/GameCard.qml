@@ -6,7 +6,8 @@ import Cairn.Brand
 // the picked child's list. Tapping it, or Space or Enter, puts it on the
 // list or takes it off until Save. A game on the list is highlighted and
 // says so in words, so the colour is never the only sign, and a change not
-// saved yet says that too.
+// saved yet says that too. A game without a picture says that the child's
+// tile shows its name, and what helps (ADR-0047).
 Rectangle {
     id: card
 
@@ -22,6 +23,9 @@ Rectangle {
     // False for a game on the saved list that the shared folder no longer
     // has.
     readonly property bool shared: card.game.shared !== false
+    // The child's tile shows the same picture, or the name when there is
+    // none.
+    readonly property bool pictured: card.game.picture.toString() !== ""
 
     signal turned
 
@@ -32,6 +36,16 @@ Rectangle {
         if (card.onList)
             return card.saved ? qsTr("On the list") : qsTr("Added, not saved yet");
         return card.saved ? qsTr("Taken off, not saved yet") : qsTr("Not on the list");
+    }
+
+    // What a game without a picture says. One no longer shared gets no new
+    // picture, so it says only that.
+    function pictureWords() {
+        if (card.pictured)
+            return "";
+        if (!card.shared)
+            return qsTr("No picture, so %1's tile shows the name. It can get one once it is in the shared folder again.").arg(card.childName);
+        return qsTr("No picture yet, so a child's tile shows the name. To add one, open Steam in your own login, then press Look for new games. If it still has none, the reason is in the system log. In a terminal: journalctl -t cairn-family");
     }
 
     function stateDescription() {
@@ -51,7 +65,7 @@ Rectangle {
 
     Accessible.role: Accessible.CheckBox
     Accessible.name: card.game.title
-    Accessible.description: card.stateDescription()
+    Accessible.description: card.pictured ? card.stateDescription() : card.stateDescription() + ". " + card.pictureWords()
     Accessible.checkable: true
     Accessible.checked: card.onList
     Accessible.focusable: true
@@ -132,6 +146,18 @@ Rectangle {
             font.family: Tokens.fontFamily
             font.pixelSize: Tokens.minGuardian
             font.weight: card.onList === card.saved ? Tokens.weightRegular : Tokens.weightBold
+            color: Tokens.paperLabel
+            Accessible.ignored: true
+        }
+
+        Text {
+            objectName: "pictureHint"
+            width: parent.width
+            wrapMode: Text.WordWrap
+            text: card.pictureWords()
+            visible: text !== ""
+            font.family: Tokens.fontFamily
+            font.pixelSize: Tokens.minGuardian
             color: Tokens.paperLabel
             Accessible.ignored: true
         }

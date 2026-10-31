@@ -7,11 +7,11 @@
 
 #include <optional>
 
-// The picture an entry of the manifest or the games file may name, so a
-// child who cannot read yet can still tell one game from another (#138,
-// ADR-0035). It is the full path of a file on this computer, such as the
-// copy provisioning makes of a game's picture from Steam. Never a URL: the
-// launcher fetches nothing.
+// The picture on a tile, so a child who cannot read yet can still tell one
+// game from another (#138, ADR-0035). It is a file on this computer, never a
+// URL: the launcher fetches nothing. A game from the games file shows the
+// picture step's copy for its app id (ADR-0047); a manifest entry may name
+// the full path of a picture itself.
 namespace TilePicture {
 
 struct Result {
@@ -22,7 +22,14 @@ struct Result {
     std::optional<QString> refused;
 };
 
-// Reads the entry's "picture" key. No key means no picture and nothing to say.
+// Reads a manifest entry's "picture" key. No key means no picture and
+// nothing to say.
 Result fromEntry(const QJsonObject& entry);
+
+// The picture step's copy of a Steam game's picture, <folder>/<appId>.jpg,
+// as a file:// URL when it is a plain file, not a link. Empty otherwise,
+// and for an empty or relative folder or anything but an app id, so no
+// name can lead out of the folder. A game without one shows its name.
+QUrl forAppId(const QString& folder, const QString& appId);
 
 } // namespace TilePicture

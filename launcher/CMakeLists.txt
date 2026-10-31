@@ -102,6 +102,10 @@ add_test(NAME manifest COMMAND tst_manifest)
 qt_add_executable(tst_tilefiles tests/tst_tilefiles.cpp ${launcher_model_sources})
 target_include_directories(tst_tilefiles PRIVATE src)
 target_link_libraries(tst_tilefiles PRIVATE Qt6::Qml Qt6::Test)
+# A picture inside the test program, :/pictures/1001.jpg, for the rule to
+# refuse: a game's picture is a file on the computer.
+qt_add_resources(tst_tilefiles "picture_fixture" PREFIX "/pictures" BASE tests/fixtures
+    FILES tests/fixtures/1001.jpg)
 add_test(NAME tilefiles COMMAND tst_tilefiles)
 
 qt_add_executable(tst_applauncher tests/tst_applauncher.cpp ${launcher_model_sources})
@@ -238,9 +242,9 @@ add_test(NAME doorsfromtiles COMMAND tst_doorsfromtiles)
 
 # kidscan's own manifest and games file, read by the launcher (#97,
 # ADR-0033). The first test scans a synthetic Steam library and writes both
-# files, with stand-in pictures beside the games file; CTest always runs it
-# before the second, which reads them, because one sets up the fixture the
-# other needs.
+# files, with stand-in pictures in a folder beside the games file, which
+# the launcher finds by app id (ADR-0047); CTest always runs it before the
+# second, which reads them, because one sets up the fixture the other needs.
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 set(kidscan_manifest "${CMAKE_CURRENT_BINARY_DIR}/kidscan-roundtrip.json")
 set(kidscan_games "${CMAKE_CURRENT_BINARY_DIR}/kidscan-roundtrip-games.json")
@@ -262,7 +266,7 @@ add_test(NAME launcher_wrapper
 )
 set_tests_properties(launcher_reads_kidscan PROPERTIES
     FIXTURES_REQUIRED kidscan_manifest
-    ENVIRONMENT "KIDSCAN_MANIFEST=${kidscan_manifest};KIDSCAN_GAMES=${kidscan_games}"
+    ENVIRONMENT "KIDSCAN_MANIFEST=${kidscan_manifest};KIDSCAN_GAMES=${kidscan_games};KIDSCAN_PICTURES=${CMAKE_CURRENT_BINARY_DIR}/kidscan-roundtrip-games-pictures"
 )
 
 # Compile the same module into the Quick Test host, including the real Main.qml.
@@ -277,8 +281,15 @@ qt_add_qml_module(tst_navigation
 target_include_directories(tst_navigation PRIVATE src)
 target_link_libraries(tst_navigation PRIVATE Qt6::Gui Qt6::DBus Qt6::QuickTest CairnBrand
     cairn-foreign-toplevel footpath footpathplugin)
+# A stand-in for a game's picture where the picture step would copy one, by
+# its app id (ADR-0047): the brand's own mark, so no game's art is part of
+# the tests.
+set(launcher_stand_in_pictures "${CMAKE_CURRENT_BINARY_DIR}/tests/game-pictures")
+configure_file("${PROJECT_SOURCE_DIR}/brand/mark.svg" "${launcher_stand_in_pictures}/1001.jpg"
+    COPYONLY)
 target_compile_definitions(tst_navigation PRIVATE
     QUICK_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests"
+    STAND_IN_PICTURES="${launcher_stand_in_pictures}"
 )
 add_test(NAME navigation COMMAND tst_navigation)
 

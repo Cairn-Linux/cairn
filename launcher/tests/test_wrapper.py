@@ -73,6 +73,15 @@ class WrapperTest(unittest.TestCase):
         self.assertNotIn("--games", arguments)
         self.assertIn("--manifest", arguments)
 
+    def test_every_game_shows_the_picture_steps_copy(self):
+        # The launcher finds each game's picture there by its app id
+        # (ADR-0047), whoever logs in.
+        for login_line in ('[ "$1" = -un ] && echo ada', "exit 1"):
+            with self.subTest(login_line=login_line):
+                arguments = self.run_as(login_line)
+                index = arguments.index("--pictures")
+                self.assertEqual(arguments[index + 1], "/var/lib/cairn/game-pictures")
+
     def test_the_sessions_own_arguments_come_last(self):
         arguments = self.run_as('[ "$1" = -un ] && echo ada', "--extra")
         self.assertEqual(arguments[-1], "--extra")

@@ -56,13 +56,17 @@ The Games page (ADR-0041):
 1. Pick a child. The first child is picked when the page opens.
 2. A grid shows every game in the shared folder, from
    `/var/lib/cairn/games.json`, with its picture from
-   `/var/lib/cairn/game-pictures` and its title as plain text. The games
-   on that child's own list, `/var/lib/cairn/games/<login>.json`, are
-   highlighted and marked "On the list". That file is what the child's
-   launcher reads, so the highlighted games are the child's game tiles.
-   A game on the child's list that the shared folder no longer has
-   still shows, last, marked "On the list, no longer shared". A child
-   with no file has no games, as a new child does.
+   `/var/lib/cairn/game-pictures`, found by its app id as the child's tile
+   finds it (ADR-0047), and its title as plain text. The games on that
+   child's own list, `/var/lib/cairn/games/<login>.json`, are highlighted
+   and marked "On the list". That file is what the child's launcher reads,
+   so the highlighted games are the child's game tiles. A game on the
+   child's list that the shared folder no longer has still shows, last,
+   marked "On the list, no longer shared", with the picture the picture
+   step keeps for it. A child with no file has no games, as a new child
+   does. A game without a picture says that a child's tile shows its
+   name, and what helps: open Steam in your own login, then press **Look
+   for new games**, and if it still has none, the journal says why.
 3. A tap on a game, or Space or Enter, puts it on the list or takes it
    off. Nothing is saved yet: the card says "Added, not saved yet" or
    "Taken off, not saved yet", the child's name above says "not saved",
@@ -87,10 +91,16 @@ The Games page (ADR-0041):
    was not given and why, and what their copy did with Steam's tools:
    copied them, may still lack one, or found none to copy. A Save in
    which a tool could not be taken from the Guardian's Steam says that
-   once. **Close**, or Escape once it has ended, puts it away. A child's
-   games that could not be given stay chosen, so pressing Save again
-   tries them again. A closed password box keeps every change. The page
-   reads everything again after each Save.
+   once. After a Save or a look, the window names each shared game
+   without a picture by its title and says what helps. A game whose
+   picture Cairn could not use is named in a sentence of its own. When
+   the pictures could not all be copied, it says that instead and names
+   no game (ADR-0047). When a sentence about the pictures, the full
+   games list or Steam's tools has its reason in the journal, the first
+   paragraph ends by pointing there, once. **Close**, or Escape once it
+   has ended, puts it away. A child's games that could not be given stay
+   chosen, so pressing Save again tries them again. A closed password box
+   keeps every change. The page reads everything again after each Save.
 5. **Look for new games** runs `cairn-family save-games` with no child
    named, which changes no list but makes the full games list, the
    pictures and the tools folder again from the Guardian's own Steam, so
@@ -235,9 +245,13 @@ games list and the tools folder again: the page's Look for new games.
   Save, so a second Save at once is refused with `busy`.
 - It remakes the pictures from the Guardian's own Steam, reading the home
   of the account pkexec names from the account database. Under `sudo`
-  there is no Guardian, and the pictures stay.
+  there is no Guardian, and the pictures stay. The picture step reads
+  every child's list in the folder the Save writes them in, and keeps the
+  picture of a game still on one (ADR-0047).
 - It remakes `/var/lib/cairn/games.json` with kidscan, as provisioning
-  does, and keeps the old one when kidscan fails.
+  does, naming no picture, and keeps the old one when kidscan fails. When
+  the picture step went to its end, it then names each game in that list
+  whose tile shows its name for want of a picture.
 - Before any copy starts, it writes every child's
   `/var/lib/cairn/games/<login>.json` with the games taken off gone, so
   a Save cut off mid-copy leaves no child a game the parent took off.
@@ -269,7 +283,8 @@ games list and the tools folder again: the page's Look for new games.
 
 It answers line by line as it goes, with fixed words, checked logins and
 appids: `looking` (the password was accepted and the work starts),
-`pictures made|kept`, `catalogue made|kept`, `tools made|kept`,
+`pictures made|kept`, `catalogue made|kept`,
+`picture-missing|picture-refused APPID`, `tools made|kept`,
 `tool-not-shared APPID REASON`, `copying LOGIN`, `waiting LOGIN`,
 `copied|have LOGIN APPID`, `skipped LOGIN APPID REASON`,
 `copying-tools LOGIN`, `tool-copied|tool-have|tool-missing LOGIN APPID`,
@@ -298,16 +313,20 @@ and the answer: `done`, or `refused` and a caller's word, `usage`,
 failed).
 
 `create-child` removes a new child's old games file first.
-ADR-0041 and ADR-0046 list every word but the copy step's and the tools
-step's reasons, which `provision/cairn-copy-games.py` and
+ADR-0041, ADR-0046 and ADR-0047 list every word but the copy step's and
+the tools step's reasons, which `provision/cairn-copy-games.py` and
 `provision/cairn-share-tools.py` list and `cairn-family` passes on.
 
-It writes to the journal. For the tools step that is `tools made` or
-`tools kept`, then the step's lines but `tool-had` and `finished`, each
-after `tools step:`, and, when the step did not finish and did not say
-why, `tools step: no-answer` (it said no line: it could not start, or its
-time limit came first) or `tools step: stopped` (it said some lines, then
-stopped):
+It writes to the journal. For the picture step that is `pictures made` or
+`pictures kept`, then the step's lines but `finished`, each after
+`picture step:`; for the full list, `catalogue made`, or `catalogue kept`
+and `catalogue step: failed`, `not-a-games-list` or `not-written`; for
+the tools step, `tools made` or `tools kept`, then the step's lines but
+`tool-had` and `finished`, each after `tools step:`. When the picture or
+tools step did not finish and did not say why, its last word is
+`no-answer` (it said no line: it could not start, or its time limit came
+first) or `stopped` (it said some lines, then stopped), and the picture
+step's is `no-home` when there was no Guardian's home to read:
 
 ```sh
 journalctl -t cairn-family --since today
@@ -334,19 +353,19 @@ QML draws, C++ decides (ADR-0002):
 | `src/LoginWatch` | Keeps who is logged in up to date, reading again on logind's `SessionNew` and `SessionRemoved`. |
 | `src/ChildLogOut` | "Log Ada out": the warning, the password box, `cairn-family log-out` through `pkexec`, and why the child is not logged out, as values the page's QML puts into a sentence. |
 | `src/SteamWindowStart` | Starts a child's Steam window as a program of its own, and notes in the journal when it cannot. |
-| `src/SaveResults` | One child's result from a Save, as the map the page's QML reads, and whether every child got every new game. |
+| `src/SaveResults` | How far a Save has got, one child's result from a Save, as the map the page's QML reads, and whether every child got every new game. |
 | `src/GameShelf` | Every shared game from the full games list, each marked when it is on one child's own list, and whether that list could be read. |
 | `src/GameChoices` | The changes to each child's list not saved yet, and `save-games`'s arguments for them. |
 | `src/GamesSaving` | One Save as the page shows it: the password box, how far it has got, each game copied so far, each child's result, or why nothing was saved, each as a value the page's QML puts into a sentence. |
 | `src/SaveRun` | Runs `pkexec` with `cairn-family save-games` or `log-out`, and passes on each line as it arrives, then the answer, pkexec's own exit code, or `not-started` when nothing could be started. |
-| `src/SaveReport` | Reads `save-games`'s lines into how far it has got, each game copied, each child's counts, held word, games left out and tools, and whether a tool was left out of the tools folder, taking only its fixed words and the children the Save named. |
+| `src/SaveReport` | Reads `save-games`'s lines into how far it has got, each game copied, each child's counts, held word, games left out and tools, whether a tool was left out of the tools folder, and the games without a picture, taking only its fixed words and the children the Save named. |
 | `src/PkexecAnswer` | pkexec's own two exit codes, for both runners of `cairn-family`. |
 | `src/AccountPage` | What the Your account page shows and does: the Guardian's name and picture, Plasma's pictures, a new picture, and a new password, checked first and sent to `cairn-family set-own-password` on standard input. Its commands, account database and bus are in its `Setup`, so a test can replace them. |
 | `src/AccountPicture` | The Guardian's own picture through AccountsService on the system bus, with Qt D-Bus: reading `IconFile`, and `SetIconFile`, waited for without blocking the window. |
 | `src/PictureFile` | A chosen picture made ready for AccountsService: a square from its middle, turned as the camera meant, at most 256 pixels, as PNG. |
 | `src/NewPassword` | The one rule for a new password, which the window and `cairn-family` both check. |
 | `qml/AccountView.qml`, `qml/PictureSection.qml`, `qml/PasswordForm.qml`, `qml/PictureTile.qml`, `qml/OutcomeBox.qml` | The Your account page with its password sentences, the picture section with its file dialog, the password form, one of Plasma's pictures to tap, and the box a sentence goes in. |
-| `src/GamePicture` | A game's picture from its games file entry, with the launcher's rule: only the full path of a file here. |
+| `src/GamePicture` | A game's picture by its app id, with the launcher's rule: `<folder>/<appid>.jpg` when it is a plain file, not a link. The Games page and `cairn-family` both use it. |
 | `qml/FamilyWindow.qml`, `qml/ChildrenView.qml`, `qml/GamesView.qml` | The Guardian tool's window with its switch between pages, its Children page with the sentence for every answer, and its Games page. |
 | `qml/ChildChoice.qml`, `qml/GameCard.qml`, `qml/SaveOutcome.qml`, `qml/SaveResultWords.qml` | A child to pick on the Games page, one game in its grid, the sentences for a Save, and its words for what each child got. |
 | `qml/ChildGames.qml`, `qml/LoggedInCover.qml`, `qml/SaveProgress.qml` | The picked child's Steam, list and games, greyed and blurred while they are logged in; the card over them; and the Save's progress window, with the lid warning and Close. |
@@ -356,7 +375,7 @@ QML draws, C++ decides (ADR-0002):
 | `src/Caller` | Who started `cairn-family`: root, and through pkexec an administrator, with their home from the account database. |
 | `src/GamesSave` | `cairn-family save-games`: the checks, the lock, the pictures and full list, the games taken off, the tools folder, then each child in turn. Its `Setup` holds everything it reads from or does to the machine. |
 | `src/GamesRequest` | Each child's new list, read from the arguments and checked before anything looks at an account. |
-| `src/CatalogueRefresh` | Runs the picture step and kidscan, and writes kidscan's list into `/var/lib/cairn/games.json`. |
+| `src/CatalogueRefresh` | Runs the picture step and reads its lines for the journal, runs kidscan and writes its list into `/var/lib/cairn/games.json`, then names each game in it without a picture. |
 | `src/ToolsRefresh` | Runs the tools step as the Guardian, as a system job with a time limit, and reads its lines: whether it finished, the tools left out, and its lines for the journal, with `no-answer` or `stopped` when it did not finish and did not say why. |
 | `src/GameCatalogue` | A games file: reading it, each game by its appid with the launcher's rule, and writing one. `cairn-family` and the Games page both use it. |
 | `src/ChildGameList` | The rule for a child's new list, with nothing read or written. |
@@ -370,7 +389,7 @@ QML draws, C++ decides (ADR-0002):
 | `src/FamilyRequest` | The subcommand and its values, read from the arguments and checked before anything looks at an account. |
 | `src/OwnPasswordCommand` | `cairn-family set-own-password`: the caller, then one line from standard input, checked, to chpasswd's standard input. Everything it reads from or does to the machine is in its `Setup`. |
 | `src/Refusal` | Why the command made no change, and the word for each. |
-| `src/SystemTool` | Runs `useradd`, `passwd`, `gpasswd`, `usermod`, `restorecon`, `chpasswd`, the picture step or kidscan by absolute path, without a shell, with a small environment of its own and a two-minute limit, and for `chpasswd` with its input on standard input. |
+| `src/SystemTool` | Runs `useradd`, `passwd`, `gpasswd`, `usermod`, `restorecon`, `chpasswd`, the picture step or kidscan by absolute path, without a shell, with a small environment of its own and a two-minute limit, for `chpasswd` with its input on standard input, and for the picture step handing back its whole lines. |
 | `src/PasswordLock` | Whether a child's password is locked, from the shadow database. |
 | `src/SteamEntry` | A child's "Steam for <child>" menu entry: its text, the same as provisioning's, and writing it into place. |
 
@@ -408,11 +427,13 @@ words, pkexec's own 126 and 127, answers that cannot be read, or waiting
 like an open password box, and writes down the arguments it was given.
 Its `save-*` scenarios answer `save-games` in many lines, as the real
 command does: every game given, a child held by a word, games left out,
-a copy still running, a run cut off before `done`, or Steam's tools
-taken, left out, copied, missing or still being copied; `save-done` also
-writes each child's list into the folder `CAIRN_TEST_GAMES` names. Its
-`log-out-*` scenarios answer `log-out`: done, which empties the file
-`CAIRN_TEST_LOGGED_IN` names, held by a word, or still running.
+a copy still running, a run cut off before `done`, Steam's tools
+taken, left out, copied, missing or still being copied, the pictures
+kept, a game without one, or two games without one, with the full list
+kept; `save-done` also writes each child's list into the folder
+`CAIRN_TEST_GAMES` names. Its `log-out-*` scenarios answer `log-out`:
+done, which empties the file `CAIRN_TEST_LOGGED_IN` names, held by a
+word, or still running.
 The Guardian tool's tests give the page a table of accounts in place of
 the system's, so they cover the order, who is left out, the login names,
 every check before a change, one change at a time, trying an add again

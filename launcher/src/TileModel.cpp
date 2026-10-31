@@ -93,6 +93,21 @@ void TileModel::setGamesPath(const QString& path) {
     }
 }
 
+QString TileModel::picturesFolder() const {
+    return m_picturesFolder;
+}
+
+void TileModel::setPicturesFolder(const QString& folder) {
+    if (folder == m_picturesFolder) {
+        return;
+    }
+    m_picturesFolder = folder;
+    emit picturesFolderChanged();
+    if (m_loadsOnChange) {
+        load();
+    }
+}
+
 QString TileModel::loadError() const {
     return m_loadError;
 }
@@ -107,7 +122,7 @@ void TileModel::componentComplete() {
 }
 
 void TileModel::load() {
-    const TileFiles::Result result = TileFiles::read(m_manifestPath, m_gamesPath);
+    const TileFiles::Result result = TileFiles::read(m_manifestPath, m_gamesPath, m_picturesFolder);
     // A parent reads these in the journal; the child sees the tiles that did
     // load, or the built-in ones.
     for (const QString& sentence : result.sentences) {
