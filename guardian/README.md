@@ -21,6 +21,9 @@ The Guardian's side of Cairn (ROADMAP P1-5). So far it has three pieces:
 Steam window, only the `cairn-guardian` group may run it, and the entry
 names it as its `TryExec`, so no one else's menu shows it. It is on the
 image only: hand provisioning installs neither it nor `cairn-family`.
+The entry's words name every page, "Children, games and your account",
+and its keywords include games and Steam, so a search in the menu for
+either finds it.
 
 Three buttons above the page, **Children**, **Games** and **Your
 account**, move between its pages. The window opens on Children.
