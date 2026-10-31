@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+#include "LogTail.h"
+
 #include <QByteArray>
 #include <QDateTime>
 #include <QSet>
@@ -44,9 +46,8 @@ public:
     static QString defaultPath();
 
 private:
-    QString m_path;
+    LogTail m_tail;
     QByteArray m_appId;
-    qint64 m_offset = 0;
     std::optional<QDateTime> m_offSchedule;
     // The game, and the apps Steam put at the front of its schedule since the
     // tap: the tools the launch needs.

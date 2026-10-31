@@ -87,12 +87,13 @@ In the image, `cmake --install` puts the launcher in `/usr/libexec/cairn/`,
 its rpath, and a wrapper made from `bin/cairn-launcher.in` in `/usr/bin/`
 (ADR-0038). The session runs the wrapper, which names the logged-in
 child's own games list (ADR-0041).
-The launcher has twenty-eight CTest tests, run offscreen: the wrapper the
+The launcher has twenty-nine CTest tests, run offscreen: the wrapper the
 kiosk session starts, run with stand-ins, the tile model, the
 manifest reader, the manifest and the games file read together (the tile
 files), kidscan's manifest and games file written and read back (two
 tests), the app launcher, the windows of a launch, the wait for a Steam
-game, Steam's reapers, Steam's launch log, Steam's content log, a launch
+game, Steam's reapers, the lines a log gains, Steam's launch log,
+Steam's content log, a launch
 Steam stopped part-way, Steam starting or updating itself, Steam's
 sign-in, the give-up watch, Steam at login, starting Steam again (against
 stand-ins for steam, systemctl and systemd-run), the app scope, the grid

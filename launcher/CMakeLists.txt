@@ -32,6 +32,7 @@ set(launcher_model_sources
     src/AppScope.h src/AppScope.cpp
     src/LaunchWindows.h src/LaunchWindows.cpp
     src/GiveUpWatch.h src/GiveUpWatch.cpp
+    src/LogTail.h src/LogTail.cpp
     src/SteamAtLogin.h src/SteamAtLogin.cpp
     src/SteamContentLog.h src/SteamContentLog.cpp
     src/SteamGameWait.h src/SteamGameWait.cpp
@@ -116,7 +117,8 @@ add_test(NAME launchwindows COMMAND tst_launchwindows)
 qt_add_executable(tst_steamgamewait tests/tst_steamgamewait.cpp src/SteamGameWait.h src/SteamGameWait.cpp
     src/SteamLaunchLog.h src/SteamLaunchLog.cpp src/SteamSignIn.h src/SteamSignIn.cpp
     src/SteamStartup.h src/SteamStartup.cpp src/SteamContentLog.h src/SteamContentLog.cpp
-    src/SteamStall.h src/SteamStall.cpp src/SteamReapers.h src/SteamReapers.cpp)
+    src/SteamStall.h src/SteamStall.cpp src/SteamReapers.h src/SteamReapers.cpp
+    src/LogTail.h src/LogTail.cpp)
 target_include_directories(tst_steamgamewait PRIVATE src)
 target_link_libraries(tst_steamgamewait PRIVATE Qt6::Core Qt6::Test)
 add_test(NAME steamgamewait COMMAND tst_steamgamewait)
@@ -127,30 +129,38 @@ target_link_libraries(tst_steamreapers PRIVATE Qt6::Core Qt6::Test)
 add_test(NAME steamreapers COMMAND tst_steamreapers)
 
 qt_add_executable(tst_steamstall tests/tst_steamstall.cpp src/SteamStall.h src/SteamStall.cpp
-    src/SteamContentLog.h src/SteamContentLog.cpp src/SteamLaunchLog.h src/SteamLaunchLog.cpp)
+    src/SteamContentLog.h src/SteamContentLog.cpp src/SteamLaunchLog.h src/SteamLaunchLog.cpp
+    src/LogTail.h src/LogTail.cpp)
 target_include_directories(tst_steamstall PRIVATE src)
 target_link_libraries(tst_steamstall PRIVATE Qt6::Core Qt6::Test)
 add_test(NAME steamstall COMMAND tst_steamstall)
 
-qt_add_executable(tst_steamlaunchlog tests/tst_steamlaunchlog.cpp src/SteamLaunchLog.h src/SteamLaunchLog.cpp)
+qt_add_executable(tst_logtail tests/tst_logtail.cpp src/LogTail.h src/LogTail.cpp)
+target_include_directories(tst_logtail PRIVATE src)
+target_link_libraries(tst_logtail PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME logtail COMMAND tst_logtail)
+
+qt_add_executable(tst_steamlaunchlog tests/tst_steamlaunchlog.cpp src/SteamLaunchLog.h src/SteamLaunchLog.cpp
+    src/LogTail.h src/LogTail.cpp)
 target_include_directories(tst_steamlaunchlog PRIVATE src)
 target_link_libraries(tst_steamlaunchlog PRIVATE Qt6::Core Qt6::Test)
 add_test(NAME steamlaunchlog COMMAND tst_steamlaunchlog)
 
 qt_add_executable(tst_steamcontentlog tests/tst_steamcontentlog.cpp src/SteamContentLog.h
-    src/SteamContentLog.cpp src/SteamLaunchLog.h src/SteamLaunchLog.cpp)
+    src/SteamContentLog.cpp src/SteamLaunchLog.h src/SteamLaunchLog.cpp src/LogTail.h src/LogTail.cpp)
 target_include_directories(tst_steamcontentlog PRIVATE src)
 target_link_libraries(tst_steamcontentlog PRIVATE Qt6::Core Qt6::Test)
 add_test(NAME steamcontentlog COMMAND tst_steamcontentlog)
 
 qt_add_executable(tst_steamstartup tests/tst_steamstartup.cpp src/SteamStartup.h src/SteamStartup.cpp
-    src/SteamLaunchLog.h src/SteamLaunchLog.cpp)
+    src/SteamLaunchLog.h src/SteamLaunchLog.cpp src/LogTail.h src/LogTail.cpp)
 target_include_directories(tst_steamstartup PRIVATE src)
 target_link_libraries(tst_steamstartup PRIVATE Qt6::Core Qt6::Test)
 add_test(NAME steamstartup COMMAND tst_steamstartup)
 
 qt_add_executable(tst_steamsignin tests/tst_steamsignin.cpp src/SteamSignIn.h src/SteamSignIn.cpp
-    src/SteamStartup.h src/SteamStartup.cpp src/SteamLaunchLog.h src/SteamLaunchLog.cpp)
+    src/SteamStartup.h src/SteamStartup.cpp src/SteamLaunchLog.h src/SteamLaunchLog.cpp
+    src/LogTail.h src/LogTail.cpp)
 target_include_directories(tst_steamsignin PRIVATE src)
 target_link_libraries(tst_steamsignin PRIVATE Qt6::Core Qt6::Test)
 add_test(NAME steamsignin COMMAND tst_steamsignin)

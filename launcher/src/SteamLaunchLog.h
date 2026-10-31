@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+#include "LogTail.h"
+
 #include <QByteArray>
 #include <QDateTime>
 #include <QString>
@@ -72,9 +74,8 @@ public:
     static std::optional<QDateTime> timeOf(const QByteArray& line);
 
 private:
-    QString m_path;
+    LogTail m_tail;
     QString m_appId;
-    qint64 m_offset = 0;
     Step m_step = Step::Nothing;
     bool m_downloading = false;
     bool m_reached = false;

@@ -3,7 +3,6 @@
 
 #include "SteamLaunchLog.h"
 
-#include <QFile>
 #include <QList>
 #include <QStandardPaths>
 
@@ -11,11 +10,6 @@
 #include <utility>
 
 namespace {
-// Steam's content log grows by a few lines a second while it downloads. A
-// launch that has gained more than this since the last look is read from
-// its last part.
-constexpr qint64 mostReadAtOnce = qint64{4} * 1024 * 1024;
-
 // The app id in a line such as `[2026-10-30 17:10:08] AppID 1070560 update
 // started : ...`, right after the time, or empty.
 QByteArray appIdOf(const QByteArray& line) {
@@ -47,7 +41,7 @@ bool endsADownload(const QByteArray& line) {
 }
 } // namespace
 
-SteamContentLog::SteamContentLog(QString path) : m_path(std::move(path)) {}
+SteamContentLog::SteamContentLog(QString path) : m_tail(std::move(path)) {}
 
 void SteamContentLog::startLaunch(const QString& appId) {
     m_appId = appId.toUtf8();
@@ -57,35 +51,21 @@ void SteamContentLog::startLaunch(const QString& appId) {
     if (!m_appId.isEmpty()) {
         m_launchApps.insert(m_appId);
     }
-    const QFile log(m_path);
-    m_offset = log.exists() ? log.size() : 0;
+    m_tail.skipToEnd();
 }
 
 void SteamContentLog::read() {
     if (m_appId.isEmpty()) {
         return;
     }
-    QFile log(m_path);
-    if (!log.open(QIODevice::ReadOnly)) {
-        return;
-    }
-    const qint64 size = log.size();
-    if (size < m_offset) {
+    const QList<QByteArray> lines = m_tail.newLines();
+    if (m_tail.startedAgain()) {
         // Steam started again and began a new log; all of it is new.
-        m_offset = 0;
         m_offSchedule.reset();
         m_launchApps = {m_appId};
         m_downloading.clear();
     }
-    const qint64 from = std::max(m_offset, size - mostReadAtOnce);
-    if (!log.seek(from)) {
-        return;
-    }
-    const QByteArray gained = log.read(size - from);
-    // A line Steam is still writing is read whole next time.
-    const qsizetype end = gained.lastIndexOf('\n') + 1;
-    m_offset = from + end;
-    for (const QByteArray& line : gained.first(end).split('\n')) {
+    for (const QByteArray& line : lines) {
         const QByteArray app = appIdOf(line);
         if (app.isEmpty()) {
             continue;
