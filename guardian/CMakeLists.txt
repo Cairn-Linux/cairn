@@ -99,8 +99,9 @@ install(TARGETS cairn-family RUNTIME DESTINATION "${CAIRN_LIBEXECDIR}")
 # stays as it is. It shares the Steam window's button, and checks what it
 # asks for with cairn-family's own rule before it asks for a password.
 # Qt's D-Bus module asks logind, without root, which children are logged
-# in, and listens for logins coming and going (ADR-0041), and asks
-# AccountsService for the grown-up's own picture (ADR-0043).
+# in, and listens for logins coming and going (ADR-0041), asks
+# AccountsService for the grown-up's own picture (ADR-0043), and asks
+# kwalletd to change KDE Wallet's password after a new one (ADR-0043).
 set(family_window_sources
     src/Refusal.h src/Refusal.cpp
     src/FamilyRequest.h src/FamilyRequest.cpp
@@ -132,6 +133,7 @@ set(family_window_sources
     src/NewPassword.h src/NewPassword.cpp
     src/AccountPicture.h src/AccountPicture.cpp
     src/PictureFile.h src/PictureFile.cpp
+    src/WalletPassword.h src/WalletPassword.cpp
     src/AccountPage.h src/AccountPage.cpp
 )
 set(family_window_qml_files
@@ -155,6 +157,7 @@ set(family_window_qml_files
     qml/PasswordForm.qml
     qml/PictureTile.qml
     qml/OutcomeBox.qml
+    qml/WalletOffer.qml
 )
 foreach(file IN LISTS family_window_qml_files)
     cmake_path(GET file FILENAME name)
@@ -443,26 +446,27 @@ target_compile_definitions(tst_gamespage PRIVATE FIXTURES="${guardian_fixtures}"
 add_test(NAME gamespage COMMAND tst_gamespage)
 
 # The real window in the Quick Test host, as for the Steam window.
-qt_add_executable(tst_familywindow tests/tst_familywindow.cpp)
+qt_add_executable(tst_familywindow tests/tst_familywindow.cpp ${stand_in_wallet})
 qt_add_qml_module(tst_familywindow
     URI Cairn.Family
     OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/tests/Cairn/Family"
     QML_FILES ${family_window_qml_files}
     SOURCES ${family_window_sources}
 )
-target_include_directories(tst_familywindow PRIVATE src)
+target_include_directories(tst_familywindow PRIVATE src tests)
 target_link_libraries(tst_familywindow PRIVATE Qt6::Gui Qt6::DBus Qt6::QuickTest CairnBrand
     cairn-accounts)
 target_compile_definitions(tst_familywindow PRIVATE
     QUICK_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests"
     FIXTURES="${guardian_fixtures}"
 )
-add_test(NAME familywindow COMMAND tst_familywindow
-    -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/tst_familywindow.qml")
+add_test(NAME familywindow COMMAND "${DBUS_RUN_SESSION}" ${private_session_bus} --
+    $<TARGET_FILE:tst_familywindow> -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/tst_familywindow.qml")
 
 # A grown-up's own password and picture (ADR-0043): the rule, the root
 # side with stand-ins for chpasswd and the input, the picture made small,
-# and the page, with a stand-in AccountsService on a session bus of its own.
+# the page, with a stand-in AccountsService on a session bus of its own,
+# and the offer to change KDE Wallet's password, with a stand-in kwalletd.
 qt_add_executable(tst_newpassword tests/tst_newpassword.cpp src/NewPassword.h src/NewPassword.cpp)
 target_include_directories(tst_newpassword PRIVATE src)
 target_link_libraries(tst_newpassword PRIVATE Qt6::Core Qt6::Test)
@@ -479,11 +483,13 @@ target_include_directories(tst_picturefile PRIVATE src)
 target_link_libraries(tst_picturefile PRIVATE Qt6::Gui Qt6::Test)
 add_test(NAME picturefile COMMAND tst_picturefile)
 
-qt_add_executable(tst_accountpage tests/tst_accountpage.cpp ${family_window_sources})
-target_include_directories(tst_accountpage PRIVATE src)
+qt_add_executable(tst_accountpage tests/tst_accountpage.cpp ${family_window_sources}
+    ${stand_in_wallet})
+target_include_directories(tst_accountpage PRIVATE src tests)
 target_link_libraries(tst_accountpage PRIVATE Qt6::Qml Qt6::Gui Qt6::DBus Qt6::Test cairn-accounts)
 target_compile_definitions(tst_accountpage PRIVATE FIXTURES="${guardian_fixtures}")
-add_test(NAME accountpage COMMAND "${DBUS_RUN_SESSION}" -- $<TARGET_FILE:tst_accountpage>)
+add_test(NAME accountpage COMMAND "${DBUS_RUN_SESSION}" ${private_session_bus} --
+    $<TARGET_FILE:tst_accountpage>)
 
 qt_add_executable(tst_walletpassword tests/tst_walletpassword.cpp src/WalletPassword.h
     src/WalletPassword.cpp ${stand_in_wallet})

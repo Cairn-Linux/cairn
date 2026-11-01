@@ -6,7 +6,8 @@ import Cairn.Family
 
 // The "Your account" page: the grown-up's own picture and password
 // (ADR-0043). Plasma's Users page is hidden on Cairn, so this is where a
-// grown-up changes them. One change runs at a time, and every control
+// grown-up changes them, and where a new password brings the offer to
+// change KDE Wallet's too. One change runs at a time, and every control
 // waits while it does.
 Column {
     id: view
@@ -59,10 +60,14 @@ Column {
     }
 
     // The picture section is a column of its own, so it is laid out
-    // first, or the window would scroll to where its box used to be.
-    function showOutcome() {
+    // first, or the window would scroll to where a box used to be.
+    function show(box) {
         pictureSection.forceLayout();
-        view.outcomeShown(pictureSection.aboutPicture ? pictureSection.outcomeBox : passwordOutcomeBox);
+        view.outcomeShown(box);
+    }
+
+    function showOutcome() {
+        view.show(pictureSection.aboutPicture ? pictureSection.outcomeBox : passwordOutcomeBox);
     }
 
     Text {
@@ -164,6 +169,16 @@ Column {
         objectName: "passwordOutcome"
         width: view.width
         text: view.aboutPassword ? view.passwordOutcome() : ""
+    }
+
+    WalletOffer {
+        id: walletOffer
+
+        objectName: "walletOffer"
+        width: view.width
+        wallet: view.page.wallet
+        onAnswered: Qt.callLater(passwordForm.takeFocus)
+        onShown: view.show(walletOffer)
     }
 
     // Every control waits while a change runs, which takes focus away. A

@@ -2,9 +2,11 @@
 #include "AccountPage.h"
 #include "ChildrenPage.h"
 #include "GamesPage.h"
+#include "StandInWallet.h"
 
 #include <QColor>
 #include <QCoreApplication>
+#include <QDBusConnection>
 #include <QDir>
 #include <QFile>
 #include <QImage>
@@ -196,11 +198,22 @@ public:
         return page;
     }
 
+    // Takes kwalletd's name for the stand-in kwalletd, on the test's own
+    // session bus. False when it cannot, as on a real session.
+    bool startWallet() {
+        return m_kwalletd.start();
+    }
+
     // The window's AccountPage, for the Guardian of page(), with three
-    // stand-in pictures of Plasma's. It has no bus, so a picture chosen is
-    // never taken; its password runs the stand-ins as page()'s scenario
-    // says.
-    Q_INVOKABLE AccountPage* accountPage() {
+    // stand-in pictures of Plasma's. It has no AccountsService bus, so a
+    // picture chosen is never taken; its password runs the stand-ins as
+    // page()'s scenario says. Its kwalletd is the stand-in, with the
+    // wallet pam_kwallet opens when `withWallet`, and with none otherwise.
+    Q_INVOKABLE AccountPage* accountPage(bool withWallet = false) {
+        m_kwalletd.reset();
+        if (!withWallet) {
+            m_kwalletd.walletNames.clear();
+        }
         const QDir files(m_files.path());
         files.mkpath(QStringLiteral("avatars"));
         const QStringList names{"Artist Konqi", "Bookworm Konqi", "Katie"};
@@ -221,9 +234,20 @@ public:
                            .fullName = "Guardian"};
         };
         setup.stockPictures = files.filePath(QStringLiteral("avatars"));
+        setup.walletBus = QDBusConnection::sessionBus();
         auto* page = new AccountPage(setup);
         QQmlEngine::setObjectOwnership(page, QQmlEngine::JavaScriptOwnership);
         return page;
+    }
+
+    // The stand-in kwalletd answers `method` with an error from now on.
+    Q_INVOKABLE void walletFails(const QString& method) {
+        m_kwalletd.failing = method;
+    }
+
+    // What the stand-in kwalletd was asked, in order.
+    Q_INVOKABLE QStringList walletAsked() const {
+        return m_kwalletd.asked;
     }
 
     // Who logind says is logged in; the page reads it at its next reload.
@@ -270,6 +294,7 @@ private:
 
     QTemporaryDir m_files;
     QStringList m_startedSteam;
+    StandInWallet m_kwalletd;
 };
 
 // TestCase.keyPress cannot mark a press as the keyboard's own repeat, which
@@ -296,8 +321,13 @@ public slots:
         // locale: an image build has none set, and Qt's own "C" joins names
         // with commas.
         QLocale::setDefault(QLocale(QLocale::English, QLocale::UnitedStates));
-        engine->rootContext()->setContextProperty(QStringLiteral("standIns"),
-                                                  new StandInPages(engine));
+        auto* standIns = new StandInPages(engine);
+        // Never ask a real kwalletd: on a real session its box would open.
+        if (!standIns->startWallet()) {
+            qFatal("kwalletd's name is taken: run under dbus-run-session, as CTest does, never on "
+                   "a real session.");
+        }
+        engine->rootContext()->setContextProperty(QStringLiteral("standIns"), standIns);
         engine->rootContext()->setContextProperty(QStringLiteral("heldKey"), new HeldKey(engine));
     }
 };
