@@ -1491,6 +1491,8 @@ TestCase {
         verify(shownWhole(window, close, Tokens.focusOffset + Tokens.focusWidth), "Close or its focus ring is cut off");
         const box = findChild(window, "saveProgressBox");
         verify(words.mapToItem(box, 0, words.height).y <= close.mapToItem(box, 0, 0).y, "The words run under Close");
+        // The box goes as far as the window less a margin, and no further.
+        compare(box.height, window.height - Tokens.headingSize * 2, "The box is not the window less a margin");
         if (standIns.screenshotPath() !== "") {
             wait(300);
             grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-games-long-result.png"));
