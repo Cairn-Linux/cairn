@@ -13,10 +13,10 @@ developer's own Steam may be running.
 A real move needs a filesystem that can reflink (btrfs or XFS), found as
 test_copy_games finds one; only the tests that need one skip, saying so,
 when there is none. Most tests copy with a stand-in for cp instead, and
-"other-drive" runs on /dev/shm, which is tmpfs. The test that ends a move
-at each point runs it in a child process, which a stand-in for each change
-to the disk ends at once with os._exit, so that nothing after that point
-runs, as after a kill.
+"other-drive" runs on /dev/shm, which is tmpfs. The tests that end a move,
+or a recovery, at each point run it in a child process, which a stand-in
+for each change to the disk ends at once with os._exit, so that nothing
+after that point runs, as after a kill.
 """
 
 import contextlib
@@ -29,6 +29,7 @@ import pathlib
 import re
 import shutil
 import signal
+import stat
 import subprocess
 import sys
 import tempfile
@@ -89,7 +90,7 @@ def manifest(appid, installdir="A Game", flags="4", extra="", name="A Game", siz
 def library_entry(number, path, contentid, apps=(), steams_own=True):
     """One library's entry as the test VM's lists have it: tabs, two between
     a key and its value, and, in Steam's own entries, the two keys Steam
-    fills itself."""
+    writes in them."""
     lines = [f'\t"{number}"', "\t{", f'\t\t"path"\t\t"{path}"', '\t\t"label"\t\t""',
              f'\t\t"contentid"\t\t"{contentid}"', '\t\t"totalsize"\t\t"0"']
     if steams_own:
@@ -103,8 +104,9 @@ def steam_list(*entries):
 
 
 def cairn_entry(number, family, contentid, apps):
-    """The entry the program adds, as Steam's own but for the two keys Steam
-    fills itself."""
+    """The entry the program adds, as Steam's own but for those two keys,
+    which Steam is expected to add when it next writes the list (ADR-0042
+    check 1's second half compares)."""
     return library_entry(number, family, contentid, apps, steams_own=False).encode()
 
 
@@ -184,6 +186,11 @@ class Machine:
         self.family = self.root / "var" / "steam-library"
         self.shared = self.family / "steamapps"
         (self.shared / "common").mkdir(parents=True)
+        # The lock an earlier run made, which stays, so that a test sees
+        # only its own run's changes.
+        self.lock = self.shared / ".cairn-move-lock"
+        self.lock.touch()
+        self.lock.chmod(0o660)
         self.proc = self.root / "proc"
         self.proc.mkdir()
 
@@ -312,8 +319,16 @@ class MoveTestCase(unittest.TestCase):
         return tree(self.machine.root / "home"), tree(self.machine.family, times_of)
 
     def assertNoLeftovers(self):
+        # The lock is no leftover: it stays.
         for folder in (self.machine.root / "home", self.machine.family):
-            self.assertEqual([str(path) for path in folder.rglob(".cairn-*")], [])
+            left = [str(path) for path in folder.rglob(".cairn-*") if path != self.machine.lock]
+            self.assertEqual(left, [])
+
+    def short(self, path):
+        """A path under the test's folder, with this run's own folder's
+        random name taken out."""
+        relative = os.path.relpath(path, self.machine.root)
+        return re.sub(r"common/\.cairn-move-[^/]+", "common/<scratch>", relative)
 
     def assertOnlyInOwnLibrary(self, appid="100", installdir="A Game", data=None):
         machine = self.machine
@@ -367,6 +382,9 @@ class WhichGamesTest(MoveTestCase):
             "not vdf": lambda: own.write_bytes(b'"AppState"\n{\n\t"appid" "100"\n'),
             "another appid": lambda: own.write_bytes(manifest(200)),
             "no AppState": lambda: own.write_bytes(b'"Other"\n{\n\t"appid"\t\t"100"\n}\n'),
+            # kidscan leaves such a game out too.
+            "a name that is a block": lambda: own.write_bytes(
+                manifest(100).replace(b'\t"name"\t\t"A Game"\n', b'\t"name"\n\t{\n\t}\n')),
         }
         for kind, make in makers.items():
             with self.subTest(kind=kind):
@@ -621,12 +639,6 @@ class MoveTest(MoveTestCase):
 class OrderTest(MoveTestCase):
     """ADR-0042's order, with a stand-in for cp."""
 
-    def short(self, path):
-        """A path under the test's folder, with this run's own folder's
-        random name taken out."""
-        relative = os.path.relpath(path, self.machine.root)
-        return re.sub(r"common/\.cairn-move-[^/]+", "common/<scratch>", relative)
-
     def test_the_order_of_a_move(self):
         # The lists name the family folder already, as on the test VM, so
         # the only changes are the move's.
@@ -727,10 +739,43 @@ class OrderTest(MoveTestCase):
         self.assertOnlyInFamily()
         self.assertNoLeftovers()
 
+    def test_a_stop_or_a_hang_up_after_the_set_aside_waits_for_both(self):
+        # SIGTERM is what a stop and a job's time limit send, and SIGHUP what
+        # a closed terminal sends. Neither has a handler, so each ends the
+        # run as soon as it is let through, in a child process.
+        for sent in (signal.SIGTERM, signal.SIGHUP):
+            with self.subTest(signal=sent.name):
+                self.fresh_machine()
+                self.machine.add_game(100)
+                machine = self.machine
+                real_rename = os.rename
+
+                def rename(source, target):
+                    real_rename(source, target)
+                    if pathlib.Path(target).name == ".cairn-move-aside-100":
+                        os.kill(os.getpid(), sent)
+
+                def work():
+                    # Ending the process, even under a runner that ignores
+                    # the signal.
+                    signal.signal(sent, signal.SIG_DFL)
+                    return machine.run_with_stand_in("100", calls={"rename": rename})
+
+                code, _ = in_child(work)
+                self.assertEqual(code, -sent, "ended by the signal")
+                # Felt only once both names were taken.
+                self.assertEqual((machine.shared / "appmanifest_100.acf").read_bytes(), manifest(100))
+                self.assertEqual(files_of(machine.shared / "common" / "A Game"), files_of_game())
+                self.assertEqual(machine.run_with_stand_in(), (0, []))
+                self.assertOnlyInFamily()
+                self.assertNoLeftovers()
+
 
 # The os functions through which the program, tempfile and shutil change
-# the disk. Opening a file counts only when it may make one.
+# the disk. Opening a file counts only when it may make one. While the
+# stand-ins are in place os.open is one of them, so the real one is kept.
 CHANGES = ("mkdir", "rename", "replace", "unlink", "rmdir", "chmod", "fchmod", "fsync", "open")
+REAL_OPEN = os.open
 
 
 class Ender:
@@ -747,7 +792,7 @@ class Ender:
 
     def wrap(self, real):
         def change(*arguments, **keywords):
-            if real is os.open and not (arguments[1] if len(arguments) > 1 else keywords["flags"]) & os.O_CREAT:
+            if real is REAL_OPEN and not (arguments[1] if len(arguments) > 1 else keywords["flags"]) & os.O_CREAT:
                 return real(*arguments, **keywords)
             self.count += 1
             number = self.count
@@ -790,22 +835,24 @@ def in_child(work):
     return os.waitstatus_to_exitcode(status), sent
 
 
-def move_until(machine, ender):
-    """A move of game 100 in this process, ended where `ender` says. The
-    number of changes it made, if it was not ended."""
+def run_until(machine, ender, *appids):
+    """A run in this process, ended where `ender` says: with appid 100, a
+    move, and with none, only a recovery. The number of changes it made, if
+    it was not ended."""
     module = machine.load()
     with contextlib.ExitStack() as stack:
         for patch in ender.patches(module):
             stack.enter_context(patch)
         stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
-        module.main([*machine.arguments(), "100"])
+        module.main([*machine.arguments(), *appids])
     return ender.count
 
 
 class InterruptedTest(MoveTestCase):
-    """A run ended anywhere, by a kill, a power cut or a stop timeout, is
-    finished or undone by the next one, so a game is never in two
-    libraries (ADR-0042)."""
+    """The order keeps a game out of two libraries at every point, and a run
+    ended anywhere is finished or undone by the next one (ADR-0042). The
+    runs here are ended by a kill, with os._exit, which runs nothing after
+    it."""
 
     def assertInAtMostOneLibrary(self, machine):
         own = os.path.lexists(machine.library / "appmanifest_100.acf")
@@ -825,13 +872,28 @@ class InterruptedTest(MoveTestCase):
             family = [entry for entry in folders.values() if entry["path"] == str(machine.family)]
             self.assertEqual([entry["contentid"] for entry in family], [contentid], name)
 
+    def assertEveryChangedListKeptItsBackup(self, machine):
+        """A list names the family folder only once its old bytes are
+        beside it."""
+        for name in LISTS:
+            path = machine.steam / name
+            if str(machine.family).encode() in path.read_bytes():
+                self.assertEqual(path.with_name(path.name + ".before-cairn").read_bytes(), machine.own_list, name)
+
+    def assertNoCopyAnotherRunCouldFinishIsHalf(self, machine):
+        """A later run finishes a move whose copy has its full name while its
+        temporary manifest is there, so such a copy is always whole."""
+        copy = machine.shared / "common" / "A Game"
+        if os.path.lexists(machine.shared / ".cairn-move-manifest-100") and os.path.lexists(copy):
+            self.assertEqual(files_of(copy), files_of_game())
+
     def test_a_move_ended_at_any_point_leaves_the_game_in_one_library(self):
         # Every change a whole move makes, list writes included; the run is
         # ended just before each, and just after.
         with tempfile.TemporaryDirectory(dir=self.place) as root:
             whole = Machine(root)
             whole.add_game(100)
-            code, sent = in_child(lambda: move_until(whole, Ender()))
+            code, sent = in_child(lambda: run_until(whole, Ender(), "100"))
             self.assertEqual(code, 0)
             self.assertEqual(whole.lists()["config/libraryfolders.vdf"].count(str(whole.family).encode()), 1)
         changes = int(sent)
@@ -841,9 +903,11 @@ class InterruptedTest(MoveTestCase):
                 with self.subTest(at=at, after=after), tempfile.TemporaryDirectory(dir=self.place) as root:
                     machine = Machine(root)
                     machine.add_game(100)
-                    code, _ = in_child(lambda: move_until(machine, Ender(at, after)))
+                    code, _ = in_child(lambda: run_until(machine, Ender(at, after), "100"))
                     self.assertEqual(code, KILLED)
                     self.assertInAtMostOneLibrary(machine)
+                    self.assertEveryChangedListKeptItsBackup(machine)
+                    self.assertNoCopyAnotherRunCouldFinishIsHalf(machine)
                     code, lines = machine.run_with_stand_in("100")
                     self.assertEqual(code, 0)
                     self.assertIn(lines, (["library added", "moved 100"], ["library had", "moved 100"],
@@ -859,14 +923,26 @@ class InterruptedTest(MoveTestCase):
         scratch.mkdir(mode=0o700)
         return scratch
 
-    def ended_after_the_set_aside(self):
-        """What a run ended between the set-aside and the copy's rename
-        leaves: a whole copy and manifest in the family folder under
-        temporary names, and the original manifest set aside."""
+    # What a run ended at each of ADR-0042's points leaves, built on disk,
+    # in the order of a move.
+
+    def ended_during_the_copy(self):
+        """Part of a copy in the run's own folder."""
+        self.machine.add_game(100)
+        (self.scratch() / "100" / "data").mkdir(parents=True)
+
+    def ended_after_the_temporary_manifest(self):
+        """A whole copy in the run's own folder, and its manifest in the
+        family folder under a temporary name."""
         self.machine.add_game(100)
         scratch = self.scratch()
         shutil.copytree(self.machine.library / "common" / "A Game", scratch / "100", symlinks=True)
         (self.machine.shared / ".cairn-move-manifest-100").write_bytes(manifest(100))
+        return scratch
+
+    def ended_after_the_set_aside(self):
+        """The above, and the original manifest set aside."""
+        scratch = self.ended_after_the_temporary_manifest()
         (self.machine.library / "appmanifest_100.acf").rename(self.machine.library / ".cairn-move-aside-100")
         return scratch
 
@@ -878,20 +954,56 @@ class InterruptedTest(MoveTestCase):
         self.ended_after_the_copys_rename()
         (self.machine.shared / ".cairn-move-manifest-100").rename(self.machine.shared / "appmanifest_100.acf")
 
+    def ended_during_the_removal(self):
+        """Part of the original folder, and its set-aside manifest."""
+        self.ended_after_step_4()
+        shutil.rmtree(self.machine.library / "common" / "A Game" / "data")
+
+    # The manifest Steam writes when the parent installs the game again.
+    steams = manifest(100, flags="1026")
+
+    def installed_again(self, ended):
+        """What `ended` leaves, and then the game installed again in the
+        Guardian's own Steam, whose new manifest is in their library."""
+        def state():
+            ended()
+            (self.machine.library / "appmanifest_100.acf").write_bytes(self.steams)
+        state.__name__ = f"{ended.__name__}_then_installed_again"
+        return state
+
+    def assertEndedAs(self, where):
+        """Where game 100 is once a recovery has run to its end: "own" or
+        "family", one library; "steam", Steam's copy only, when Steam
+        installed the game again before the family manifest took its name;
+        "both", when it had (the ADR's open question about two libraries).
+        Steam's copy is never touched."""
+        machine = self.machine
+        if where == "own":
+            self.assertOnlyInOwnLibrary()
+        elif where == "family":
+            self.assertOnlyInFamily()
+        else:
+            self.assertEqual((machine.library / "appmanifest_100.acf").read_bytes(), self.steams)
+            self.assertEqual(files_of(machine.library / "common" / "A Game"), files_of_game())
+            if where == "steam":
+                self.assertFalse(os.path.lexists(machine.shared / "appmanifest_100.acf"))
+                self.assertEqual(list((machine.shared / "common").iterdir()), [])
+            else:
+                self.assertEqual((machine.shared / "appmanifest_100.acf").read_bytes(), manifest(100))
+                self.assertEqual(files_of(machine.shared / "common" / "A Game"), files_of_game())
+        self.assertNoLeftovers()
+
     def assertNextRunSaysNothing(self):
         self.assertEqual(self.machine.run_with_stand_in(), (0, []))
         self.assertNoLeftovers()
 
     def test_a_run_ended_during_the_copy(self):
-        self.machine.add_game(100)
-        (self.scratch() / "100" / "data").mkdir(parents=True)
+        self.ended_during_the_copy()
         self.assertNextRunSaysNothing()
         self.assertOnlyInOwnLibrary()
 
     def test_a_run_ended_after_the_temporary_manifest(self):
-        self.machine.add_game(100)
-        shutil.copytree(self.machine.library / "common" / "A Game", self.scratch() / "100")
-        (self.machine.shared / ".cairn-move-manifest-100").write_bytes(manifest(100))
+        self.ended_after_the_temporary_manifest()
         self.assertNextRunSaysNothing()
         self.assertOnlyInOwnLibrary()
 
@@ -913,29 +1025,159 @@ class InterruptedTest(MoveTestCase):
         self.assertOnlyInFamily()
 
     def test_a_run_ended_during_the_removal_of_the_original(self):
-        self.ended_after_step_4()
-        shutil.rmtree(self.machine.library / "common" / "A Game" / "data")
+        self.ended_during_the_removal()
         self.assertNextRunSaysNothing()
         self.assertOnlyInFamily()
 
     def test_steam_installed_the_game_again_meanwhile(self):
         # Steam's own copy is kept, with its folder, and the move's goes.
-        steams = manifest(100, flags="1026")
-        for ended in (self.ended_after_the_set_aside, self.ended_after_the_copys_rename, self.ended_after_step_4):
+        for ended, where in ((self.ended_after_the_set_aside, "steam"), (self.ended_after_the_copys_rename, "steam"),
+                             (self.ended_after_step_4, "both")):
+            with self.subTest(ended=ended.__name__):
+                self.fresh_machine()
+                self.installed_again(ended)()
+                self.assertNextRunSaysNothing()
+                self.assertEndedAs(where)
+
+    def test_a_recovery_ended_at_any_point_is_finished_by_the_next_one(self):
+        # A recovery, a run with no appids, from each point a move can be
+        # ended at, ended in turn just before and just after each of its own
+        # changes to the disk.
+        starts = ((self.ended_during_the_copy, "own"), (self.ended_after_the_temporary_manifest, "own"),
+                  (self.ended_after_the_set_aside, "own"), (self.ended_after_the_copys_rename, "family"),
+                  (self.ended_after_step_4, "family"), (self.ended_during_the_removal, "family"),
+                  (self.installed_again(self.ended_after_the_set_aside), "steam"),
+                  (self.installed_again(self.ended_after_the_copys_rename), "steam"),
+                  (self.installed_again(self.ended_after_step_4), "both"))
+        for start, where in starts:
+            self.fresh_machine()
+            start()
+            whole = self.machine
+            code, sent = in_child(lambda: run_until(whole, Ender()))
+            self.assertEqual(code, 0, start.__name__)
+            for at in range(1, int(sent) + 1):
+                for after in (False, True):
+                    with self.subTest(start=start.__name__, at=at, after=after):
+                        self.fresh_machine()
+                        start()
+                        machine = self.machine
+                        code, _ = in_child(lambda: run_until(machine, Ender(at, after)))
+                        self.assertEqual(code, KILLED)
+                        if where in ("own", "family"):
+                            self.assertInAtMostOneLibrary(machine)
+                        self.assertNoCopyAnotherRunCouldFinishIsHalf(machine)
+                        self.assertNextRunSaysNothing()
+                        self.assertEndedAs(where)
+
+    def test_the_order_of_a_recovery(self):
+        # From a run ended after the copy's rename: the family manifest takes
+        # its name, both family folders are on the disk, and only then does
+        # the original go, before its set-aside manifest.
+        self.ended_after_the_copys_rename()
+        module = self.machine.load()
+        events = []
+        real_rename, real_unlink, real_rmtree = os.rename, os.unlink, shutil.rmtree
+        real_sync_folder = module.sync_folder
+
+        def rename(source, target):
+            events.append(("rename", self.short(source), self.short(target)))
+            real_rename(source, target)
+
+        def unlink(path, *arguments, **keywords):
+            if "dir_fd" not in keywords:
+                events.append(("unlink", self.short(path)))
+            real_unlink(path, *arguments, **keywords)
+
+        def rmtree(path, *arguments, **keywords):
+            events.append(("rmtree", self.short(path)))
+            real_rmtree(path, *arguments, **keywords)
+
+        def sync_folder(path):
+            events.append(("fsync", self.short(path)))
+            real_sync_folder(path)
+
+        with (mock.patch.object(module, "sync_folder", sync_folder),
+              mock.patch.object(module.shutil, "rmtree", rmtree),
+              mock.patch.object(os, "rename", rename),
+              mock.patch.object(os, "unlink", unlink)):
+            self.assertEqual(self.machine.run_in_process(module), (0, []))
+        family, own, steam = (self.short(path) for path in (self.machine.shared, self.machine.library,
+                                                             self.machine.steam))
+        self.assertEqual(events, [
+            ("rename", f"{family}/.cairn-move-manifest-100", f"{family}/appmanifest_100.acf"),
+            # On the disk before anything in the Guardian's library goes.
+            ("fsync", f"{family}/common"),
+            ("fsync", family),
+            ("rmtree", f"{own}/common/A Game"),
+            ("unlink", f"{own}/.cairn-move-aside-100"),
+            ("fsync", f"{own}/common"),
+            ("fsync", own),
+            # The leftovers, the run's own folder among them.
+            ("rmtree", f"{family}/common/<scratch>"),
+            ("unlink", f"{steam}/config/.cairn-list-new"),
+            ("unlink", f"{own}/.cairn-list-new"),
+            ("unlink", f"{self.short(self.machine.family)}/.cairn-marker-new"),
+        ])
+        self.assertOnlyInFamily()
+
+    def test_a_temporary_manifest_beside_the_familys_own_install_goes_alone(self):
+        # A run ended before its copy took its name, and then another
+        # Guardian's Steam installed the game in the family folder itself.
+        # That install is the family's copy now, and stays as it is.
+        theirs = manifest(100, extra='\t"buildid"\t\t"9"\n')
+        for ended in (self.ended_after_the_temporary_manifest, self.ended_after_the_set_aside):
             with self.subTest(ended=ended.__name__):
                 self.fresh_machine()
                 ended()
-                (self.machine.library / "appmanifest_100.acf").write_bytes(steams)
+                (self.machine.shared / "appmanifest_100.acf").write_bytes(theirs)
+                (self.machine.shared / "common" / "A Game").mkdir()
+                (self.machine.shared / "common" / "A Game" / "theirs.dat").write_bytes(b"theirs")
                 self.assertNextRunSaysNothing()
-                self.assertEqual((self.machine.library / "appmanifest_100.acf").read_bytes(), steams)
-                self.assertEqual(files_of(self.machine.library / "common" / "A Game"), files_of_game())
-                if ended == self.ended_after_step_4:
-                    # The family folder had the game already: it stays in
-                    # both (the ADR's open question about two libraries).
-                    self.assertTrue(os.path.lexists(self.machine.shared / "appmanifest_100.acf"))
+                self.assertEqual((self.machine.shared / "appmanifest_100.acf").read_bytes(), theirs)
+                self.assertEqual(files_of(self.machine.shared / "common" / "A Game"), {"theirs.dat": b"theirs"})
+                if ended == self.ended_after_the_temporary_manifest:
+                    # Never set aside, so the Guardian's own copy is as it was.
+                    self.assertEqual((self.machine.library / "appmanifest_100.acf").read_bytes(), manifest(100))
+                    self.assertEqual(files_of(self.machine.library / "common" / "A Game"), files_of_game())
                 else:
-                    self.assertEqual(sorted(path.name for path in self.machine.shared.iterdir()), ["common"])
-                    self.assertEqual(list((self.machine.shared / "common").iterdir()), [])
+                    # Set aside, and the family folder has the game, so the
+                    # original goes.
+                    self.assertFalse(os.path.lexists(self.machine.library / "appmanifest_100.acf"))
+                    self.assertFalse(os.path.lexists(self.machine.library / "common" / "A Game"))
+
+    def test_a_temporary_manifest_that_cannot_take_its_name_keeps_the_set_aside(self):
+        # Putting the original manifest back now would leave a copy that the
+        # next run, or another Guardian's, finishes: the game in two
+        # libraries.
+        self.ended_after_the_copys_rename()
+        real_rename = os.rename
+
+        def rename(source, target):
+            if pathlib.Path(target) == self.machine.shared / "appmanifest_100.acf":
+                raise OSError("read-only")
+            real_rename(source, target)
+
+        self.assertEqual(self.machine.run_with_stand_in(calls={"rename": rename}), (0, []))
+        self.assertTrue((self.machine.library / ".cairn-move-aside-100").is_file())
+        self.assertFalse(os.path.lexists(self.machine.library / "appmanifest_100.acf"))
+        self.assertEqual((self.machine.shared / ".cairn-move-manifest-100").read_bytes(), manifest(100))
+        self.assertEqual(files_of(self.machine.shared / "common" / "A Game"), files_of_game())
+        self.assertNextRunSaysNothing()
+        self.assertOnlyInFamily()
+
+    @needs_not_root
+    def test_an_original_recovery_cannot_remove_keeps_its_set_aside(self):
+        # Every later run tries again, as after a move whose original could
+        # not go.
+        self.ended_after_step_4()
+        (self.machine.library / "common").chmod(0o555)
+        try:
+            self.assertEqual(self.machine.run_with_stand_in(), (0, []))
+            self.assertTrue((self.machine.library / ".cairn-move-aside-100").is_file())
+        finally:
+            (self.machine.library / "common").chmod(0o755)
+        self.assertNextRunSaysNothing()
+        self.assertOnlyInFamily()
 
     def test_a_set_aside_manifest_that_cannot_be_read_is_left_alone(self):
         aside = self.machine.library / ".cairn-move-aside-100"
@@ -1027,6 +1269,20 @@ class LibraryListTest(MoveTestCase):
                 self.assertEqual(path.stat().st_mode & 0o777, modes[name], "the list keeps its mode")
                 self.assertEqual(path.with_name(path.name + ".before-cairn").stat().st_mode & 0o777, modes[name])
         self.assertTrue(second.is_dir())
+
+    def test_the_new_entry_is_numbered_one_more_than_the_highest(self):
+        # With "0" and "2", a count of the entries would give a second "2".
+        self.machine.add_game(100)
+        entries = (library_entry(0, self.machine.steam, OWN_CONTENTID),
+                   library_entry(2, self.machine.root / "unplugged", "6000000000000000002"))
+        for name in LISTS:
+            self.machine.write_list(name, steam_list(*entries))
+        (self.machine.family / "libraryfolder.vdf").write_bytes(marker(FAMILY_CONTENTID))
+        before = self.machine.lists()
+        self.assertEqual(self.machine.run_with_stand_in("100"), (0, ["library added", "moved 100"]))
+        for name in LISTS:
+            self.assertEqual(self.machine.lists()[name], before[name][:-2] + cairn_entry(
+                3, self.machine.family, FAMILY_CONTENTID, (("100", "8000"),)) + b"}\n")
 
     def test_the_contentid_comes_from_the_marker(self):
         # Valve documents no format for it, and it is only copied.
@@ -1317,7 +1573,7 @@ class FailuresTest(MoveTestCase):
         return rename
 
     def assertNothingInFamily(self):
-        self.assertEqual(sorted(path.name for path in self.machine.shared.iterdir()), ["common"])
+        self.assertEqual(sorted(path.name for path in self.machine.shared.iterdir()), [".cairn-move-lock", "common"])
         self.assertEqual(list((self.machine.shared / "common").iterdir()), [])
 
     def test_a_copy_that_fails_leaves_nothing_half_done(self):
@@ -1623,7 +1879,7 @@ class ConditionsTest(MoveTestCase):
 
     def test_a_second_run_waits_for_the_first(self):
         self.machine.add_game(100)
-        lock = os.open(self.machine.shared, os.O_RDONLY | os.O_DIRECTORY)
+        lock = os.open(self.machine.lock, os.O_RDONLY)
         try:
             fcntl.flock(lock, fcntl.LOCK_EX)
             process = subprocess.Popen(self.machine.command("100"), stdin=subprocess.DEVNULL,
@@ -1640,11 +1896,67 @@ class ConditionsTest(MoveTestCase):
         self.assertEqual(process.returncode, 0, err)
         self.assertIn(out.splitlines()[-1], ("moved 100", "not-moved 100 other-drive"))
 
+    def test_a_run_holds_its_lock_from_recovery_to_the_last_removal(self):
+        # A lock belongs to one opening of the file, so a second opening, in
+        # this process too, cannot take it while the run holds it.
+        self.machine.add_game(100)
+        module = self.machine.load()
+        seen = []
+
+        def look_at_the_lock(step):
+            descriptor = os.open(self.machine.lock, os.O_RDONLY)
+            try:
+                fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                fcntl.flock(descriptor, fcntl.LOCK_UN)
+                seen.append((step, "free"))
+            except BlockingIOError:
+                seen.append((step, "held"))
+            finally:
+                os.close(descriptor)
+
+        def watched(step, real):
+            def part(*arguments):
+                look_at_the_lock(step)
+                return real(*arguments)
+            return part
+
+        steps = ("recover_family_side", "recover_library_side", "put_in_place", "finish")
+        parts = {step: watched(step, getattr(module, step)) for step in steps}
+        parts["reflink_copy"] = watched("reflink_copy", copy_tree)
+        self.assertEqual(self.machine.run_with_stand_in("100", module=module, parts=parts),
+                         (0, ["library added", "moved 100"]))
+        # The probe, then the game's copy.
+        self.assertEqual(seen, [(step, "held") for step in ("recover_family_side", "recover_library_side",
+                                                             "reflink_copy", "reflink_copy", "put_in_place",
+                                                             "finish")])
+
+    def test_the_lock_is_a_file_only_guardians_can_open(self):
+        # Every account can open the family folder's folders, and a lock
+        # needs only an opened file, so the lock is a file of its own that
+        # other accounts cannot open: no child can hold it and keep a Save
+        # waiting. The first run makes it, and every later run takes it.
+        for image in (False, True):
+            with self.subTest(image=image):
+                self.fresh_machine()
+                self.machine.lock.unlink()
+                if image and shutil.which("setfacl"):
+                    # The image's default ACL, which takes the umask's place.
+                    subprocess.run(["setfacl", "-m", "d:u::rwx,d:g::rwx,d:m::rwx,d:o::r-x", str(self.machine.shared)],
+                                   capture_output=True, check=False)
+                self.assertEqual(self.machine.run(), [])
+                made = self.machine.lock.lstat()
+                self.assertTrue(stat.S_ISREG(made.st_mode))
+                self.assertEqual(made.st_mode & 0o007, 0, "other accounts cannot open it")
+                self.assertEqual(made.st_mode & 0o040, 0o040, "every Guardian can open it")
+                self.assertEqual(self.machine.run(), [])
+                self.assertEqual(self.machine.lock.lstat().st_ino, made.st_ino, "made once")
+
 
 class PlantedLinksTest(MoveTestCase):
     """Any Guardian can make entries in the family folder. A link under a
-    name the program uses is removed, never followed, and never sends a
-    write into a home. Copies use a stand-in for cp."""
+    name the program uses is never followed, and never sends a write into a
+    home: it is removed, or, at the lock's name, the run stops. Copies use a
+    stand-in for cp."""
 
     def setUp(self):
         super().setUp()
@@ -1684,6 +1996,23 @@ class PlantedLinksTest(MoveTestCase):
                 self.assertTrue(path.is_symlink(), "never written through, nor taken for a file")
                 self.assertHomeUntouched()
                 self.assertOnlyInOwnLibrary()
+
+    def test_a_lock_that_is_not_a_plain_file_moves_nothing(self):
+        # A link there is never followed, so nothing is made where it
+        # points, and a pipe never keeps the run waiting.
+        lock = self.machine.lock
+        made_through_a_link = self.machine.home / "made-through-a-link"
+        for kind, make in (("link", lambda: lock.symlink_to(made_through_a_link)), ("folder", lock.mkdir),
+                           ("pipe", lambda: os.mkfifo(lock))):
+            with self.subTest(kind=kind):
+                lock.rmdir() if lock.is_dir() and not lock.is_symlink() else lock.unlink()
+                make()
+                before = self.everything()
+                self.assertEqual(self.machine.run("100"), ["not-moved 100 failed"])
+                self.assertEqual(self.machine.code, 1)
+                self.assertEqual(self.everything(), before)
+                self.assertFalse(os.path.lexists(made_through_a_link))
+                self.assertHomeUntouched()
 
     def test_a_marker_that_is_a_link_moves_nothing(self):
         real = self.machine.root / "real.vdf"

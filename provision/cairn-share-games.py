@@ -27,11 +27,13 @@ do. The manifest is written in the family's steamapps under a temporary
 name. Then the original manifest is set aside, the copy and the family
 manifest take their names, and the original folder and the set-aside
 manifest go. Ctrl-C and the other ending signals wait from the set-aside
-until both names are taken. A run ended anywhere, by a kill or a power cut,
-is finished or undone by the next one before it looks at any game, so a
-game is never in two libraries; a run ended between the set-aside and the
-renames leaves it in none until then. Two runs never overlap: each holds a
-lock on the family's steamapps for the whole run, and a second run waits.
+until both names are taken. The order keeps a game out of two libraries at
+every point. A run ended anywhere, by a kill or a power cut, is finished or
+undone by the next one before it looks at any game; one ended between the
+set-aside and the renames leaves the game in no library until then. Two
+runs never overlap: each holds a lock for the whole run, and a second run
+waits. The lock is a file in the family's steamapps that only Guardians can
+open, so no child can hold it and keep a Save waiting.
 
 Before its first move it adds the family folder to both of the Guardian's
 library lists, config/ and steamapps/libraryfolders.vdf, laid out as
@@ -114,12 +116,15 @@ BACKUP = ".before-cairn"
 
 # Names only this program uses. kidscan refuses an installdir that starts
 # .cairn-, and Steam reads only appmanifest_*.acf, so neither a game nor
-# Steam has one. This run's own folder is in the family's common/, the
-# temporary family manifest in its steamapps/, and the set-aside manifest
-# in the steamapps/ the game moves from.
+# Steam has one. This run's own folder is in the family's common/, and so
+# is a copy recovery undoes, until the clean-up removes both. The temporary
+# family manifest is in the family's steamapps/, and so is the lock, which
+# stays. The set-aside manifest is in the steamapps/ the game moves from.
 SCRATCH_PREFIX = ".cairn-move-"
+UNDONE_PREFIX = ".cairn-move-undone-"
 TEMPORARY_PREFIX = ".cairn-move-manifest-"
 ASIDE_PREFIX = ".cairn-move-aside-"
+LOCK = ".cairn-move-lock"
 LIST_NEW = ".cairn-list-new"
 MARKER_NEW = ".cairn-marker-new"
 TEMPORARY_NAME = re.compile(rf"\.cairn-move-manifest-({kidscan.APPID.pattern})")
@@ -241,12 +246,13 @@ def steam_open(proc):
 
 class Family:
     """The family folder: its root, which holds the marker, its steamapps,
-    and its common."""
+    which holds the lock, and its common."""
 
     def __init__(self, steamapps):
         self.steamapps = steamapps
         self.root = steamapps.parent
         self.common = steamapps / "common"
+        self.lock = steamapps / LOCK
 
     def manifest(self, appid):
         return self.steamapps / f"appmanifest_{appid}.acf"
@@ -442,9 +448,9 @@ def raise_error(error):
 
 def let_the_group_write(copy):
     """Gives the group the owner's bits on each file and folder of a copy, as
-    Steam's own installs in the family folder have them, so another
-    Guardian's Steam can update the game too. The copy is in this run's own
-    folder, so nothing changes between the lstat and the chmod."""
+    Steam's own installs in the family folder have them, so the group can
+    write them. The copy is in this run's own folder, so nothing changes
+    between the lstat and the chmod."""
     paths = [copy]
     for top, folders, files in os.walk(copy, onerror=raise_error):
         paths += [os.path.join(top, name) for name in folders + files]
@@ -732,9 +738,17 @@ def recover_family_side(family, found):
             unlink_quietly(temporary)
         elif any(os.path.lexists(steamapps / f"appmanifest_{appid}.acf") for steamapps in found):
             # Steam installed the game again meanwhile, so finishing would
-            # leave it in two libraries.
-            if unlink_quietly(temporary):
-                shutil.rmtree(copy, ignore_errors=True)
+            # leave it in two libraries. The copy is renamed over a new empty
+            # folder of this run's, as the tools step sets a folder aside,
+            # and only then does its manifest go. A run ended between the
+            # two leaves nothing a later run could finish, and no copy
+            # without a manifest to block the game with "exists"; the
+            # clean-up below removes the folder.
+            try:
+                os.rename(copy, tempfile.mkdtemp(prefix=UNDONE_PREFIX, dir=family.common))
+                os.unlink(temporary)
+            except OSError:
+                pass
         else:
             try:
                 os.rename(temporary, family.manifest(appid))
@@ -760,8 +774,9 @@ def recover_library_side(family, steamapps):
             continue
         manifest = steamapps / f"appmanifest_{appid}.acf"
         if os.path.lexists(family.manifest(appid)):
-            # The original goes only once the family folder has the whole
-            # game, and never when Steam installed it here again meanwhile.
+            # The original goes only once the family folder has the game's
+            # manifest and folder, and never when Steam installed it here
+            # again meanwhile.
             if not is_real_folder(family.common / installdir):
                 continue
             try:
@@ -799,6 +814,7 @@ def recover(family, found, steam):
         return
     for steamapps in found:
         recover_library_side(family, steamapps)
+    # Earlier runs' own folders, and the copies undone above.
     for entry in list(os.scandir(family.common)):
         if entry.name.startswith(SCRATCH_PREFIX):
             if entry.is_dir(follow_symlinks=False):
@@ -837,11 +853,19 @@ def share_games(appids, home, family, proc, said):
         for appid in appids:
             say_game(said, "not-moved", appid, "no-shared")
         return 0
-    lock = os.open(family.steamapps, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    # Every account can open the family's folders, and a lock needs only an
+    # opened file, so the lock is a file of its own. Made with mode 0660, it
+    # takes the family folder's group, cairn-guardian, and gives other
+    # accounts nothing, so only Guardians can open it. The first run makes
+    # it. A link there is never followed, and a pipe never keeps the run
+    # waiting.
+    lock = os.open(family.lock, os.O_RDONLY | os.O_CREAT | os.O_NOFOLLOW | os.O_NONBLOCK, 0o660)
     try:
+        if not stat.S_ISREG(os.fstat(lock).st_mode):
+            raise OSError("the lock is not a plain file")
         fcntl.flock(lock, fcntl.LOCK_EX)
-        # Nothing is written while the Guardian's Steam is open, since Steam
-        # writes its library list itself.
+        # Nothing moves and no list is written while the Guardian's Steam is
+        # open, since Steam writes its library list itself.
         if steam_open(proc):
             for appid in appids:
                 if os.path.lexists(family.manifest(appid)):
