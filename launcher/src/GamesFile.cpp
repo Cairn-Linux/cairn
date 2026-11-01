@@ -43,7 +43,8 @@ QString unusable(const QString& file, const QString& problem) {
 
 } // namespace
 
-GamesFile::Result GamesFile::read(const QString& path, const QSet<QString>& appIdsToLeaveOut) {
+GamesFile::Result GamesFile::read(const QString& path, const QSet<QString>& appIdsToLeaveOut,
+                                  const QString& picturesFolder) {
     if (path.isEmpty()) {
         return {};
     }
@@ -87,20 +88,13 @@ GamesFile::Result GamesFile::read(const QString& path, const QSet<QString>& appI
                     .arg(file, title.isEmpty() ? QStringLiteral("(untitled)") : title));
             continue;
         }
-        const TilePicture::Result picture = TilePicture::fromEntry(entry);
-        if (picture.refused) {
-            result.sentences.append(QStringLiteral("The games file %1 names a picture for %2 that "
-                                                   "is not the full path of a file: %3. The tile "
-                                                   "shows its name.")
-                                        .arg(file, title, *picture.refused));
-        }
         kept.insert(*appId);
         result.tiles.append(
             {.title = title,
              .kind = TileModel::Kind::Games,
              .exec = {QStringLiteral("steam"), QStringLiteral("-applaunch"), *appId},
              .opensTerminal = false,
-             .picture = picture.url});
+             .picture = TilePicture::forAppId(picturesFolder, *appId)});
     }
     return result;
 }

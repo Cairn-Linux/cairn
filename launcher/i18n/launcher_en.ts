@@ -137,13 +137,13 @@
 <context>
     <name>Main</name>
     <message>
-        <location filename="../qml/Main.qml" line="32"/>
+        <location filename="../qml/Main.qml" line="35"/>
         <source>Cairn</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="210"/>
-        <location filename="../qml/Main.qml" line="212"/>
+        <location filename="../qml/Main.qml" line="214"/>
+        <location filename="../qml/Main.qml" line="216"/>
         <source>Log out</source>
         <translation type="unfinished"></translation>
     </message>

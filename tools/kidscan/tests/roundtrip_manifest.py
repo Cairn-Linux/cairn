@@ -3,10 +3,12 @@
 """Writes the manifest kidscan makes from the synthetic Steam library in
 test_kidscan.py, with the stand-in scummvm, for the launcher to read (#97).
 
-Given a second path, it also writes the games file provisioning makes
-(ADR-0033) from the same library: every game through Steam, from the
-library folders only, with a picture for each. The pictures are a few
-stand-in bytes in a folder beside that file, never real game art.
+Given a second path, it also writes the games file Cairn makes (ADR-0033)
+from the same library: every game through Steam, from the library folders
+only, naming no picture. Beside it, it writes a folder with a picture for
+each game, named by its app id, as the picture step leaves them; the
+launcher finds each game's picture there (ADR-0047). The pictures are a
+few stand-in bytes, never real game art.
 
 CTest runs this before the launcher's tst_kidscanmanifest, which reads the
 files. Standard library only.
@@ -58,13 +60,11 @@ def main(argv):
         ])
         if code != 0 or games is None:
             return code
-        pictures = games.parent / f"{games.stem}-pictures"
-        write_pictures(library, pictures)
+        write_pictures(library, games.parent / f"{games.stem}-pictures")
         return kidscan.main([
             "--no-scummvm",
             "--library", str(library.root),
             "--library", str(library.lib2),
-            "--pictures", str(pictures),
             "-o", str(games),
         ])
 

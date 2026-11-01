@@ -5,10 +5,15 @@
 #include "SaveResults.h"
 #include "SaveRun.h"
 
+#include <QLocale>
 #include <QVariantMap>
 
-GamesSaving::GamesSaving(const QString& pkexec, const QString& command, QObject* parent)
-    : QObject(parent), m_run(new SaveRun(pkexec, command, this)) {
+#include <utility>
+
+GamesSaving::GamesSaving(const QString& pkexec, const QString& command, QString catalogue,
+                         QObject* parent)
+    : QObject(parent), m_run(new SaveRun(pkexec, command, this)),
+      m_catalogue(std::move(catalogue)) {
     connect(m_run, &SaveRun::lineRead, this, &GamesSaving::lineRead);
     connect(m_run, &SaveRun::finished, this, &GamesSaving::finished);
 }
@@ -26,23 +31,7 @@ GamesSaving::Reason GamesSaving::reason() const {
 }
 
 GamesSaving::Progress GamesSaving::progress() const {
-    switch (m_report.stage()) {
-    case SaveReport::Stage::Looking:
-        return Progress::Looking;
-    case SaveReport::Stage::SharingTools:
-        return Progress::SharingTools;
-    case SaveReport::Stage::Writing:
-        return Progress::Writing;
-    case SaveReport::Stage::Copying:
-        return Progress::CopyingGames;
-    case SaveReport::Stage::CopyingTools:
-        return Progress::CopyingTools;
-    case SaveReport::Stage::Waiting:
-        return Progress::WaitingForLogout;
-    case SaveReport::Stage::Starting:
-        break;
-    }
-    return Progress::Starting;
+    return SaveResults::progressFor(m_report.stage());
 }
 
 QString GamesSaving::progressName() const {
@@ -77,6 +66,18 @@ bool GamesSaving::allGiven() const {
 
 bool GamesSaving::catalogueKept() const {
     return m_report.catalogueKept().value_or(false);
+}
+
+bool GamesSaving::picturesKept() const {
+    return m_report.picturesKept().value_or(false);
+}
+
+QString GamesSaving::picturesMissing() const {
+    return titlesInWords(m_report.picturesMissing());
+}
+
+QString GamesSaving::picturesRefused() const {
+    return titlesInWords(m_report.picturesRefused());
 }
 
 // Only about a Save that gave some child something: a look gives no child
@@ -165,7 +166,10 @@ void GamesSaving::lineRead(const QString& line) {
     emit changed();
 }
 
+// The full list is read again for the titles, so a game the command has
+// just found is named by its title too.
 void GamesSaving::finished(const QString& answer) {
+    m_titles.insert(SaveResults::titlesOf(GameShelf::read(m_catalogue, {}).games()));
     m_step = answer == QLatin1String("done") ? Step::Saved : Step::NotSaved;
     m_reason = m_step == Step::Saved ? Reason::NoReason : reasonFor(answer);
     emit changed();
@@ -174,4 +178,15 @@ void GamesSaving::finished(const QString& answer) {
 
 QString GamesSaving::nameOf(const QString& login) const {
     return m_names.value(login, login);
+}
+
+// A game neither the page nor the full list names, which only a change to
+// the list since the command read it could leave, is named by its number.
+QString GamesSaving::titlesInWords(const QStringList& appIds) const {
+    QStringList titles;
+    for (const QString& appId : appIds) {
+        const QString title = m_titles.value(appId);
+        titles.append(title.isEmpty() ? tr("Game %1").arg(appId) : title);
+    }
+    return QLocale().createSeparatedList(titles);
 }

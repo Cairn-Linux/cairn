@@ -44,12 +44,13 @@ game tiles (ADR-0033, ADR-0035):
 
 ```sh
 env HOME= python3 -I -B /usr/local/libexec/cairn/kidscan.py --no-scummvm \
-    --library /var/lib/cairn/steam-library \
-    --pictures /var/lib/cairn/game-pictures
+    --library /var/lib/cairn/steam-library
 ```
 
 It writes the output to `/var/lib/cairn/games.json`, which the launcher
-reads with `--games`.
+reads with `--games`. It names no picture: the launcher finds each game's
+picture in `/var/lib/cairn/game-pictures` by its app id, so a picture
+copied later still shows (ADR-0047).
 
 ## What it does
 
@@ -99,8 +100,11 @@ reads with `--games`.
    exits non-zero is reported on stderr, not silently routed through Steam.
 5. **Names each game's picture** with `--pictures DIR`: when
    `DIR/<appid>.jpg` is a plain file, not a link, the game's entry gets
-   its full path as `picture`. kidscan never opens the picture.
-   Provisioning copies the pictures there (ADR-0035).
+   its full path as `picture`. kidscan never opens the picture. The
+   picture step copies Cairn's pictures there (ADR-0035), but Cairn's own
+   games files are made without `--pictures`, because the launcher finds
+   each game's picture by its app id (ADR-0047). A manifest may still
+   name one.
 6. **Writes the manifest**, sorted by title, and optionally `.desktop` files.
    `-o FILE` writes a new file beside it, mode 0644, puts it on the disk,
    then renames it over the old one, so a launcher starting meanwhile
@@ -189,8 +193,9 @@ CTest also runs the round trip (#97): `tests/roundtrip_manifest.py` writes a
 manifest from the same synthetic library, and the launcher's
 `tst_kidscanmanifest` reads it, so the two halves cannot drift apart.
 Given a second path, it also writes a games file as provisioning does,
-with stand-in pictures beside it that are a few bytes and never real game
-art, and the launcher reads that as its games file.
+naming no picture, with a folder of stand-in pictures beside it, named by
+app id, that are a few bytes and never real game art. The launcher reads
+that as its games file and finds each game's picture by its app id.
 
 ## Known limitations (tracked in the issue tracker)
 

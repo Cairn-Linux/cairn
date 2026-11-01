@@ -442,8 +442,9 @@ def build_entries(roots, scummvm_bin, category_map, follow_library_folders=True)
 
 def add_pictures(entries, folder):
     """Names DIR/<appid>.jpg as a game's picture when it is a plain file,
-    and never opens it. Provisioning copies the pictures there; the
-    launcher draws them."""
+    and never opens it. Cairn's own games files are made without this: the
+    launcher finds each game's picture by its app id (ADR-0047). A manifest
+    may still name one."""
     folder = os.path.abspath(Path(folder).expanduser())
     for entry in entries:
         source = entry.get("source", {})

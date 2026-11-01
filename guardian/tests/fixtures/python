@@ -5,8 +5,9 @@
 # step, for cairn-family save-games' tests. A test links it as "python" in a
 # folder of its own. It writes its arguments, one call to a line, to
 # "python-calls" there, and the environment it was given to
-# "python-environment". The picture step fails with "fail-pictures" in the
-# folder. kidscan prints "kidscan-output", and fails with status 2 with
+# "python-environment". The picture step prints "pictures-output", or
+# "finished" when there is none, and with "fail-pictures" prints nothing and
+# fails. kidscan prints "kidscan-output", and fails with status 2 with
 # "fail-kidscan". The tools step prints "share-tools-output", or "finished"
 # when there is none, and with "fail-share-tools" prints nothing and fails.
 # With "see" in the folder, naming a folder, the tools step first copies
@@ -29,6 +30,11 @@ case "$3" in
     fi
     ;;
 *)
-    [ ! -e "$here/fail-pictures" ]
+    [ ! -e "$here/fail-pictures" ] || exit 1
+    if [ -e "$here/pictures-output" ]; then
+        cat "$here/pictures-output"
+    else
+        echo finished
+    fi
     ;;
 esac
