@@ -12,7 +12,10 @@ the games on their own list, not of every game); ADR-0042, proposed
 into the shared folder, and adds that folder to their Steam itself,
 instead of the Settings › Storage step); ADR-0046, proposed (on the image
 a child's first copy of each of Steam's tools comes from the parent's
-Steam with their games, so no visit is needed for the first fetch)
+Steam with their games, so no visit is needed for the first fetch);
+ADR-0048, proposed (on the image a grown-up can have a child's own Steam
+update itself out of sight, and check 15 gets its answer for a Steam
+left running)
 
 ## Context
 

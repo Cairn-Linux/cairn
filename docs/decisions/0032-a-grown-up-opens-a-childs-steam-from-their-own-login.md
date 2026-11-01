@@ -9,7 +9,9 @@ window)
 **Amended by:** ADR-0041, proposed (the parent's list of each child's
 games replaces "no separate tick", and the planned amendment of ADR-0004
 under "What comes later" is withdrawn: the Guardian's per-child game
-allowlist stays)
+allowlist stays); ADR-0048, proposed (the helper's `--update` mode runs
+the child's Steam in a headless cage and reads its logs and manifests as
+the child, and a visit is refused `updating` meanwhile)
 
 ## Context
 

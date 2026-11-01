@@ -8,6 +8,8 @@ cairn-iso VM without overturning a bullet of the Decision.
 **Closes:** (none) — the third of issue #206's three fixes, and the first
 part of #181; part of ROADMAP P1-5 and P1-13. Once accepted, amends
 ADR-0033, ADR-0038, ADR-0041 and ADR-0042.
+**Amended by:** ADR-0048, proposed (its section "Later (#181)" becomes
+ADR-0048)
 
 ## Context
 
