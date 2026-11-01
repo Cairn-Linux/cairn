@@ -393,7 +393,8 @@ copy and the logout.
   `still-running`), with the copy's own code (ADR-0033, ADR-0041).
 - **Room.**
   It holds `low-space` when the filesystem that holds the child's home
-  has less than 5 GB free (inference: a guess, tried in E16(c)).
+  has less than 5 GB free (inference: the plan's guess, which no check
+  tests).
   During the run, Steam's `Disk write failure` ends it as out of space
   (a line others have reported, not yet seen here; E16(c)).
 - **A Steam that has never run, or never signed in,** is held
