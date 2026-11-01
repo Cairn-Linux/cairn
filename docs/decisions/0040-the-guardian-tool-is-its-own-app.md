@@ -221,15 +221,22 @@ whatever the case of its letters, before the password is asked for.**
   not refused for having that child's name.
 - The login rule stays. A login that another account or a group already
   has still gets 2, 3 and so on, so the form never names an existing
-  account. That now happens only for a different name that makes the
-  same login, such as "Cy" beside a child called "Cy B" whose login is
-  `cy`, or for a login that belongs to an account that is not a child.
+  account. That now happens only for a name no child on the list has,
+  when its login is taken all the same: by a child with another name,
+  as when the parent types "Cy" beside a child called "Cy B" whose login
+  is `cy`, by an account that is not a child, or by a group.
 
 ### Consequences
 
-- The form can no longer make two children with one name. A family with
-  two children of one name gives one of them an initial, as the sentence
+- The form can no longer make two children with one name, as long as no
+  child is made outside Family while it is open. A family with two
+  children of one name gives one of them an initial, as the sentence
   says.
+- The window compares the name with the children as it last read them:
+  when it opened, and after each change. A child made in a terminal
+  since then is not compared. A retry is not compared at all, so a child
+  of that name made elsewhere between a failed add and its retry does
+  not stop it.
 - Only children are compared. A child may still get a grown-up's name;
   a grown-up's tile asks for a password, so a child cannot land in that
   account with a tap.
