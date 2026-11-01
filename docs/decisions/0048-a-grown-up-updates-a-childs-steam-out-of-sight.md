@@ -69,8 +69,14 @@ This is that ADR.
 
 ### What Mason decided
 
-On 2026-10-30 Mason decided to build it, with the parent told it will
-take a while and shown how far it has got (#181).
+On 2026-10-30 Mason decided to build it, with two additions (#181).
+The parent is told it will take a while, and sees how far it has got.
+And each tool is asked for by name, with the tools it needs: Steam does
+not do that itself, and for scout it never asks for soldier, the runtime
+scout runs in (#206).
+The second became ADR-0046's copy, for a tool a child's Steam lacks, a
+change Mason confirmed that day.
+For a newer build of a tool, answer 3 below decides.
 The plan of 2026-10-31 runs the child's own Steam, as the child, in a
 session of its own with a screen nobody sees.
 A new mode of the visit helper starts it, and a watcher reads Steam's
@@ -152,8 +158,9 @@ while and asks for the password. Then Ada's Steam runs as Ada, in a
 session of its own with a screen nobody sees, while a card shows what
 Steam is doing. It ends when Steam has nothing more to do, when the
 parent presses Stop, or after 90 minutes, and says plainly what Steam did
-and what it left for later. Ada cannot log in meanwhile. The first
-version does nothing to make Steam fetch an update it put off.**
+and what it left for later. Ada cannot log in meanwhile. Cairn asks
+Steam for an update it put off only for Steam's tools, never for a game,
+and only if E13 shows that validating a tool works.**
 
 ### The button
 
@@ -517,15 +524,29 @@ it anyway:
 - E14: Steam's "Immediately download updates" value, written into a
   copied manifest while Ada's Steam is stopped.
 
-The first version uses none of them.
-A later amendment adds one after E12 to E14, within answer 3:
+Answer 3 decides what Cairn may do about them:
 
-- for tools only, and validating them only if E13 shows that it works;
-- never for games, which may keep their saves inside their own folders
-  (ADR-0033);
-- and Steam's "Immediately" value only with a line of its own in that
-  amendment, since it changes ADR-0046's byte-for-byte copies and would
+- for Steam's tools only, never for games, which may keep their saves
+  inside their own folders (ADR-0033);
+- by validating a tool, and only if E13 shows that validating fetches
+  Valve's build with no window left waiting;
+- Steam's "Immediately" value only with a line of its own in an ADR
+  first, since it changes ADR-0046's byte-for-byte copies and would
   start downloads at Ada's own logins too (inference).
+
+So if E12 shows Steam waiting and E13 shows that validating works, the
+helper validates each tool Steam left, once the end rule holds.
+It runs `/usr/bin/steam steam://validate/<appid>` as Ada, on her hidden
+display, for each tool by its appid and for the tools it runs in, scout
+with soldier, as Mason's addition of 2026-10-30 asked.
+Then the run ends by the end rule again, and the result names what is
+still left.
+If E12 shows Steam fetching them by itself, or E13 fails, Cairn asks
+Steam for nothing, and the result says what Steam left.
+Which of these holds is written in here, from E12 and E13, before this
+ADR is accepted.
+`steam -applaunch` for a tool, E13's other half, is not in answer 3, so
+it is not used.
 
 ### What cairn-family says
 
@@ -590,7 +611,8 @@ only.
   So a first tap waits less often, and less long.
   How much less depends on E12: if Steam leaves the tools and games Ada
   has not played for later, the button covers Steam's own update, and
-  the result says what is left.
+  her tools too if validating works (E13), and the result says what is
+  left.
 - **The parent waits instead of the child.**
   A run can keep Ada from logging in for up to 90 minutes.
   A Save, a visit and a logout, for any child, wait too, since the list
@@ -631,9 +653,10 @@ only.
   (ADR-0036): the run ends at its limit with the sentence that says
   Cairn could not tell.
 - **Given up:** a promise that everything is current, since Valve
-  decides when an update is due and the first version pushes nothing;
-  live progress in a window opened again later; updating every child at
-  once; starting on battery; updates at night.
+  decides when a game's update is due and Cairn never asks for one;
+  live progress in a window opened again later; starting on battery.
+- **Left for ADRs of their own** (answer 6): updating every child at
+  once, and updates at night.
 - **New pieces:** a fourth mode of the visit helper, which reads the
   child's Steam logs and manifests as the child; a watcher program; the
   launcher's Steam readers in a static library shared with it; two
