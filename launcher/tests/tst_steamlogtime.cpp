@@ -19,6 +19,18 @@ QByteArray line(const QByteArray& time) {
     return '[' + time + "] System startup time: 16.79 seconds";
 }
 
+// The updater starting the client, at the local `time`.
+QByteArray startup(const QByteArray& time) {
+    return '[' + time + "] Startup - updater built Oct 13 2026 18:44:25\n";
+}
+
+// The client running its own start command, at the local `time`.
+QByteArray ownStart(const QByteArray& time) {
+    return '[' + time +
+           "] ExecCommandLine: \"'/var/home/child/.local/share/Steam/ubuntu12_32/steam' "
+           "'-srt-logger-opened' '-silent'\"\n";
+}
+
 // A moment, given in UTC so that each row says plainly which one it means.
 QDateTime utc(QDate date, QTime time) {
     return {date, time, QTimeZone::UTC};
@@ -34,6 +46,14 @@ void append(const QString& path, const QByteArray& text) {
     QVERIFY(log.open(QIODevice::WriteOnly | QIODevice::Append));
     log.write(text);
 }
+
+// The logs of one Steam, in a folder of the test's own.
+struct Logs {
+    QTemporaryDir dir;
+    QString bootstrap = dir.filePath(QStringLiteral("bootstrap_log.txt"));
+    QString console = dir.filePath(QStringLiteral("console_log.txt"));
+    QString content = dir.filePath(QStringLiteral("content_log.txt"));
+};
 
 // The moment a time in Steam's logs means, in a zone whose clocks change,
 // and what each of the launcher's readers of those logs makes of it (#248).
@@ -103,23 +123,23 @@ private slots:
     }
 
     // Each reader below, at a look in the second pass, is given a line that
-    // would be an hour older read as the first pass.
+    // would be an hour older read as the first pass, or a line from the
+    // first pass that would be an hour younger read as the second. Between
+    // them, each place a reader reads a time in Steam's logs is checked.
 
     // Steam took the game off its schedule 30 seconds before the look: no
     // stall yet, so Steam is not started again. A minute after, it is one
     // (#206).
     void aStallIsTimedFromWhenItBegan() {
-        const QTemporaryDir dir;
-        const QString console = dir.filePath(QStringLiteral("console_log.txt"));
-        const QString content = dir.filePath(QStringLiteral("content_log.txt"));
-        SteamLaunchLog launch(console);
-        SteamStall stall(content);
+        const Logs logs;
+        SteamLaunchLog launch(logs.console);
+        SteamStall stall(logs.content);
         launch.startLaunch(QStringLiteral("292780"));
         stall.startLaunch(QStringLiteral("292780"));
-        append(console, "[2026-11-01 01:29:10] GameAction [AppID 292780, ActionID 1] : LaunchApp "
-                        "changed task to DownloadingDepots with \"\"\n");
-        append(content, "[2026-11-01 01:29:30] AppID 292780 scheduler finished : removed from "
-                        "schedule (result Suspended, state 0xc) \n");
+        append(logs.console, "[2026-11-01 01:29:10] GameAction [AppID 292780, ActionID 1] : "
+                             "LaunchApp changed task to DownloadingDepots with \"\"\n");
+        append(logs.content, "[2026-11-01 01:29:30] AppID 292780 scheduler finished : removed "
+                             "from schedule (result Suspended, state 0xc) \n");
         launch.read(look());
         QCOMPARE(stall.read(launch, SteamStartup::Now::Ready, look()), SteamStall::Now::Fine);
         const QDateTime aMinuteOn = look().addSecs(31);
@@ -127,41 +147,70 @@ private slots:
         QCOMPARE(stall.read(launch, SteamStartup::Now::Ready, aMinuteOn), SteamStall::Now::Stalled);
     }
 
+    // A client that started two seconds before the look has just started,
+    // so it still has its moment to take the tap (ADR-0037).
+    void aClientStartTwoSecondsAgoIsJustNow() {
+        const Logs logs;
+        SteamLaunchLog launch(logs.console);
+        launch.startLaunch(QStringLiteral("292780"));
+        append(logs.console, ownStart("2026-11-01 01:29:58"));
+        launch.read(look());
+        QCOMPARE(launch.steamStartedAt().value_or(QDateTime()).toUTC(),
+                 utc(QDate(2026, 11, 1), QTime(8, 29, 58)));
+    }
+
     // The updater started Steam five minutes before the look, and the client
     // has not run its own start command yet: Steam is still starting, not a
     // start from long ago that never finished (ADR-0037).
     void aStartFiveMinutesAgoIsStillStarting() {
-        const QTemporaryDir dir;
-        const QString bootstrap = dir.filePath(QStringLiteral("bootstrap_log.txt"));
-        append(bootstrap, "[2026-11-01 01:25:00] Startup - updater built Oct 13 2026 18:44:25\n");
-        const SteamStartup steam(bootstrap, dir.filePath(QStringLiteral("console_log.txt")));
-        QCOMPARE(steam.read(look()), SteamStartup::Now::Starting);
+        const Logs logs;
+        append(logs.bootstrap, startup("2026-11-01 01:25:00"));
+        QCOMPARE(SteamStartup(logs.bootstrap, logs.console).read(look()),
+                 SteamStartup::Now::Starting);
+    }
+
+    // The updater started Steam just before the clocks went back, and the
+    // client ran its own start command just after. Read ten minutes after
+    // that start, Steam has started: it is not still starting.
+    void aStartCommandAcrossTheChangeIsReady() {
+        const Logs logs;
+        append(logs.bootstrap, startup("2026-11-01 01:59:50"));
+        append(logs.console, ownStart("2026-11-01 01:00:05"));
+        const QDateTime tenMinutesOn = utc(QDate(2026, 11, 1), QTime(8, 10));
+        QCOMPARE(SteamStartup(logs.bootstrap, logs.console).read(tenMinutesOn),
+                 SteamStartup::Now::Ready);
+    }
+
+    // The updater installed an update of Steam and started it again five
+    // seconds later, both in the second pass: Steam is restarting after its
+    // update, and the updater's windows are its own (#183).
+    void aStartJustAfterAnUpdateIsARestart() {
+        const Logs logs;
+        append(logs.bootstrap, "[2026-11-01 01:20:00] Update complete, launching Steam...\n" +
+                                   startup("2026-11-01 01:20:05"));
+        QCOMPARE(SteamStartup(logs.bootstrap, logs.console).read(look()),
+                 SteamStartup::Now::Restarting);
     }
 
     // The updater started Steam just before the clocks went back, and Steam
     // could not reach its servers just after: that is the client that runs,
     // not an earlier one (#182).
     void aSignInAcrossTheChangeIsTheRunningClients() {
-        const QTemporaryDir dir;
-        const QString bootstrap = dir.filePath(QStringLiteral("bootstrap_log.txt"));
-        const QString console = dir.filePath(QStringLiteral("console_log.txt"));
-        append(bootstrap, "[2026-11-01 01:59:50] Startup - updater built Oct 13 2026 18:44:25\n");
-        append(console, "[2026-11-01 01:00:10] LogonFailure No Connection\n");
-        QCOMPARE(SteamSignIn(console, bootstrap).read(look()), SteamSignIn::Now::NoConnection);
+        const Logs logs;
+        append(logs.bootstrap, startup("2026-11-01 01:59:50"));
+        append(logs.console, "[2026-11-01 01:00:10] LogonFailure No Connection\n");
+        QCOMPARE(SteamSignIn(logs.console, logs.bootstrap).read(look()),
+                 SteamSignIn::Now::NoConnection);
     }
 
-    // A client that started two seconds before the look has just started,
-    // so it still has its moment to take the tap (ADR-0037).
-    void aClientStartTwoSecondsAgoIsJustNow() {
-        const QTemporaryDir dir;
-        const QString console = dir.filePath(QStringLiteral("console_log.txt"));
-        SteamLaunchLog launch(console);
-        launch.startLaunch(QStringLiteral("292780"));
-        append(console, "[2026-11-01 01:29:58] ExecCommandLine: \"'/var/home/child/.local/share/"
-                        "Steam/ubuntu12_32/steam' '-srt-logger-opened' '-silent'\"\n");
-        launch.read(look());
-        QCOMPARE(launch.steamStartedAt().value_or(QDateTime()).toUTC(),
-                 utc(QDate(2026, 11, 1), QTime(8, 29, 58)));
+    // The updater started Steam in the second pass, and an earlier client
+    // was refused its sign-in in the first: the client that runs was not
+    // refused (#182).
+    void anEarlierClientsRefusalIsNotTheRunningClients() {
+        const Logs logs;
+        append(logs.bootstrap, startup("2026-11-01 01:10:00"));
+        append(logs.console, "[2026-11-01 01:40:00] LogonFailure Access Denied\n");
+        QCOMPARE(SteamSignIn(logs.console, logs.bootstrap).read(look()), SteamSignIn::Now::Fine);
     }
 };
 
