@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "TileModel.h"
 
+#include <QDir>
 #include <QFile>
 #include <QQmlComponent>
 #include <QQmlEngine>
@@ -64,23 +65,32 @@ private slots:
     }
 
     // The games file's tiles come after the manifest's, and the Terminal is
-    // always last (ADR-0033). A game's picture reaches QML as a file:// URL.
+    // always last (ADR-0033). A game's picture, found in the pictures folder
+    // by its app id (ADR-0047), reaches QML as a file:// URL.
     void gameTilesComeBeforeTheTerminal() {
-        const QString picture = write("1001.jpg", "stand-in picture");
+        QVERIFY(QDir(m_dir.path()).mkpath(QStringLiteral("pictures")));
+        const QString picture = write("pictures/1001.jpg", "stand-in picture");
         const QString manifest = write("manifest.json", R"({"version": 1, "entries": [
             {"title": "Paint", "category": "make", "exec": ["tuxpaint"]}]})");
-        const QString games = write("games.json", QStringLiteral(R"({"version": 1, "entries": [
-            {"title": "Game one", "category": "games", "exec": ["steam", "-applaunch", "1001"],
-             "picture": "%1"},
-            {"title": "Game two", "category": "games", "exec": ["steam", "-applaunch", "1002"]}]})")
-                                                      .arg(picture)
-                                                      .toUtf8());
+        const QString games = write("games.json", R"({"version": 1, "entries": [
+            {"title": "Game one", "category": "games", "exec": ["steam", "-applaunch", "1001"]},
+            {"title": "Game two", "category": "games", "exec": ["steam", "-applaunch", "1002"]}]})");
         TileModel model(this);
         const QSignalSpy gamesPathChanged(&model, &TileModel::gamesPathChanged);
+        const QSignalSpy picturesFolderChanged(&model, &TileModel::picturesFolderChanged);
         model.setManifestPath(manifest);
         model.setGamesPath(games);
         QCOMPARE(model.gamesPath(), games);
         QCOMPARE(gamesPathChanged.count(), 1);
+        QCOMPARE(model.rowCount(), 4);
+        // Without the folder no game has a picture; with it, the files are
+        // read again.
+        QVERIFY(model.data(model.index(1), TileModel::PictureRole).toUrl().isEmpty());
+        model.setPicturesFolder(m_dir.filePath(QStringLiteral("pictures")));
+        QCOMPARE(model.picturesFolder(), m_dir.filePath(QStringLiteral("pictures")));
+        QCOMPARE(picturesFolderChanged.count(), 1);
+        model.setPicturesFolder(m_dir.filePath(QStringLiteral("pictures")));
+        QCOMPARE(picturesFolderChanged.count(), 1);
         QCOMPARE(model.rowCount(), 4);
         QCOMPARE(title(model, 0), QStringLiteral("Paint"));
         QCOMPARE(title(model, 1), QStringLiteral("Game one"));
@@ -100,9 +110,9 @@ private slots:
         QVERIFY(model.data(model.index(1), TileModel::OpensTerminalRole).toBool());
     }
 
-    // Main.qml sets both paths at once. The files are read once, after both
-    // are set, so the journal hears each sentence once and the tiles are
-    // handed to the Terminal once.
+    // Main.qml sets the paths and the pictures folder at once. The files are
+    // read once, after all three are set, so the journal hears each sentence
+    // once and the tiles are handed to the Terminal once.
     void aModelMadeInQmlReadsItsFilesOnce() {
         const QString manifest = write("qml-manifest.json", R"({"version": 1, "entries": [
             {"title": "Paint", "category": "make", "exec": ["tuxpaint"]},
@@ -110,11 +120,14 @@ private slots:
         const QString games = write("qml-games.json", R"({"version": 1, "entries": [
             {"title": "Game one", "category": "games", "exec": ["steam", "-applaunch", "1001"]},
             {"title": "Odd game", "category": "games", "exec": ["odd"]}]})");
+        QVERIFY(QDir(m_dir.path()).mkpath(QStringLiteral("qml-pictures")));
+        const QString picture = write("qml-pictures/1001.jpg", "stand-in picture");
         QQmlEngine engine;
         QQmlComponent component(&engine);
         component.setData(QStringLiteral("import CairnTest\n"
-                                         "TileModel { manifestPath: \"%1\"; gamesPath: \"%2\" }\n")
-                              .arg(manifest, games)
+                                         "TileModel { manifestPath: \"%1\"; gamesPath: \"%2\"; "
+                                         "picturesFolder: \"%3\" }\n")
+                              .arg(manifest, games, m_dir.filePath(QStringLiteral("qml-pictures")))
                               .toUtf8(),
                           QUrl());
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
@@ -127,6 +140,8 @@ private slots:
         QCOMPARE(model->rowCount(), 3);
         QCOMPARE(title(*model, 0), QStringLiteral("Paint"));
         QCOMPARE(title(*model, 1), QStringLiteral("Game one"));
+        QCOMPARE(model->data(model->index(1), TileModel::PictureRole).toUrl(),
+                 QUrl::fromLocalFile(picture));
         QVERIFY(model->data(model->index(2), TileModel::OpensTerminalRole).toBool());
     }
 

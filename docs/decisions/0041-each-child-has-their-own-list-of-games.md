@@ -12,7 +12,9 @@ the Guardian's own Steam, and Save moves a picked game into the shared
 folder before copying it, with new answer lines); ADR-0046, proposed (a
 Save, and a Look, also fill a tools folder from the Guardian's Steam, and
 the copy step copies Steam's tools to a child with their new games, with
-new answer lines and sentences)
+new answer lines and sentences); ADR-0047, proposed (new answer lines,
+picture-missing and picture-refused APPID, the journal gets each step's
+own words, and the Save's window names each game without a picture)
 
 ## Context
 

@@ -42,7 +42,7 @@ int saveGames(const QStringList& arguments) {
     sayLine(answer);
     note(outcome.refusal.has_value(),
          outcome.asked.isEmpty() ? answer : outcome.asked + QStringLiteral(": ") + answer);
-    for (const QString& line : outcome.tools) {
+    for (const QString& line : outcome.pictures + outcome.catalogue + outcome.tools) {
         note(false, line);
     }
     for (const QString& child : outcome.children) {
