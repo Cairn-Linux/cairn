@@ -162,6 +162,22 @@ target_include_directories(tst_steamlaunchlog PRIVATE src)
 target_link_libraries(tst_steamlaunchlog PRIVATE Qt6::Core Qt6::Test)
 add_test(NAME steamlaunchlog COMMAND tst_steamlaunchlog)
 
+# The moment a time in Steam's logs means, where the clocks change (#248).
+# CTest sets the zone for this program alone, before it starts, so no other
+# test runs in it and nothing changes the zone while Qt runs. The zone is
+# Mountain time as a POSIX rule, which needs no time-zone database: the
+# image's build stage may run the tests where there is none. Run in any
+# other zone, the program skips, and CTest shows it as skipped.
+qt_add_executable(tst_steamlogtime tests/tst_steamlogtime.cpp src/SteamLaunchLog.h
+    src/SteamLaunchLog.cpp src/LogTail.h src/LogTail.cpp)
+target_include_directories(tst_steamlogtime PRIVATE src)
+target_link_libraries(tst_steamlogtime PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME steamlogtime COMMAND tst_steamlogtime)
+set_tests_properties(steamlogtime PROPERTIES
+    ENVIRONMENT "TZ=MST7MDT,M3.2.0,M11.1.0"
+    SKIP_REGULAR_EXPRESSION "SKIP   : "
+)
+
 qt_add_executable(tst_steamcontentlog tests/tst_steamcontentlog.cpp src/SteamContentLog.h
     src/SteamContentLog.cpp src/SteamLaunchLog.h src/SteamLaunchLog.cpp src/LogTail.h src/LogTail.cpp)
 target_include_directories(tst_steamcontentlog PRIVATE src)

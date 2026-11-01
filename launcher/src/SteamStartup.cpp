@@ -47,11 +47,11 @@ SteamStartup::Now SteamStartup::read(const QDateTime& now) const {
     bool restarting = false;
     for (const QByteArray& line : lastLines(m_bootstrapLog)) {
         if (line.contains("] Startup - ")) {
-            started = SteamLaunchLog::timeOf(line);
+            started = SteamLaunchLog::timeOf(line, now);
             updating = false;
             restarting = updated && started && updated->secsTo(*started) <= restartSeconds;
         } else if (line.contains("] Update complete, launching")) {
-            updated = SteamLaunchLog::timeOf(line);
+            updated = SteamLaunchLog::timeOf(line, now);
         } else if (started && isUpdating(line)) {
             updating = true;
         }
@@ -63,7 +63,7 @@ SteamStartup::Now SteamStartup::read(const QDateTime& now) const {
     // after it logs `System startup time:`; a tap it held runs with it.
     for (const QByteArray& line : lastLines(m_consoleLog) | std::views::reverse) {
         if (line.contains("] ExecCommandLine: ") && line.contains("'-srt-logger-opened'")) {
-            const std::optional<QDateTime> ready = SteamLaunchLog::timeOf(line);
+            const std::optional<QDateTime> ready = SteamLaunchLog::timeOf(line, now);
             if (ready && *ready >= *started) {
                 return Now::Ready;
             }
@@ -98,10 +98,11 @@ QList<QByteArray> SteamStartup::lastLines(const QString& path) {
     return lines;
 }
 
-std::optional<QDateTime> SteamStartup::lastStartup(const QString& bootstrapLog) {
+std::optional<QDateTime> SteamStartup::lastStartup(const QString& bootstrapLog,
+                                                   const QDateTime& now) {
     for (const QByteArray& line : lastLines(bootstrapLog) | std::views::reverse) {
         if (line.contains("] Startup - ")) {
-            return SteamLaunchLog::timeOf(line);
+            return SteamLaunchLog::timeOf(line, now);
         }
     }
     return std::nullopt;
