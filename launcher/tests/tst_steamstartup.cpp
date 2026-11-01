@@ -10,11 +10,18 @@ namespace {
 
 using Now = SteamStartup::Now;
 
-// A line as Steam writes it, `secondsAgo` before now.
+// When the test reads the logs: the evening of the login below. A fixed
+// time, so the test reads the same at any hour of the year. No zone's
+// clocks change that day; the hours they change in have a test of their
+// own (tst_steamlogtime).
+QDateTime fixedNow() {
+    return {QDate(2026, 10, 20), QTime(21, 40)};
+}
+
+// A line as Steam writes it, `secondsAgo` before the fixed now.
 QByteArray line(qint64 secondsAgo, const QByteArray& says) {
-    const QString time = QDateTime::currentDateTime()
-                             .addSecs(-secondsAgo)
-                             .toString(QStringLiteral("yyyy-MM-dd HH:mm:ss"));
+    const QString time =
+        fixedNow().addSecs(-secondsAgo).toString(QStringLiteral("yyyy-MM-dd HH:mm:ss"));
     return '[' + time.toLatin1() + "] " + says + '\n';
 }
 
@@ -36,7 +43,7 @@ struct Logs {
     QString bootstrap = dir.filePath(QStringLiteral("bootstrap_log.txt"));
     QString console = dir.filePath(QStringLiteral("console_log.txt"));
     Now now() const {
-        return SteamStartup(bootstrap, console).read(QDateTime::currentDateTime());
+        return SteamStartup(bootstrap, console).read(fixedNow());
     }
 };
 
@@ -141,8 +148,7 @@ private slots:
                    line(160, "Extracting package...") + line(150, "Installing update...") +
                    line(149, "Cleaning up..."));
         QCOMPARE(logs.now(), Now::Updating);
-        QVERIFY(SteamStartup(logs.bootstrap, logs.console)
-                    .updatingItself(QDateTime::currentDateTime()));
+        QVERIFY(SteamStartup(logs.bootstrap, logs.console).updatingItself(fixedNow()));
         append(logs.bootstrap,
                line(149, "Update complete, launching Steam...") + line(149, "Shutdown") +
                    line(149, "Startup - updater built Sep  3 2026 01:31:48") +
@@ -188,8 +194,7 @@ private slots:
         QCOMPARE(logs.now(), Now::Restarting);
         append(logs.console, line(0, ownStart()));
         QCOMPARE(logs.now(), Now::Ready);
-        QVERIFY(!SteamStartup(logs.bootstrap, logs.console)
-                     .updatingItself(QDateTime::currentDateTime()));
+        QVERIFY(!SteamStartup(logs.bootstrap, logs.console).updatingItself(fixedNow()));
     }
 
     // A start a few minutes after an update is a start of its own: the dev
@@ -206,8 +211,7 @@ private slots:
                    line(5, "Startup - updater built Oct 21 2026 21:09:45") +
                    line(5, "Checking for update on startup") + line(5, "Nothing to do"));
         QCOMPARE(logs.now(), Now::Starting);
-        QVERIFY(!SteamStartup(logs.bootstrap, logs.console)
-                     .updatingItself(QDateTime::currentDateTime()));
+        QVERIFY(!SteamStartup(logs.bootstrap, logs.console).updatingItself(fixedNow()));
     }
 
     void noLogsIsReady() {
