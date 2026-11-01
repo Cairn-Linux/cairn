@@ -239,6 +239,20 @@ TestCase {
         return place.y >= 0 && place.y + item.height <= window.height;
     }
 
+    // Whether an item, with `room` around it for a focus ring, shows whole
+    // inside the window and inside every item above it that clips. Within
+    // a pixel, as the window draws whole pixels.
+    function shownWhole(window, item, room) {
+        for (let above = item.parent; above; above = above.parent) {
+            if (!above.clip && above !== window.contentItem)
+                continue;
+            const corner = item.mapToItem(above, -room, -room);
+            if (corner.x < -1 || corner.y < -1 || corner.x + item.width + room * 2 > above.width + 1 || corner.y + item.height + room * 2 > above.height + 1)
+                return false;
+        }
+        return true;
+    }
+
     // With the window short and scrolled down to the form, the sentence
     // after Add is scrolled into sight.
     function test_theOutcomeComesIntoSight() {
@@ -1272,6 +1286,162 @@ TestCase {
         tryCompare(card(window, 2), "activeFocus", true);
     }
 
+    // #219: scrolled down to the games in a short window, the first tap on
+    // a card showed "Not saved yet" above the grid, and every card moved
+    // down by as much, so the tapped card left the pointer. The card now
+    // stays where it was in the window, and so it does when Space turns it
+    // back and the sentence goes.
+    function test_aTurnedCardStaysWhereItWas() {
+        const window = makeWindow("done", {
+            "smallest": true
+        });
+        showGames(window);
+        waitForPolish(window);
+        const scroller = findChild(window, "scroller");
+        const sentence = findChild(window, "unsavedSentence");
+        const area = findChild(window, "childArea");
+        const freddi = card(window, 1);
+        const place = () => freddi.mapToItem(window.contentItem, 0, 0).y;
+        // The card in the middle of the window, with the keyboard's focus
+        // already. The next test taps a card without it, at the page's edge.
+        const middle = freddi.mapToItem(scroller.contentItem, 0, 0).y + freddi.height / 2 - scroller.height / 2;
+        scroller.contentY = Math.max(0, Math.min(middle, scroller.contentHeight - scroller.height));
+        freddi.forceActiveFocus();
+        waitForPolish(window);
+        verify(!sentence.visible);
+        const before = place();
+        const areaBefore = area.y;
+        mouseClick(freddi);
+        compare(freddi.onList, true);
+        verify(sentence.visible);
+        // Once the page is laid out again, the games are lower down it...
+        waitForPolish(window);
+        verify(area.y > areaBefore, "The sentence did not move the games down the page");
+        // ...and the card is where it was in the window.
+        tryVerify(() => Math.abs(place() - before) <= 1, 1000, "The tapped card moved from " + before + " to " + place());
+        keyClick(Qt.Key_Space);
+        compare(freddi.onList, false);
+        verify(!sentence.visible);
+        waitForPolish(window);
+        verify(area.y < areaBefore + 1, "The games did not move back up the page");
+        tryVerify(() => Math.abs(place() - before) <= 1, 1000, "The turned card moved from " + before + " to " + place());
+        // Once in place the card is let go, so the wheel scrolls the page.
+        const y = scroller.contentY;
+        mouseWheel(scroller, scroller.width / 2, scroller.height / 2, 0, 120);
+        tryVerify(() => scroller.contentY < y - 1, 2000, "The page no longer scrolls after a turn");
+    }
+
+    // #219 on the cairn-iso VM: a tap gives a card the focus, and the focus
+    // scrolls a card cut off at the page's edge, or nearer to it than the
+    // room kept around a focused item, into full view. So a first tap on
+    // such a card still moved every card, 18 pixels on the VM. A card
+    // without the focus, tapped at either edge, must stay where it was in
+    // the window too.
+    function test_aCardTappedAtThePagesEdgeStaysWhereItWas_data() {
+        return [
+            {
+                tag: "cut off at the top",
+                edge: "top",
+                cutOff: true
+            },
+            {
+                tag: "near the top",
+                edge: "top",
+                cutOff: false
+            },
+            {
+                tag: "cut off at the bottom",
+                edge: "bottom",
+                cutOff: true
+            },
+            {
+                tag: "near the bottom",
+                edge: "bottom",
+                cutOff: false
+            }
+        ];
+    }
+
+    function test_aCardTappedAtThePagesEdgeStaysWhereItWas(data) {
+        const window = makeWindow("done", {
+            "smallest": true
+        });
+        showGames(window);
+        waitForPolish(window);
+        const scroller = findChild(window, "scroller");
+        const freddi = card(window, 1);
+        const place = () => freddi.mapToItem(window.contentItem, 0, 0).y;
+        // How far the card's edge is inside the page's: a third of the card
+        // past it, or half the room kept around a focused item.
+        const inside = data.cutOff ? -freddi.height / 3 : Tokens.bodySize / 2;
+        const top = freddi.mapToItem(scroller.contentItem, 0, 0).y;
+        const y = data.edge === "top" ? top - inside : top + freddi.height + inside - scroller.height;
+        // The focus would scroll the page this far, and it can.
+        const toShowIt = Tokens.bodySize - inside;
+        verify(y - toShowIt >= 0 && y + toShowIt <= scroller.contentHeight - scroller.height, "The page cannot scroll the card into full view from " + y);
+        scroller.contentY = y;
+        waitForPolish(window);
+        verify(!freddi.activeFocus);
+        verify(!findChild(window, "unsavedSentence").visible);
+        const before = place();
+        // A tap in the middle of the part of the card that shows.
+        const shownTop = Math.max(before, scroller.y);
+        const shownBottom = Math.min(before + freddi.height, scroller.y + scroller.height);
+        mouseClick(freddi, freddi.width / 2, (shownTop + shownBottom) / 2 - before);
+        compare(freddi.onList, true);
+        verify(freddi.activeFocus, "The tap did not give the card the focus");
+        verify(findChild(window, "unsavedSentence").visible);
+        // In the next frame the page is laid out again, then drawn.
+        waitForPolish(window);
+        verify(Math.abs(place() - before) <= 1, "The tapped card moved from " + before + " to " + place());
+    }
+
+    // The keyboard's focus turns nothing, so it still scrolls a card cut
+    // off at the page's edge into full view, with room around it.
+    function test_theKeyboardBringsACardIntoFullView() {
+        const window = makeWindow("done", {
+            "smallest": true
+        });
+        showGames(window);
+        waitForPolish(window);
+        const scroller = findChild(window, "scroller");
+        const pajama = card(window, 2);
+        card(window, 1).forceActiveFocus();
+        // Pajama Sam starts the next row, a third of it under the page's
+        // bottom edge.
+        scroller.contentY = pajama.mapToItem(scroller.contentItem, 0, 0).y + pajama.height * 2 / 3 - scroller.height;
+        waitForPolish(window);
+        verify(!shownWhole(window, pajama, 0));
+        keyClick(Qt.Key_Tab);
+        verify(pajama.activeFocus);
+        compare(pajama.onList, true);
+        verify(!findChild(window, "unsavedSentence").visible);
+        waitForPolish(window);
+        verify(shownWhole(window, pajama, Tokens.bodySize), "The card with the focus is not in full view");
+    }
+
+    // A card turned, then another page opened before the window draws
+    // again, as two quick taps can on a slow computer. The card is not
+    // held there, so that page still opens at its top.
+    function test_aPageOpenedJustAfterATurnStartsAtItsTop() {
+        const window = makeWindow("done", {
+            "smallest": true
+        });
+        showGames(window);
+        waitForPolish(window);
+        const scroller = findChild(window, "scroller");
+        const freddi = card(window, 1);
+        scroller.contentY = Math.min(freddi.mapToItem(scroller.contentItem, 0, 0).y, scroller.contentHeight - scroller.height);
+        waitForPolish(window);
+        verify(scroller.contentY > 0);
+        freddi.turned();
+        findChild(window, "childrenTab").activated();
+        compare(window.showing, "children");
+        waitForPolish(window);
+        wait(100);
+        compare(scroller.contentY, 0, "The Children page did not open at its top");
+    }
+
     // A grown-up holding Enter or Space on a game card turns it once. Each
     // of the keyboard's repeats turned it the other way, about 25 times a
     // second, and the grid jumped up and down until the key came up.
@@ -1718,6 +1888,136 @@ TestCase {
         tryCompare(findChild(window, "saveButton"), "activeFocus", true);
     }
 
+    // #218: in a short window a long result was cut off with no sign that
+    // it scrolls, and Close, which had the focus, was out of sight under
+    // it, with its focus ring cut once it was dragged into sight. Close now
+    // stays whole under the words, and the words scroll beside the page's
+    // own bar.
+    function test_aLongResultKeepsCloseInSight() {
+        const window = makeWindow("done", {
+            "gamesScenario": "save-tools"
+        });
+        showGames(window);
+        mouseClick(card(window, 1));
+        chooseChild(window, "ben");
+        mouseClick(card(window, 0));
+        window.width = window.minimumWidth;
+        window.height = window.minimumHeight;
+        // Save is out of sight in so short a window, so the keyboard
+        // presses it.
+        findChild(window, "saveButton").forceActiveFocus();
+        keyClick(Qt.Key_Return);
+        tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
+        const close = findChild(window, "closeSaveProgress");
+        tryCompare(close, "activeFocus", true);
+        waitForPolish(window);
+        const words = findChild(window, "saveWords");
+        verify(words.contentHeight > words.height, "The result fits, so this tests nothing");
+        verify(words.clip, "The words draw past their part of the box");
+        verify(findChild(window, "saveScrollMark").visible);
+        verify(shownWhole(window, close, Tokens.focusOffset + Tokens.focusWidth), "Close or its focus ring is cut off");
+        const box = findChild(window, "saveProgressBox");
+        verify(words.mapToItem(box, 0, words.height).y <= close.mapToItem(box, 0, 0).y, "The words run under Close");
+        // The box goes as far as the window less a margin, and no further.
+        compare(box.height, window.height - Tokens.headingSize * 2, "The box is not the window less a margin");
+        if (standIns.screenshotPath() !== "") {
+            wait(300);
+            grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-games-long-result.png"));
+        }
+        // The wheel scrolls the words, as a parent would. Scrolled to their
+        // end, they show the end of the last result, which alone is taller
+        // than they are here.
+        mouseWheel(words, words.width / 2, words.height / 2, 0, -120);
+        tryVerify(() => words.contentY > 1, 2000, "The wheel does not scroll the words");
+        words.contentY = words.contentHeight - words.height;
+        const last = result(window, 1);
+        const end = last.mapToItem(words, 0, last.height).y;
+        verify(end > 0 && end <= words.height + 1, "The words do not scroll to their end: " + end);
+        mouseClick(close);
+        verify(!progressWindow(window).visible);
+    }
+
+    // Words that fit in the Save's box neither scroll nor show the bar. The
+    // box once added its margins and Close's room to the words' height,
+    // then took them away again for the words' part, which need not give
+    // that height back exactly. In the brand font a short result's part
+    // came out 2.8e-14 px shorter than its words, and in Noto Sans, the
+    // stand-in on Fedora, so did the part for a game without a picture.
+    // Each result here has a height of its own, so the test does not hang
+    // on one font's rounding.
+    function test_wordsThatFitDoNotScroll_data() {
+        return [
+            {
+                "tag": "a look",
+                "scenario": "save-done",
+                "look": true
+            },
+            {
+                "tag": "a Save",
+                "scenario": "save-done",
+                "look": false
+            },
+            {
+                "tag": "a closed password box",
+                "scenario": "not-authorized",
+                "look": false
+            },
+            {
+                "tag": "another Save running, for a look",
+                "scenario": "refused-busy",
+                "look": true
+            },
+            {
+                "tag": "a game without a picture",
+                "scenario": "save-pictures-missing",
+                "look": false
+            },
+            {
+                "tag": "a logged-in child",
+                "scenario": "save-held-logged-in",
+                "look": false
+            },
+            {
+                "tag": "a tool left out",
+                "scenario": "save-tools-left-out",
+                "look": false
+            },
+            {
+                "tag": "a look that found new games",
+                "scenario": "save-done",
+                "look": true,
+                "installed": ["Pajama Sam 2", "Spy Fox 2", "Freddi Fish 2", "Putt-Putt Saves the Zoo"]
+            },
+            {
+                "tag": "a look whose list was kept",
+                "scenario": "save-catalogue-kept",
+                "look": true
+            }
+        ];
+    }
+
+    function test_wordsThatFitDoNotScroll(data) {
+        const window = makeWindow("done", {
+            "gamesScenario": data.scenario
+        });
+        showGames(window);
+        if (data.installed)
+            standIns.installSharedGames(data.installed);
+        if (!data.look)
+            mouseClick(card(window, 1));
+        mouseClick(findChild(window, data.look ? "lookForGames" : "saveButton"));
+        tryVerify(() => progressWindow(window).ended);
+        waitForPolish(window);
+        const box = findChild(window, "saveProgressBox");
+        verify(box.height < window.height - Tokens.headingSize * 2, "The box is as tall as the window allows, so the words may not fit");
+        const words = findChild(window, "saveWords");
+        verify(!words.interactive, "Words that fit scroll");
+        verify(!findChild(window, "saveScrollMark").visible, "A bar beside words that fit");
+        // The very same number, not within a pixel: a part a hair shorter
+        // than its words scrolls.
+        verify(words.height === words.contentHeight, "The words' part is " + words.height + " px tall, for words " + words.contentHeight + " px tall");
+    }
+
     function test_aClosedPasswordBoxKeepsTheChanges() {
         const window = makeWindow("done", {
             "gamesScenario": "not-authorized"
@@ -1754,6 +2054,13 @@ TestCase {
         compare(findChild(window, "saveProgressHeading").text, "Looking for new games");
         // It names no child, so it says nothing about any child's list.
         compare(findChild(window, "saveResults").count, 0);
+        // So short a result fits: no bar, and Close a line's space under
+        // the words.
+        waitForPolish(window);
+        const words = findChild(window, "saveWords");
+        verify(words.contentHeight <= words.height, "A short result scrolls");
+        verify(!findChild(window, "saveScrollMark").visible, "A bar beside words that fit");
+        compare(findChild(window, "closeSaveProgress").y, words.y + words.height + Tokens.bodySize, "Close is not a line's space under the words");
     }
 
     // A look names each game the page did not show before it, so a parent
@@ -1794,6 +2101,9 @@ TestCase {
         compare(saveOutcome(window), "Looking at the shared folder for games and their pictures.");
         // A look copies nothing, so it has no warning about the lid.
         verify(!findChild(window, "lidWarning").visible);
+        // There is no Close yet, so the words take the whole box.
+        waitForPolish(window);
+        compare(findChild(window, "saveWords").height, findChild(window, "saveProgressBox").height - Tokens.headingSize * 2, "Room kept for a Close that is not there");
     }
 
     // A look that did not run speaks of looking, not of saved changes.

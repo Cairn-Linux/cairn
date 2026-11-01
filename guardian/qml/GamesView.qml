@@ -23,6 +23,9 @@ Column {
     readonly property string name: view.page.chosenName
     readonly property bool busy: view.page.busy
 
+    // A game card is about to turn, for the window to keep it in place.
+    signal cardTurning(Item card)
+
     spacing: Tokens.bodySize
 
     // A paragraph of the page's own words.
@@ -159,6 +162,7 @@ Column {
         width: view.width
         visible: view.hasChildren
         page: view.page
+        onTurning: card => view.cardTurning(card)
     }
 
     // Every control waits while a Save runs, which takes focus away. After

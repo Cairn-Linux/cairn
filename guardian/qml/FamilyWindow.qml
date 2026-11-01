@@ -22,6 +22,11 @@ Window {
 
     readonly property int margin: Tokens.headingSize
 
+    // A game card being turned, and where it was in the window before the
+    // change, until the page is laid out again (#219).
+    property Item heldCard: null
+    property real heldCardY: 0
+
     title: qsTr("Family")
     width: Tokens.headingSize * 26
     height: Tokens.headingSize * 34
@@ -40,6 +45,8 @@ Window {
         if (name === "account")
             window.accountPage.reload();
         window.showing = name;
+        // A card turned just before is on the page left behind.
+        window.heldCard = null;
         flickable.contentY = 0;
     }
 
@@ -60,6 +67,11 @@ Window {
             y = bottom - flickable.height;
         if (top < y)
             y = top;
+        window.scrollTo(y);
+    }
+
+    // Scrolls the page to y, or as far as it goes.
+    function scrollTo(y) {
         const lowest = Math.max(0, flickable.contentHeight - flickable.height);
         flickable.contentY = Math.max(0, Math.min(y, lowest));
     }
@@ -78,6 +90,18 @@ Window {
             return;
         window.keyboardItem = item;
         window.showItem(item);
+    }
+
+    // In each frame the window first lays out what changed, then says so
+    // here, then draws. A held card has moved by as much as the page grew
+    // or shrank above it, and by any scroll its tap's focus made, so the
+    // page scrolls by as much, and the card is drawn where it was (#219).
+    onAfterAnimating: {
+        const card = window.heldCard;
+        if (!card)
+            return;
+        window.heldCard = null;
+        window.scrollTo(flickable.contentY + card.mapToItem(window.contentItem, 0, 0).y - window.heldCardY);
     }
 
     // A child added on the Children page is on the Games page too.
@@ -198,6 +222,12 @@ Window {
             width: window.width - window.margin * 2
             visible: window.showing === "games"
             page: window.gamesPage
+
+            // Where the card is before the change, to keep it there.
+            onCardTurning: card => {
+                window.heldCard = card;
+                window.heldCardY = card.mapToItem(window.contentItem, 0, 0).y;
+            }
         }
 
         AccountView {
@@ -219,16 +249,10 @@ Window {
     }
 
     // Where the window is on the page, when the page is longer than it.
-    Rectangle {
+    ScrollMark {
         objectName: "scrollIndicator"
-        visible: flickable.visibleArea.heightRatio < 1
+        flickable: flickable
         x: window.width - width - Tokens.focusOffset
-        y: flickable.y + flickable.visibleArea.yPosition * flickable.height
-        width: Tokens.focusWidth * 2
-        height: flickable.visibleArea.heightRatio * flickable.height
-        radius: Tokens.radiusPill
-        color: Tokens.machine
-        Accessible.ignored: true
     }
 
     // A Save's own window, over everything else, the page switch too.

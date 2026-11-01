@@ -89,37 +89,37 @@
 <context>
     <name>ChildGames</name>
     <message>
-        <location filename="../qml/ChildGames.qml" line="41"/>
+        <location filename="../qml/ChildGames.qml" line="46"/>
         <source>%1&apos;s list of games could not be read, so it counts as a list with no games, and %1 has no game tiles. The file is /var/lib/cairn/games/%2.json. Saving %1&apos;s games on this page writes it again.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/ChildGames.qml" line="43"/>
+        <location filename="../qml/ChildGames.qml" line="48"/>
         <source>%1 has no games on their list yet.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/ChildGames.qml" line="44"/>
+        <location filename="../qml/ChildGames.qml" line="49"/>
         <source>Games on %1&apos;s list: %2. Each game on the list is highlighted.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/ChildGames.qml" line="47"/>
+        <location filename="../qml/ChildGames.qml" line="52"/>
         <source>The ones no longer in the shared folder come last. %1&apos;s own copy may still play them.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/ChildGames.qml" line="71"/>
+        <location filename="../qml/ChildGames.qml" line="76"/>
         <source>Open Steam for %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/ChildGames.qml" line="78"/>
+        <location filename="../qml/ChildGames.qml" line="83"/>
         <source>The Steam window for %1 did not open. The reason is in the system log. In a terminal: journalctl -t cairn-guardian -t cairn-steam-for</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/ChildGames.qml" line="101"/>
+        <location filename="../qml/ChildGames.qml" line="106"/>
         <source>Games in the shared folder</source>
         <translation type="unfinished"></translation>
     </message>
@@ -253,27 +253,27 @@
 <context>
     <name>FamilyWindow</name>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="25"/>
+        <location filename="../qml/FamilyWindow.qml" line="30"/>
         <source>Family</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="108"/>
+        <location filename="../qml/FamilyWindow.qml" line="132"/>
         <source>Pages</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="114"/>
+        <location filename="../qml/FamilyWindow.qml" line="138"/>
         <source>Children</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="127"/>
+        <location filename="../qml/FamilyWindow.qml" line="151"/>
         <source>Games</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="141"/>
+        <location filename="../qml/FamilyWindow.qml" line="165"/>
         <source>Your account</source>
         <translation type="unfinished"></translation>
     </message>
@@ -353,57 +353,57 @@
 <context>
     <name>GamesView</name>
     <message>
-        <location filename="../qml/GamesView.qml" line="46"/>
+        <location filename="../qml/GamesView.qml" line="49"/>
         <source>Games</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="63"/>
+        <location filename="../qml/GamesView.qml" line="66"/>
         <source>No children yet. Add one on the Children page, then come back here for their games.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="57"/>
+        <location filename="../qml/GamesView.qml" line="60"/>
         <source>Each child has their own list of the games in the shared folder. A new child starts with none. Tap a game to put it on the list or take it off, then press Save. A child sees their games the next time they log in.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="69"/>
+        <location filename="../qml/GamesView.qml" line="72"/>
         <source>No games in the shared folder yet. To add one, install it from your own Steam into the folder /var/lib/cairn/steam-library. If Steam&apos;s install dialog does not offer that folder, add it first in Steam&apos;s Settings, under Storage. A game shows here after the next Save, which looks at the shared folder again. With nothing to save, Look for new games does the same.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="78"/>
+        <location filename="../qml/GamesView.qml" line="81"/>
         <source>In your own Steam library, not the shared folder: %1. Children can have only the games in the shared folder. To move them, open Steam&apos;s Settings and choose Storage. If the folder /var/lib/cairn/steam-library is not listed there, add it as a drive. Then pick your own library in the list, tick the games, press Move and choose the shared folder. A moved game shows here after the next Save, or after Look for new games. To send future downloads to the shared folder too, make it the default drive in Storage.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="88"/>
+        <location filename="../qml/GamesView.qml" line="91"/>
         <source>Whose games to show</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="119"/>
+        <location filename="../qml/GamesView.qml" line="122"/>
         <source>Save</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="127"/>
+        <location filename="../qml/GamesView.qml" line="130"/>
         <source>Put back as saved</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="135"/>
+        <location filename="../qml/GamesView.qml" line="138"/>
         <source>Look for new games</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="144"/>
+        <location filename="../qml/GamesView.qml" line="147"/>
         <source>Not saved yet: the changes for %1. Save gives each child their new list, with one password.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="150"/>
+        <location filename="../qml/GamesView.qml" line="153"/>
         <source>Save waits: changes for a child who is logged in cannot be saved yet. Logged in: %1. Log them out first.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -529,12 +529,12 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="155"/>
+        <location filename="../qml/Main.qml" line="199"/>
         <source>Close</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="155"/>
+        <location filename="../qml/Main.qml" line="199"/>
         <source>Cancel</source>
         <translation type="unfinished"></translation>
     </message>
@@ -869,37 +869,37 @@
 <context>
     <name>SaveProgress</name>
     <message>
-        <location filename="../qml/SaveProgress.qml" line="44"/>
+        <location filename="../qml/SaveProgress.qml" line="46"/>
         <source>Game %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveProgress.qml" line="46"/>
+        <location filename="../qml/SaveProgress.qml" line="48"/>
         <source>%1 already had %2.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveProgress.qml" line="47"/>
+        <location filename="../qml/SaveProgress.qml" line="49"/>
         <source>Copied %1 for %2.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveProgress.qml" line="123"/>
+        <location filename="../qml/SaveProgress.qml" line="138"/>
         <source>Looking for new games</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveProgress.qml" line="123"/>
+        <location filename="../qml/SaveProgress.qml" line="138"/>
         <source>Saving games</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveProgress.qml" line="136"/>
+        <location filename="../qml/SaveProgress.qml" line="151"/>
         <source>Do not log out or close the lid until this is finished.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveProgress.qml" line="161"/>
+        <location filename="../qml/SaveProgress.qml" line="192"/>
         <source>Close</source>
         <translation type="unfinished"></translation>
     </message>
