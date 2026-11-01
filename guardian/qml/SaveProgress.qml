@@ -56,6 +56,8 @@ Item {
         progress.closed();
     }
 
+    // The box takes the keyboard when it shows, and not before: hidden, it
+    // kept Tab from the page when Family opened (#242).
     onVisibleChanged: {
         if (progress.visible)
             box.forceActiveFocus();
@@ -96,7 +98,6 @@ Item {
         color: Tokens.card
         border.color: Tokens.line
         border.width: Tokens.strokeHairline
-        focus: true
 
         // Focus stays in the box: Tab goes nowhere else, and Escape closes
         // it only once the Save has ended. Close says the same once it has
@@ -178,6 +179,14 @@ Item {
             x: box.width - box.border.width - Tokens.focusOffset - width
         }
 
+        // The arrow and page keys, for Close to pass on to the words
+        // (#243).
+        ScrollKeys {
+            id: scrollKeys
+
+            flickable: words
+        }
+
         // Under the words and outside them, so Close and its focus ring
         // always show, however long the words are.
         TextButton {
@@ -193,6 +202,7 @@ Item {
             Keys.onTabPressed: event => event.accepted = true
             Keys.onBacktabPressed: event => event.accepted = true
             Keys.onEscapePressed: progress.close()
+            Keys.onPressed: event => event.accepted = scrollKeys.scroll(event.key)
             onActivated: progress.close()
         }
     }

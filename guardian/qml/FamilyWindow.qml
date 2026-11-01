@@ -131,10 +131,14 @@ Window {
             Accessible.role: Accessible.PageTabList
             Accessible.name: qsTr("Pages")
 
+            // The keyboard starts here, on the button of the page the
+            // window opens on, so its ring shows and Tab and Shift+Tab go
+            // on from it (#242).
             TextButton {
                 id: childrenTab
 
                 objectName: "childrenTab"
+                focus: true
                 text: qsTr("Children")
                 quiet: window.showing !== "children"
                 Accessible.role: Accessible.PageTab
