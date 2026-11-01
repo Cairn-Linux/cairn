@@ -122,6 +122,8 @@ class InstallTree(unittest.TestCase):
         self.assertIn("launcher=(/usr/libexec/cairn/cairn-launcher"
                       " --manifest /usr/share/cairn/manifest.json\n", wrapper)
         self.assertIn("--log-out /usr/bin/cairn-log-out\n", wrapper)
+        # Each game's picture by its app id (ADR-0047).
+        self.assertIn(" --pictures /var/lib/cairn/game-pictures\n", wrapper)
         # Each child's own list, never the full one (ADR-0041).
         self.assertIn('games=(--games "/var/lib/cairn/games/$login.json")', wrapper)
         self.assertNotIn("/var/lib/cairn/games.json", wrapper)

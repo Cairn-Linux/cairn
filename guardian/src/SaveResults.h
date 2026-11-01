@@ -2,6 +2,7 @@
 #pragma once
 
 #include "GameShelf.h"
+#include "GamesSaving.h"
 #include "SaveReport.h"
 
 #include <QHash>
@@ -9,9 +10,13 @@
 #include <QString>
 #include <QVariantMap>
 
-// What a Save did for one child, as the Games page's QML reads it
-// (ADR-0041), from cairn-family's own lines, read by SaveReport.
+// How far a Save has got, and what it did for each child, as the Games
+// page's QML reads them (ADR-0041), from cairn-family's own lines, read by
+// SaveReport.
 namespace SaveResults {
+
+// The stage the command's lines say, as the window's step of a Save.
+GamesSaving::Progress progressFor(SaveReport::Stage stage);
 
 // Each game's title by its appid, for naming a game left out.
 QHash<QString, QString> titlesOf(const QList<GameShelf::Game>& games);

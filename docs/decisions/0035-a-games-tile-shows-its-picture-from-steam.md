@@ -8,7 +8,9 @@ which game it is.
 **Closes:** DESIGN §14 Q3, for games only — addresses #138; once
 accepted, amends ADR-0024 (how a games tile looks)
 **Amended by:** ADR-0041, proposed (pictures are also remade when a
-Guardian saves a child's games)
+Guardian saves a child's games); ADR-0047, proposed (a tile finds its
+picture by the game's app id and the games file names none, and the
+picture of a game still on a child's list stays)
 
 ## Context
 

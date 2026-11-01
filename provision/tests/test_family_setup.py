@@ -151,6 +151,13 @@ class FamilyTilesNoteTest(unittest.TestCase):
             "said: the list of shared games could not be made again; the Games page in Family shows "
             "the one from the last run, and each child keeps the games on their own list.", output)
 
+    def test_the_picture_step_reads_each_childs_own_list(self):
+        # So a game a child still has keeps its picture (ADR-0047).
+        code, output, _ = run_steps('echo "lists: $GAME_LISTS"', script=FAMILY)
+        self.assertEqual(code, 0, output)
+        said = [line for line in output.splitlines() if not line.startswith("+")]
+        self.assertIn("lists: /var/lib/cairn/games", said)
+
 
 class FamilyGuardTest(Scenario):
     def test_refuses_a_computer_set_up_by_hand(self):

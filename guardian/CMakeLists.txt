@@ -61,6 +61,7 @@ set(family_sources
 set(games_save_sources
     src/GamesRequest.h src/GamesRequest.cpp
     src/GameCatalogue.h src/GameCatalogue.cpp
+    src/GamePicture.h src/GamePicture.cpp
     src/CatalogueRefresh.h src/CatalogueRefresh.cpp
     src/ToolsRefresh.h src/ToolsRefresh.cpp
     src/ChildGameList.h src/ChildGameList.cpp
@@ -282,8 +283,9 @@ target_compile_definitions(tst_childgamesfile PRIVATE FIXTURES="${guardian_fixtu
 add_test(NAME childgamesfile COMMAND tst_childgamesfile)
 
 qt_add_executable(tst_cataloguerefresh tests/tst_cataloguerefresh.cpp src/CatalogueRefresh.h
-    src/CatalogueRefresh.cpp src/GameCatalogue.h src/GameCatalogue.cpp src/ReadableFile.h
-    src/ReadableFile.cpp src/SystemTool.h src/SystemTool.cpp)
+    src/CatalogueRefresh.cpp src/GameCatalogue.h src/GameCatalogue.cpp src/GamePicture.h
+    src/GamePicture.cpp src/ReadableFile.h src/ReadableFile.cpp src/SystemTool.h
+    src/SystemTool.cpp)
 target_include_directories(tst_cataloguerefresh PRIVATE src)
 target_link_libraries(tst_cataloguerefresh PRIVATE Qt6::Core Qt6::Test)
 target_compile_definitions(tst_cataloguerefresh PRIVATE FIXTURES="${guardian_fixtures}")
@@ -393,6 +395,10 @@ qt_add_executable(tst_gamepicture tests/tst_gamepicture.cpp src/GamePicture.h
     src/GamePicture.cpp)
 target_include_directories(tst_gamepicture PRIVATE src)
 target_link_libraries(tst_gamepicture PRIVATE Qt6::Core Qt6::Test)
+# A picture inside the test program, :/pictures/1001.jpg, for the rule to
+# refuse: a game's picture is a file on the computer.
+qt_add_resources(tst_gamepicture "picture_fixture" PREFIX "/pictures" BASE tests/fixtures
+    FILES tests/fixtures/1001.jpg)
 add_test(NAME gamepicture COMMAND tst_gamepicture)
 
 qt_add_executable(tst_gameshelf tests/tst_gameshelf.cpp src/GameShelf.h src/GameShelf.cpp

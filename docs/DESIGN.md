@@ -472,6 +472,12 @@ The launcher **is the product.** Everything else is packaging.
   ADR-0024 kept the games quiet so that making stays the loudest thing in
   the grid; the pictures make the games louder than making, which the next
   child test checks (ADR-0035, proposed).
+  The tile finds the picture by the game's Steam app id, so a picture
+  copied later reaches every child who has the game.
+  A game a child still has keeps its picture when the shared folder no
+  longer has it.
+  The Guardian's Family app names each game without a picture and says how
+  to add one (ADR-0047, proposed).
 
 ### 6.2 Visual direction
 

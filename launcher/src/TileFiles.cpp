@@ -9,7 +9,8 @@
 
 #include <utility>
 
-TileFiles::Result TileFiles::read(const QString& manifestPath, const QString& gamesPath) {
+TileFiles::Result TileFiles::read(const QString& manifestPath, const QString& gamesPath,
+                                  const QString& picturesFolder) {
     Result result;
     if (manifestPath.isEmpty()) {
         result.tiles = TileModel::builtInTiles();
@@ -34,7 +35,7 @@ TileFiles::Result TileFiles::read(const QString& manifestPath, const QString& ga
             appIds.insert(appId);
         }
     }
-    const GamesFile::Result games = GamesFile::read(gamesPath, appIds);
+    const GamesFile::Result games = GamesFile::read(gamesPath, appIds, picturesFolder);
     result.sentences.append(games.sentences);
     result.tiles.append(games.tiles);
     return result;

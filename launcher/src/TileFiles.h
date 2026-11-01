@@ -26,7 +26,10 @@ struct Result {
     QStringList sentences;
 };
 
-// Each path is a filesystem path, a file:// URL or empty.
-Result read(const QString& manifestPath, const QString& gamesPath);
+// Each path is a filesystem path, a file:// URL or empty. `picturesFolder`
+// holds the games file's pictures, <appid>.jpg (ADR-0047); empty means the
+// game tiles have none.
+Result read(const QString& manifestPath, const QString& gamesPath,
+            const QString& picturesFolder = {});
 
 } // namespace TileFiles

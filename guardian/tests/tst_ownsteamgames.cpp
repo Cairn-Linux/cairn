@@ -108,6 +108,19 @@ private slots:
         QCOMPARE(games.at(2).appId, QString("620"));
     }
 
+    // No home, or one that is not a full path, is never read from the
+    // folder the window started in.
+    void noHomeFindsNoGames() {
+        const QString started = QDir::currentPath();
+        QVERIFY(QDir::setCurrent(m_temporary.path()));
+        const bool relative = OwnSteamGames::find(QStringLiteral("home"), shared(), {}).isEmpty();
+        QVERIFY(QDir::setCurrent(home()));
+        const bool none = OwnSteamGames::find(QString(), shared(), {}).isEmpty();
+        QVERIFY(QDir::setCurrent(started));
+        QVERIFY(relative);
+        QVERIFY(none);
+    }
+
     void oneSteamWhateverItsLinks() {
         QCOMPARE(OwnSteamGames::steamRoots(home()),
                  QStringList({QDir(home() + "/.local/share/Steam").canonicalPath()}));

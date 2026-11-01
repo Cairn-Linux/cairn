@@ -15,6 +15,26 @@ const QStringList& tickedFor(const GamesRequest& request, std::size_t child) {
     return request.children.at(static_cast<qsizetype>(child)).appIds;
 }
 
+// A refusal changed nothing, so the journal gets only what was asked.
+GamesSave::Outcome refused(Refusal refusal, const QString& asked) {
+    return {.refusal = refusal,
+            .asked = asked,
+            .children = {},
+            .pictures = {},
+            .catalogue = {},
+            .tools = {}};
+}
+
+// In the journal a bare `failed` or `refused folder` would read as the
+// Save's own answer, so each of a step's own words says whose it is.
+QStringList journal(const QString& line, const QString& step, const QStringList& notes) {
+    QStringList lines{line};
+    for (const QString& note : notes) {
+        lines.append(step + QStringLiteral(": ") + note);
+    }
+    return lines;
+}
+
 } // namespace
 
 GamesSave::GamesSave(Setup setup) : m_setup(std::move(setup)) {}
@@ -23,11 +43,11 @@ GamesSave::Outcome GamesSave::run(const QStringList& arguments, const Say& say) 
     const Caller caller =
         Caller::check(m_setup.euid, m_setup.pkexecUid, m_setup.lookUpUid, m_setup.lookUpHome);
     if (caller.refusal) {
-        return {.refusal = caller.refusal, .asked = {}, .children = {}, .tools = {}};
+        return refused(*caller.refusal, {});
     }
     const GamesRequest request = GamesRequest::fromArguments(arguments);
     if (request.refusal) {
-        return {.refusal = request.refusal, .asked = {}, .children = {}, .tools = {}};
+        return refused(*request.refusal, {});
     }
     const QString asked =
         (QStringList{QStringLiteral("save-games")} + request.logins()).join(QLatin1Char(' '));
@@ -37,7 +57,7 @@ GamesSave::Outcome GamesSave::run(const QStringList& arguments, const Say& say) 
     for (const GamesRequest::Child& wanted : request.children) {
         const std::optional<Account> account = m_setup.lookUp(wanted.login);
         if (!account || !account->isCairnChild()) {
-            return {.refusal = Refusal::NotAChild, .asked = asked, .children = {}, .tools = {}};
+            return refused(Refusal::NotAChild, asked);
         }
         children.push_back(*account);
     }
@@ -47,15 +67,25 @@ GamesSave::Outcome GamesSave::run(const QStringList& arguments, const Say& say) 
     QLockFile lock(m_setup.lock);
     lock.setStaleLockTime(0);
     if (!lock.tryLock(0)) {
-        return {.refusal = Refusal::Busy, .asked = asked, .children = {}, .tools = {}};
+        return refused(Refusal::Busy, asked);
     }
 
     // The first line comes before the slow part, so the window knows the
     // password was accepted while the pictures and the full list are made.
     say(QStringLiteral("looking"));
-    const CatalogueRefresh::Result made = CatalogueRefresh::run(m_setup.catalogue, caller.home);
-    say(made.picturesMade ? QStringLiteral("pictures made") : QStringLiteral("pictures kept"));
-    say(made.catalogueMade ? QStringLiteral("catalogue made") : QStringLiteral("catalogue kept"));
+    // The picture step keeps the pictures of the games on the lists this
+    // Save writes, in the folder it writes them in.
+    const CatalogueRefresh::Result made =
+        CatalogueRefresh::run(m_setup.catalogue, caller.home, m_setup.gamesFolder);
+    const QString picturesLine =
+        made.picturesMade ? QStringLiteral("pictures made") : QStringLiteral("pictures kept");
+    const QString catalogueLine =
+        made.catalogueMade ? QStringLiteral("catalogue made") : QStringLiteral("catalogue kept");
+    say(picturesLine);
+    say(catalogueLine);
+    for (const QString& line : made.withoutPicture) {
+        say(line);
+    }
 
     const ChildSave::Shared shared{
         .copy = m_setup.copy,
@@ -80,13 +110,14 @@ GamesSave::Outcome GamesSave::run(const QStringList& arguments, const Say& say) 
     for (const QString& line : tools.leftOut) {
         say(line);
     }
-    // In the journal a bare `failed` or `refused folder` would read as the
-    // Save's own answer, so each of the step's lines says whose it is.
-    QStringList toolsJournal{toolsLine};
-    for (const QString& note : tools.notes) {
-        toolsJournal.append(QStringLiteral("tools step: ") + note);
-    }
-    Outcome outcome{.refusal = std::nullopt, .asked = asked, .children = {}, .tools = toolsJournal};
+    Outcome outcome{
+        .refusal = std::nullopt,
+        .asked = asked,
+        .children = {},
+        .pictures = journal(picturesLine, QStringLiteral("picture step"), made.pictureNotes),
+        .catalogue = journal(catalogueLine, QStringLiteral("catalogue step"),
+                             made.catalogueMade ? QStringList() : QStringList{made.catalogueNote}),
+        .tools = journal(toolsLine, QStringLiteral("tools step"), tools.notes)};
     for (std::size_t i = 0; i < children.size(); ++i) {
         outcome.children.append(
             ChildSave::run(shared, children[i], tickedFor(request, i), before[i], say));
