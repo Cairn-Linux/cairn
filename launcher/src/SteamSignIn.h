@@ -5,6 +5,7 @@
 #include "SteamStartup.h"
 
 #include <QByteArray>
+#include <QDateTime>
 #include <QString>
 
 #include <cstdint>
@@ -37,9 +38,10 @@ public:
                          QString bootstrapLog = SteamStartup::defaultPath());
 
     // Where the client that runs now is with signing in, from the last part
-    // of both logs. Lines from before the updater last started it, or before
-    // the client last wrote its version, are from an earlier client.
-    Now read() const;
+    // of both logs, read at `now`. Lines from before the updater last
+    // started it, or before the client last wrote its version, are from an
+    // earlier client.
+    Now read(const QDateTime& now) const;
 
     // A reason after `LogonFailure ` that Steam tries again by itself.
     static bool triesAgain(const QByteArray& reason);

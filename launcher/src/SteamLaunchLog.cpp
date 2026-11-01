@@ -1,11 +1,37 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "SteamLaunchLog.h"
 
+#include <QDate>
 #include <QFileInfo>
 #include <QList>
 #include <QStandardPaths>
+#include <QTime>
+#include <QTimeZone>
 
 #include <utility>
+
+namespace {
+// A reader takes its `now`, then reads Steam's logs, so a line Steam writes
+// during the read can carry a second that begins after `now`. A read takes
+// a few milliseconds; this allows far more.
+constexpr qint64 longestReadSeconds = 2;
+
+// The moment a local date and time means, for a line read at `now`
+// (#248). Outside the hours the clocks change in, PreferBefore and
+// PreferAfter give the same moment. In the hour that comes twice in
+// autumn, PreferBefore gives its first pass and PreferAfter its second. In
+// the hour the clocks skip in spring, which Steam should never write, they
+// give the time an hour earlier and an hour later: 02:30 is 01:30 or 03:30.
+// Either way the later is the one, unless it comes after the read has
+// ended and so cannot be when the line was written.
+QDateTime momentOf(QDate date, QTime time, const QDateTime& now) {
+    const QDateTime first(date, time, QTimeZone::LocalTime,
+                          QDateTime::TransitionResolution::PreferBefore);
+    const QDateTime second(date, time, QTimeZone::LocalTime,
+                           QDateTime::TransitionResolution::PreferAfter);
+    return second <= now.addSecs(longestReadSeconds) ? second : first;
+}
+} // namespace
 
 SteamLaunchLog::SteamLaunchLog(QString path) : m_tail(std::move(path)) {}
 
@@ -20,7 +46,7 @@ void SteamLaunchLog::startLaunch(const QString& appId) {
     m_tail.skipToEnd();
 }
 
-SteamLaunchLog::Step SteamLaunchLog::read() {
+SteamLaunchLog::Step SteamLaunchLog::read(const QDateTime& now) {
     if (m_appId.isEmpty()) {
         return Step::Nothing;
     }
@@ -54,7 +80,7 @@ SteamLaunchLog::Step SteamLaunchLog::read() {
         if (line.contains(thisGame)) {
             m_reached = true;
         } else if (clientStart) {
-            m_steamStartedAt = timeOf(line);
+            m_steamStartedAt = timeOf(line, now);
         }
     }
     return m_step;
@@ -127,16 +153,20 @@ SteamLaunchLog::Step SteamLaunchLog::stepOf(const QByteArray& line, const QStrin
     return Step::Nothing;
 }
 
-std::optional<QDateTime> SteamLaunchLog::timeOf(const QByteArray& line) {
-    if (!line.startsWith('[') || line.size() < 21 || line.at(20) != ']') {
+std::optional<QDateTime> SteamLaunchLog::timeOf(const QByteArray& line, const QDateTime& now) {
+    if (!line.startsWith('[') || line.size() < 21 || line.at(11) != ' ' || line.at(20) != ']') {
         return std::nullopt;
     }
-    QDateTime time = QDateTime::fromString(QString::fromLatin1(line.mid(1, 19)),
-                                           QStringLiteral("yyyy-MM-dd HH:mm:ss"));
-    if (!time.isValid()) {
+    // The date and the time apart, as Steam wrote them: QDateTime::fromString
+    // would choose one of the moments itself.
+    const QDate date =
+        QDate::fromString(QString::fromLatin1(line.mid(1, 10)), QStringLiteral("yyyy-MM-dd"));
+    const QTime time =
+        QTime::fromString(QString::fromLatin1(line.mid(12, 8)), QStringLiteral("HH:mm:ss"));
+    if (!date.isValid() || !time.isValid()) {
         return std::nullopt;
     }
-    return time;
+    return momentOf(date, time, now);
 }
 
 QString SteamLaunchLog::defaultPath() {

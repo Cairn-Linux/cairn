@@ -46,6 +46,12 @@ void append(const QString& path, const QByteArray& text) {
     log.write(text);
 }
 
+// When the test reads the log: the morning after its lines. It matters only
+// for a time in an hour the clocks change in, which tst_steamlogtime tests.
+QDateTime nextMorning() {
+    return {QDate(2026, 10, 31), QTime(9, 0)};
+}
+
 // What Steam's content log says about the downloads for a tapped game (#206).
 class SteamContentLogTest : public QObject {
     Q_OBJECT
@@ -57,10 +63,10 @@ private slots:
         SteamContentLog log(path);
         log.startLaunch(QStringLiteral("292780"));
         append(path, stuckRun());
-        log.read();
+        log.read(nextMorning());
         QCOMPARE(log.offScheduleAt(), at("2026-10-30 17:10:28"));
         // Read again with nothing new: still the same.
-        log.read();
+        log.read(nextMorning());
         QCOMPARE(log.offScheduleAt(), at("2026-10-30 17:10:28"));
     }
 
@@ -96,7 +102,7 @@ private slots:
         SteamContentLog log(path);
         log.startLaunch(QStringLiteral("292780"));
         append(path, stuckRun() + later(says));
-        log.read();
+        log.read(nextMorning());
         QVERIFY(!log.offScheduleAt());
     }
 
@@ -130,7 +136,7 @@ private slots:
         SteamContentLog log(path);
         log.startLaunch(QStringLiteral("292780"));
         append(path, stuckRun() + says);
-        log.read();
+        log.read(nextMorning());
         QCOMPARE(log.offScheduleAt(), at("2026-10-30 17:10:28"));
     }
 
@@ -145,7 +151,7 @@ private slots:
                          later("AppID 1070560 update started : download 0/75258128, store 0/0, "
                                "reuse 0/0, delta 0/0, stage 0/223012461 ") +
                          gameOffSchedule());
-        log.read();
+        log.read(nextMorning());
         QVERIFY(!log.offScheduleAt());
     }
 
@@ -171,7 +177,7 @@ private slots:
                "[2026-10-30 14:01:14] AppID 294650 Shader update changed : None\n"
                "[2026-10-30 14:01:14] AppID 294650 scheduler finished : removed from schedule "
                "(result No Error, state 0xc) \n");
-        log.read();
+        log.read(nextMorning());
         QCOMPARE(log.offScheduleAt(), at("2026-10-30 14:01:14"));
     }
 
@@ -186,12 +192,12 @@ private slots:
                          later("AppID 1070560 update started : download 0/21744, store 0/0, "
                                "reuse 0/0, delta 0/0, stage 0/25322 ") +
                          later("AppID 1070560 Shader update changed : None") + gameOffSchedule());
-        log.read();
+        log.read(nextMorning());
         QVERIFY(!log.offScheduleAt());
         append(path, later("AppID 1070560 scheduler finished : staying in schedule (result No "
                            "Error, state 0xc) ") +
                          gameOffSchedule());
-        log.read();
+        log.read(nextMorning());
         QCOMPARE(log.offScheduleAt(), at("2026-10-30 17:10:28"));
     }
 
@@ -217,7 +223,7 @@ private slots:
         log.startLaunch(QStringLiteral("292780"));
         const QByteArray run = stuckRun();
         append(path, run.first(run.size() - gameOffSchedule().size()) + lastLine);
-        log.read();
+        log.read(nextMorning());
         QVERIFY(!log.offScheduleAt());
     }
 
@@ -228,10 +234,10 @@ private slots:
         append(path, stuckRun());
         SteamContentLog log(path);
         log.startLaunch(QStringLiteral("292780"));
-        log.read();
+        log.read(nextMorning());
         QVERIFY(!log.offScheduleAt());
         append(path, gameOffSchedule());
-        log.read();
+        log.read(nextMorning());
         QCOMPARE(log.offScheduleAt(), at("2026-10-30 17:10:28"));
     }
 
@@ -243,10 +249,10 @@ private slots:
         log.startLaunch(QStringLiteral("292780"));
         const QByteArray whole = gameOffSchedule();
         append(path, whole.first(40));
-        log.read();
+        log.read(nextMorning());
         QVERIFY(!log.offScheduleAt());
         append(path, whole.mid(40));
-        log.read();
+        log.read(nextMorning());
         QCOMPARE(log.offScheduleAt(), at("2026-10-30 17:10:28"));
     }
 
@@ -259,7 +265,7 @@ private slots:
         log.startLaunch(QStringLiteral("292780"));
         QVERIFY(QFile::remove(path));
         append(path, stuckRun());
-        log.read();
+        log.read(nextMorning());
         QCOMPARE(log.offScheduleAt(), at("2026-10-30 17:10:28"));
     }
 
@@ -270,17 +276,17 @@ private slots:
         SteamContentLog log(path);
         log.startLaunch(QStringLiteral("292780"));
         append(path, stuckRun());
-        log.read();
+        log.read(nextMorning());
         QVERIFY(log.offScheduleAt());
         log.startLaunch(QStringLiteral("292780"));
         QVERIFY(!log.offScheduleAt());
-        log.read();
+        log.read(nextMorning());
         QVERIFY(!log.offScheduleAt());
         // Scout was a tool of the last launch, not of this one.
         append(path, later("AppID 1070560 update started : download 0/75258128, store 0/0, reuse "
                            "0/0, delta 0/0, stage 0/223012461 ") +
                          gameOffSchedule());
-        log.read();
+        log.read(nextMorning());
         QCOMPARE(log.offScheduleAt(), at("2026-10-30 17:10:28"));
     }
 
@@ -290,7 +296,7 @@ private slots:
         SteamContentLog log(path);
         log.startLaunch({});
         append(path, stuckRun());
-        log.read();
+        log.read(nextMorning());
         QVERIFY(!log.offScheduleAt());
     }
 

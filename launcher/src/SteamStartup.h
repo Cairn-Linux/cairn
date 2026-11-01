@@ -56,8 +56,8 @@ public:
     // none when it cannot be read.
     static QList<QByteArray> lastLines(const QString& path);
     // When the updater last started the client, by its last `Startup -`
-    // line, or nothing.
-    static std::optional<QDateTime> lastStartup(const QString& bootstrapLog);
+    // line read at `now`, or nothing.
+    static std::optional<QDateTime> lastStartup(const QString& bootstrapLog, const QDateTime& now);
 
 private:
     QString m_bootstrapLog;

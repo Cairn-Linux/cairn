@@ -2,6 +2,7 @@
 #include "SteamLaunchLog.h"
 #include "SteamQuestions.h"
 
+#include <QDateTime>
 #include <QFile>
 #include <QTemporaryDir>
 #include <QTest>
@@ -18,6 +19,12 @@ void append(const QString& path, const QByteArray& text) {
     QFile log(path);
     QVERIFY(log.open(QIODevice::WriteOnly | QIODevice::Append));
     log.write(text);
+}
+
+// When the test reads the log: the morning after its lines. It matters only
+// for a time in an hour the clocks change in, which tst_steamlogtime tests.
+QDateTime nextMorning() {
+    return {QDate(2026, 11, 1), QTime(9, 0)};
 }
 
 // Steam taking a tap on the game `appId`.
@@ -70,7 +77,7 @@ public:
     // Reads what the launch log gained, as SteamGameWait does at the end of
     // each grace, and says where the launch has got to.
     Step read() {
-        launch.read();
+        launch.read(nextMorning());
         return questions.read(launch);
     }
 
