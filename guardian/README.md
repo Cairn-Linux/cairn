@@ -157,7 +157,12 @@ The Your account page (ADR-0043):
    no such wallet, KWallet off or no kwalletd, nothing is offered and
    nothing is said. **Change the wallet's password** asks kwalletd,
    whose own box asks for the passwords, which Family never sees.
-   **Not now**, a new picture or another password ends the offer.
+   **Leave it as it is**, a new picture or another password ends the
+   offer, and only the next new password brings it back. After either
+   button the keyboard is on **Change password**, where a key still
+   held down does nothing. In a window too short for the sentence and
+   the card, the sentence's top stays in sight, with the card's start
+   under it.
 5. One sentence under each part says what happened, or why nothing
    changed and what to do next, and the window scrolls to it.
 
@@ -390,12 +395,12 @@ QML draws, C++ decides (ADR-0002):
 | `src/SaveRun` | Runs `pkexec` with `cairn-family save-games` or `log-out`, and passes on each line as it arrives, then the answer, pkexec's own exit code, or `not-started` when nothing could be started. |
 | `src/SaveReport` | Reads `save-games`'s lines into how far it has got, each game copied, each child's counts, held word, games left out and tools, whether a tool was left out of the tools folder, and the games without a picture, taking only its fixed words and the children the Save named. |
 | `src/PkexecAnswer` | pkexec's own two exit codes, for both runners of `cairn-family`. |
-| `src/AccountPage` | What the Your account page shows and does: the Guardian's name and picture, KDE's pictures, a new picture, and a new password, checked first and sent to `cairn-family set-own-password` on standard input. Its commands, account database and bus are in its `Setup`, so a test can replace them. |
+| `src/AccountPage` | What the Your account page shows and does: the Guardian's name and picture, KDE's pictures, a new picture, and a new password, checked first and sent to `cairn-family set-own-password` on standard input, and after a new password the wallet's offer (`WalletPassword`). Its commands, account database and both buses (AccountsService's system bus, kwalletd's session bus) are in its `Setup`, so a test can replace them. |
 | `src/AccountPicture` | The Guardian's own picture through AccountsService on the system bus, with Qt D-Bus: reading `IconFile`, and `SetIconFile`, waited for without blocking the window. |
 | `src/WalletPassword` | KDE Wallet's password after the Guardian's own has changed: whether to offer the change, from kwalletd's answers on the session bus (`isEnabled`, `localWallet`, `wallets`), each waited for without blocking the window, and kwalletd's `changePassword`, whose own box asks for the passwords. |
 | `src/PictureFile` | A chosen picture made ready for AccountsService: a square from its middle, turned as the camera meant, at most 256 pixels, as PNG. |
 | `src/NewPassword` | The one rule for a new password, which the window and `cairn-family` both check. |
-| `qml/AccountView.qml`, `qml/PictureSection.qml`, `qml/PasswordForm.qml`, `qml/PictureTile.qml`, `qml/OutcomeBox.qml`, `qml/WalletOffer.qml` | The Your account page with its password sentences, the picture section with its file dialog, the password form, one of Plasma's pictures to tap, the box a sentence goes in, and the card that offers to change KDE Wallet's password. |
+| `qml/AccountView.qml`, `qml/PictureSection.qml`, `qml/PasswordForm.qml`, `qml/PasswordAnswers.qml`, `qml/PictureTile.qml`, `qml/OutcomeBox.qml`, `qml/WalletOffer.qml` | The Your account page, the picture section with its file dialog, the password form, the sentence about a password change with the wallet's card under it, one of Plasma's pictures to tap, the box a sentence goes in, and the card that offers to change KDE Wallet's password. |
 | `src/GamePicture` | A game's picture by its app id, with the launcher's rule: `<folder>/<appid>.jpg` when it is a plain file, not a link. The Games page and `cairn-family` both use it. |
 | `qml/FamilyWindow.qml`, `qml/ChildrenView.qml`, `qml/GamesView.qml` | The Guardian tool's window with its switch between pages, its Children page with the sentence for every answer, and its Games page. |
 | `qml/ChildChoice.qml`, `qml/GameCard.qml`, `qml/SaveOutcome.qml`, `qml/SaveResultWords.qml` | A child to pick on the Games page, one game in its grid, the sentences for a Save, and its words for what each child got. |
@@ -528,12 +533,14 @@ one change at a time, a picture taken, refused or unreadable, and
 KDE's photos listed after its drawings, and no other folder's pictures.
 With the stand-in kwalletd in `tests/StandInWallet`, it also checks that
 only a password that changed brings the wallet's offer, and that
-anything else the page says ends it. `walletpassword` runs the offer
-itself against that stand-in: each of kwalletd's answers, an error or an
-answer of the wrong type at each question, no kwalletd, the order of the
-questions, a check withdrawn before kwalletd answered, and what
-`changePassword` is handed. `familywindow` has it too, for the card's
-words, buttons and focus. These three run on
+anything else the page says ends it: while kwalletd is still asked,
+while the offer shows, and while kwalletd's box asks. `walletpassword`
+runs the offer itself against that stand-in: each of kwalletd's answers,
+an error or an answer of the wrong type at each question, no kwalletd,
+the order of the questions, a check withdrawn before kwalletd answered,
+and what `changePassword` is handed. `familywindow` has it too, for the
+card's words, buttons and focus, a key held down on its buttons, and
+what stays in sight in the smallest window. These three run on
 `tests/fixtures/session-bus.conf`, a session bus that starts no service
 from the computer's own service files, so no test wakes the real
 kwalletd, and a kwalletd a test leaves out is absent, as on a computer

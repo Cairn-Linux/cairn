@@ -6,7 +6,8 @@ at a path of their own. It becomes accepted when the same checks pass
 with the programs and files where the image puts them. "Only KDE's
 pictures", added on 2026-10-31, passed its checks in the VM that day,
 on the VM's writable `/usr` rather than in a built image. "KDE Wallet's
-password", added the same day, has not been checked in the VM yet.
+password", added the same day, has not been checked in the VM yet, and
+acceptance waits for its checks too.
 **Date:** 2026-10-30; "Only KDE's pictures" and "KDE Wallet's password"
 2026-10-31
 **Closes:** (none) — the System Settings half of issue #113, and the
@@ -366,9 +367,11 @@ login it hands KWallet a hash of the password typed, and KWallet opens
 with it the wallet kwalletrc names, `kdewallet` unless set otherwise. At
 the first login it makes that wallet, with the login password. So the
 wallet opens by itself only while its password is the login password.
-After a Guardian changed their password on Your account, the next login
-opened no wallet, and the first program that wanted it made KWallet ask
-for the wallet's password: the old one.
+After a Guardian changes their password on Your account, the next login
+opens no wallet, and the first program that wants it makes KWallet ask
+for the wallet's own password: the old one. That is read from the
+source, where ksecretd opens the wallet with the hash pam_kwallet hands
+it; it has not been seen yet.
 
 Plasma's Users page offers the change (plasma-workspace 6.7.5,
 `kcms/users`, read from the source). Once AccountsService has taken a new
@@ -401,18 +404,24 @@ kwalletd's own box asks for the passwords, which Family never sees.**
   page. With KWallet turned off, kwalletd does not start, and the question
   fails.
 - The offer is a card under the sentence that says the password changed,
-  with **Change the wallet's password** and **Not now**. The first calls
-  kwalletd's `changePassword` with the wallet's name, window 0 and the
-  program's name, and no password. Plasma passes window 1. kwalletd puts
-  its box over the window it is given, and a window on Wayland has no
-  number another program can use.
+  with **Change the wallet's password** and **Leave it as it is**. In a
+  window too short for both, the sentence's top stays in sight, with the
+  card's start under it. The first button calls kwalletd's
+  `changePassword` with the wallet's name, window 0 and the program's
+  name, and no password. Plasma passes window 1. kwalletd puts its box
+  over the window it is given, and a window on Wayland has no number
+  another program can use. With window 0, ksecretd writes "Using kwallet
+  without parent window!" to the journal each time; as far as the source
+  shows, on Wayland that line is all window 0 changes.
 - kwalletd answers that call at once, before its box is answered, so
   Family does not learn whether the wallet's password changed. The card
   then says what the box asks. An error answer means no box: the card
   says so, the reason goes to the journal, and the buttons come back.
-- The card belongs to the sentence about the password. **Not now**, a new
-  picture, another password, or closing Family ends it, and only the next
-  password change brings it back.
+- The card belongs to the sentence about the password. **Leave it as it
+  is**, a new picture, another password, or closing Family ends it, and
+  only the next password change brings it back. After either button the
+  keyboard is on **Change password**, which takes only the first press of
+  a key held down.
 - No new dependency. Qt's D-Bus module is part of Qt and already in the
   Family app (ADR-0041). kwalletd is Plasma's, met over the bus as
   AccountsService is.
@@ -433,10 +442,10 @@ wallets):
 The card's words:
 
 - Offered: "KDE Wallet keeps passwords that programs save, such as Wi-Fi
-  ones, behind a password of its own. It opens by itself when you log in
-  only while that password is the same as your login password. Change the
-  wallet's password to your new one too? If not, the wallet asks for its
-  own password, usually your old one, the next time a program needs it."
+  ones, behind a password of its own. It opens by itself at login only if
+  that password is the same as your login password. Change the wallet's
+  password to your new one too? If not, the wallet asks for its own
+  password, usually your old one, the next time a program needs it."
 - Once kwalletd took it: "KDE Wallet asks in a box of its own. If it first
   asks for the wallet's own password, type that: usually your old one.
   Then type your new password twice."
@@ -457,6 +466,9 @@ The other ways weighed:
   when kwalletrc's "Use One Wallet" is off.
 - **Changing the wallet's password in Family.** Family would hold both
   passwords, and do what kwalletd's box already does.
+- **"Not now", as on the Games page.** There the button leaves **Log Ada
+  out** in place. Here nothing offers again until the next new password,
+  so the button says what it does, as Plasma's Leave Unchanged does.
 
 What it cannot do:
 
@@ -486,9 +498,10 @@ answered would wake the real kwalletd, and through it the real wallet.
 `walletpassword` covers each answer, the order of the questions, a check
 withdrawn before kwalletd answered, and what `changePassword` is given.
 `accountpage` covers that only a password that changed brings the offer,
-and that anything else the page says ends it. `familywindow` covers the
-card's words and buttons, the focus after each, and the card scrolling
-into sight.
+and that anything else the page says ends it, at every step.
+`familywindow` covers the card's words and buttons, the focus after
+each, a key held down on either button, and what comes into sight, the
+smallest window included.
 
 Not checked in the VM yet: the offer after a real password change,
 kwalletd's box over Family on Wayland, and the wallet opening by itself
