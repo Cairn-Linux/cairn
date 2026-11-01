@@ -92,6 +92,23 @@ GamesSaving::Progress SaveResults::progressFor(SaveReport::Stage stage) {
     return GamesSaving::Progress::Starting;
 }
 
+GamesSaving::Reason SaveResults::reasonFor(const QString& answer) {
+    static const QHash<QString, GamesSaving::Reason> reasons = {
+        {QStringLiteral("not-root"), GamesSaving::Reason::NotRoot},
+        {QStringLiteral("not-a-grown-up"), GamesSaving::Reason::NotAGrownUp},
+        {QStringLiteral("usage"), GamesSaving::Reason::Usage},
+        {QStringLiteral("bad-name"), GamesSaving::Reason::Usage},
+        {QStringLiteral("bad-appid"), GamesSaving::Reason::Usage},
+        {QStringLiteral("not-a-child"), GamesSaving::Reason::NotAChild},
+        {QStringLiteral("busy"), GamesSaving::Reason::AnotherSave},
+        {QStringLiteral("dismissed"), GamesSaving::Reason::Dismissed},
+        {QStringLiteral("not-authorized"), GamesSaving::Reason::NotAuthorized},
+        // SaveRun's own word; cairn-family has no refusal of that name.
+        {QStringLiteral("not-started"), GamesSaving::Reason::CommandNotStarted},
+    };
+    return reasons.value(answer, GamesSaving::Reason::Unknown);
+}
+
 QHash<QString, QString> SaveResults::titlesOf(const QList<GameShelf::Game>& games) {
     QHash<QString, QString> titles;
     for (const GameShelf::Game& game : games) {

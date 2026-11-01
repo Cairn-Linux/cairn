@@ -109,7 +109,7 @@ bool GamesSaving::start(Kind kind, const QStringList& arguments,
     m_report = SaveReport(request.logins());
     if (request.refusal) {
         m_step = Step::NotSaved;
-        m_reason = reasonFor(refusalWord(*request.refusal));
+        m_reason = SaveResults::reasonFor(refusalWord(*request.refusal));
         emit changed();
         emit ended();
         return true;
@@ -141,23 +141,6 @@ void GamesSaving::close() {
     clearOutcome();
 }
 
-GamesSaving::Reason GamesSaving::reasonFor(const QString& answer) {
-    static const QHash<QString, Reason> reasons = {
-        {QStringLiteral("not-root"), Reason::NotRoot},
-        {QStringLiteral("not-a-grown-up"), Reason::NotAGrownUp},
-        {QStringLiteral("usage"), Reason::Usage},
-        {QStringLiteral("bad-name"), Reason::Usage},
-        {QStringLiteral("bad-appid"), Reason::Usage},
-        {QStringLiteral("not-a-child"), Reason::NotAChild},
-        {QStringLiteral("busy"), Reason::AnotherSave},
-        {QStringLiteral("dismissed"), Reason::Dismissed},
-        {QStringLiteral("not-authorized"), Reason::NotAuthorized},
-        // SaveRun's own word; cairn-family has no refusal of that name.
-        {QStringLiteral("not-started"), Reason::CommandNotStarted},
-    };
-    return reasons.value(answer, Reason::Unknown);
-}
-
 // The first line means the password was accepted and the command runs:
 // cairn-family says "looking" before its first slow step.
 void GamesSaving::lineRead(const QString& line) {
@@ -171,7 +154,7 @@ void GamesSaving::lineRead(const QString& line) {
 void GamesSaving::finished(const QString& answer) {
     m_titles.insert(SaveResults::titlesOf(GameShelf::read(m_catalogue, {}).games()));
     m_step = answer == QLatin1String("done") ? Step::Saved : Step::NotSaved;
-    m_reason = m_step == Step::Saved ? Reason::NoReason : reasonFor(answer);
+    m_reason = m_step == Step::Saved ? Reason::NoReason : SaveResults::reasonFor(answer);
     emit changed();
     emit ended();
 }

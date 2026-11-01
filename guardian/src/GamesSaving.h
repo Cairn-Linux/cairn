@@ -167,8 +167,6 @@ public:
     // The progress window's Close: the same, once the Save has ended.
     Q_INVOKABLE void close();
 
-    static Reason reasonFor(const QString& answer);
-
 signals:
     void changed();
     // The Save has ended, however it ended, and the lists can be read again.
