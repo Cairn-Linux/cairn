@@ -367,7 +367,8 @@ copy and the logout.
 - **Room.**
   It holds `low-space` when the filesystem that holds the child's home
   has less than 5 GB free (inference: a guess, tried in E16(c)).
-  During the run, Steam's `Disk write failure` ends it as out of space.
+  During the run, Steam's `Disk write failure` ends it as out of space
+  (a line others have reported, not yet seen here; E16(c)).
 - **A Steam that has never run, or never signed in,** is held
   `no-steam` before Steam starts.
   How the helper tells, as the child, is for E16(b) to settle.
@@ -754,8 +755,8 @@ hers, owned by her and labelled again.
    their own Steam open and signed in, a child's update runs to its end.
    Record free memory and swapping with `vmstat`, the peak of the
    update's session, and whether the parent's desktop stays usable.
-   Fedora swaps to compressed memory first, so a little swap in use is
-   normal.
+   The image swaps to compressed memory (zram), as Fedora does, so a
+   little swap in use is normal.
    Passes when the computer does not swap: pages swapped in and out stay
    few, and the desktop stays usable.
    Fails when it does: then this ADR is amended so that an update closes
