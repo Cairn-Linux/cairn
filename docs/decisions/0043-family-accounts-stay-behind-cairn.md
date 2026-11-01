@@ -527,11 +527,14 @@ writable `/usr`, and Test Guardian's wallet opened by a password login:
   then the new one, and at the next login the wallet opened by itself.
 - With KWallet turned off, no card came, and nothing about the wallet
   was logged.
-- ksecretd wrote "Using kwallet without parent window!" once for each of
-  its boxes.
-- Each time Family came back to the front after one of those boxes, its
-  page scrolled up to **Change password**, which has the keyboard, so
-  the card's words were a scroll below.
+- ksecretd wrote "Using kwallet without parent window!" once for each
+  box that asked for a password, and not for the box after Cancel.
+- Each time Family came back to the front after one of kwalletd's boxes,
+  the box after Cancel included, its page scrolled up to **Change
+  password**, which has the keyboard, so the card's words were a scroll
+  below.
 
 Not checked: a program asking for the shut wallet after **Leave it as
-it is**, kwalletd refusing the change, and an image built with podman.
+it is**, kwalletd refusing the change, `[KSecretD] Enabled=false`, and
+an image built with podman. The other held keys, and a new picture
+ending the offer, were left to the window tests.
