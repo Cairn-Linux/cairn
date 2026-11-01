@@ -428,8 +428,8 @@ done, and what could sink it. Decisions that change the design get an ADR in
   Cairn's `os-release`. Checked in the VM on 2026-10-29 on Sand, the
   disk prompt included. On 2026-10-31 the maintainer chose Ink, the
   grown-up in the first sentence and English until Phase 3, and the Ink
-  screen was checked in a container. Accepted once seen on a real
-  computer; the prompt on a disk encrypted at install is a later check.
+  screen was checked in a container and in the VM. Accepted once seen on a
+  real computer; the prompt on a disk encrypted at install is a later check.
 - **Steam updating itself at login keeps the tiles (2026-10-30, #183,
   amends ADR-0037).** On 2026-10-27 the kids' laptop showed the grown-up
   screen for 13 minutes at a login, with Steam's updater box and its

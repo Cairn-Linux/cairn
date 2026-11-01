@@ -176,6 +176,17 @@ again with it.**
   both text plugins at 1366 by 768, 1280 by 800, 1024 by 768 and 800 by
   600. The ground drew as #1C333C, the login screen's Ink, and the words
   as Sand with either plugin. Caps Lock cannot be shown that way.
+- Checked on 2026-10-31 on Ink in the cairn-iso VM. Its image is older
+  than the theme, so Fedora's `plymouth-plugin-script` and the theme
+  went onto its `/usr` by hand. Plymouth was started by hand after the
+  login screen was stopped, so it drew from the real root, with Pango,
+  at 1280 by 800. The stones built in Sand. The prompt showed the first
+  sentence whole, in Atkinson Hyperlegible Next, with about 260 px of
+  ground at each end, and three Ink dots in the box. The same prompt
+  again brought the second sentence. Caps Lock brought "Caps Lock is
+  on." in Sand under the box. A question showed its typed answer in Ink.
+  The ground was #1C333C on the boot screen and on the login screen
+  after it.
 - Not checked yet, and needed for acceptance: the boot screen on a real
   computer. Not checked either: a real laptop's screen at a high
   density.
