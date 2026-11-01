@@ -251,4 +251,7 @@ whatever the case of its letters, before the password is asked for.**
 - A family that already has two children of one name, such as the VM's
   `cy` and `cy2`, still needs a terminal to rename or remove one.
 - Tested in C++, in `tst_childlist` and `tst_childrenpage`, and in the
-  real window, in `tst_familywindow`.
+  real window, in `tst_familywindow`. Checked in the cairn-iso VM on
+  2026-10-31, beside the two children named Cy from the user test.
+  "Cy" and " cy " were refused before any password box, and "Cy B" was
+  added after the password, with the login `cyb`.
