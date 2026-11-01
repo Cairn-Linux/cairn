@@ -484,8 +484,8 @@ done, and what could sink it. Decisions that change the design get an ADR in
   Steam loaded it from the family folder with no download and started
   it. Steam kept the entry Cairn wrote and filled in its map, and a move
   killed at fifteen points was settled by the next run each time
-  (checks 1, 3, 4, 6, 10 and 12, some by hand). A moved game's files are
-  group-writable, where those Steam's own Move put there are not.
+  (checks 1 and 12, and parts of 3, 4, 6 and 10). A moved game's files
+  are group-writable, where those Steam's own Move put there are not.
 - **ADR-0046 (2026-10-30, #206, #181, proposed): Steam's tools come with
   a child's games.** A new child's Steam first met Steam's own tools, the
   Steam Linux Runtimes and Proton, at their first tap: it fetched scout

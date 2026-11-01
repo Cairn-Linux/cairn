@@ -399,8 +399,8 @@ different levels:
 ### First run, 2026-11-01
 
 In cairn-iso, with the move step and kidscan from step 1 put over the
-`/usr` of main 8afdaf3's image, run by hand over ssh as the Guardian,
-with the VM's clock in EST.
+`/usr` of main 8afdaf3's image, run by hand over ssh as the Guardian
+(and once as root, to see it refused), with the VM's clock in EST.
 Nothing runs the step yet, so what needs the Games page or a Save waits
 for steps 2 and 3.
 The Guardian's own library held only Steam's tools, and no Steam window
@@ -439,21 +439,24 @@ Stand-in games with made-up appids did the rest.
   Steam's own entry differs in `totalsize`, the filesystem's size, in
   the two keys Cairn leaves out, and in a map of every game (check 1).
 - Steam kept Cairn's entry at its next two starts (check 3) and wrote it
-  as its own, with all seven games in the folder in its map, though
-  Cairn's map named only the stand-in.
+  as its own, with the seven games it loaded from the folder in its map,
+  though Cairn's map named only the stand-in.
 - A 1 GiB stand-in in 8,193 files moved in 0.62 s. Killed at fifteen
   points from 0.1 to 0.6 s, the step ended before any change, during
   the copy, with the copy whole, after the temporary family manifest,
-  and after the renames with the original whole or half removed. Each
-  time the game had one manifest, and the next run with no appids left
-  it whole in one library, with only the lock behind (check 6, by hand).
-- Check 10 held by hand: with the game in both places, the step said
-  `shared 294530` and left the Guardian's copy alone. The refusals, the
-  lock (a child gets "Permission denied"), Steam's tools and six other
-  reasons held too, each with nothing changed.
+  and after the renames with the original whole, partly removed or
+  gone. Each time Steam would have found one manifest for the game, and
+  the next run with no appids left it whole in one library, with only
+  the lock behind (check 6, by hand).
+- Check 10 held by hand, as far as the step goes: with the game in both
+  places, the step said `shared 294530` and left the Guardian's copy
+  alone. The refusals, the lock (a child gets "Permission denied"),
+  Steam's tools and six other reasons held too, each with nothing
+  changed.
 - Not run: checks 2 and 3 through the Games page and Settings › Storage,
-  check 4's copy for `ada`, and checks 5, 7, 8, 9 and 11 (no update, no
-  Windows game, one disk, no Steam window). Afterwards the game went
+  check 4's copy for `ada`, checks 5, 7, 8 and 9 (no update, no Windows
+  game, one disk, no Steam window), check 10's showing the game once,
+  which needs the Games page, and check 11. Afterwards the game went
   back to the family folder as it was, and the stand-ins and the lock
   were removed.
 
@@ -492,16 +495,16 @@ Mason's answers of 2026-10-31 are under Steps.
 **A moved game is group-writable.**
 `cp` gives each new file an access ACL whose mask comes from the
 source's group bits, so the group could only read a moved game.
-Steam's own installs in the family folder give the group what they give
-the owner (the research note's "What the VM showed on 2026-10-31").
 So the step gives the group the owner's bits on each file and folder of
 the copy, before anything else changes.
 A second Guardian's Steam would need that to update the game, which
 stays untested (ADR-0033).
-In the first run in the VM, Steam's own folders and manifests in the
-family folder gave the group the owner's bits, but the files of the
-games Steam's own Move put there did not: the group can only read them
-("First run", above).
+The folders and manifests Steam keeps in the family folder give the
+group what they give the owner too (the research note's "What the VM
+showed" on 2026-10-31 and 2026-11-01).
+The files of the games Steam's own Move put there do not: the group can
+only read them ("First run", above), so a moved game's files differ
+from theirs.
 
 **Two runs never overlap.**
 Each run holds a lock for the whole run, and a second run waits.

@@ -228,14 +228,16 @@ step.
   that Guardian's Steam is open, and only by reflink, so a game on
   another drive stays where it is.
 - The game's folder is copied into the family folder first, and the
-  group gets the owner's bits on each file and folder, as on Steam's own
-  installs there. Then its manifest is written there, the old manifest
-  is set aside, the copy and the new manifest take their names, and the
-  original goes. The order keeps a game out of two libraries at every
-  point, and a run ended anywhere is finished or undone by the next one.
-  One ended between the set-aside and the renames leaves the game in no
-  library until then. The game's Wine prefix, shader cache and workshop
-  items stay where they were.
+  group gets the owner's bits on each file and folder, as on the folders
+  and manifests Steam keeps there (the files of the games Steam's own
+  Move put there give the group only read, ADR-0042's "First run").
+  Then its manifest is written there, the old manifest is set aside,
+  the copy and the new manifest take their names, and the original
+  goes. The order keeps a game out of two libraries at every point, and
+  a run ended anywhere is finished or undone by the next one. One ended
+  between the set-aside and the renames leaves the game in no library
+  until then. The game's Wine prefix, shader cache and workshop items
+  stay where they were.
 - Two runs never overlap: each holds a lock for the whole run, and a
   second run waits. The lock is `steamapps/.cairn-move-lock` in the
   family folder, a file only Guardians can open, so no child can hold it
