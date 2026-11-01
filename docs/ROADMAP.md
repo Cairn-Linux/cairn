@@ -557,8 +557,10 @@ done, and what could sink it. Decisions that change the design get an ADR in
   `focus-on-ink` keeps Sky, 7.45:1, for the login screen's Ink, where
   Fjord would be 1.97:1. `brand/build.py --check` now refuses a focus
   ring below 3:1 against the grounds each ring is for: Sand and Paper for
-  `focus`, Ink for `focus-on-ink`. Tested in Python and QML; not yet seen
-  on the test VM.
+  `focus`, Ink for `focus-on-ink`. Tested in Python and QML, and on the
+  test VM the same day: a child's tiles and the Family app showed the
+  Fjord ring, and the login screen kept Sky. The boot screen was not seen
+  there.
 - **Give-up spares Steam's interface again (2026-10-01, #117).** A Steam
   update moved Steam's own interface into a sandbox called `srt-bwrap`,
   which the give-up key's `bwrap` match caught. Flatpak's sandbox is now
