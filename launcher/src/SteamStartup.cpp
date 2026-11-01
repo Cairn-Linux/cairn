@@ -21,7 +21,11 @@ constexpr qint64 lastPartBytes = qint64{256} * 1024;
 constexpr qint64 longestStartSeconds = qint64{20} * 60;
 // After an update the updater starts again at once to verify itself, and
 // Steam's start script starts it once more 17 or 18 s later (dev PC,
-// 2026-10-27). A start a few minutes on is a later start of its own.
+// 2026-10-27). A start a few minutes on is a later start of its own, and so
+// is one that seems to come before the update. The updater writes the
+// update line first, so a start seems earlier only when the update's time
+// was written in the first pass of the hour that comes twice and read as
+// the second (#248), or when the clock was set back between the two lines.
 constexpr qint64 restartSeconds = 60;
 
 // A line the updater writes while it downloads or installs an update of the
@@ -49,7 +53,8 @@ SteamStartup::Now SteamStartup::read(const QDateTime& now) const {
         if (line.contains("] Startup - ")) {
             started = SteamLaunchLog::timeOf(line, now);
             updating = false;
-            restarting = updated && started && updated->secsTo(*started) <= restartSeconds;
+            restarting = updated && started && *updated <= *started &&
+                         updated->secsTo(*started) <= restartSeconds;
         } else if (line.contains("] Update complete, launching")) {
             updated = SteamLaunchLog::timeOf(line, now);
         } else if (started && isUpdating(line)) {

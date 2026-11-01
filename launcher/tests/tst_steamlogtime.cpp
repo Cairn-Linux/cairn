@@ -192,6 +192,18 @@ private slots:
                  SteamStartup::Now::Restarting);
     }
 
+    // The updater installed an update and restarted Steam in the first
+    // pass, and Steam started again 55 minutes later, in the second. The
+    // update's time reads as the second pass, after that start, but a start
+    // before an update is no restart after it: Steam is starting.
+    void aStartBeforeTheUpdateItSeemsToFollowIsItsOwn() {
+        const Logs logs;
+        append(logs.bootstrap, "[2026-11-01 01:20:00] Update complete, launching Steam...\n" +
+                                   startup("2026-11-01 01:20:05") + startup("2026-11-01 01:15:00"));
+        QCOMPARE(SteamStartup(logs.bootstrap, logs.console).read(look()),
+                 SteamStartup::Now::Starting);
+    }
+
     // The updater started Steam just before the clocks went back, and Steam
     // could not reach its servers just after: that is the client that runs,
     // not an earlier one (#182).
