@@ -88,10 +88,12 @@ Item {
         objectName: "saveProgressBox"
         anchors.centerIn: parent
         width: Math.min(progress.width - progress.margin * 2, Tokens.headingSize * 20)
-        // As tall as the words and Close, up to the window less a margin.
-        // A box that would be taller keeps Close and lets the words scroll
-        // (#218).
-        height: Math.min(column.implicitHeight + progress.closeRoom + progress.margin * 2, progress.height - progress.margin * 2)
+        // The words' part, Close's room and the margins. The box is worked
+        // out from the part, not the part from the box: adding the margins
+        // and Close's room and then taking them away again need not give
+        // the words' height back exactly, and a part a hair shorter than
+        // its words scrolls and shows the bar.
+        height: words.height + progress.closeRoom + progress.margin * 2
         radius: Tokens.radiusCard
         color: Tokens.card
         border.color: Tokens.line
@@ -111,7 +113,11 @@ Item {
             x: progress.margin
             y: progress.margin
             width: box.width - progress.margin * 2
-            height: box.height - progress.margin * 2 - progress.closeRoom
+            // As tall as the words, the very same number when they fit, up
+            // to what the window leaves them: a margin above and below the
+            // box, the box's own margin above and below them, and Close's
+            // room. Taller words scroll, and Close stays in sight (#218).
+            height: Math.min(column.implicitHeight, progress.height - progress.margin * 4 - progress.closeRoom)
             contentHeight: column.implicitHeight
             // Only words taller than their part of the box scroll.
             interactive: contentHeight > height

@@ -589,12 +589,12 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="204"/>
+        <location filename="../qml/Main.qml" line="208"/>
         <source>Close</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="204"/>
+        <location filename="../qml/Main.qml" line="208"/>
         <source>Cancel</source>
         <translation type="unfinished"></translation>
     </message>
@@ -866,22 +866,22 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveProgress.qml" line="133"/>
+        <location filename="../qml/SaveProgress.qml" line="139"/>
         <source>Looking for new games</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveProgress.qml" line="133"/>
+        <location filename="../qml/SaveProgress.qml" line="139"/>
         <source>Saving games</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveProgress.qml" line="146"/>
+        <location filename="../qml/SaveProgress.qml" line="152"/>
         <source>Do not log out or close the lid until this is finished.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveProgress.qml" line="195"/>
+        <location filename="../qml/SaveProgress.qml" line="201"/>
         <source>Close</source>
         <translation type="unfinished"></translation>
     </message>
