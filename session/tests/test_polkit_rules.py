@@ -186,8 +186,15 @@ class FamilyActionTest(unittest.TestCase):
     def test_saving_games_says_so(self):
         messages = {subcommand: action.findtext("message")
                     for subcommand, action in self.by_subcommand().items()}
+        # A look for new games is save-games with no child named, and pkexec
+        # looks no further than the first argument, so one message is true
+        # for a look and for a Save (#220). KDE's password box shows the
+        # description too, under its details.
         self.assertEqual(messages["save-games"],
-                         "A grown-up's password is needed to change which games a child has.")
+                         "A grown-up's password is needed to look for new games, "
+                         "or to change which games a child has.")
+        self.assertEqual(self.by_subcommand()["save-games"].findtext("description"),
+                         "Look for new games, or change which games a child has")
         # Logging a child out is its own password, never folded into a Save.
         self.assertEqual(messages["log-out"], "A grown-up's password is needed to log a child out.")
         for subcommand in ("create-child", "set-level"):

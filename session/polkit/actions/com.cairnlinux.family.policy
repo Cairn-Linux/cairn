@@ -8,6 +8,9 @@
   runs cairn-family through pkexec, which finds the action by the command's
   path and its first argument, and asks for an administrator's password, or
   a fingerprint, for every change, with the message of that subcommand.
+  The Games page's Look for new games is save-games with no child named,
+  which changes no child's games, and pkexec looks no further than the
+  first argument, so save-games's message speaks of both (#220).
   A grown-up's own new password asks for that grown-up's own password,
   auth_self, so the password they use now is what lets them change it,
   and no other grown-up's will do.
@@ -48,8 +51,8 @@
     <annotate key="org.freedesktop.policykit.exec.argv1">set-level</annotate>
   </action>
   <action id="com.cairnlinux.family.save-games">
-    <description>Change which games a child has</description>
-    <message>A grown-up's password is needed to change which games a child has.</message>
+    <description>Look for new games, or change which games a child has</description>
+    <message>A grown-up's password is needed to look for new games, or to change which games a child has.</message>
     <defaults>
       <allow_any>no</allow_any>
       <allow_inactive>no</allow_inactive>
