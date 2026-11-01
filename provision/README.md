@@ -37,6 +37,7 @@ puts it on the command line as well. Both were checked in the VM on
 2026-09-30. The script traces every command (`set -x`) but never the
 password step, and hands the password to `chpasswd` on its standard input
 (#103).
+The step puts the trace back as it found it: on only if it was on.
 
 Before it changes anything the script checks the two names: plain login
 names, two different accounts, a child that is not a system account and
@@ -96,6 +97,40 @@ a `logind.conf` key for the lid.
 Re-running the script puts back the repository's `manifest.json`, so a tile
 added by hand in the VM goes; the game tiles in `/var/lib/cairn/games.json`
 stay, and are made again from the shared folder.
+
+## Secrets
+
+No secret may reach the trace, a log or a command line (#103).
+Every account can read a program's command line while it runs.
+The only secret `cairn-provision.sh` and `cairn-family-setup.sh` handle
+is the Guardian's password, in the one step described above, which both
+share.
+
+Everything else on provisioning's path was checked for a secret on
+2026-10-31:
+
+- A child has no password: this script and `cairn-family create-child`
+  lock it.
+- `cairn-renumber-guardians.sh` handles no secret.
+- `cairn-family set-own-password`, which the Family app runs when a
+  grown-up changes their own password, reads the new one on its standard
+  input and hands it to `chpasswd` on chpasswd's. The journal gets whose
+  password changed and the answer, never the password (ADR-0043).
+- The visit helper never sees a password: `pkexec` asks for it in
+  polkit's own box.
+- The copy step, the picture step, the tools step and kidscan run without
+  a trace, and none of them reads Steam's sign-in files.
+- `CAIRN_GUARDIAN_PASSWORD` stays in the environment of the programs the
+  script starts before the password step, and through the whole run when
+  the Guardian already has an account. Those programs are root's own, and
+  only root can read their environment. The one program provisioning runs
+  as a child, the copy, starts with only the few variables `env -i` gives
+  it.
+
+`tests/test_provision.py` runs the password step, and
+`tests/test_family_setup.py` the family's whole setup, with a fake
+password, and both look for it in everything printed.
+The first-boot wizard keeps the same rule (ROADMAP P1-6).
 
 ## On a computer that runs the image
 
