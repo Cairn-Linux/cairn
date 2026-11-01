@@ -904,6 +904,95 @@ TestCase {
         tryVerify(() => scroller.contentY < y - 1, 2000, "The page no longer scrolls after a turn");
     }
 
+    // #219 on the cairn-iso VM: a tap gives a card the focus, and the focus
+    // scrolls a card cut off at the page's edge, or nearer to it than the
+    // room kept around a focused item, into full view. So a first tap on
+    // such a card still moved every card, 18 pixels on the VM. A card
+    // without the focus, tapped at either edge, must stay where it was in
+    // the window too.
+    function test_aCardTappedAtThePagesEdgeStaysWhereItWas_data() {
+        return [
+            {
+                tag: "cut off at the top",
+                edge: "top",
+                cutOff: true
+            },
+            {
+                tag: "near the top",
+                edge: "top",
+                cutOff: false
+            },
+            {
+                tag: "cut off at the bottom",
+                edge: "bottom",
+                cutOff: true
+            },
+            {
+                tag: "near the bottom",
+                edge: "bottom",
+                cutOff: false
+            }
+        ];
+    }
+
+    function test_aCardTappedAtThePagesEdgeStaysWhereItWas(data) {
+        const window = makeWindow("done", {
+            "smallest": true
+        });
+        showGames(window);
+        waitForPolish(window);
+        const scroller = findChild(window, "scroller");
+        const freddi = card(window, 1);
+        const place = () => freddi.mapToItem(window.contentItem, 0, 0).y;
+        // How far the card's edge is inside the page's: a third of the card
+        // past it, or half the room kept around a focused item.
+        const inside = data.cutOff ? -freddi.height / 3 : Tokens.bodySize / 2;
+        const top = freddi.mapToItem(scroller.contentItem, 0, 0).y;
+        const y = data.edge === "top" ? top - inside : top + freddi.height + inside - scroller.height;
+        // The focus would scroll the page this far, and it can.
+        const toShowIt = Tokens.bodySize - inside;
+        verify(y - toShowIt >= 0 && y + toShowIt <= scroller.contentHeight - scroller.height, "The page cannot scroll the card into full view from " + y);
+        scroller.contentY = y;
+        waitForPolish(window);
+        verify(!freddi.activeFocus);
+        verify(!findChild(window, "unsavedSentence").visible);
+        const before = place();
+        // A tap in the middle of the part of the card that shows.
+        const shownTop = Math.max(before, scroller.y);
+        const shownBottom = Math.min(before + freddi.height, scroller.y + scroller.height);
+        mouseClick(freddi, freddi.width / 2, (shownTop + shownBottom) / 2 - before);
+        compare(freddi.onList, true);
+        verify(freddi.activeFocus, "The tap did not give the card the focus");
+        verify(findChild(window, "unsavedSentence").visible);
+        // In the next frame the page is laid out again, then drawn.
+        waitForPolish(window);
+        verify(Math.abs(place() - before) <= 1, "The tapped card moved from " + before + " to " + place());
+    }
+
+    // The keyboard's focus turns nothing, so it still scrolls a card cut
+    // off at the page's edge into full view, with room around it.
+    function test_theKeyboardBringsACardIntoFullView() {
+        const window = makeWindow("done", {
+            "smallest": true
+        });
+        showGames(window);
+        waitForPolish(window);
+        const scroller = findChild(window, "scroller");
+        const pajama = card(window, 2);
+        card(window, 1).forceActiveFocus();
+        // Pajama Sam starts the next row, a third of it under the page's
+        // bottom edge.
+        scroller.contentY = pajama.mapToItem(scroller.contentItem, 0, 0).y + pajama.height * 2 / 3 - scroller.height;
+        waitForPolish(window);
+        verify(!shownWhole(window, pajama, 0));
+        keyClick(Qt.Key_Tab);
+        verify(pajama.activeFocus);
+        compare(pajama.onList, true);
+        verify(!findChild(window, "unsavedSentence").visible);
+        waitForPolish(window);
+        verify(shownWhole(window, pajama, Tokens.bodySize), "The card with the focus is not in full view");
+    }
+
     // A card turned, then another page opened before the window draws
     // again, as two quick taps can on a slow computer. The card is not
     // held there, so that page still opens at its top.

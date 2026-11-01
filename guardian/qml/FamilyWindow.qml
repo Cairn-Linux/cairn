@@ -77,9 +77,9 @@ Window {
     onActiveFocusItemChanged: window.showItem(window.activeFocusItem)
 
     // In each frame the window first lays out what changed, then says so
-    // here, then draws. A card held in place has moved by as much as the
-    // page grew or shrank above it, so the page scrolls by as much, and the
-    // card is drawn where it was (#219).
+    // here, then draws. A held card has moved by as much as the page grew
+    // or shrank above it, and by any scroll its tap's focus made, so the
+    // page scrolls by as much, and the card is drawn where it was (#219).
     onAfterAnimating: {
         const card = window.heldCard;
         if (!card)
