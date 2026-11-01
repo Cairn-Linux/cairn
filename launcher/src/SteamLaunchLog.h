@@ -6,6 +6,7 @@
 #include <QByteArray>
 #include <QDateTime>
 #include <QString>
+#include <QStringList>
 
 #include <cstdint>
 #include <optional>
@@ -68,7 +69,13 @@ public:
     // The last step about the game since the tap was DownloadingDepots, as
     // of the last read().
     bool downloading() const;
+    // The last step about the game since the tap was the question Steam
+    // asks when it could not check the game's Steam Cloud saves,
+    // `SynchronizingCloud "syncfailed"`, as of the last read() (#211).
+    bool cloudSyncFailed() const;
 
+    // The app id in `steam -applaunch <appid>`, or empty for anything else.
+    static QString appIdOf(const QStringList& exec);
     // What one line of the log says about the game, or Nothing when the
     // line is not about it.
     static Step stepOf(const QByteArray& line, const QString& appId);
@@ -83,6 +90,7 @@ private:
     QString m_appId;
     Step m_step = Step::Nothing;
     bool m_downloading = false;
+    bool m_cloudSyncFailed = false;
     bool m_reached = false;
     bool m_clientStarted = false;
     std::optional<QDateTime> m_steamStartedAt;

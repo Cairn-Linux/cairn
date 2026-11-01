@@ -617,7 +617,10 @@ Mechanism:
   on the grown-up screen, and its window still takes over if it comes late
   (ADR-0030). If starting Steam again does not bring the game, the
   grown-up screen adds one line: "Log out and back in, then try it again."
-  (ADR-0045).
+  (ADR-0045). It adds the same line for a later tap on a game Steam holds
+  behind the question it asked about the game's cloud saves while
+  offline, once Steam has signed in again: Steam keeps that question
+  until the child logs out (ADR-0045, #211).
 - A child's Steam gets Steam's own tools, the Steam Linux Runtimes and
   Proton, from the parent's Steam: a Guardian's Save copies them into the
   child's own library with the child's new games, by reflink, so a first

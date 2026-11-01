@@ -3,8 +3,10 @@
 
 #include "SteamLaunchLog.h"
 
-#include <QSet>
+#include <QHash>
 #include <QString>
+
+#include <cstdint>
 
 // The games Steam holds behind a question it asked on a window the kiosk
 // hides, so a later tap on one says why it did not start too (#211).
@@ -19,6 +21,9 @@
 // without writing a step is the same question. Steam writes that same
 // single line for an app id it will not launch at all, so a tap with no
 // step means a question only for a game Steam asked one about.
+//
+// The cloud question is told apart from Steam's other questions: logging
+// the child out was seen to free a game it holds (ADR-0045).
 class SteamQuestions {
 public:
     // A tile was pressed. The app id is empty for anything but a Steam game.
@@ -27,14 +32,28 @@ public:
     // step, or WaitingForAnswer when Steam took the tap on a game it still
     // holds behind a question and has written no step for it since.
     SteamLaunchLog::Step read(const SteamLaunchLog& launch);
+    // At the last read(), Steam had taken the tap on a game it still holds
+    // behind the cloud question from an earlier tap, and had written no
+    // step for it since. Never at the tap that met the question.
+    bool heldByCloudQuestion() const;
     // Steam was started again: its questions went with the client that
     // asked them.
     void steamRestarted();
 
 private:
+    // Which question Steam asked about a game.
+    enum class Question : std::uint8_t {
+        // What to do about the game's Steam Cloud saves, which it could not
+        // check.
+        Cloud,
+        // Any other question.
+        Other,
+    };
+
     QString m_appId;
     // The games Steam asked a question about and has written no other step
-    // for since. Forgotten once Steam writes another step for one, or a new
-    // client starts.
-    QSet<QString> m_questioned;
+    // for since, each with its question. Forgotten once Steam writes another
+    // step for one, or a new client starts.
+    QHash<QString, Question> m_questioned;
+    bool m_heldByCloudQuestion = false;
 };

@@ -90,8 +90,9 @@ class AppLauncher : public QObject {
 public:
     enum class State : std::uint8_t { Idle, Starting, Running, Failed, Interrupted, ComingSoon };
     Q_ENUM(State)
-    // Nothing to add, or Steam stopped part-way through getting the game
-    // ready and logging the child out and back in will help (#206).
+    // Nothing to add, or logging the child out and back in will help: Steam
+    // stopped part-way through getting the game ready (#206), or, signed in
+    // again, still holds the game behind its cloud question (#211).
     enum class GrownUpStep : std::uint8_t { None, LogOutAndBackIn };
     Q_ENUM(GrownUpStep)
 
