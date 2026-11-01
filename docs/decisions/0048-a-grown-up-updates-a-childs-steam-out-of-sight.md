@@ -165,9 +165,9 @@ version does nothing to make Steam fetch an update it put off.**
 - One press updates one child (answer 6).
   "Every child", and night-time updates, off unless a parent turns them
   on, get an ADR of their own.
-- It starts only on mains power (answer 4), as systemd tells it
-  (`systemd-ac-power`, the test behind `ConditionACPower=`), so a
-  computer with no battery counts as plugged in.
+- It starts only on mains power (answer 4), as `systemd-ac-power` reads
+  it, which is how `ConditionACPower=` reads it: a computer that knows of
+  no mains connector, as a desktop may not, counts as plugged in.
   The page asks before the warning opens, and the root command asks
   again.
   On battery the page says "The computer is running on its battery. Plug
@@ -249,8 +249,8 @@ When the helper ends without its last word, the card says "The update
 stopped before it finished. Steam keeps what it downloaded."
 The held words a copy or a logout already has (`logged-in`, `busy`,
 `copying`, `logging-out`, `still-running`, `not-set-up`, `not-started`)
-get sentences in the voice of the page's own.
-Those words are proposals; the change that builds the card fixes them.
+get sentences like the page's own for them, which the change that builds
+the card writes.
 
 ### Stop
 
