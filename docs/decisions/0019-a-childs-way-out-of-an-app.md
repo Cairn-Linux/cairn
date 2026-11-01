@@ -142,5 +142,6 @@ command line is read at every start and wins over both files.
   the option marks the button as not available, and neither a tap nor
   Ctrl+P prints. Seen nested on the dev PC with Fedora's 0.9.35: the
   button is grey where it was blue. Seen in the kiosk on the cairn-iso VM
-  on 2026-10-31, from the Draw tile and from the Terminal's `open draw`:
-  Print is grey, and a tap or Ctrl+P changes nothing.
+  on 2026-10-31. From the Draw tile, Print is grey, and neither a tap nor
+  Ctrl+P changes anything. From the Terminal's `open draw`, Print is grey
+  and a tap changes nothing.
