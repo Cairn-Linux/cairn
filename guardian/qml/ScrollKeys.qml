@@ -6,15 +6,16 @@ import Cairn.Brand
 // button under them that has the keyboard (#243). Up and Down move the
 // words a line; Page Up and Page Down move them as far as their part is
 // tall, less a line, so the line at its edge stays in sight. The words
-// stop at either end, so words that fit never move.
+// stop at either end, so words that fit never move. Unlike a button's
+// press, a held key goes on scrolling: each of its repeats comes here.
 QtObject {
     id: keys
 
     required property Flickable flickable
 
-    // Whether the key is one of the four, which has then moved the words
-    // as far as they go. Any other key is left to the button and the
-    // window.
+    // Moves the words for one of the four keys, as far as they go, and
+    // says whether the key was one of them. Any other key is left to the
+    // button and the window.
     function scroll(key) {
         const line = Tokens.bodySize * Tokens.bodyLineHeight;
         const page = keys.flickable.height - line;
