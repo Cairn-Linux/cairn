@@ -173,6 +173,14 @@ Item {
             x: box.width - box.border.width - Tokens.focusOffset - width
         }
 
+        // The arrow and page keys, for Close to pass on to the words
+        // (#243).
+        ScrollKeys {
+            id: scrollKeys
+
+            flickable: words
+        }
+
         // Under the words and outside them, so Close and its focus ring
         // always show, however long the words are.
         TextButton {
@@ -188,6 +196,7 @@ Item {
             Keys.onTabPressed: event => event.accepted = true
             Keys.onBacktabPressed: event => event.accepted = true
             Keys.onEscapePressed: progress.close()
+            Keys.onPressed: event => event.accepted = scrollKeys.scroll(event.key)
             onActivated: progress.close()
         }
     }

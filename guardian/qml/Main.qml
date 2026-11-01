@@ -161,6 +161,14 @@ Window {
         x: window.width - width - Tokens.focusOffset
     }
 
+    // The arrow and page keys, for either button to pass on to the words
+    // (#243).
+    ScrollKeys {
+        id: scrollKeys
+
+        flickable: scroller
+    }
+
     Row {
         id: buttons
 
@@ -182,6 +190,7 @@ Window {
             text: words.mainButtonText()
             visible: text !== ""
             focus: true
+            Keys.onPressed: event => event.accepted = scrollKeys.scroll(event.key)
             onActivated: window.pressMainButton()
             onVisibleChanged: {
                 if (visible)
@@ -194,6 +203,7 @@ Window {
             quiet: true
             text: window.visit.step === SteamForChild.Ready ? qsTr("Cancel") : qsTr("Close")
             visible: window.asksFirst
+            Keys.onPressed: event => event.accepted = scrollKeys.scroll(event.key)
             onActivated: window.close()
         }
     }

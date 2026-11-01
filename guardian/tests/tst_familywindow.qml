@@ -1480,12 +1480,10 @@ TestCase {
         tryCompare(findChild(window, "saveButton"), "activeFocus", true);
     }
 
-    // #218: in a short window a long result was cut off with no sign that
-    // it scrolls, and Close, which had the focus, was out of sight under
-    // it, with its focus ring cut once it was dragged into sight. Close now
-    // stays whole under the words, and the words scroll beside the page's
-    // own bar.
-    function test_aLongResultKeepsCloseInSight() {
+    // Ada and Ben each get a game, and Save is pressed in the window made
+    // as small as Family allows, so the result is taller than its part of
+    // the Save's box. Close then has the keyboard.
+    function saveALongResult() {
         const window = makeWindow("done", {
             "gamesScenario": "save-tools"
         });
@@ -1500,11 +1498,22 @@ TestCase {
         findChild(window, "saveButton").forceActiveFocus();
         keyClick(Qt.Key_Return);
         tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
-        const close = findChild(window, "closeSaveProgress");
-        tryCompare(close, "activeFocus", true);
+        tryCompare(findChild(window, "closeSaveProgress"), "activeFocus", true);
         waitForPolish(window);
         const words = findChild(window, "saveWords");
         verify(words.contentHeight > words.height, "The result fits, so this tests nothing");
+        return window;
+    }
+
+    // #218: in a short window a long result was cut off with no sign that
+    // it scrolls, and Close, which had the focus, was out of sight under
+    // it, with its focus ring cut once it was dragged into sight. Close now
+    // stays whole under the words, and the words scroll beside the page's
+    // own bar.
+    function test_aLongResultKeepsCloseInSight() {
+        const window = saveALongResult();
+        const close = findChild(window, "closeSaveProgress");
+        const words = findChild(window, "saveWords");
         verify(words.clip, "The words draw past their part of the box");
         verify(findChild(window, "saveScrollMark").visible);
         verify(shownWhole(window, close, Tokens.focusOffset + Tokens.focusWidth), "Close or its focus ring is cut off");
@@ -1525,6 +1534,43 @@ TestCase {
         verify(end > 0 && end <= words.height + 1, "The words do not scroll to their end: " + end);
         mouseClick(close);
         verify(!progressWindow(window).visible);
+    }
+
+    // #243: the words of a long result scrolled with the wheel or a drag
+    // only. While Close has the keyboard, Up and Down scroll them a line,
+    // and Page Up and Page Down their part's height less a line, as far as
+    // they go; a held key goes on scrolling. Tab still goes nowhere else,
+    // and Enter still puts the box away.
+    function test_theKeysScrollALongResult() {
+        const window = saveALongResult();
+        const close = findChild(window, "closeSaveProgress");
+        const words = findChild(window, "saveWords");
+        const line = Tokens.bodySize * Tokens.bodyLineHeight;
+        const page = words.height - line;
+        const end = words.contentHeight - words.height;
+        verify(end > page, "The result is less than a page longer than its part, so this tests too little");
+        compare(words.contentY, 0);
+        keyClick(Qt.Key_Down);
+        fuzzyCompare(words.contentY, line, 0.01, "Down does not scroll the words a line");
+        heldKey.repeat(window, Qt.Key_Down);
+        heldKey.repeat(window, Qt.Key_Down);
+        fuzzyCompare(words.contentY, line * 3, 0.01, "A held Down does not go on scrolling");
+        for (let i = 0; i < 4; ++i)
+            keyClick(Qt.Key_Up);
+        compare(words.contentY, 0, "Up does not stop at the top");
+        keyClick(Qt.Key_PageDown);
+        fuzzyCompare(words.contentY, page, 0.01, "Page Down does not scroll the part's height less a line");
+        for (let i = 0; i < Math.ceil(end / page); ++i)
+            keyClick(Qt.Key_PageDown);
+        compare(words.contentY, end, "Page Down does not stop at the end");
+        keyClick(Qt.Key_PageUp);
+        fuzzyCompare(words.contentY, end - page, 0.01, "Page Up does not scroll the part's height less a line");
+        verify(close.activeFocus, "A key took the keyboard from Close");
+        keyClick(Qt.Key_Tab);
+        verify(close.activeFocus, "Tab took the keyboard from Close");
+        verify(progressWindow(window).visible, "A key put the box away");
+        keyClick(Qt.Key_Return);
+        verify(!progressWindow(window).visible, "Enter does not put the box away");
     }
 
     function test_aClosedPasswordBoxKeepsTheChanges() {
@@ -1570,6 +1616,11 @@ TestCase {
         verify(words.contentHeight <= words.height, "A short result scrolls");
         verify(!findChild(window, "saveScrollMark").visible, "A bar beside words that fit");
         compare(findChild(window, "closeSaveProgress").y, words.y + words.height + Tokens.bodySize, "Close is not a line's space under the words");
+        // Words that fit do not move for the keys (#243).
+        tryCompare(findChild(window, "closeSaveProgress"), "activeFocus", true);
+        keyClick(Qt.Key_Down);
+        keyClick(Qt.Key_PageDown);
+        compare(words.contentY, 0, "Words that fit moved");
     }
 
     // While a look runs, the page speaks of looking, never of saving, and

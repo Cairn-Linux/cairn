@@ -466,6 +466,70 @@ TestCase {
         tryVerify(() => window.visit.step !== step);
     }
 
+    // #243: on a short screen the words scrolled with the wheel or a drag
+    // only. While a button under them has the keyboard, Up and Down scroll
+    // them a line, and Page Up and Page Down their part's height less a
+    // line, as far as they go. Tab and Enter work as before.
+    function test_theKeysScrollTheWordsOnAShortScreen_data() {
+        return [
+            {
+                "tag": "ready",
+                "open": false
+            },
+            {
+                "tag": "open",
+                "open": true
+            }
+        ];
+    }
+
+    function test_theKeysScrollTheWordsOnAShortScreen(data) {
+        const window = makeWindow("open", true, testCase.shortScreen);
+        if (data.open) {
+            pressMainButton(window);
+            tryCompare(window.visit, "step", SteamForChild.Open);
+        }
+        const step = window.visit.step;
+        waitForPolish(findChild(window, "content"));
+        waitForPolish(findChild(window, "buttons"));
+        tryCompare(window, "height", window.fitHeight);
+        const scroller = findChild(window, "wordsScroller");
+        const line = Tokens.bodySize * Tokens.bodyLineHeight;
+        const page = scroller.height - line;
+        const end = scroller.contentHeight - scroller.height;
+        verify(end > page, "The words are less than a page longer than their part, so this tests too little");
+        const main = findChild(window, "mainButton");
+        tryCompare(main, "activeFocus", true);
+        compare(scroller.contentY, 0);
+        keyClick(Qt.Key_Down);
+        fuzzyCompare(scroller.contentY, line, 0.01, "Down does not scroll the words a line");
+        keyClick(Qt.Key_Up);
+        keyClick(Qt.Key_Up);
+        compare(scroller.contentY, 0, "Up does not stop at the top");
+        keyClick(Qt.Key_PageDown);
+        fuzzyCompare(scroller.contentY, page, 0.01, "Page Down does not scroll the part's height less a line");
+        for (let i = 0; i < Math.ceil(end / page); ++i)
+            keyClick(Qt.Key_PageDown);
+        compare(scroller.contentY, end, "Page Down does not stop at the end");
+        keyClick(Qt.Key_PageUp);
+        fuzzyCompare(scroller.contentY, end - page, 0.01, "Page Up does not scroll the part's height less a line");
+        // Beside Open, Cancel passes them on too, and Tab moves between the
+        // two as before.
+        if (!data.open) {
+            const wayOut = findChild(window, "wayOutButton");
+            keyClick(Qt.Key_Tab);
+            tryCompare(wayOut, "activeFocus", true);
+            keyClick(Qt.Key_PageUp);
+            compare(scroller.contentY, 0, "Page Up does not scroll the words from Cancel");
+            keyClick(Qt.Key_Tab);
+            tryCompare(main, "activeFocus", true);
+        }
+        // No key pressed the button, and Enter still does.
+        compare(window.visit.step, step, "A key pressed the button");
+        keyClick(Qt.Key_Return);
+        tryVerify(() => window.visit.step !== step);
+    }
+
     // The tests above give the window a screen of their own. Left alone,
     // it takes the free height Qt gives for its screen (#231).
     function test_itTakesTheFreeHeightQtGives() {

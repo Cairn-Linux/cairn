@@ -119,10 +119,11 @@ The Games page (ADR-0041):
    paragraph ends by pointing there, once. **Close**, or Escape once it
    has ended, puts it away. Close stays in sight at the bottom of the
    window; when the words are taller than the window has room for, they
-   scroll beside a thin bar (#218). A child's games that could not be
-   given stay chosen, so pressing Save again tries them again. A closed
-   password box keeps every change. The page reads everything again
-   after each Save.
+   scroll beside a thin bar (#218). Once the Save has ended, Close has
+   the keyboard, and Up, Down, Page Up and Page Down scroll the words
+   (#243). A child's games that could not be given stay chosen, so
+   pressing Save again tries them again. A closed password box keeps
+   every change. The page reads everything again after each Save.
 5. **Look for new games** runs `cairn-family save-games` with no child
    named, which changes no list but makes the full games list, the
    pictures and the tools folder again from the Guardian's own Steam, so
@@ -224,14 +225,15 @@ message (#172), up to the free height Qt gives, less three heading sizes
 (84 pixels at the usual text size): room for KWin's title bar, and for
 Plasma's panel, which Qt under Wayland counts as free. When the words are
 taller than that, such as at 200% on a small screen, they scroll beside a
-thin bar, and the buttons stay in sight under them (#231). If KWin gives
-it any other height, such as the height it had for the last message as
-the password box closes, the window puts its own height back. Each step
-with a button to press, such as "did not open", asks to bring the window
-to the front, in case another window, such as Steam updating itself,
-came over it. KWin decides whether it does; it may only highlight the
-window in the taskbar. While the password box is up, the window has no
-button and leaves the box in front.
+thin bar, and the buttons stay in sight under them (#231). Up, Down, Page
+Up and Page Down scroll them while a button has the keyboard (#243). If
+KWin gives it any other height, such as the height it had for the last
+message as the password box closes, the window puts its own height back.
+Each step with a button to press, such as "did not open", asks to bring
+the window to the front, in case another window, such as Steam updating
+itself, came over it. KWin decides whether it does; it may only highlight
+the window in the taskbar. While the password box is up, the window has
+no button and leaves the box in front.
 
 ## cairn-family
 
@@ -406,7 +408,7 @@ QML draws, C++ decides (ADR-0002):
 | `qml/ChildChoice.qml`, `qml/GameCard.qml`, `qml/SaveOutcome.qml`, `qml/SaveResultWords.qml` | A child to pick on the Games page, one game in its grid, the sentences for a Save, and its words for what each child got. |
 | `qml/ChildGames.qml`, `qml/LoggedInCover.qml`, `qml/SaveProgress.qml` | The picked child's Steam, list and games, greyed and blurred while they are logged in; the card over them; and the Save's progress window, with the lid warning and Close. |
 | `qml/ChildRow.qml`, `qml/AddChildForm.qml`, `qml/LabelledField.qml`, `qml/LevelChoice.qml` | A child on the list, the Add form, a text field with its label, and one level to pick. |
-| `qml/TextButton.qml`, `qml/ScrollMark.qml` | The button both windows use, and the thin bar beside a part that scrolls, which shows where it is. |
+| `qml/TextButton.qml`, `qml/ScrollMark.qml`, `qml/ScrollKeys.qml` | The button both windows use; the thin bar beside a part that scrolls, which shows where it is; and the arrow and page keys a button under that part passes on to it. |
 | `src/FamilyCommand` | `cairn-family create-child` and `set-level`: which accounts it may change, and the steps for each. Everything it reads from or does to the machine is in its `Setup`, so a test can replace it. |
 | `src/Caller` | Who started `cairn-family`: root, and through pkexec an administrator, with their home from the account database. |
 | `src/GamesSave` | `cairn-family save-games`: the checks, the lock, the pictures and full list, the games taken off, the tools folder, then each child in turn. Its `Setup` holds everything it reads from or does to the machine. |
@@ -485,13 +487,14 @@ arguments pkexec is given, a child held or a game left out, every
 refusal keeping the changes, every control waiting while a Save
 runs, a logged-in child's games greyed, the logout and why it did not
 finish, and the progress window, with Close in sight under a long result
-in the smallest window. They also check that a card turned on a page
-scrolled down to the games stays where it was in the window, and so
-does a card without the focus tapped at the page's edge, cut off or
-close to it. Tab still brings such a card into full view. `heldKey`
-sends the repeats of a key held down, which TestCase cannot, so the tests
-check that a game card, a button, a child, a level and a picture each
-count it once.
+in the smallest window, and the arrow and page keys scrolling that result
+from Close (#243). They also check that a card turned on a page scrolled
+down to the games stays where it was in the window, and so does a card
+without the focus tapped at the page's edge, cut off or close to it. Tab
+still brings such a card into full view. `heldKey` sends the repeats of
+a key held down, which TestCase cannot, so the tests check that a game
+card, a button, a child, a level and a picture each count it once, and
+that a held Down goes on scrolling the Save's words.
 `loginsessions` checks the rule for a login, and asks the test machine's
 own logind when it has one;
 `loginwatch` sends logind's signals on a bus of its own.
@@ -505,19 +508,20 @@ window, that the window is no taller than they are, and that it fits a
 under Wayland gives the same screen at 200%, it checks that the window
 leaves three heading sizes free for its title bar and the panel, that the
 wheel scrolls the words beside a thin bar, and that Open and Done show
-whole under them and work (#231). It also checks that the window grows
-again after the password box closes, puts its height back when it is
-resized from outside to an old height, and comes to the front when the
-visit did not open. `CAIRN_SCREENSHOT=/path/steam-for.png`
-saves a picture of each of those steps beside that path. These tests run
-offscreen, so they check the window's own layout and its answer to a
-resize, not what KWin does. They also run by hand with
-`QT_QPA_PLATFORM=wayland` inside a nested `kwin_wayland --virtual
---no-lockscreen`, started under its own `dbus-run-session`, with
-`__EGL_VENDOR_LIBRARY_FILENAMES` set to Mesa's file on a laptop with an
-Nvidia card. There, without the window putting its height back, the
-stale-resize test fails: the window keeps the old height and cuts off
-its buttons.
+whole under them and work (#231). The arrow and page keys must scroll the
+words from Open, Cancel and Done, with Tab and Enter as before (#243). It
+also checks that the window grows again after the password box closes,
+puts its height back when it is resized from outside to an old height,
+and comes to the front when the visit did not open.
+`CAIRN_SCREENSHOT=/path/steam-for.png` saves a picture of each of those
+steps beside that path. These tests run offscreen, so they check the
+window's own layout and its answer to a resize, not what KWin does. They
+also run by hand with `QT_QPA_PLATFORM=wayland` inside a nested
+`kwin_wayland --virtual --no-lockscreen`, started under its own
+`dbus-run-session`, with `__EGL_VENDOR_LIBRARY_FILENAMES` set to Mesa's
+file on a laptop with an Nvidia card. There, without the window putting
+its height back, the stale-resize test fails: the window keeps the old
+height and cuts off its buttons.
 
 `familycommand` runs `cairn-family`'s steps with `system-tool`, one
 stand-in linked under each account tool's name that writes down what it
@@ -584,8 +588,9 @@ box. After the password, it made "Cy B", with the login `cyb`.
   Users page offered to change both (ADR-0043).
 - KRunner still lists "Users - System Settings", which opens System
   Settings without the page (ADR-0043).
-- Words that scroll in the Save's window and the Steam window move with
-  the wheel or a drag, not the keyboard (#243).
+- While a Save runs, its words scroll with the wheel or a drag only: the
+  keys scroll them from Close, which comes when the Save has ended
+  (#243).
 - The Steam window's cap uses the free height of all screens together,
   so on a short screen beside a taller one it can still run past the
   bottom.
