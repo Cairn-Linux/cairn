@@ -27,6 +27,23 @@ AccountPage::Reason reasonForProblem(NewPassword::Problem problem) {
     return AccountPage::Reason::Unknown;
 }
 
+// The PNG and JPEG files in one folder, in name order whatever the case,
+// as Plasma's own folder mixes both. None when there is no such folder.
+QVariantList picturesIn(const QDir& folder) {
+    QVariantList pictures;
+    const QStringList names = folder.entryList(
+        {QStringLiteral("*.png"), QStringLiteral("*.jpg"), QStringLiteral("*.jpeg")}, QDir::Files,
+        QDir::Name | QDir::IgnoreCase);
+    for (const QString& name : names) {
+        const QString file = folder.filePath(name);
+        pictures.append(QVariantMap{
+            {QStringLiteral("url"), QUrl::fromLocalFile(file)},
+            {QStringLiteral("name"), QFileInfo(file).completeBaseName()},
+        });
+    }
+    return pictures;
+}
+
 } // namespace
 
 AccountPage::AccountPage(Setup setup, QObject* parent)
@@ -57,20 +74,11 @@ QUrl AccountPage::picture() const {
     return url;
 }
 
+// KDE's drawings at the top of Plasma's folder, then the photos KDE keeps
+// in a folder of their own. Any other folder there is not KDE's.
 QVariantList AccountPage::pictures() const {
-    QVariantList urls;
     const QDir folder(m_setup.stockPictures);
-    const QStringList names = folder.entryList(
-        {QStringLiteral("*.png"), QStringLiteral("*.jpg"), QStringLiteral("*.jpeg")}, QDir::Files,
-        QDir::Name | QDir::IgnoreCase);
-    for (const QString& name : names) {
-        const QString file = folder.filePath(name);
-        urls.append(QVariantMap{
-            {QStringLiteral("url"), QUrl::fromLocalFile(file)},
-            {QStringLiteral("name"), QFileInfo(file).completeBaseName()},
-        });
-    }
-    return urls;
+    return picturesIn(folder) + picturesIn(QDir(folder.filePath(QStringLiteral("photos"))));
 }
 
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)

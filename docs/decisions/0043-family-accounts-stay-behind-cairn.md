@@ -3,12 +3,15 @@
 **Status:** proposed. Every check under "Checked" below passed in the
 cairn-iso VM on 2026-10-30, from a test copy of this branch's programs
 at a path of their own. It becomes accepted when the same checks pass
-with the programs and files where the image puts them.
-**Date:** 2026-10-30
+with the programs and files where the image puts them. "Only KDE's
+pictures", added on 2026-10-31, passed its checks in the VM that day,
+on the VM's writable `/usr` rather than in a built image.
+**Date:** 2026-10-30; "Only KDE's pictures" 2026-10-31
 **Closes:** (none) — the System Settings half of issue #113, and the
 second item of the parent app Mason agreed (ROADMAP P1-5). Amends
 ADR-0040 (a third page, and a second way in) and narrows the gap
-ADR-0023 left open at its rank 4.
+ADR-0023 left open at its rank 4. Adds a step to ADR-0038's image
+(only KDE's pictures, part of #166).
 
 ## Context
 
@@ -78,8 +81,9 @@ image build runs it right after `system_files/` is laid down.
 
 ### Your own picture
 
-The page shows the Guardian's name and picture, Plasma's own pictures
-from `/usr/share/plasma/avatars` to tap (its PNG and JPEG files), and
+The page shows the Guardian's name and picture, KDE's own pictures to
+tap (the PNG and JPEG files at the top of `/usr/share/plasma/avatars`,
+then those in its `photos` folder; see "Only KDE's pictures"), and
 **Choose a picture of your own**, which opens Qt Quick's own file dialog
 (`QtQuick.Dialogs`, part of Qt). The window makes the chosen picture
 a square from its middle, turned the way the camera meant, at most 256
@@ -97,6 +101,77 @@ then calls `SetIconFile` on the Guardian's own
   polkit box, in case a rule ever asks for one.
 - Qt's D-Bus module is part of Qt and already a dependency of the Family
   app (ADR-0041, for logind). No new dependency.
+
+### Only KDE's pictures
+
+Added on 2026-10-31, after a user test in the cairn-iso VM (#166).
+The page offered 32 pictures.
+17 were KDE's: Konqi in his outfits, and Katie.
+15 were game art from Half-Life, Portal, Team Fortress 2 and others,
+some with weapons or fire.
+A picture the Guardian picks shows on Plasma's lock screen, where
+anyone at the computer sees it.
+
+What is in Plasma's picture folder on the image, read in the VM with
+`rpm -qf` and `rpm -ql`:
+
+- **15 links at the top,** such as `alyx.jpg` and `gmod_gman.jpg`, which
+  no package owns. They lead to Bazzite's copies of the art in
+  `/usr/share/pixmaps/faces`, GNOME's folder of pictures, under GNOME's
+  names: `alyx.jpg` leads to `hummingbird.jpg`. No package owns those
+  15 copies or their folder either.
+- **Three folders,** `tf2/`, `Portal2/` and `circles/`, with 23 pictures
+  in all. `steamdeck-kde-presets-desktop` owns them, the package of the
+  Steam Deck's look.
+- **KDE's own,** from `plasma-workspace`: the 17 drawings at the top, and
+  20 photos in `photos/`, each with a licence file beside it. The page
+  did not list `photos/`.
+
+**The image keeps only what `plasma-workspace` ships in Plasma's picture
+folder, and the page lists KDE's photos after its drawings.**
+
+- `build_files/kde-pictures.sh` removes every file, link and folder in
+  `/usr/share/plasma/avatars` that `plasma-workspace` does not own. It
+  also removes every file and folder in `/usr/share/pixmaps/faces` that
+  no package owns. It asks rpm about each path, and rpm judges a link by
+  the link itself, not by what it leads to.
+- It removes files and links first, then folders, which are empty by
+  then. A folder that still holds a KDE picture makes `rmdir` refuse,
+  which stops the build rather than lose the picture. An rpm that cannot
+  answer stops it before anything goes. With `--dry-run` it only prints
+  what would go.
+- `build_files/check-guardian-desktop.sh` stops the build unless the
+  folder holds exactly what `rpm -ql plasma-workspace` lists there, with
+  drawings at the top and photos in `photos/`. It also stops it if
+  `/usr/share/pixmaps/faces` holds anything no package owns. So a base
+  update that moves KDE's pictures to another package stops the build.
+- The page lists the PNG and JPEG files at the top of the folder, then
+  those in `photos/`, each in name order: 17 drawings, then 20 photos.
+  It opens no other folder.
+- `circles/` goes too. It is the Steam Deck look's, not KDE's: six
+  pictures named Cat, Female, Konqui, Male, Penguin and Zebra. KDE's own
+  set already has Konqi. One rule, only KDE's, is easier to check and to
+  keep than a rule with an exception.
+
+The other ways weighed:
+
+- **Remove only what no package owns.** That takes the 15 links but
+  leaves `tf2/` and `Portal2/`, which a package owns. Any picker that
+  opens the folder's folders would still offer them.
+- **A fixed list of Bazzite's files.** It would name Valve's characters
+  in Cairn's repository, and it needs a change whenever Bazzite adds or
+  renames a picture. The rule needs none: a new picture of anyone's but
+  KDE's goes with the rest.
+- **A filter in the Family app.** The art would still ship in the image,
+  against ADR-0035 ("no game art is shipped in the image") and the base
+  image policy (no Bazzite artwork in Cairn's UI). Plasma's Users page
+  would offer it again if a Plasma upgrade brought the page back (see
+  Consequences). The app would also have to ask rpm while it runs, or
+  keep the list above.
+
+Removing package files has a cost: `rpm -V steamdeck-kde-presets-desktop`
+lists the three folders and their 23 pictures as missing. Nothing on the
+computer reads that list, and each new image removes them again.
 
 ### Your own password
 
@@ -214,6 +289,31 @@ so the test copy's action had to name `/var/usrlocal/...`; with
 said "Authentication is needed to run ... as the super user". The image
 puts `cairn-family` in `/usr/libexec/cairn`, which is no link.
 
+"Only KDE's pictures", on 2026-10-31: `kde-pictures.sh --dry-run`, run
+on the VM over ssh without a copy there, asked the VM's own rpm about
+every path. It listed 57 to remove: the 15 links, the three Steam Deck
+folders with their 23 pictures, and the 15 copies in
+`/usr/share/pixmaps/faces` with their folder. It listed none of KDE's
+17 drawings, its `photos` folder or the 40 files in it. The picture
+lines of `check-guardian-desktop.sh`, run on the VM the same way,
+failed there as they should, and passed on the dev PC's Fedora KDE.
+
+Later that day the script was copied to the VM and run as root on its
+writable `/usr`, which is the image's own, Bazzite's art included. It
+removed those 57 paths and nothing else. KDE's 17 drawings and the 40
+files in `photos` were unchanged, `/usr/share/pixmaps/faces` was gone,
+and a second dry run listed nothing. The picture lines of
+`check-guardian-desktop.sh` then passed on the VM, and failed again
+once the art was put back. With a Release build of this branch at
+`/usr/libexec/cairn/cairn-guardian`, where the image puts it, Your
+account showed 37 pictures: KDE's 17 drawings in name order, then its
+20 photos in name order, and no game art. Tapping Owl said "Your
+picture is changed.", and the page and Plasma's lock screen showed the
+owl. Afterwards the Guardian had no picture again, as before. Not
+checked yet: an image built with podman, where the build runs the
+script and the check, and `rpm -V steamdeck-kde-presets-desktop` on
+that image.
+
 ## Consequences
 
 - A parent who looks for accounts in System Settings finds Family, in
@@ -221,6 +321,13 @@ puts `cairn-family` in `/usr/libexec/cairn`, which is no link.
 - A Guardian's password and picture keep working with the Users page
   gone, and the password change asks for the current password, as the
   Users page did.
+- A Guardian chooses from KDE's 37 pictures, and nothing on the image
+  offers Valve's game art as a picture. A Guardian who chose one of
+  those before keeps it, because AccountsService keeps its own copy,
+  until they choose another.
+- Only the image build removes the game art. A computer set up by hand
+  with `provision/cairn-provision.sh` keeps Bazzite's `/usr` as it is,
+  so Family there still offers the 15 game pictures beside KDE's 37.
 - Where a fingerprint reader is set up, polkit takes the Guardian's
   fingerprint in place of the current password, as in every other polkit
   box on the machine.
