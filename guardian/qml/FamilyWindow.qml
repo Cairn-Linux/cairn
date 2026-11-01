@@ -19,6 +19,9 @@ Window {
 
     readonly property int margin: Tokens.headingSize
 
+    // The item the keyboard is on, kept while another window has it.
+    property Item keyboardItem: null
+
     title: qsTr("Family")
     width: Tokens.headingSize * 26
     height: Tokens.headingSize * 34
@@ -61,8 +64,21 @@ Window {
         flickable.contentY = Math.max(0, Math.min(y, lowest));
     }
 
-    // The keyboard never lands on something out of sight.
-    onActiveFocusItemChanged: window.showItem(window.activeFocusItem)
+    // The keyboard never lands on something out of sight: each time it
+    // moves to another item, the page scrolls to show it. A control that
+    // waits while a change runs hands the keyboard to the window, so its
+    // return is a move too. While another window is in front, such as KDE
+    // Wallet's box, nothing here has the keyboard; when Family comes back
+    // to the front, the keyboard comes back to the item it was on, and the
+    // page stays where it was. A button may have scrolled it on purpose,
+    // to show what the button changed.
+    onActiveFocusItemChanged: {
+        const item = window.activeFocusItem;
+        if (item === null || item === window.keyboardItem)
+            return;
+        window.keyboardItem = item;
+        window.showItem(item);
+    }
 
     // A child added on the Children page is on the Games page too.
     Connections {

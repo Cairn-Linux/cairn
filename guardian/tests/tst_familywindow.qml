@@ -16,6 +16,21 @@ TestCase {
         FamilyWindow {}
     }
 
+    // Stands for another program's window, such as kwalletd's box, which
+    // takes the front and the keyboard while it is up. A window of its
+    // own: one transient for the test's window, as Family is, would still
+    // count Family as active.
+    Component {
+        id: otherWindowComponent
+
+        Window {
+            transientParent: null
+            width: Tokens.headingSize * 4
+            height: Tokens.headingSize * 4
+            visible: true
+        }
+    }
+
     // Tall enough for the whole page unless the options say otherwise, so
     // every control can be clicked.
     function makeWindow(scenario, options) {
@@ -224,6 +239,15 @@ TestCase {
         return place.y >= 0 && place.y + item.height <= window.height;
     }
 
+    // Whether an item on the page shows whole where the page scrolls. One
+    // scrolled up under the switch between pages is inside the window, but
+    // out of sight.
+    function inSightOnThePage(window, item) {
+        const scroller = findChild(window, "scroller");
+        const place = item.mapToItem(scroller, 0, 0);
+        return place.y >= 0 && place.y + item.height <= scroller.height;
+    }
+
     // With the window short and scrolled down to the form, the sentence
     // after Add is scrolled into sight.
     function test_theOutcomeComesIntoSight() {
@@ -255,6 +279,106 @@ TestCase {
         keyClick(Qt.Key_Tab);
         tryCompare(add, "activeFocus", true);
         verify(inSight(window, add));
+    }
+
+    // Another window comes to the front and takes the keyboard, as
+    // kwalletd's box does.
+    function toTheBack(window) {
+        verify(window.activeFocusItem !== null);
+        const other = createTemporaryObject(otherWindowComponent, testCase);
+        other.requestActivate();
+        tryVerify(() => window.activeFocusItem === null);
+        verify(!window.active);
+    }
+
+    // Family comes back to the front, as when that box closes, with the
+    // keyboard on `item`.
+    function toTheFront(window, item) {
+        window.requestActivate();
+        tryVerify(() => window.activeFocusItem === item);
+        verify(window.active);
+    }
+
+    // When Family comes back to the front, the page stays where it was,
+    // even with the keyboard on something the Guardian scrolled away from.
+    function test_thePageStaysWhenFamilyComesBack() {
+        const window = makeWindow("done", {
+            "smallest": true
+        });
+        const input = findChild(nameField(window), "input");
+        input.forceActiveFocus();
+        tryCompare(input, "activeFocus", true);
+        const scroller = findChild(window, "scroller");
+        scroller.contentY = 0;
+        verify(!inSightOnThePage(window, input));
+        toTheBack(window);
+        toTheFront(window, input);
+        compare(scroller.contentY, 0);
+    }
+
+    // After Family comes back, Tab still brings the next control into
+    // sight.
+    function test_tabAfterFamilyComesBack() {
+        const window = makeWindow("done", {
+            "smallest": true
+        });
+        const input = findChild(nameField(window), "input");
+        input.forceActiveFocus();
+        tryCompare(input, "activeFocus", true);
+        const scroller = findChild(window, "scroller");
+        scroller.contentY = 0;
+        toTheBack(window);
+        toTheFront(window, input);
+        const level1 = findChild(window, "level1");
+        verify(!inSightOnThePage(window, level1));
+        keyClick(Qt.Key_Tab);
+        tryCompare(level1, "activeFocus", true);
+        verify(inSightOnThePage(window, level1));
+    }
+
+    // Focus given to another control while another window is in front, as
+    // when a change ends while the Guardian is in another window, comes
+    // into sight when Family comes back.
+    function test_focusGivenWhileBehindComesIntoSight() {
+        const window = makeWindow("done", {
+            "smallest": true
+        });
+        const input = findChild(nameField(window), "input");
+        input.forceActiveFocus();
+        tryCompare(input, "activeFocus", true);
+        toTheBack(window);
+        const add = findChild(window, "addButton");
+        add.forceActiveFocus();
+        verify(!add.activeFocus);
+        const scroller = findChild(window, "scroller");
+        scroller.contentY = 0;
+        verify(!inSightOnThePage(window, add));
+        toTheFront(window, add);
+        verify(inSightOnThePage(window, add));
+    }
+
+    // A control that waits, as every control does while a change runs,
+    // hands the keyboard to the window, and takes it back after. That is a
+    // move, so the page scrolls to it again, as it always has.
+    function test_theKeyboardBackAfterAWaitComesIntoSight() {
+        const window = makeWindow("done", {
+            "smallest": true
+        });
+        const input = findChild(nameField(window), "input");
+        input.forceActiveFocus();
+        tryCompare(input, "activeFocus", true);
+        // Set here, as a running change would set it: the stand-in for an
+        // open password box waits 30 seconds.
+        const form = findChild(window, "addChildForm");
+        form.enabled = false;
+        verify(!input.activeFocus);
+        verify(window.activeFocusItem === window.contentItem);
+        const scroller = findChild(window, "scroller");
+        scroller.contentY = 0;
+        verify(!inSightOnThePage(window, input));
+        form.enabled = true;
+        verify(input.activeFocus);
+        verify(inSightOnThePage(window, input));
     }
 
     // After a refusal, focus is back in the name field to try again.
@@ -773,6 +897,46 @@ TestCase {
         tryVerify(() => standIns.walletAsked().length === 3);
         tryCompare(window.accountPage.wallet, "step", WalletPassword.NotOffered);
         tryVerify(() => inSight(window, findChild(window, "passwordOutcome")));
+    }
+
+    // As on the VM: in a short window, Change the wallet's password brings
+    // the card's new words into sight, and Change password, which has the
+    // keyboard, goes out of sight above them. When kwalletd's box has
+    // taken the keyboard and closed, and Family is back in front, the page
+    // stays where it was, with the card's words whole in sight.
+    function test_theCardStaysInSightAfterKwalletdsBox() {
+        const window = makeWindow("done", {
+            "wallet": true
+        });
+        window.height = window.minimumHeight;
+        waitForPolish(window);
+        standIns.holdWallet();
+        showAccount(window);
+        changeOwnPassword(window);
+        tryVerify(() => inSightOnThePage(window, findChild(window, "passwordOutcome")));
+        standIns.releaseWallet();
+        tryCompare(window.accountPage.wallet, "step", WalletPassword.Offered);
+        waitForPolish(window);
+        const card = findChild(window, "walletOffer");
+        verify(card.y > findChild(window, "passwordOutcome").y);
+        tryVerify(() => startsInSight(window, card));
+        // The Guardian scrolls down to the card's buttons.
+        const scroller = findChild(window, "scroller");
+        scroller.contentY = scroller.contentHeight - scroller.height;
+        const changeWallet = findChild(window, "changeWalletPassword");
+        verify(inSightOnThePage(window, changeWallet));
+        mouseClick(changeWallet);
+        compare(window.accountPage.wallet.step, WalletPassword.WalletAsks);
+        const changePassword = findChild(window, "changePasswordButton");
+        tryCompare(changePassword, "activeFocus", true);
+        const words = findChild(window, "walletSentence");
+        tryVerify(() => inSightOnThePage(window, words));
+        verify(!inSightOnThePage(window, changePassword));
+        const y = scroller.contentY;
+        toTheBack(window);
+        toTheFront(window, changePassword);
+        compare(scroller.contentY, y);
+        verify(inSightOnThePage(window, words));
     }
 
     function test_switchToGamesAndBack() {
