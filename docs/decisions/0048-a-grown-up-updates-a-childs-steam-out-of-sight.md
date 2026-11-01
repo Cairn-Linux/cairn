@@ -665,14 +665,15 @@ only.
   The warning says before the password that Ada cannot log in meanwhile,
   and **Stop** lets her in at once.
 - **Memory.**
-  In E10, systemd counted 2.26 GB at the peak for `ada`'s processes.
-  That count includes page cache, so it is an upper bound; the
-  processes' own resident memory added up to about 1.5 GB.
-  Beside the parent's Plasma and their own Steam, about 1.4 GB signed in
-  (ROADMAP P0-10), it may be too much for a 4 GB computer, the Minimum
-  tier (ADR-0003; inference until the 4 GB check).
-  If it is, an update closes the parent's Steam first, and E11's lighter
-  sessions are tried.
+  In E10, `ada`'s processes held 2.16 GB two minutes after the sign-in
+  and 2.26 GB at the peak, as systemd counted them, most of it in
+  Steam's two web helpers.
+  Mason judged that too much for a 4 GB computer, the Minimum tier
+  (ADR-0003), beside the parent's Plasma and their own Steam, about
+  1.4 GB signed in (ROADMAP P0-10), and asked for a measurement on one
+  (#181): the 4 GB check.
+  If it shows the computer swapping, an update closes the parent's Steam
+  first, and E11's lighter sessions are tried.
 - **The lid under Plasma** (inference).
   A parent presses the button from their own Plasma session, and often
   stays logged in.
