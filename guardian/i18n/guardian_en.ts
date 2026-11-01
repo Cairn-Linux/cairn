@@ -253,27 +253,27 @@
 <context>
     <name>FamilyWindow</name>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="22"/>
+        <location filename="../qml/FamilyWindow.qml" line="25"/>
         <source>Family</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="92"/>
+        <location filename="../qml/FamilyWindow.qml" line="108"/>
         <source>Pages</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="98"/>
+        <location filename="../qml/FamilyWindow.qml" line="114"/>
         <source>Children</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="111"/>
+        <location filename="../qml/FamilyWindow.qml" line="127"/>
         <source>Games</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="125"/>
+        <location filename="../qml/FamilyWindow.qml" line="141"/>
         <source>Your account</source>
         <translation type="unfinished"></translation>
     </message>
