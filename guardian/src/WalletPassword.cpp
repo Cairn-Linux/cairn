@@ -32,8 +32,11 @@ void WalletPassword::withdraw() {
 }
 
 // kwalletd takes a window to put its box over. A window on Wayland has no
-// id another program can use, so it gets none, 0. This program's name is
-// for kwalletd's own notes. No password goes with it.
+// id another program can use, so it gets none, 0. kwalletd takes the
+// window as a 64-bit number (D-Bus type x), and answers a call with other
+// types that it has no such method, so the 0 is a qlonglong. The
+// program's name is part of the call; ksecretd, behind kwalletd, does not
+// use it. No password goes with it.
 void WalletPassword::change() {
     if (m_step != Step::Offered && m_step != Step::NoAnswer) {
         return;
@@ -44,7 +47,7 @@ void WalletPassword::change() {
     connect(m_call, &QDBusPendingCallWatcher::finished, this, &WalletPassword::changeAnswered);
 }
 
-void WalletPassword::notNow() {
+void WalletPassword::leaveAsItIs() {
     if (m_step == Step::Offered || m_step == Step::NoAnswer) {
         withdraw();
     }

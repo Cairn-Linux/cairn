@@ -19,7 +19,7 @@ class QDBusPendingCallWatcher;
 // change the wallet's password too. It asks kwalletd over D-Bus, and only
 // offers when KWallet is on and has the wallet pam_kwallet opens; any
 // other answer, or none, means no offer. Family never sees a wallet
-// password: kwalletd's own box asks for both.
+// password: kwalletd's own box asks for them.
 class WalletPassword : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -51,9 +51,9 @@ public:
     // Asks kwalletd to change the wallet's password; its own box asks for
     // the passwords. Only while offered, or after kwalletd did not answer.
     Q_INVOKABLE void change();
-    // Leaves the wallet as it is. Only while offered, or after kwalletd did
-    // not answer.
-    Q_INVOKABLE void notNow();
+    // Leaves the wallet's password as it is, and the offer goes. Only while
+    // offered, or after kwalletd did not answer.
+    Q_INVOKABLE void leaveAsItIs();
 
 signals:
     void stepChanged();

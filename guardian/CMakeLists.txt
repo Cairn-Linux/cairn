@@ -155,6 +155,7 @@ set(family_window_qml_files
     qml/AccountView.qml
     qml/PictureSection.qml
     qml/PasswordForm.qml
+    qml/PasswordAnswers.qml
     qml/PictureTile.qml
     qml/OutcomeBox.qml
     qml/WalletOffer.qml

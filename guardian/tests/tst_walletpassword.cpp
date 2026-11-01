@@ -60,9 +60,9 @@ private slots:
     void oneCheckAtATime() const;
     void aWithdrawnCheckIsDropped() const;
     void changeHandsKwalletdTheWallet() const;
-    void changeAndNotNowOnlyWhenOffered() const;
+    void changeAndLeaveOnlyWhenOffered() const;
     void kwalletdDoesNotTakeTheChange();
-    void notNowLeavesTheWallet();
+    void leavingItAsItIsEndsTheOffer();
     void aNewPasswordOffersAgain() const;
 };
 
@@ -213,19 +213,19 @@ void WalletPasswordTest::changeHandsKwalletdTheWallet() const {
     QCOMPARE(password->step(), WalletPassword::Step::WalletAsks);
 }
 
-void WalletPasswordTest::changeAndNotNowOnlyWhenOffered() const {
+void WalletPasswordTest::changeAndLeaveOnlyWhenOffered() const {
     const std::unique_ptr<WalletPassword> password = wallet();
     password->change();
-    password->notNow();
+    password->leaveAsItIs();
     QCOMPARE(password->step(), WalletPassword::Step::NotOffered);
     password->check();
     password->change();
-    password->notNow();
+    password->leaveAsItIs();
     QCOMPARE(password->step(), WalletPassword::Step::Checking);
     QTRY_COMPARE_WITH_TIMEOUT(password->step(), WalletPassword::Step::Offered, kAnswerMilliseconds);
     password->change();
     password->change();
-    password->notNow();
+    password->leaveAsItIs();
     QCOMPARE(password->step(), WalletPassword::Step::WalletAsks);
     QTRY_COMPARE_WITH_TIMEOUT(m_kwalletd.asked.size(), 4, kAnswerMilliseconds);
     QTest::qWait(kQuietMilliseconds);
@@ -259,9 +259,9 @@ void WalletPasswordTest::kwalletdDoesNotTakeTheChange() {
     QCOMPARE(password->step(), WalletPassword::Step::NotOffered);
 }
 
-void WalletPasswordTest::notNowLeavesTheWallet() {
+void WalletPasswordTest::leavingItAsItIsEndsTheOffer() {
     const std::unique_ptr<WalletPassword> password = checked();
-    password->notNow();
+    password->leaveAsItIs();
     QCOMPARE(password->step(), WalletPassword::Step::NotOffered);
 
     m_kwalletd.failing = QStringLiteral("changePassword");
@@ -270,7 +270,7 @@ void WalletPasswordTest::notNowLeavesTheWallet() {
     password->change();
     QTRY_COMPARE_WITH_TIMEOUT(password->step(), WalletPassword::Step::NoAnswer,
                               kAnswerMilliseconds);
-    password->notNow();
+    password->leaveAsItIs();
     QCOMPARE(password->step(), WalletPassword::Step::NotOffered);
     QCOMPARE(m_kwalletd.asked.count(changeOf(QStringLiteral("kdewallet"))), 1);
 }

@@ -185,6 +185,7 @@ private slots:
     void noOfferForAPasswordNotChanged_data();
     void noOfferForAPasswordNotChanged();
     void anotherChangeEndsTheOffer();
+    void anotherChangeEndsTheCheckAndTheBox();
     void noWalletBusNoOffer();
 };
 
@@ -497,6 +498,36 @@ void AccountPageTest::anotherChangeEndsTheOffer() {
                               kAnswerMilliseconds);
     account->changePassword(QStringLiteral("one"), QStringLiteral("two"));
     QCOMPARE(account->reason(), AccountPage::Reason::Different);
+    QCOMPARE(account->wallet()->step(), WalletPassword::Step::NotOffered);
+}
+
+// Not only an offer that shows: a picture ends the wallet's part while
+// kwalletd is still being asked, so no offer turns up later under the
+// picture's sentence, and while kwalletd's box asks.
+void AccountPageTest::anotherChangeEndsTheCheckAndTheBox() {
+    qputenv("CAIRN_TEST_SCENARIO", "done");
+    const std::unique_ptr<AccountPage> account = page(true, 1000, true);
+    const QUrl notAPicture = QUrl::fromLocalFile(file(QStringLiteral("avatars/notes.txt")));
+    m_kwalletd.holding = true;
+    account->changePassword(QStringLiteral("new"), QStringLiteral("new"));
+    QTRY_COMPARE_WITH_TIMEOUT(m_kwalletd.asked, QStringList{"isEnabled"}, kAnswerMilliseconds);
+    QCOMPARE(account->wallet()->step(), WalletPassword::Step::Checking);
+    account->choosePicture(notAPicture);
+    QCOMPARE(account->wallet()->step(), WalletPassword::Step::NotOffered);
+    m_kwalletd.release();
+    QTest::qWait(300);
+    QCOMPARE(account->wallet()->step(), WalletPassword::Step::NotOffered);
+    QCOMPARE(m_kwalletd.asked, QStringList{"isEnabled"});
+
+    account->changePassword(QStringLiteral("new"), QStringLiteral("new"));
+    QTRY_COMPARE_WITH_TIMEOUT(account->wallet()->step(), WalletPassword::Step::Offered,
+                              kAnswerMilliseconds);
+    account->wallet()->change();
+    QTRY_VERIFY_WITH_TIMEOUT(
+        m_kwalletd.asked.constLast().startsWith(QStringLiteral("changePassword")),
+        kAnswerMilliseconds);
+    QCOMPARE(account->wallet()->step(), WalletPassword::Step::WalletAsks);
+    account->choosePicture(notAPicture);
     QCOMPARE(account->wallet()->step(), WalletPassword::Step::NotOffered);
 }
 

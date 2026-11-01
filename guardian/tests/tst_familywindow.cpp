@@ -315,8 +315,11 @@ public:
     using QObject::QObject;
 
     // One repeat of `key`, delivered to whatever has the focus in `window`.
+    // A repeat of Space carries a space, as a keyboard's does, which a text
+    // field would type.
     Q_INVOKABLE void repeat(QObject* window, int key) const {
-        QKeyEvent event(QEvent::KeyPress, key, Qt::NoModifier, QString(), true);
+        const QString text = key == Qt::Key_Space ? QStringLiteral(" ") : QString();
+        QKeyEvent event(QEvent::KeyPress, key, Qt::NoModifier, text, true);
         QCoreApplication::sendEvent(window, &event);
     }
 };

@@ -26,11 +26,14 @@ Rectangle {
         case WalletPassword.NoAnswer:
             return qsTr("KDE Wallet did not answer, so its password stays as it was. Trying again is safe. If it happens again, the reason is in the system log. In a terminal: journalctl -t cairn-guardian");
         }
-        return qsTr("KDE Wallet keeps passwords that programs save, such as Wi-Fi ones, behind a password of its own. It opens by itself when you log in only while that password is the same as your login password. Change the wallet's password to your new one too? If not, the wallet asks for its own password, usually your old one, the next time a program needs it.");
+        return qsTr("KDE Wallet keeps passwords that programs save, such as Wi-Fi ones, behind a password of its own. It opens by itself at login only if that password is the same as your login password. Change the wallet's password to your new one too? If not, the wallet asks for its own password, usually your old one, the next time a program needs it.");
     }
 
-    // The buttons may have just come, so they are laid out first, or the
-    // window would scroll to a card shorter than it is.
+    // A hidden card is not told about: the window keeps one scroll waiting,
+    // the latest, and a scroll to a hidden card would take the place of
+    // the one to the sentence about the password. The buttons may have
+    // just come, so they are laid out first, or the window would scroll to
+    // a card shorter than it is.
     function tell() {
         if (!offer.visible)
             return;
@@ -97,12 +100,14 @@ Rectangle {
                 }
             }
 
+            // Not "Not now": nothing offers again until the next new
+            // password.
             TextButton {
-                objectName: "walletNotNow"
+                objectName: "leaveWalletPassword"
                 quiet: true
-                text: qsTr("Not now")
+                text: qsTr("Leave it as it is")
                 onActivated: {
-                    offer.wallet.notNow();
+                    offer.wallet.leaveAsItIs();
                     offer.answered();
                 }
             }
