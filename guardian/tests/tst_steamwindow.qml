@@ -131,6 +131,11 @@ TestCase {
         // KWin the window can take its new height a moment after that.
         waitForPolish(findChild(window, "content"));
         waitForPolish(window.contentItem);
+        // Offscreen, as the tests run, the window's content takes a new
+        // height a turn of the event loop after the window does. The buttons
+        // sit at the content's foot, so until then the margin under them
+        // would be measured from where the old height put them.
+        tryCompare(window.contentItem, "height", window.height);
         tryVerify(() => cutOff(window).length === 0, 2000);
         compare(cutOff(window), [], "Cut off in step " + step);
         const scroller = findChild(window, "wordsScroller");
