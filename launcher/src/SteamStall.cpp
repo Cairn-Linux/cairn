@@ -19,7 +19,7 @@ SteamStall::Now SteamStall::read(const SteamLaunchLog& launch, SteamStartup::Now
     if (m_appId.isEmpty()) {
         return Now::Fine;
     }
-    m_content.read();
+    m_content.read(now);
     if (m_appId == m_stuckAppId && launch.step() != SteamLaunchLog::Step::Nothing) {
         // Steam is working on the game it kept stuck again.
         m_stuckAppId.clear();

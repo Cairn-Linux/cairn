@@ -170,10 +170,14 @@ Rectangle {
         }
     }
 
+    // The card turns before it takes the focus. The window notes where it
+    // is at the turn, so when the focus then scrolls a card at the page's
+    // edge into full view, the window undoes that scroll too, and the card
+    // stays under the pointer (#219).
     TapHandler {
         onTapped: {
-            card.forceActiveFocus(Qt.MouseFocusReason);
             card.turned();
+            card.forceActiveFocus(Qt.MouseFocusReason);
         }
     }
 }

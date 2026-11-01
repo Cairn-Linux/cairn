@@ -21,6 +21,11 @@ Item {
     readonly property string name: area.page.chosenName
     readonly property bool busy: area.page.busy
 
+    // A game card is about to turn. The window keeps it where it is, so a
+    // sentence above the grid that comes or goes with the change does not
+    // move it from under the pointer (#219).
+    signal turning(Item card)
+
     height: Math.max(childGames.implicitHeight, cover.visible ? cover.height : 0)
 
     // A paragraph of the page's own words.
@@ -105,6 +110,8 @@ Item {
                 model: area.page.games
 
                 GameCard {
+                    id: card
+
                     required property var modelData
 
                     width: (grid.width - grid.spacing * (grid.columns - 1)) / grid.columns
@@ -112,7 +119,10 @@ Item {
                     childName: area.name
                     onList: area.page.wanted.indexOf(modelData.appId) >= 0
                     enabled: !area.busy
-                    onTurned: area.page.turn(modelData.appId)
+                    onTurned: {
+                        area.turning(card);
+                        area.page.turn(card.modelData.appId);
+                    }
                 }
             }
         }

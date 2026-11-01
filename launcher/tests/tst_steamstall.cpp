@@ -97,7 +97,7 @@ public:
     // Reads what the launch log gained, as SteamGameWait does just before it
     // asks, and asks where the launch is at `now`.
     Now read(const QDateTime& now, SteamStartup::Now steam = SteamStartup::Now::Ready) {
-        launch.read();
+        launch.read(now);
         return stall.read(launch, steam, now);
     }
 

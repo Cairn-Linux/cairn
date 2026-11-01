@@ -11,20 +11,20 @@
 SteamSignIn::SteamSignIn(QString consoleLog, QString bootstrapLog)
     : m_consoleLog(std::move(consoleLog)), m_bootstrapLog(std::move(bootstrapLog)) {}
 
-SteamSignIn::Now SteamSignIn::read() const {
-    const std::optional<QDateTime> started = SteamStartup::lastStartup(m_bootstrapLog);
+SteamSignIn::Now SteamSignIn::read(const QDateTime& now) const {
+    const std::optional<QDateTime> started = SteamStartup::lastStartup(m_bootstrapLog, now);
     const QByteArray failed = "] LogonFailure ";
-    Now now = Now::Fine;
+    Now signIn = Now::Fine;
     for (const QByteArray& line : SteamStartup::lastLines(m_consoleLog)) {
         if (started) {
-            const std::optional<QDateTime> time = SteamLaunchLog::timeOf(line);
+            const std::optional<QDateTime> time = SteamLaunchLog::timeOf(line, now);
             if (time && *time < *started) {
                 continue;
             }
         }
         if (line.contains("] Client version: ") ||
             line.contains("] Waiting for compat in post-logon took: ")) {
-            now = Now::Fine;
+            signIn = Now::Fine;
             continue;
         }
         const qsizetype at = line.indexOf(failed);
@@ -33,12 +33,12 @@ SteamSignIn::Now SteamSignIn::read() const {
         }
         const QByteArray reason = line.mid(at + failed.size()).trimmed();
         if (!triesAgain(reason)) {
-            now = Now::Refused;
-        } else if (now == Now::Fine) {
-            now = Now::NoConnection;
+            signIn = Now::Refused;
+        } else if (signIn == Now::Fine) {
+            signIn = Now::NoConnection;
         }
     }
-    return now;
+    return signIn;
 }
 
 bool SteamSignIn::triesAgain(const QByteArray& reason) {
