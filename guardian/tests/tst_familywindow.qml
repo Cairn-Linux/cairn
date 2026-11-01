@@ -16,6 +16,21 @@ TestCase {
         FamilyWindow {}
     }
 
+    // Stands for another program's window, such as kwalletd's box, which
+    // takes the front and the keyboard while it is up. A window of its
+    // own: one transient for the test's window, as Family is, would still
+    // count Family as active.
+    Component {
+        id: otherWindowComponent
+
+        Window {
+            transientParent: null
+            width: Tokens.headingSize * 4
+            height: Tokens.headingSize * 4
+            visible: true
+        }
+    }
+
     // Tall enough for the whole page unless the options say otherwise, so
     // every control can be clicked.
     function makeWindow(scenario, options) {
@@ -23,7 +38,7 @@ TestCase {
         const properties = {
             "page": standIns.page(scenario, given.withChildren !== false, given.withOlderChild === true),
             "gamesPage": standIns.gamesPage(given.withChildren !== false, given.withGames !== false, given.steamStarts !== false, given.gamesScenario === undefined ? "" : given.gamesScenario, given.loggedIn === undefined ? [] : given.loggedIn, given.withOwnSteamGames === true),
-            "accountPage": standIns.accountPage(),
+            "accountPage": standIns.accountPage(given.wallet === true),
             "height": 1400
         };
         const window = createTemporaryObject(windowComponent, testCase, properties);
@@ -269,6 +284,115 @@ TestCase {
         keyClick(Qt.Key_Tab);
         tryCompare(add, "activeFocus", true);
         verify(inSight(window, add));
+    }
+
+    // Whether an item on the page shows whole where the page scrolls. One
+    // scrolled up under the switch between pages is inside the window, but
+    // out of sight.
+    function inSightOnThePage(window, item) {
+        const scroller = findChild(window, "scroller");
+        const place = item.mapToItem(scroller, 0, 0);
+        return place.y >= 0 && place.y + item.height <= scroller.height;
+    }
+
+    // Another window comes to the front and takes the keyboard, as
+    // kwalletd's box does.
+    function toTheBack(window) {
+        verify(window.activeFocusItem !== null);
+        const other = createTemporaryObject(otherWindowComponent, testCase);
+        other.requestActivate();
+        tryVerify(() => window.activeFocusItem === null);
+        verify(!window.active);
+    }
+
+    // Family comes back to the front, as when that box closes, with the
+    // keyboard on `item`.
+    function toTheFront(window, item) {
+        window.requestActivate();
+        tryVerify(() => window.activeFocusItem === item);
+        verify(window.active);
+    }
+
+    // When Family comes back to the front, the page stays where it was,
+    // even with the keyboard on something the Guardian scrolled away from.
+    function test_thePageStaysWhenFamilyComesBack() {
+        const window = makeWindow("done", {
+            "smallest": true
+        });
+        const input = findChild(nameField(window), "input");
+        input.forceActiveFocus();
+        tryCompare(input, "activeFocus", true);
+        const scroller = findChild(window, "scroller");
+        scroller.contentY = 0;
+        verify(!inSightOnThePage(window, input));
+        toTheBack(window);
+        toTheFront(window, input);
+        compare(scroller.contentY, 0);
+    }
+
+    // After Family comes back, Tab still brings the next control into
+    // sight.
+    function test_tabAfterFamilyComesBack() {
+        const window = makeWindow("done", {
+            "smallest": true
+        });
+        const input = findChild(nameField(window), "input");
+        input.forceActiveFocus();
+        tryCompare(input, "activeFocus", true);
+        const scroller = findChild(window, "scroller");
+        scroller.contentY = 0;
+        toTheBack(window);
+        toTheFront(window, input);
+        const level1 = findChild(window, "level1");
+        verify(!inSightOnThePage(window, level1));
+        keyClick(Qt.Key_Tab);
+        tryCompare(level1, "activeFocus", true);
+        verify(inSightOnThePage(window, level1));
+    }
+
+    // Focus given to another control while another window is in front, as
+    // when a change ends while the Guardian is in another window, comes
+    // into sight when Family comes back.
+    function test_focusGivenWhileBehindComesIntoSight() {
+        const window = makeWindow("done", {
+            "smallest": true
+        });
+        const input = findChild(nameField(window), "input");
+        input.forceActiveFocus();
+        tryCompare(input, "activeFocus", true);
+        toTheBack(window);
+        const add = findChild(window, "addButton");
+        add.forceActiveFocus();
+        verify(!add.activeFocus);
+        const scroller = findChild(window, "scroller");
+        scroller.contentY = 0;
+        verify(!inSightOnThePage(window, add));
+        toTheFront(window, add);
+        verify(inSightOnThePage(window, add));
+    }
+
+    // A control that waits, as every control does while a change runs,
+    // hands the keyboard to the window, and takes it back after. That is a
+    // move, so the page scrolls to it again, as it always has.
+    function test_theKeyboardBackAfterAWaitComesIntoSight() {
+        const window = makeWindow("done", {
+            "smallest": true
+        });
+        const input = findChild(nameField(window), "input");
+        input.forceActiveFocus();
+        tryCompare(input, "activeFocus", true);
+        // Set here, as a running change would set it: the stand-in for an
+        // open password box waits 30 seconds.
+        const form = findChild(window, "addChildForm");
+        form.enabled = false;
+        verify(!input.activeFocus);
+        verify(window.activeFocusItem === window.contentItem);
+        const scroller = findChild(window, "scroller");
+        scroller.contentY = 0;
+        verify(!inSightOnThePage(window, input));
+        form.enabled = true;
+        verify(input.activeFocus);
+        verify(inSightOnThePage(window, input));
     }
 
     // After a refusal, focus is back in the name field to try again.
@@ -524,6 +648,309 @@ TestCase {
         findChild(window, "againPasswordField").text = "two";
         findChild(window, "changePasswordButton").activated();
         tryVerify(() => inSight(window, findChild(window, "passwordOutcome")));
+    }
+
+    function walletSentence(window) {
+        return findChild(window, "walletSentence").text;
+    }
+
+    // The offer has come, the page has laid it out under the sentence, and
+    // the window has scrolled to it. A card just shown keeps its old place
+    // at the top of the page until the page's next layout, where it would
+    // count as in sight and take clicks meant for what is under it.
+    function waitForWalletOffer(window) {
+        tryCompare(window.accountPage.wallet, "step", WalletPassword.Offered);
+        waitForPolish(window);
+        verify(findChild(window, "walletOffer").y > findChild(window, "passwordOutcome").y);
+        tryVerify(() => inSight(window, findChild(window, "walletOffer")));
+    }
+
+    // Types a new password twice and presses Change password, which the
+    // stand-ins take.
+    function changeOwnPassword(window) {
+        findChild(window, "newPasswordField").text = "new pass";
+        findChild(window, "againPasswordField").text = "new pass";
+        findChild(window, "changePasswordButton").activated();
+        tryCompare(window.accountPage, "step", AccountPage.PasswordChanged);
+    }
+
+    // With KDE Wallet on and the wallet pam_kwallet opens, a new password
+    // brings the offer under its sentence. Taking it hands kwalletd the
+    // wallet's name and no password, says what kwalletd's own box asks, and
+    // puts focus back on the form's button.
+    function test_theWalletOffer() {
+        const window = makeWindow("done", {
+            "wallet": true
+        });
+        showAccount(window);
+        verify(!findChild(window, "walletOffer").visible);
+        changeOwnPassword(window);
+        waitForWalletOffer(window);
+        verify(findChild(window, "walletOffer").visible);
+        compare(passwordOutcome(window), "Your password is changed. Use the new one from now on: to log in, to unlock the screen and in every password box.");
+        compare(walletSentence(window), "KDE Wallet keeps passwords that programs save, such as Wi-Fi ones, behind a password of its own. It opens by itself at login only if that password is the same as your login password. Change the wallet's password to your new one too? If not, the wallet asks for its own password, usually your old one, the next time a program needs it.");
+        compare(findChild(window, "walletOffer").Accessible.name, walletSentence(window));
+        compare(findChild(window, "changeWalletPassword").Accessible.name, "Change the wallet's password");
+        compare(findChild(window, "leaveWalletPassword").Accessible.name, "Leave it as it is");
+        if (standIns.screenshotPath() !== "") {
+            wait(200);
+            grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-account-wallet.png"));
+        }
+        mouseClick(findChild(window, "changeWalletPassword"));
+        compare(window.accountPage.wallet.step, WalletPassword.WalletAsks);
+        compare(walletSentence(window), "KDE Wallet asks in a box of its own. If it first asks for the wallet's own password, type that: usually your old one. Then type your new password twice.");
+        waitForPolish(window);
+        verify(findChild(window, "walletOffer").visible);
+        verify(findChild(window, "walletSentence").visible);
+        verify(!findChild(window, "changeWalletPassword").visible);
+        verify(!findChild(window, "leaveWalletPassword").visible);
+        tryVerify(() => standIns.walletAsked().length === 4);
+        compare(standIns.walletAsked()[3], "changePassword kdewallet 0 " + Qt.application.name);
+        tryCompare(findChild(window, "changePasswordButton"), "activeFocus", true);
+        compare(window.accountPage.wallet.step, WalletPassword.WalletAsks);
+    }
+
+    // Leave it as it is: the offer goes, kwalletd is asked nothing more,
+    // and focus goes back to the form's button.
+    function test_leaveItAsItIs() {
+        const window = makeWindow("done", {
+            "wallet": true
+        });
+        showAccount(window);
+        changeOwnPassword(window);
+        waitForWalletOffer(window);
+        mouseClick(findChild(window, "leaveWalletPassword"));
+        compare(window.accountPage.wallet.step, WalletPassword.NotOffered);
+        verify(!findChild(window, "walletOffer").visible);
+        verify(findChild(window, "passwordOutcome").visible);
+        tryCompare(findChild(window, "changePasswordButton"), "activeFocus", true);
+        compare(standIns.walletAsked(), ["isEnabled", "localWallet", "wallets"]);
+    }
+
+    // A key held down on either of the card's buttons answers once. Focus
+    // goes to Change password, where the key's repeats do nothing. In New
+    // password they would type spaces, or press Enter on an empty form,
+    // and "Type the new password first." would take the place of the
+    // sentence about a password that did change.
+    function test_aHeldKeyOnTheWalletOffer_data() {
+        return [
+            {
+                tag: "change, return",
+                button: "changeWalletPassword",
+                key: Qt.Key_Return,
+                step: WalletPassword.WalletAsks
+            },
+            {
+                tag: "change, enter",
+                button: "changeWalletPassword",
+                key: Qt.Key_Enter,
+                step: WalletPassword.WalletAsks
+            },
+            {
+                tag: "change, space",
+                button: "changeWalletPassword",
+                key: Qt.Key_Space,
+                step: WalletPassword.WalletAsks
+            },
+            {
+                tag: "leave, return",
+                button: "leaveWalletPassword",
+                key: Qt.Key_Return,
+                step: WalletPassword.NotOffered
+            },
+            {
+                tag: "leave, enter",
+                button: "leaveWalletPassword",
+                key: Qt.Key_Enter,
+                step: WalletPassword.NotOffered
+            },
+            {
+                tag: "leave, space",
+                button: "leaveWalletPassword",
+                key: Qt.Key_Space,
+                step: WalletPassword.NotOffered
+            }
+        ];
+    }
+
+    function test_aHeldKeyOnTheWalletOffer(data) {
+        const window = makeWindow("done", {
+            "wallet": true
+        });
+        showAccount(window);
+        changeOwnPassword(window);
+        waitForWalletOffer(window);
+        findChild(window, data.button).forceActiveFocus();
+        keyPress(data.key);
+        // The repeats come a little apart, as a keyboard's do, so focus has
+        // moved before the first of them.
+        for (let i = 0; i < 6; ++i) {
+            wait(40);
+            heldKey.repeat(window, data.key);
+        }
+        keyRelease(data.key);
+        compare(window.accountPage.step, AccountPage.PasswordChanged);
+        compare(passwordOutcome(window), "Your password is changed. Use the new one from now on: to log in, to unlock the screen and in every password box.");
+        compare(window.accountPage.wallet.step, data.step);
+        compare(findChild(window, "newPasswordField").text, "");
+        compare(findChild(window, "againPasswordField").text, "");
+        verify(findChild(window, "changePasswordButton").activeFocus);
+        const asked = data.step === WalletPassword.WalletAsks ? 4 : 3;
+        tryVerify(() => standIns.walletAsked().length === asked);
+    }
+
+    // While kwalletd has not answered, nothing shows: the card comes with
+    // the offer, not before.
+    function test_noCardWhileKwalletdIsAsked() {
+        const window = makeWindow("done", {
+            "wallet": true
+        });
+        standIns.holdWallet();
+        showAccount(window);
+        changeOwnPassword(window);
+        compare(window.accountPage.wallet.step, WalletPassword.Checking);
+        tryVerify(() => standIns.walletAsked().length === 1);
+        waitForPolish(window);
+        verify(!findChild(window, "walletOffer").visible);
+        standIns.releaseWallet();
+        waitForWalletOffer(window);
+    }
+
+    // With no wallet for pam_kwallet to open, nothing is offered.
+    function test_noWalletNoOffer() {
+        const window = makeWindow("done");
+        showAccount(window);
+        changeOwnPassword(window);
+        tryVerify(() => standIns.walletAsked().length === 3);
+        tryCompare(window.accountPage.wallet, "step", WalletPassword.NotOffered);
+        verify(!findChild(window, "walletOffer").visible);
+    }
+
+    // The offer belongs to the sentence about the password: a picture
+    // chosen next takes both away.
+    function test_theWalletOfferGoesWithThePasswordSentence() {
+        const window = makeWindow("done", {
+            "wallet": true
+        });
+        showAccount(window);
+        changeOwnPassword(window);
+        waitForWalletOffer(window);
+        mouseClick(findChild(window, "pictureTiles").itemAt(1));
+        compare(window.accountPage.step, AccountPage.PictureNotChanged);
+        compare(window.accountPage.wallet.step, WalletPassword.NotOffered);
+        verify(!findChild(window, "walletOffer").visible);
+        verify(!findChild(window, "passwordOutcome").visible);
+    }
+
+    // kwalletd not taking the change is said, and the buttons come back.
+    function test_kwalletdDoesNotTakeTheChange() {
+        const window = makeWindow("done", {
+            "wallet": true
+        });
+        standIns.walletFails("changePassword");
+        showAccount(window);
+        changeOwnPassword(window);
+        waitForWalletOffer(window);
+        mouseClick(findChild(window, "changeWalletPassword"));
+        tryCompare(window.accountPage.wallet, "step", WalletPassword.NoAnswer);
+        compare(walletSentence(window), "KDE Wallet did not answer, so its password stays as it was. Trying again is safe. If it happens again, the reason is in the system log. In a terminal: journalctl -t cairn-guardian");
+        verify(findChild(window, "changeWalletPassword").visible);
+        verify(findChild(window, "leaveWalletPassword").visible);
+    }
+
+    // In a window too short for the whole page, the offer scrolls into
+    // sight when it comes, with the sentence about the password above it.
+    function test_theWalletOfferComesIntoSight() {
+        const window = makeWindow("done", {
+            "wallet": true
+        });
+        window.height = Tokens.headingSize * 20;
+        waitForPolish(window);
+        showAccount(window);
+        changeOwnPassword(window);
+        waitForWalletOffer(window);
+        verify(inSight(window, findChild(window, "passwordOutcome")));
+    }
+
+    // Whether the top of an item shows inside the window.
+    function startsInSight(window, item) {
+        const place = item.mapToItem(window.contentItem, 0, 0);
+        return place.y >= 0 && place.y < window.height;
+    }
+
+    // In the smallest window, the sentence about a password that changed
+    // comes into sight while kwalletd is asked. The offer is taller than
+    // the window, and when it comes the sentence keeps its place in sight,
+    // with the start of the card under it.
+    function test_thePasswordSentenceWinsOverTheOffer() {
+        const window = makeWindow("done", {
+            "wallet": true,
+            "smallest": true
+        });
+        standIns.holdWallet();
+        showAccount(window);
+        changeOwnPassword(window);
+        compare(window.accountPage.wallet.step, WalletPassword.Checking);
+        tryVerify(() => inSight(window, findChild(window, "passwordOutcome")));
+        standIns.releaseWallet();
+        tryCompare(window.accountPage.wallet, "step", WalletPassword.Offered);
+        const card = findChild(window, "walletOffer");
+        tryVerify(() => startsInSight(window, card));
+        verify(card.height > findChild(window, "scroller").height);
+        verify(inSight(window, findChild(window, "passwordOutcome")));
+    }
+
+    // With no wallet, the same sentence comes into sight in the smallest
+    // window, once kwalletd has been asked.
+    function test_thePasswordSentenceComesIntoSightWithoutAWallet() {
+        const window = makeWindow("done", {
+            "smallest": true
+        });
+        showAccount(window);
+        changeOwnPassword(window);
+        tryVerify(() => standIns.walletAsked().length === 3);
+        tryCompare(window.accountPage.wallet, "step", WalletPassword.NotOffered);
+        tryVerify(() => inSight(window, findChild(window, "passwordOutcome")));
+    }
+
+    // As on the VM: in a short window, Change the wallet's password brings
+    // the card's new words into sight, and Change password, which has the
+    // keyboard, goes out of sight above them. When kwalletd's box has
+    // taken the keyboard and closed, and Family is back in front, the page
+    // stays where it was, with the card's words whole in sight.
+    function test_theCardStaysInSightAfterKwalletdsBox() {
+        const window = makeWindow("done", {
+            "wallet": true
+        });
+        window.height = window.minimumHeight;
+        waitForPolish(window);
+        standIns.holdWallet();
+        showAccount(window);
+        changeOwnPassword(window);
+        tryVerify(() => inSightOnThePage(window, findChild(window, "passwordOutcome")));
+        standIns.releaseWallet();
+        tryCompare(window.accountPage.wallet, "step", WalletPassword.Offered);
+        waitForPolish(window);
+        const card = findChild(window, "walletOffer");
+        verify(card.y > findChild(window, "passwordOutcome").y);
+        tryVerify(() => startsInSight(window, card));
+        // The Guardian scrolls down to the card's buttons.
+        const scroller = findChild(window, "scroller");
+        scroller.contentY = scroller.contentHeight - scroller.height;
+        const changeWallet = findChild(window, "changeWalletPassword");
+        verify(inSightOnThePage(window, changeWallet));
+        mouseClick(changeWallet);
+        compare(window.accountPage.wallet.step, WalletPassword.WalletAsks);
+        const changePassword = findChild(window, "changePasswordButton");
+        tryCompare(changePassword, "activeFocus", true);
+        const words = findChild(window, "walletSentence");
+        tryVerify(() => inSightOnThePage(window, words));
+        verify(!inSightOnThePage(window, changePassword));
+        const y = scroller.contentY;
+        toTheBack(window);
+        toTheFront(window, changePassword);
+        compare(scroller.contentY, y);
+        verify(inSightOnThePage(window, words));
     }
 
     function test_switchToGamesAndBack() {

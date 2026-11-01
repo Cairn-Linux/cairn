@@ -2,6 +2,7 @@
 #pragma once
 
 #include "Account.h"
+#include "WalletPassword.h"
 
 #include <QDBusConnection>
 #include <QObject>
@@ -23,7 +24,9 @@ class FamilyChange;
 // (ADR-0043). Plasma's Users page, where a grown-up did both before, is
 // hidden on Cairn. The password goes through cairn-family
 // set-own-password under pkexec, which asks for the password they have
-// now; the picture goes to AccountsService.
+// now; the picture goes to AccountsService. Once a new password is in
+// place, the page offers to change KDE Wallet's too, as the Users page
+// did.
 class AccountPage : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -41,6 +44,8 @@ class AccountPage : public QObject {
     Q_PROPERTY(Step step READ step NOTIFY stepChanged)
     Q_PROPERTY(Reason reason READ reason NOTIFY stepChanged)
     Q_PROPERTY(bool busy READ busy NOTIFY stepChanged)
+    // The offer to change KDE Wallet's password after a new password.
+    Q_PROPERTY(WalletPassword* wallet READ wallet CONSTANT)
 
 public:
     enum class Step : std::uint8_t {
@@ -87,6 +92,9 @@ public:
         std::optional<QDBusConnection> bus;
         // Plasma's picture folder, with KDE's photos in its photos folder.
         QString stockPictures = QStringLiteral("/usr/share/plasma/avatars");
+        // kwalletd's bus, the grown-up's own session bus. Without one, the
+        // page never offers to change the wallet's password.
+        std::optional<QDBusConnection> walletBus;
     };
 
     explicit AccountPage(Setup setup, QObject* parent = nullptr);
@@ -99,6 +107,7 @@ public:
     Step step() const;
     Reason reason() const;
     bool busy() const;
+    WalletPassword* wallet() const;
 
     Q_INVOKABLE void changePassword(const QString& password, const QString& again);
     Q_INVOKABLE void choosePicture(const QUrl& file);
@@ -118,6 +127,7 @@ private:
 
     Setup m_setup;
     FamilyChange* m_change;
+    WalletPassword* m_wallet;
     AccountPicture* m_picture = nullptr;
     // Where a chosen picture is made ready, removed with the page.
     QTemporaryDir m_work;

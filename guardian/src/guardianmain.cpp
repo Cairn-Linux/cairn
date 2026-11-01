@@ -33,6 +33,7 @@ int main(int argc, char* argv[]) {
     accountSetup.command = QStringLiteral(CAIRN_FAMILY);
     accountSetup.uid = getuid();
     accountSetup.bus = QDBusConnection::systemBus();
+    accountSetup.walletBus = QDBusConnection::sessionBus();
     AccountPage accountPage(accountSetup);
 
     QQmlApplicationEngine engine;

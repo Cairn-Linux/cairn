@@ -4,77 +4,17 @@
 <context>
     <name>AccountView</name>
     <message>
-        <location filename="../qml/AccountView.qml" line="26"/>
-        <source>Type the password you use now in the box that opened.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/AccountView.qml" line="28"/>
-        <source>Your password is changed. Use the new one from now on: to log in, to unlock the screen and in every password box.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/AccountView.qml" line="38"/>
-        <source>Type the new password first.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <location filename="../qml/AccountView.qml" line="40"/>
-        <source>The two new passwords are not the same. Type the new password again in the second box.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/AccountView.qml" line="42"/>
-        <source>A password can be at most %1 characters long. Choose a shorter one.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/AccountView.qml" line="45"/>
-        <source>A password cannot hold a tab, a line break or another character that does not show. Type it again without them.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/AccountView.qml" line="48"/>
-        <source>Your password did not change. It needs the password you use now: the box was closed, or the password was not accepted.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/AccountView.qml" line="50"/>
-        <source>Your password did not change. Only a grown-up&apos;s account can change its password here.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/AccountView.qml" line="52"/>
-        <source>Cairn&apos;s family command did not get the rights it needs, so your password did not change. Close Family and open it again. If it happens again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/AccountView.qml" line="54"/>
-        <source>This window asked Cairn&apos;s family command for something it does not do, so your password did not change. The window and the command may come from different versions of Cairn. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/AccountView.qml" line="56"/>
-        <source>Your password did not change. Trying again is safe. If it fails again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/AccountView.qml" line="58"/>
-        <source>Cairn&apos;s family command did not answer as expected, so it is not known whether your password changed. Try the new one the next time a box asks; if it is not accepted, the old one still works. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/AccountView.qml" line="72"/>
         <source>Your account</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AccountView.qml" line="121"/>
+        <location filename="../qml/AccountView.qml" line="89"/>
         <source>No picture yet</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AccountView.qml" line="98"/>
+        <location filename="../qml/AccountView.qml" line="66"/>
         <source>Your picture</source>
         <translation type="unfinished"></translation>
     </message>
@@ -313,27 +253,27 @@
 <context>
     <name>FamilyWindow</name>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="27"/>
+        <location filename="../qml/FamilyWindow.qml" line="30"/>
         <source>Family</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="116"/>
+        <location filename="../qml/FamilyWindow.qml" line="132"/>
         <source>Pages</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="122"/>
+        <location filename="../qml/FamilyWindow.qml" line="138"/>
         <source>Children</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="135"/>
+        <location filename="../qml/FamilyWindow.qml" line="151"/>
         <source>Games</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="149"/>
+        <location filename="../qml/FamilyWindow.qml" line="165"/>
         <source>Your account</source>
         <translation type="unfinished"></translation>
     </message>
@@ -600,6 +540,69 @@
     </message>
 </context>
 <context>
+    <name>PasswordAnswers</name>
+    <message>
+        <location filename="../qml/PasswordAnswers.qml" line="29"/>
+        <source>Type the password you use now in the box that opened.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PasswordAnswers.qml" line="31"/>
+        <source>Your password is changed. Use the new one from now on: to log in, to unlock the screen and in every password box.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PasswordAnswers.qml" line="41"/>
+        <source>Type the new password first.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PasswordAnswers.qml" line="43"/>
+        <source>The two new passwords are not the same. Type the new password again in the second box.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PasswordAnswers.qml" line="45"/>
+        <source>A password can be at most %1 characters long. Choose a shorter one.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PasswordAnswers.qml" line="48"/>
+        <source>A password cannot hold a tab, a line break or another character that does not show. Type it again without them.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PasswordAnswers.qml" line="51"/>
+        <source>Your password did not change. It needs the password you use now: the box was closed, or the password was not accepted.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PasswordAnswers.qml" line="53"/>
+        <source>Your password did not change. Only a grown-up&apos;s account can change its password here.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PasswordAnswers.qml" line="55"/>
+        <source>Cairn&apos;s family command did not get the rights it needs, so your password did not change. Close Family and open it again. If it happens again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PasswordAnswers.qml" line="57"/>
+        <source>This window asked Cairn&apos;s family command for something it does not do, so your password did not change. The window and the command may come from different versions of Cairn. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PasswordAnswers.qml" line="59"/>
+        <source>Your password did not change. Trying again is safe. If it fails again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PasswordAnswers.qml" line="61"/>
+        <source>Cairn&apos;s family command did not answer as expected, so it is not known whether your password changed. Try the new one the next time a box asks; if it is not accepted, the old one still works. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>PasswordForm</name>
     <message>
         <location filename="../qml/PasswordForm.qml" line="16"/>
@@ -607,27 +610,27 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/PasswordForm.qml" line="37"/>
+        <location filename="../qml/PasswordForm.qml" line="42"/>
         <source>Password</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/PasswordForm.qml" line="50"/>
+        <location filename="../qml/PasswordForm.qml" line="55"/>
         <source>Type the new password twice. Then a box asks for the password you use now. Choose one the children do not know: it lets anyone change the family&apos;s accounts.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/PasswordForm.qml" line="65"/>
+        <location filename="../qml/PasswordForm.qml" line="70"/>
         <source>New password</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/PasswordForm.qml" line="75"/>
+        <location filename="../qml/PasswordForm.qml" line="80"/>
         <source>New password again</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/PasswordForm.qml" line="81"/>
+        <location filename="../qml/PasswordForm.qml" line="88"/>
         <source>Change password</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1293,6 +1296,34 @@
     <message>
         <location filename="../qml/SteamForWords.qml" line="101"/>
         <source>Try again</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>WalletOffer</name>
+    <message>
+        <location filename="../qml/WalletOffer.qml" line="25"/>
+        <source>KDE Wallet asks in a box of its own. If it first asks for the wallet&apos;s own password, type that: usually your old one. Then type your new password twice.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/WalletOffer.qml" line="27"/>
+        <source>KDE Wallet did not answer, so its password stays as it was. Trying again is safe. If it happens again, the reason is in the system log. In a terminal: journalctl -t cairn-guardian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/WalletOffer.qml" line="29"/>
+        <source>KDE Wallet keeps passwords that programs save, such as Wi-Fi ones, behind a password of its own. It opens by itself at login only if that password is the same as your login password. Change the wallet&apos;s password to your new one too? If not, the wallet asks for its own password, usually your old one, the next time a program needs it.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/WalletOffer.qml" line="108"/>
+        <source>Leave it as it is</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/WalletOffer.qml" line="96"/>
+        <source>Change the wallet&apos;s password</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

@@ -5,13 +5,18 @@ cairn-iso VM on 2026-10-30, from a test copy of this branch's programs
 at a path of their own. It becomes accepted when the same checks pass
 with the programs and files where the image puts them. "Only KDE's
 pictures", added on 2026-10-31, passed its checks in the VM that day,
-on the VM's writable `/usr` rather than in a built image.
-**Date:** 2026-10-30; "Only KDE's pictures" 2026-10-31
+on the VM's writable `/usr` rather than in a built image. "KDE Wallet's
+password", added the same day, was checked in the VM that night in the
+same way; what it showed is at the end of its section.
+**Date:** 2026-10-30; "Only KDE's pictures" and "KDE Wallet's password"
+2026-10-31
 **Closes:** (none) — the System Settings half of issue #113, and the
 second item of the parent app Mason agreed (ROADMAP P1-5). Amends
 ADR-0040 (a third page, and a second way in) and narrows the gap
 ADR-0023 left open at its rank 4. Adds a step to ADR-0038's image
 (only KDE's pictures, part of #166).
+**Amended by:** the section "KDE Wallet's password" below (2026-10-31,
+#198), which also records the maintainer's other answers from #198.
 
 ## Context
 
@@ -94,8 +99,10 @@ then calls `SetIconFile` on the Guardian's own
 - AccountsService copies the file into
   `/var/lib/AccountsService/icons/`, where Plasma's lock screen reads it.
   Cairn's login screen draws each person's first letter, not a picture
-  (ADR-0020), and Bazzite's menu shows no picture. AccountsService
-  refuses a file over a megabyte; a 256-pixel PNG is far under.
+  (ADR-0020). It keeps the first letter for a Guardian too, until #82
+  decides how a person is known at the login screen (Mason, 2026-10-31,
+  #198). Bazzite's menu shows no picture. AccountsService refuses a file
+  over a megabyte; a 256-pixel PNG is far under.
 - polkit's `org.freedesktop.accounts.change-own-user-data` is `yes` for
   an account at the machine, so no password is asked. The call allows a
   polkit box, in case a rule ever asks for one.
@@ -180,8 +187,9 @@ anything runs, with the one rule both sides share (`NewPassword`):
 not empty, at most 128 characters, and no tab, line break or other
 character that does not show. Cairn sets no length or strength rule of
 its own beyond that; Fedora's `pwquality` asks for one only of a person
-changing their own password through PAM, which this is not. The page
-says to choose one the children do not know.
+changing their own password through PAM, which this is not. Mason kept
+this rule, with no minimum length, on 2026-10-31 (#198). The page says
+to choose one the children do not know.
 
 Then it runs `pkexec /usr/libexec/cairn/cairn-family set-own-password`,
 with the new password and a line break on its standard input, never in
@@ -332,11 +340,13 @@ that image.
   fingerprint in place of the current password, as in every other polkit
   box on the machine.
 - A forgotten Guardian password is not mended here. Another Guardian,
-  or the machine's own recovery, is the way, as before.
-- KWallet keeps its own password. Plasma's Users page offers to change
-  the wallet's password with the login password; the Family app does
-  not, so a Guardian whose wallet opened at login with the old password
-  is asked for the old one by the wallet next time.
+  or the machine's own recovery, is the way, as before. Family letting
+  one Guardian set a new password for another is #233, decided on
+  2026-10-31 for later.
+- KWallet keeps its own password, and opens the wallet at login only
+  while that is the login password. Since 2026-10-31 Your account offers
+  to change it after the Guardian's own password changes, as Plasma's
+  Users page did; see "KDE Wallet's password" below.
 - If a Plasma release renames the Users page's id, the line hides
   nothing and the page comes back. The build does not catch that; check
   2 above does, and should be run again after a Plasma upgrade.
@@ -344,3 +354,197 @@ that image.
   Settings without the page.
 - Three tabs fill the switch at the window's narrowest width. A fourth
   page will need another layout.
+- The page stays "Your account" (Mason, 2026-10-31, #198). If it comes to
+  hold more than the Guardian's own password and picture, such as a new
+  password for another Guardian (#233), its name is looked at again.
+
+## KDE Wallet's password (2026-10-31, #198)
+
+Plasma keeps passwords that programs save, such as some Wi-Fi passwords,
+in KDE Wallet (KWallet), behind a password of its own. Cairn's login
+screen loads `pam_kwallet5` (`session/sddm/pam.d/sddm`). At a Guardian's
+login it hands KWallet a hash of the password typed, and KWallet opens
+with it the wallet kwalletrc names, `kdewallet` unless set otherwise. At
+the first login it makes that wallet, with the login password. So the
+wallet opens by itself only while its password is the login password.
+After a Guardian changes their password on Your account, the next login
+opens no wallet, and the first program that wants it makes KWallet ask
+for the wallet's own password: the old one. That is read from the
+source, where ksecretd opens the wallet with the hash pam_kwallet hands
+it. In the VM the wallet stayed shut at that login; a program asking
+for it was not tried.
+
+Plasma's Users page offers the change (plasma-workspace 6.7.5,
+`kcms/users`, read from the source). Once AccountsService has taken a new
+password for the account at the screen, the page asks KWallet's library
+for the wallets. When `kdewallet` is one of them it opens a box, "Change
+Wallet Password?", which says "Now that you have changed your login
+password, consider changing the password on your default KWallet to match
+it.", with a "What is KWallet?" link and the buttons Change Wallet
+Password and Leave Unchanged. The first calls
+`KWallet::Wallet::changePassword("kdewallet", 1)`, which asks kwalletd
+over D-Bus, and kwalletd's own box asks for the passwords.
+
+Mason answered #198's first question on 2026-10-31: Family offers the
+same.
+
+**After the Guardian's own password has changed, Your account offers to
+change the wallet's password too, when KWallet is on and the Guardian has
+the wallet pam_kwallet opens. Family asks kwalletd over Qt D-Bus, and
+kwalletd's own box asks for the passwords, which Family never sees.**
+
+- `WalletPassword` asks kwalletd three things, one after another, without
+  the window waiting: `isEnabled`, `localWallet` (the wallet pam_kwallet
+  opens) and `wallets`. It asks `org.kde.kwalletd6` at
+  `/modules/kwalletd6`, interface `org.kde.KWallet`, as KWallet's own
+  library does. It offers only when KWallet is on and the list holds that
+  wallet.
+- An error, an answer of another type, KWallet turned off, or no kwalletd
+  at all, as on a computer without KDE, means no offer and no sentence.
+  The bus starts kwalletd when it is not running, as it does for Plasma's
+  page. With KWallet turned off, kwalletd does not start, and the question
+  fails.
+- The offer is a card under the sentence that says the password changed,
+  with **Change the wallet's password** and **Leave it as it is**. In a
+  window too short for both, the sentence's top stays in sight, with the
+  card's start under it. The first button calls kwalletd's
+  `changePassword` with the wallet's name, window 0 and the program's
+  name, and no password. Plasma passes window 1. kwalletd puts its box
+  over the window it is given, and a window on Wayland has no number
+  another program can use. With window 0, ksecretd writes "Using kwallet
+  without parent window!" to the journal each time; as far as the source
+  shows, on Wayland that line is all window 0 changes.
+- kwalletd answers that call at once, before its box is answered, so
+  Family does not learn whether the wallet's password changed. The card
+  then says what the box asks. An error answer means no box: the card
+  says so, the reason goes to the journal, and the buttons come back.
+- The card belongs to the sentence about the password. **Leave it as it
+  is**, a new picture, another password, or closing Family ends it, and
+  only the next password change brings it back. After either button the
+  keyboard is on **Change password**, which takes only the first press of
+  a key held down.
+- No new dependency. Qt's D-Bus module is part of Qt and already in the
+  Family app (ADR-0041). kwalletd is Plasma's, met over the bus as
+  AccountsService is.
+
+What kwalletd's box asks (kf6-kwallet 6.31.0, the version Fedora 44
+ships, read from the source; behind kwalletd, ksecretd keeps the
+wallets):
+
+- If the wallet is open, as it is when it opened at login, the box asks
+  only for the new password, twice, under "Please choose a new password
+  for the wallet 'kdewallet'.", titled "KDE Wallet Service". It takes an
+  empty password too.
+- If the wallet is closed, it first asks for the password the wallet has:
+  "KDE has requested to open the wallet 'kdewallet'. Please enter the
+  password for this wallet below." Cancel there gives "Unable to open
+  wallet. The wallet must be opened in order to change the password."
+
+The card's words:
+
+- Offered: "KDE Wallet keeps passwords that programs save, such as Wi-Fi
+  ones, behind a password of its own. It opens by itself at login only if
+  that password is the same as your login password. Change the wallet's
+  password to your new one too? If not, the wallet asks for its own
+  password, usually your old one, the next time a program needs it."
+- Once kwalletd took it: "KDE Wallet asks in a box of its own. If it first
+  asks for the wallet's own password, type that: usually your old one.
+  Then type your new password twice."
+- When kwalletd did not: "KDE Wallet did not answer, so its password stays
+  as it was. Trying again is safe. If it happens again, the reason is in
+  the system log. In a terminal: journalctl -t cairn-guardian"
+
+The other ways weighed:
+
+- **Linking KWallet's library, `KF6::Wallet`, as Plasma does.** A
+  dependency beyond Qt and Footpath (ADR-0014), for four calls, would need
+  an ADR of its own.
+- **A box over the window, as Plasma's.** Every other answer on Your
+  account is a sentence under its part. A card with buttons, as the Games
+  page has for a logged-in child, keeps that.
+- **Naming `kdewallet`, as Plasma does.** It is the same wallet on a
+  default setup. `localWallet` names the wallet pam_kwallet opens also
+  when kwalletrc's "Use One Wallet" is off.
+- **Changing the wallet's password in Family.** Family would hold both
+  passwords, and do what kwalletd's box already does.
+- **"Not now", as on the Games page.** There the button leaves **Log Ada
+  out** in place. Here nothing offers again until the next new password,
+  so the button says what it does, as Plasma's Leave Unchanged does.
+
+What it cannot do:
+
+- Family cannot tell whether the wallet's password changed, or whether
+  kwalletd's box opened at all.
+- Where KWallet keeps its passwords in another program's Secret Service
+  (`[KSecretD] Enabled=false` in kwalletrc), kwalletd takes the call and
+  does nothing, so no box opens. pam_kwallet opens no wallet at login
+  there either. Plasma's page has the same gap. Cairn's image does not
+  set it.
+- A wallet whose password was never the login password is offered too,
+  as by Plasma. The card says the wallet's own password is "usually" the
+  old one.
+
+The same day Mason answered three more of #198's questions, recorded
+above: the login screen keeps a Guardian's first letter until #82 ("Your
+own picture"), the password rule stays, with no minimum length ("Your own
+password"), and the page stays "Your account" (Consequences). His answer
+on pictures is "Only KDE's pictures", and one Guardian setting a new
+password for another is #233, for later.
+
+Tested in C++ against a stand-in kwalletd. Its tests run on a test bus,
+`guardian/tests/fixtures/session-bus.conf`, that starts no service from
+the computer's own service files. dbus-run-session's usual bus lists
+`org.kde.kwalletd6` among the services it starts, so a call no stand-in
+answered would wake the real kwalletd, and through it the real wallet.
+`walletpassword` covers each answer, the order of the questions, a check
+withdrawn before kwalletd answered, and what `changePassword` is given.
+`accountpage` covers that only a password that changed brings the offer,
+and that anything else the page says ends it, at every step.
+`familywindow` covers the card's words and buttons, the focus after
+each, a key held down on either button, and what comes into sight, the
+smallest window included, and that the card's words stay in sight when
+Family comes back to the front after another window.
+
+Checked in the cairn-iso VM on 2026-10-31, with a Release build of this
+branch's Family at `/usr/libexec/cairn/cairn-guardian` on the VM's
+writable `/usr`, and Test Guardian's wallet opened by a password login:
+
+- A new password brought the card. In the VM's window, too short for
+  both, the sentence showed whole near the top, with the card's first
+  lines under it and its buttons a scroll below.
+- kwalletd's box opened in front of Family, with the keyboard in its
+  first field. With the wallet open it asked only for the new password,
+  twice. At the next login with the new password the wallet opened by
+  itself, and no box came.
+- **Leave it as it is**, with Enter held down on it, took the card away,
+  left both fields empty and put the keyboard on **Change password**.
+  No box came. At the next login the wallet stayed shut, ksecretd wrote
+  "Wallet failed to get opened by PAM, error code is -9", and no box
+  came by itself.
+- With the wallet shut, kwalletd's box first asked for the wallet's own
+  password. Cancel there gave KDE's box "Unable to open wallet. The
+  wallet must be opened in order to change the password.", and the card
+  kept its words. Tried again, the box took the wallet's own password,
+  then the new one, and at the next login the wallet opened by itself.
+- With KWallet turned off, no card came, and nothing about the wallet
+  was logged.
+- ksecretd wrote "Using kwallet without parent window!" once for each
+  box that asked for a password, and not for the box after Cancel.
+- Each time Family came back to the front after one of kwalletd's boxes,
+  the box after Cancel included, its page scrolled up to **Change
+  password**, which has the keyboard, so the card's words were a scroll
+  below. This was fixed after the check: on any of Family's pages, when
+  the window comes back to the front with the keyboard on the item it
+  was on, the page now stays where it was.
+- A re-check on 2026-11-01, with a Release build of the fix, saw the
+  page stay where it was each time one of kwalletd's boxes closed, the
+  box after Cancel included. Between the box asking for the wallet's
+  own password and the one asking for the new password, the card's
+  words stayed in sight. On the Children page, after another window had
+  the keyboard, a click on Family's title bar brought it back with the
+  page unmoved, and Tab then scrolled to the next button, as before.
+
+Not checked: a program asking for the shut wallet after **Leave it as
+it is**, kwalletd refusing the change, `[KSecretD] Enabled=false`, and
+an image built with podman. The other held keys, and a new picture
+ending the offer, were left to the window tests.
