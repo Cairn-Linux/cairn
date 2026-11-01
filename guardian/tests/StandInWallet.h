@@ -2,6 +2,7 @@
 #pragma once
 
 #include <QDBusMessage>
+#include <QList>
 #include <QObject>
 #include <QString>
 #include <QStringList>
@@ -24,6 +25,9 @@ public:
     // number, the wrong type, or "" for none.
     QString failing;
     QString odd;
+    // Holds its answer to isEnabled until release(), so a test sees the
+    // check still running.
+    bool holding = false;
     // What it was asked, in order: each method's name, and for
     // changePassword its arguments too, as in
     // "changePassword kdewallet 0 tst_walletpassword".
@@ -36,8 +40,11 @@ public:
     // back.
     bool leave();
     bool comeBack();
-    // A wallet that is there, every answer plain, nothing asked yet.
+    // A wallet that is there, every answer plain and given at once,
+    // nothing asked yet.
     void reset();
+    // Gives the answers it held, and holds no more.
+    void release();
 
     // NOLINTNEXTLINE(readability-redundant-access-specifiers): Qt's slots.
 public slots:
@@ -51,4 +58,6 @@ private:
     // Writes the question down; true when it was answered here instead,
     // with an error or a number.
     bool answeredOddly(const QString& question, const QDBusMessage& call);
+
+    QList<QDBusMessage> m_held;
 };

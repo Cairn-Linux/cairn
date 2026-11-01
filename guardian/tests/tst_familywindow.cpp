@@ -245,6 +245,15 @@ public:
         m_kwalletd.failing = method;
     }
 
+    // The stand-in kwalletd holds its first answer until releaseWallet().
+    Q_INVOKABLE void holdWallet() {
+        m_kwalletd.holding = true;
+    }
+
+    Q_INVOKABLE void releaseWallet() {
+        m_kwalletd.release();
+    }
+
     // What the stand-in kwalletd was asked, in order.
     Q_INVOKABLE QStringList walletAsked() const {
         return m_kwalletd.asked;

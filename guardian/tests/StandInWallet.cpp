@@ -5,6 +5,8 @@
 #include <QLatin1StringView>
 #include <QVariant>
 
+#include <utility>
+
 namespace {
 
 constexpr auto connectionName = QLatin1StringView("kwalletd");
@@ -41,11 +43,26 @@ void StandInWallet::reset() {
     walletNames = {QStringLiteral("kdewallet")};
     failing.clear();
     odd.clear();
+    holding = false;
+    m_held.clear();
     asked.clear();
+}
+
+void StandInWallet::release() {
+    holding = false;
+    for (const QDBusMessage& call : std::as_const(m_held)) {
+        connection().send(call.createReply(enabled));
+    }
+    m_held.clear();
 }
 
 bool StandInWallet::isEnabled(const QDBusMessage& call) {
     if (answeredOddly(QStringLiteral("isEnabled"), call)) {
+        return false;
+    }
+    if (holding) {
+        call.setDelayedReply(true);
+        m_held.append(call);
         return false;
     }
     return enabled;

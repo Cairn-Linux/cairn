@@ -586,6 +586,23 @@ TestCase {
         compare(standIns.walletAsked(), ["isEnabled", "localWallet", "wallets"]);
     }
 
+    // While kwalletd has not answered, nothing shows: the card comes with
+    // the offer, not before.
+    function test_noCardWhileKwalletdIsAsked() {
+        const window = makeWindow("done", {
+            "wallet": true
+        });
+        standIns.holdWallet();
+        showAccount(window);
+        changeOwnPassword(window);
+        compare(window.accountPage.wallet.step, WalletPassword.Checking);
+        tryVerify(() => standIns.walletAsked().length === 1);
+        waitForPolish(window);
+        verify(!findChild(window, "walletOffer").visible);
+        standIns.releaseWallet();
+        waitForWalletOffer(window);
+    }
+
     // With no wallet for pam_kwallet to open, nothing is offered.
     function test_noWalletNoOffer() {
         const window = makeWindow("done");
