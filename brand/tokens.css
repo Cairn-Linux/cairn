@@ -73,7 +73,7 @@
   --cairn-motion-stone: 500ms;
 }
 
-/* Dark surfaces (terminal, login): the only dark ground is Ink. */
+/* Dark surfaces (terminal, login, boot): the only dark ground is Ink. */
 .cairn-on-ink {
   background: var(--cairn-ink);
   color: var(--cairn-on-ink);

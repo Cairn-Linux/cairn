@@ -238,7 +238,7 @@ def render_css(tokens):
 {motion_css(tokens)}
 }}
 
-/* Dark surfaces (terminal, login): the only dark ground is Ink. */
+/* Dark surfaces (terminal, login, boot): the only dark ground is Ink. */
 .cairn-on-ink {{
   background: var(--cairn-ink);
   color: var(--cairn-on-ink);

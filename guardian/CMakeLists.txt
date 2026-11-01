@@ -482,10 +482,13 @@ target_link_libraries(tst_accountpage PRIVATE Qt6::Qml Qt6::Gui Qt6::DBus Qt6::T
 target_compile_definitions(tst_accountpage PRIVATE FIXTURES="${guardian_fixtures}")
 add_test(NAME accountpage COMMAND "${DBUS_RUN_SESSION}" -- $<TARGET_FILE:tst_accountpage>)
 
-# The image's Kiosk line that hides Plasma's Users page (ADR-0043).
+# The image's Kiosk line that hides Plasma's Users page, and its step that
+# leaves only KDE's own pictures in Plasma's picture folder (ADR-0043).
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 add_test(NAME hideuserspage
     COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_hide_users_page.py")
+add_test(NAME kdepictures
+    COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_kde_pictures.py")
 
 set_tests_properties(steamvisit ownsteam screenlockwatch steamforchild steamwindow familycommand
     caller gamesrequest childgamelist childgamesfile cataloguerefresh toolsrefresh copyjob

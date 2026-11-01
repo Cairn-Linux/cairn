@@ -236,71 +236,76 @@
     </message>
     <message>
         <location filename="../qml/ChildrenView.qml" line="52"/>
-        <source>A name cannot hold a colon, a comma, a backslash or a line break. Change the name and try again.</source>
+        <source>%1 already has an account on this computer. To add another child, give them a different name, such as one with an initial.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/ChildrenView.qml" line="54"/>
-        <source>The short name can hold only letters a to z, digits, - and _, and starts with a letter. Change it and try again.</source>
+        <source>A name cannot hold a colon, a comma, a backslash or a line break. Change the name and try again.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/ChildrenView.qml" line="56"/>
-        <source>Only levels 1 and 2 can be given for now. Levels 3 and 4 have no session yet.</source>
+        <source>The short name can hold only letters a to z, digits, - and _, and starts with a letter. Change it and try again.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/ChildrenView.qml" line="58"/>
-        <source>Another account on this computer has that short name. Press Add again to use a different one.</source>
+        <source>Only levels 1 and 2 can be given for now. Levels 3 and 4 have no session yet.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/ChildrenView.qml" line="60"/>
-        <source>%1 is not a child&apos;s account on this computer. The list shows the children there are now.</source>
+        <source>Another account on this computer has that short name. Press Add again to use a different one.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/ChildrenView.qml" line="62"/>
-        <source>Cairn&apos;s family command did not get the rights it needs, so it changed nothing. Close Family and open it again. If it happens again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
+        <source>%1 is not a child&apos;s account on this computer. The list shows the children there are now.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/ChildrenView.qml" line="64"/>
-        <source>This window asked Cairn&apos;s family command for something it does not do, so nothing changed. The window and the command may come from different versions of Cairn. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
+        <source>Cairn&apos;s family command did not get the rights it needs, so it changed nothing. Close Family and open it again. If it happens again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/ChildrenView.qml" line="66"/>
+        <source>This window asked Cairn&apos;s family command for something it does not do, so nothing changed. The window and the command may come from different versions of Cairn. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/ChildrenView.qml" line="68"/>
         <source>This account may not change the family. A grown-up&apos;s account can.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/ChildrenView.qml" line="69"/>
+        <location filename="../qml/ChildrenView.qml" line="71"/>
         <source>Nothing changed. It needs your password: the box was closed, or the password was not accepted.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/ChildrenView.qml" line="71"/>
+        <location filename="../qml/ChildrenView.qml" line="73"/>
         <source>The change did not finish. Trying again is safe. If it fails again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/ChildrenView.qml" line="73"/>
+        <location filename="../qml/ChildrenView.qml" line="75"/>
         <source>Cairn&apos;s family command did not answer as expected. The list shows what is in place now. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/ChildrenView.qml" line="80"/>
+        <location filename="../qml/ChildrenView.qml" line="82"/>
         <source>Children</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/ChildrenView.qml" line="93"/>
+        <location filename="../qml/ChildrenView.qml" line="95"/>
         <source>Each child has their own login and their own level. A level can go up or down at any time, whatever fits now. Every change asks for your password.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/ChildrenView.qml" line="107"/>
+        <location filename="../qml/ChildrenView.qml" line="109"/>
         <source>No children yet. Add one below.</source>
         <translation type="unfinished"></translation>
     </message>

@@ -63,6 +63,10 @@ semanage fcontext -a -t etc_t '/run/cairn(/.*)?'
 # start-menu button.
 /ctx/guardian-desktop.sh
 
+# A grown-up chooses their picture from KDE's own. The game art Bazzite
+# adds to Plasma's picture folder goes (ADR-0043, #166).
+/ctx/kde-pictures.sh
+
 # A fingerprint of every icon file and link, the system's and Cairn's
 # own. The Guardian's Plasma clears its own picture cache when it differs
 # from the one it saw last

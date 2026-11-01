@@ -44,15 +44,24 @@ The Children page:
    give, 1 or 2. Up or down, the button and the sentence after it read
    the same (DESIGN §3). The new level starts the next time the child
    logs in, because PAM and the session read the groups at login.
-3. **Add a child:** the name for the login tile, and level 1 or 2. The
-   window makes the account's own short name from the name, such as `zoe`
-   from "Zoë", and asks for one only when the name has no letters a to z.
-   If an account or a group already has it, it uses `zoe2`, `zoe3` and so
-   on, so it never names an existing child.
+3. **Add a child:** the name for the login tile, and level 1 or 2. A
+   name a child on the list already has, whatever the case of its
+   letters, is refused before any password: "Cy already has an account
+   on this computer. To add another child, give them a different name,
+   such as one with an initial." Two children with one name would look
+   the same on every screen (#212). The window makes the account's own
+   short name from the name, such as `zoe` from "Zoë", and asks for one
+   only when the name has no letters a to z. If an account or a group
+   already has it, it uses `zoe2`, `zoe3` and so on, so it never names
+   an existing child.
 4. Each change runs `cairn-family` through `pkexec`, which asks for the
    Guardian's password every time. Every control waits until the answer
    is in, and one sentence says what happened, or why nothing changed and
    what to do next. A refusal leaves the form as it was.
+5. An add that failed may have made the account, so the child is on the
+   list. Adding the same name again, whatever the case of its letters,
+   finishes that add rather than being refused. Family remembers the
+   failed add only while it stays open.
 
 The Games page (ADR-0041):
 
@@ -131,11 +140,14 @@ The Your account page (ADR-0043):
 
 1. The Guardian's name and picture. With no picture, its frame says
    "No picture yet".
-2. Plasma's own pictures, from `/usr/share/plasma/avatars`, and
-   **Choose a picture of your own**, Qt's file dialog. A tap makes the
-   picture a square of at most 256 pixels and hands it to
-   AccountsService (`SetIconFile`), with no password; Plasma's lock
-   screen shows it. Cairn's login screen draws first letters instead.
+2. KDE's own pictures from `/usr/share/plasma/avatars`, its drawings and
+   then the photos in its `photos` folder, and **Choose a picture of
+   your own**, Qt's file dialog. The image leaves only KDE's pictures
+   there: `build_files/kde-pictures.sh` removes the game art Bazzite
+   adds. A tap makes the picture a square of at most 256 pixels and
+   hands it to AccountsService (`SetIconFile`), with no password;
+   Plasma's lock screen shows it. Cairn's login screen draws first
+   letters instead.
 3. **Password:** the new password twice, then **Change password**.
    Both are checked first: not empty, the same, at most 128 characters,
    no tab or line break. Then `cairn-family set-own-password` runs
@@ -364,7 +376,7 @@ QML draws, C++ decides (ADR-0002):
 | `qml/Main.qml` | The Steam window. |
 | `qml/SteamForWords.qml` | The Steam window's words for each step. |
 | `src/LoginName` | The account's login name, made from the name a parent types, and the first free one when it is taken. |
-| `src/ChildList` | The family's children among the accounts, in the order they were made, each with their name and level. |
+| `src/ChildList` | The family's children among the accounts, in the order they were made, each with their name and level, as maps for the pages' QML; and the rule for when two names are one, whatever the case of their letters. |
 | `src/FamilyChange` | Runs `pkexec` with `cairn-family`, one change at a time, and reads its one-line answer, or pkexec's own exit code. |
 | `src/ChildrenPage` | What the Children page shows and what its buttons do: the list, the checks before a change, and why a change was refused. Its account database is in its `Setup`, so a test can replace it. |
 | `src/GamesPage` | What the Games page shows and does: the children, the one picked, the games with each marked when it is on that child's list as saved and as wanted, turning a game, Save, a logged-in child's greyed games, and opening a child's Steam window. Its files, accounts, commands, program start and logind reader are in its `Setup`, so a test can replace them. |
@@ -379,7 +391,7 @@ QML draws, C++ decides (ADR-0002):
 | `src/SaveRun` | Runs `pkexec` with `cairn-family save-games` or `log-out`, and passes on each line as it arrives, then the answer, pkexec's own exit code, or `not-started` when nothing could be started. |
 | `src/SaveReport` | Reads `save-games`'s lines into how far it has got, each game copied, each child's counts, held word, games left out and tools, whether a tool was left out of the tools folder, and the games without a picture, taking only its fixed words and the children the Save named. |
 | `src/PkexecAnswer` | pkexec's own two exit codes, for both runners of `cairn-family`. |
-| `src/AccountPage` | What the Your account page shows and does: the Guardian's name and picture, Plasma's pictures, a new picture, and a new password, checked first and sent to `cairn-family set-own-password` on standard input. Its commands, account database and bus are in its `Setup`, so a test can replace them. |
+| `src/AccountPage` | What the Your account page shows and does: the Guardian's name and picture, KDE's pictures, a new picture, and a new password, checked first and sent to `cairn-family set-own-password` on standard input. Its commands, account database and bus are in its `Setup`, so a test can replace them. |
 | `src/AccountPicture` | The Guardian's own picture through AccountsService on the system bus, with Qt D-Bus: reading `IconFile`, and `SetIconFile`, waited for without blocking the window. |
 | `src/PictureFile` | A chosen picture made ready for AccountsService: a square from its middle, turned as the camera meant, at most 256 pixels, as PNG. |
 | `src/NewPassword` | The one rule for a new password, which the window and `cairn-family` both check. |
@@ -425,7 +437,7 @@ journalctl -t cairn-steam-for -t cairn-steam-visit --since today
 
 ## Tests
 
-CTest runs thirty-eight here, among them `steamvisit`, `ownsteam`,
+CTest runs thirty-nine here, among them `steamvisit`, `ownsteam`,
 `screenlockwatch`,
 `steamforchild`, `steamwindow` (the real window in Qt Quick Test),
 `familycommand`, `steamentry`, and for the Guardian tool `loginname`,
@@ -434,8 +446,8 @@ CTest runs thirty-eight here, among them `steamvisit`, `ownsteam`,
 `childrenpage`, `gamepicture`, `gameshelf`, `gamespage` and
 `familywindow` (the real window in Qt Quick Test, all three pages and
 the switch), and for a grown-up's own password and picture
-`newpassword`, `ownpasswordcommand`, `picturefile`, `accountpage` and
-`hideuserspage`. They use stand-ins in `tests/fixtures/`
+`newpassword`, `ownpasswordcommand`, `picturefile`, `accountpage`,
+`hideuserspage` and `kdepictures`. They use stand-ins in `tests/fixtures/`
 for `pkexec` with the helper behind it, which takes a scenario where the
 helper's path goes, and for the Guardian's Steam client, over a stand-in
 process list. `pkexec-family` stands in for `pkexec` as the Guardian
@@ -519,16 +531,27 @@ waiting calls get their answer) and the pkexec stand-ins, whose
 `cairn-family` writes what came on its standard input to the file
 `CAIRN_TEST_INPUT` names: the checks before any password box, the
 password on standard input and never in the arguments, every answer,
-one change at a time, a picture taken, refused or unreadable.
+one change at a time, a picture taken, refused or unreadable, and
+KDE's photos listed after its drawings, and no other folder's pictures.
 `hideuserspage` runs the Kiosk script on Bazzite's own `kdeglobals`, on
 none, and twice, and reads the result with `kreadconfig6` when it is
-there. `steamentry` checks the entry's text against
+there. `kdepictures` runs the image's picture step on a folder of
+empty files, with a stand-in rpm that answers as the VM's did: KDE's
+pictures stay, Bazzite's links and copies and the Steam Deck look's
+folders go, a dry run removes nothing, and a second run changes
+nothing. It stops rather than remove a KDE picture in a folder that is
+not KDE's, and before anything goes when rpm cannot answer.
+`steamentry` checks the entry's text against
 provisioning's own `steam_entry`. The screen-lock tests and the Steam
 window's tests run on a session bus of their own under
 `dbus-run-session`, which the build needs, and so does `loginwatch`;
 the Guardian tool's other tests need no bus.
 
 What the stand-ins cannot show was run in the VM (`docs/research/steam-visit.md`).
+
+Add a child was checked in the cairn-iso VM on 2026-10-31 (#212). Beside
+two children named Cy, it refused "Cy" and " cy " before any password
+box. After the password, it made "Cy B", with the login `cyb`.
 
 ## Not yet
 
@@ -540,11 +563,14 @@ What the stand-ins cannot show was run in the VM (`docs/research/steam-visit.md`
   cage at once in the same way.
 - The Guardian's own Steam, started again by the window, runs in the
   window's own systemd unit, which then stays until Steam ends.
-- Neither `cairn-family` nor the Guardian tool has run in the VM yet.
 - Whether Plasma's own lid handling honours the copy's inhibitor lock is
   to be checked in the VM (ADR-0041, step 6).
 - The Guardian tool cannot reset a child, set a PIN, or make an existing
   account a child or a Guardian (#113).
+- A failed add is forgotten when Family closes. Opened again, Family
+  lists the child the add made and refuses their name. Moving that child
+  to another level runs the steps the add may not have finished: the
+  lock on the password and their "Steam for <child>" entry (#212).
 - KWallet keeps its own password when the Guardian's changes; Plasma's
   Users page offered to change both (ADR-0043).
 - KRunner still lists "Users - System Settings", which opens System
