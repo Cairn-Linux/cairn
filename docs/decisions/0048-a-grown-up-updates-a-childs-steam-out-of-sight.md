@@ -263,9 +263,10 @@ the card writes.
 
 - **Stop** writes `stop` on `cairn-family`'s standard input, as the
   visit's window writes `done` on the visit helper's.
-  `cairn-family`, as root, stops the update's unit, so the helper's
-  close runs: Steam is asked to save and quit, it keeps what it
-  downloaded, and Ada can log in at once (answer 1).
+  `cairn-family`, as root, stops the update's unit.
+  systemd signals the helper, and its close runs within the job's
+  `TimeoutStopSec=` (below): Steam is asked to save and quit, it keeps
+  what it downloaded, and Ada can log in at once (answer 1).
   `SystemJob` learns to read its input while it waits for the job;
   today it waits only for the job.
 - Closing the window does not stop it.
@@ -350,7 +351,8 @@ command (ADR-0039, ADR-0041), shaped like `log-out`.
   `on-battery` when it is not.
 - It runs `cairn-steam-visit --update CHILD` through `SystemJob`, as the
   system unit `cairn-steam-update-UID`, inside the inhibitor above, with
-  `RuntimeMaxSec=` and an `ExecStopPost=` release (below).
+  `RuntimeMaxSec=`, `TimeoutStopSec=` and an `ExecStopPost=` release
+  (below).
   It passes on the helper's lines with the child's login put in from its
   own argument, never from the helper, as ADR-0041 does.
 - `cairn-family stop-update LOGIN` has its own action,
@@ -367,10 +369,10 @@ copy and the logout.
   It refuses `not-for-pkexec` when `PKEXEC_UID` is set, so the visit's
   own polkit action, which names no first argument, can never start it.
 - **The lock.**
-  It writes its marker with the child's name, then lists the child,
-  checks the list's SELinux label (`not-set-up`) and waits for the
-  child's last login to end (`waiting`, `logged-in`, `still-running`),
-  with the copy's own code (ADR-0033, ADR-0041).
+  It clears what a killed update left (below), writes its marker, then
+  lists the child, checks the list's SELinux label (`not-set-up`) and
+  waits for the child's last login to end (`waiting`, `logged-in`,
+  `still-running`), with the copy's own code (ADR-0033, ADR-0041).
 - **Room.**
   It holds `low-space` when the filesystem that holds the child's home
   has less than 5 GB free (inference: a guess, tried in E16(c)).
@@ -414,22 +416,52 @@ copy and the logout.
   Restart the computer before Ada logs in."
 - **However it ends,** the helper's own trap removes the list and the
   marker, as a copy's does.
-  If the helper is killed outright, the job's `ExecStopPost=` runs the
-  helper's release.
-  The release ends what is left of the child's hidden Steam, as the
-  close does, then removes the list and the marker, but only when the
-  marker shows that this run took them.
-  So a refused press never frees another job's lock.
+- **The release.**
+  systemd runs the job's `ExecStopPost=` after every end of the job, not
+  only when the helper is killed: after a run that ended well, a refused
+  press, Stop and the time limit too.
+  So the marker says which run wrote it, and whether that run took the
+  list.
+  It holds the child's name and the job's invocation id from the start,
+  the `$INVOCATION_ID` that systemd gives every process of one run of a
+  unit, `ExecStopPost=` included.
+  The helper adds a line to it once it has listed the child.
+  The release does nothing at all, not even end Steam, unless the marker
+  holds this run's invocation id.
+  Then, if this run took the list, the release runs the close for what
+  is left of Ada's hidden Steam and removes the list; and it removes the
+  marker.
+  So a press refused during a visit never ends the visit's Steam, and
+  never frees the list the visit holds.
+- **Time to close.**
+  The job's `TimeoutStopSec=` is 2 minutes.
+  The close's own limits add up to about 85 s at most: up to 25 s for
+  `steam -shutdown`, 25 s more for Steam to end, up to 15 s for Steam's
+  own unit to stop, and up to 20 s in `end_child`.
+  The image's default is 15 s, shorter than E16(a)'s close of 26 s.
+  Without a limit of its own, systemd would kill the helper halfway
+  through the close after Stop or at the time limit, and the release
+  halfway through its own (inference; checked when it is built).
 - **Known limit (E17(b)).**
   When the whole unit is killed, by hand or perhaps by systemd-oomd,
   which kills whole groups of processes, systemd kills the
-  `ExecStopPost=` command too, and the list stays.
+  `ExecStopPost=` command too.
+  The list and the marker stay, and so does Ada's hidden Steam, which
+  runs in a unit and a session of its own.
   Ada then cannot log in until a restart empties `/run`, as ADR-0041's
   known limit says for a copy.
-  To narrow it, when the list and the update's marker name a child whose
-  update unit is not running, the helper treats them as left over, and
-  the next job that takes the list removes them first (inference;
-  checked when it is built).
+- **Narrowing it.**
+  Before it takes the list, every mode of the helper looks for an update
+  marker whose invocation id belongs to no update unit that is running:
+  what a killed update left.
+  If that update had taken the list, the helper runs the close for its
+  child, then removes the list; it removes the marker either way, and
+  goes on.
+  If a program of that child's would not end, both stay until a
+  restart.
+  A new update for the same child runs under a new invocation id, so it
+  clears its own child's leftovers too (inference; checked when it is
+  built).
 
 ### The watcher
 
@@ -638,8 +670,9 @@ only.
   the lid itself and ignores the lock.
   It is tried with the 4 GB check, or in the VM.
 - **What a stale list costs.**
-  A whole unit killed leaves Ada refused at login until a restart, or
-  until the next job removes the list (the known limit above).
+  A whole unit killed leaves Ada refused at login, and her hidden Steam
+  running, until a restart, or until the next job of the helper clears
+  them (the known limit above).
 - **Disk.**
   Each update a child's Steam downloads breaks the reflink sharing for
   the files it changes, as it would at her login (ADR-0033).
@@ -661,9 +694,11 @@ only.
   child's Steam logs and manifests as the child; a watcher program; the
   launcher's Steam readers in a static library shared with it; two
   subcommands with their polkit actions, `update-steam` and
-  `stop-update`; `SystemJob` reading its input while it waits; the busy
-  word `updating` in nine places; and the button, the warning and the
-  card on the Games page.
+  `stop-update`; `SystemJob` reading its input while it waits, and
+  giving a job `TimeoutStopSec=` and `ExecStopPost=`; every mode of the
+  helper clearing what a killed update left; the busy word `updating` in
+  nine places; and the button, the warning and the card on the Games
+  page.
   `GamesPage` is past CLAUDE.md's 200 lines already, so the update gets
   classes of its own.
 - Once accepted, it amends:
@@ -675,7 +710,8 @@ only.
     reads the child's Steam logs and manifests, as the child, and writes
     none of Steam's files.
     cage also runs headless.
-    A visit is refused `updating` while an update runs.
+    A visit is refused `updating` while an update runs, and every mode
+    first clears what a killed update left.
   - **ADR-0033:** check 15, whether Steam fetches an update in the
     background before a tap, gets its answer for a Steam left running
     out of sight, from E12.

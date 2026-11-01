@@ -11,7 +11,8 @@ games replaces "no separate tick", and the planned amendment of ADR-0004
 under "What comes later" is withdrawn: the Guardian's per-child game
 allowlist stays); ADR-0048, proposed (the helper's `--update` mode runs
 the child's Steam in a headless cage and reads its logs and manifests as
-the child, and a visit is refused `updating` meanwhile)
+the child, a visit is refused `updating` meanwhile, and every mode first
+clears what a killed update left)
 
 ## Context
 
