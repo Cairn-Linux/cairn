@@ -38,6 +38,13 @@ TestCase {
         }
     }
 
+    // Stands for words of an exact height, whatever the font.
+    Component {
+        id: spacerComponent
+
+        Item {}
+    }
+
     // On the 1280 by 800 screen, unless `screenHeight` gives another
     // screen's free height.
     function makeWindow(scenario, ownSteamRunning, screenHeight) {
@@ -412,6 +419,29 @@ TestCase {
         verifyFits(window);
         standIns.resizeFromOutside(window, window.width, window.wordsHeight + 100);
         tryCompare(window, "height", window.wordsHeight);
+    }
+
+    // A window's height is whole pixels, so it is rounded up from the words
+    // and the buttons' room. Words 200 px tall and a hair more, 2^-45 px,
+    // and the buttons' 90 px add up to exactly 290 in floating point: the
+    // hair is lost in the sum. A window rounded up from that sum left the
+    // words' part a hair short of them, so they scrolled beside the bar.
+    // Here a spacer stands for such words, with the heading and the
+    // paragraphs hidden, so their height is exact in any font.
+    function test_wordsAHairOverAWholePixelFit() {
+        const window = makeWindow("open", false);
+        const content = findChild(window, "content");
+        for (const item of content.children)
+            item.visible = false;
+        const tall = 200 + Math.pow(2, -45);
+        createTemporaryObject(spacerComponent, content, {
+            "width": content.width,
+            "height": tall
+        });
+        waitForPolish(content);
+        verify(content.implicitHeight === tall, "The words are " + content.implicitHeight + " px tall, not " + tall);
+        verify(tall + window.buttonsRoom === Math.round(tall + window.buttonsRoom), "The sum keeps the hair, so this tests nothing");
+        verifyFits(window);
     }
 
     // #231: at 200% on a 1280 by 800 screen the window ran past the bottom
