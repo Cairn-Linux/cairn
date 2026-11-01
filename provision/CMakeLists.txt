@@ -2,15 +2,17 @@
 # Nothing to build; the provisioning script's guarded steps run with
 # stand-ins for the system's commands.
 
-# The copy step, the picture step, the tools step and kidscan, whose rules
-# they share, are run with python3 -I, so none is executable (ADR-0033,
-# ADR-0038, ADR-0046).
+# The copy step, the picture step, the tools step, the move step and
+# kidscan, whose rules they share, are run with python3 -I, so none is
+# executable (ADR-0033, ADR-0038, ADR-0042, ADR-0046).
 cairn_install_file(SOURCE cairn-copy-games.py DESTINATION "${CAIRN_LIBEXECDIR}" RENAME cairn-copy-games
     MODE 644)
 cairn_install_file(SOURCE cairn-game-pictures.py DESTINATION "${CAIRN_LIBEXECDIR}"
     RENAME cairn-game-pictures MODE 644)
 cairn_install_file(SOURCE cairn-share-tools.py DESTINATION "${CAIRN_LIBEXECDIR}"
     RENAME cairn-share-tools MODE 644)
+cairn_install_file(SOURCE cairn-share-games.py DESTINATION "${CAIRN_LIBEXECDIR}"
+    RENAME cairn-share-games MODE 644)
 cairn_install_file(SOURCE ../tools/kidscan/kidscan.py DESTINATION "${CAIRN_LIBEXECDIR}" MODE 644)
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
@@ -38,4 +40,10 @@ add_test(NAME game_pictures
 # it.
 add_test(NAME share_tools
     COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_share_tools.py"
+)
+# The move of a game from a Guardian's own Steam into the family folder
+# (ADR-0042). Its real moves need reflink, found as the copy step's test
+# finds it.
+add_test(NAME share_games
+    COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_share_games.py"
 )
