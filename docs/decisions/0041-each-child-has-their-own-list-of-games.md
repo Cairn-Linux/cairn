@@ -14,7 +14,8 @@ Save, and a Look, also fill a tools folder from the Guardian's Steam, and
 the copy step copies Steam's tools to a child with their new games, with
 new answer lines and sentences); ADR-0047, proposed (new answer lines,
 picture-missing and picture-refused APPID, the journal gets each step's
-own words, and the Save's window names each game without a picture)
+own words, and the Save's window names each game without a picture); the
+section "What Look for new games says" below (2026-10-31, #220, #227)
 
 ## Context
 
@@ -61,6 +62,8 @@ games on their list.**
   So no list the window read, which may be out of date or unreadable,
   is ever sent back to be written. A family whose shared folder had no games yet has
   nothing to highlight, so without it no Save could run.
+- What the window says after a Look is in the section "What Look for
+  new games says" below (2026-10-31, #220, #227).
 
 ### Games in the Guardian's own Steam
 
@@ -104,6 +107,8 @@ A later decision may replace this with a move as part of Save.
   A Save asks "A grown-up's password is needed to change which games a
   child has.", a logout "A grown-up's password is needed to log a child
   out.", and the other two keep ADR-0039's message.
+  A Look gets the Save's message, which since 2026-10-31 is true for
+  both (#220, in the section "What Look for new games says" below).
   Every action names its first argument, so pkexec never picks one by the
   path alone, whatever order polkit lists them in.
   Any other first argument falls back to pkexec's own action, which also
@@ -484,3 +489,83 @@ It moves to per-child lists when it is reinstalled from the image.
 - With one shared Steam account, two children's saves can still meet
   through Steam Cloud.
 - Dependencies: none new.
+
+## What Look for new games says (2026-10-31, #220, #227)
+
+In the user test on the test VM on 2026-10-31, Look for new games asked
+"A grown-up's password is needed to change which games a child has."
+A Look changes no child's games, so that was not true, and a careful
+parent might cancel.
+A Look is `cairn-family save-games` with no child named, and pkexec
+tells Cairn's actions apart by the command's first argument alone, so a
+Look gets the Save's message.
+Afterwards the window said only "The shared folder was read again.
+Every game in it shows on the page.", so a parent who had just installed
+a game had to search the grid for it.
+When the full games list could not be made, the window still opened
+with those two sentences, and then said that the page shows the list
+from before, so it said two things that cannot both be true (#227).
+
+**One message is true for a Look and a Save.**
+Mason chose it on 2026-10-31 (#220): "A grown-up's password is needed to
+look for new games, or to change which games a child has."
+The action's description, which KDE's password box shows under its
+details, changes with it, to "Look for new games, or change which games
+a child has".
+
+**A Look names the games it found.**
+Mason chose this on 2026-10-31 too (#220).
+After a Look that went to its end and made the full games list again,
+the window's first paragraph goes on from its opening with "New games:
+Pajama Sam 2 and Spy Fox 2.", in the full list's order, or with "No new
+games."
+A game is new when it is on the page after the Look and was not on it
+before.
+So a game on the picked child's list that had left the shared folder,
+and is back, is not named: it was on the page all along, marked no
+longer shared.
+With another child picked, it is named.
+The picture sentences of ADR-0047 follow, as before.
+`GamesSaving` keeps the games the page showed when the Look began, and
+at the end reads the full games list again, as it already did for the
+games' titles.
+A Save names no game as new, though it makes the list too: it is about
+the children's lists.
+A Look cut off before `done` says nothing about new games.
+
+**A list that could not be made is said first.**
+A Look whose full games list could not be made opens with "The shared
+folder was read again, but its list of games could not be made." (#227).
+The sentence that says the page shows the list from before stays as it
+was.
+It says nothing about new games, since which games are new is not known
+then.
+
+Tested in C++, QML and Python: a Look names each game the page did not
+show, in the full list's order, and not a game that left or one the page
+showed; a kept list, a list never said, a Look cut off before `done` and
+a Save name none; with the full list as the page read it, only a Look
+that made the list again says "No new games.", until Close; a game back
+in the shared folder is not new; the window's whole first paragraph for
+a Look that found two games, for one that found none, and for a kept
+list; and the polkit action's message and description.
+
+Checked on the test VM (cairn-iso) on 2026-10-31, with this change's
+Family program and polkit action laid over main 20ca74d's `/usr`.
+A Look and a Save each asked "A grown-up's password is needed to look for
+new games, or to change which games a child has.", and the box's details
+named the action "Look for new games, or change which games a child has".
+A Look that found nothing new opened "The shared folder was read again.
+Every game in it shows on the page. No new games."
+With Freddi Fish 2's app manifest moved out of the shared folder, a Look
+said "No new games." and its card left the grid.
+With the manifest back, the next Look said "New games: Freddi Fish 2: The
+Case of the Haunted Schoolhouse." and the card came back.
+Two games back at once were named "Arthur's Birthday and Freddi Fish 2:
+The Case of the Haunted Schoolhouse.", in the grid's order.
+With a link in place of the shared folder's `steamapps`, a Look opened
+with "The shared folder was read again, but its list of games could not
+be made.", said nothing about new games, and the journal had `catalogue
+kept`.
+Not tried there: a Look cut off before `done`, a game back in the shared
+folder that is on the picked child's list, and a Save that went ahead.

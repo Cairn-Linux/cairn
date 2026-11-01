@@ -127,8 +127,10 @@ What is here:
   `cairn-family`, the command that makes children, sets their levels and
   saves their games (`../guardian/`, ADR-0039, ADR-0041). It has one
   action for each subcommand, found by the command's path and its first
-  argument, so a Save asks "to change which games a child has" and a
-  logout "to log a child out". It asks for every change.
+  argument, so a logout asks "to log a child out". A Save and the Games
+  page's Look for new games are both `save-games`, so both ask "to look
+  for new games, or to change which games a child has" (#220). It asks
+  for every change.
 
 `tests/` checks that the labwc and logind files, the greeter's PAM file,
 the polkit rule and `cairn-give-up` say what this README promises, runs the dispatcher with
