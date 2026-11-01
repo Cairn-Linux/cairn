@@ -15,7 +15,10 @@ the copy step copies Steam's tools to a child with their new games, with
 new answer lines and sentences); ADR-0047, proposed (new answer lines,
 picture-missing and picture-refused APPID, the journal gets each step's
 own words, and the Save's window names each game without a picture); the
-section "What Look for new games says" below (2026-10-31, #220, #227)
+section "What Look for new games says" below (2026-10-31, #220, #227);
+ADR-0048, proposed (`update-steam` and `stop-update`, each with its own
+action and lines, and the held word `updating` in the Save's and the
+logout's answers)
 
 ## Context
 
