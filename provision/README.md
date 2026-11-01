@@ -252,6 +252,52 @@ none of this.
   newer build of that tool replaces it, so the folder can hold a tool the
   saving Guardian's Steam no longer has, and a child can be given it.
 
+### Moving a game into the family folder on the image
+
+A parent who installs a game the way Steam offers gets it in their own
+Steam folder, and no child can be given it from there. ADR-0042 has the
+image move such a game into the family folder,
+`/var/lib/cairn/steam-library` (the shared folder above), when the
+parent picks it for a child. Provisioning does none of this. Nothing
+runs the step yet: `cairn-family save-games` will, in ADR-0042's second
+step.
+
+- `cairn-share-games` (`cairn-share-games.py`) takes the appids of the
+  games to move. It refuses to run as root, and is meant to run as the
+  Guardian whose password opened the Save. It reads that Guardian's own
+  Steam library and each library their two lists name, except the family
+  folder.
+- A game moves only if the copy step would then copy it: Steam has fully
+  installed it, on no beta branch, with nothing downloading, every
+  account can read its files, and the family folder has neither its
+  manifest nor its folder. Steam's own tools never move, and nor does a
+  game installed in two of the Guardian's libraries. Nothing moves while
+  that Guardian's Steam is open, and only by reflink, so a game on
+  another drive stays where it is.
+- The game's folder is copied into the family folder first, and the
+  group gets the owner's bits on each file and folder, as on the folders
+  and manifests Steam keeps there (the files of the games Steam's own
+  Move put there give the group only read, ADR-0042's "First run").
+  Then its manifest is written there, the old manifest is set aside,
+  the copy and the new manifest take their names, and the original
+  goes. The order keeps a game out of two libraries at every point, and
+  a run ended anywhere is finished or undone by the next one. One ended
+  between the set-aside and the renames leaves the game in no library
+  until then. The game's Wine prefix, shader cache and workshop items
+  stay where they were.
+- Two runs never overlap: each holds a lock for the whole run, and a
+  second run waits. The lock is `steamapps/.cairn-move-lock` in the
+  family folder, a file only Guardians can open, so no child can hold it
+  and keep a Save waiting. The first run makes it, and it stays.
+- At its first move it adds the family folder to both of the Guardian's
+  library lists, `config/` and `steamapps/libraryfolders.vdf`, and keeps
+  each list as it was beside it as `libraryfolders.vdf.before-cairn`. It
+  takes the folder's `contentid` from its `libraryfolder.vdf` marker, or
+  writes one. A list that names the folder already is left alone.
+- It says only `library added`, `library had`, `moved APPID`, `shared
+  APPID`, `not-moved APPID REASON`, `refused root` or `refused appid`.
+  The program lists the reasons.
+
 ### Renumbering cairn-guardian
 
 The image gives the Guardian's window the number 465, the one its

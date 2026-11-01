@@ -345,8 +345,9 @@ only an active session at the computer.
 
 Some tests need what a container build does not have, so they skip
 themselves there: two give-up tests need user namespaces or a systemd user
-manager, seven `copy_games` tests need a folder that can reflink
-(btrfs or XFS), one `provision` test reads `sysusers.d` and
+manager, the `copy_games`, `share_tools` and `share_games` tests that
+copy by reflink need a folder that can reflink (btrfs or XFS), one
+`provision` test reads `sysusers.d` and
 `build_files/`, which the build stage does not copy, the
 `hideuserspage` and `kdepictures` tests run scripts from `build_files/`,
 and one `polkit_rules` test runs the

@@ -758,7 +758,8 @@ in. Only Putt-Putt 6 and the Activity Pack were started, because their
 
 Added 2026-10-29 for ADR-0042, which has Cairn move a game from the
 Guardian's own Steam library into the shared folder itself.
-Desk research only, and the VM's facts from the same day.
+Desk research only, and the VM's facts from 2026-10-29, 2026-10-31 and
+2026-11-01.
 Valve documents none of it.
 
 - **What the VM showed on 2026-10-29.** The maintainer installed three
@@ -770,6 +771,39 @@ Valve documents none of it.
   by reflink, with 0 bytes extra. So a reflink from `/var/lib/cairn` to
   `/var/home` works on the image. `ada`'s Steam had never been signed
   in, so whether that copy starts is still unchecked.
+- **What the VM showed on 2026-10-31** (ADR-0042 check 1, first half,
+  read over ssh as the Guardian, and `btrfs subvolume show` with sudo,
+  which it needs). Both of the Guardian's lists held the same text, mode
+  0755: Steam's own folder as entry `"0"`, and the family folder as entry
+  `"1"`, written by Steam's Storage step two days before.
+  Entry `"0"` names the real path in `/var/home`. The password database
+  gives the home as `/home/guardian`, and `/home` is a link to
+  `/var/home`, so a library has to be matched by its real path.
+  Entry `"1"` had `label` `""`, a 19-digit `contentid`, a non-zero
+  `totalsize`, `update_clean_bytes_tally` and
+  `time_last_update_verified` both at `"0"`, and an `"apps"` map whose
+  sizes are each game's `SizeOnDisk`. Neither entry had `mounted`.
+  The marker held the same `contentid` and `label` `""`, mode 0775,
+  owned by the Guardian and `cairn-guardian`. The manifests Steam wrote
+  in the family folder are mode 0775 with the folder's ACL too.
+  `/var/home` is the btrfs subvolume `home`, and `/var` a folder of the
+  subvolume `root`, on the same filesystem. A rename of a scratch file
+  between the Guardian's `~/.cache` and `/var/tmp` failed with `EXDEV`
+  both ways.
+- **What the VM showed on 2026-11-01** (ADR-0042's "First run", with
+  the move step run by hand over ssh). The files of the three games
+  Steam's own Move put in the family folder on 2026-10-29 are 0755 with
+  mask `r-x`, so the group can only read them; their folders are 2775.
+  A game moved in while the family entry's `"apps"` map lacked it, and
+  entry `"0"`'s still named it, loaded from the family folder at Steam's
+  next start with no download. Steam then wrote both maps afresh,
+  without the stale entries. With an entry Cairn wrote, whose map named
+  one game, Steam loaded all seven games it found in the folder. It kept
+  the entry at its next two starts, and wrote it with the filesystem's
+  size as `totalsize`, its two extra keys and a map of every game. A game
+  played from the family folder left Steam Cloud's
+  `steam_autocloud.vdf`, which holds the player's Steam account id, in
+  the game's `Saves` folder, where every account can read it.
 - **A manifest is what makes a game installed.** Steam knows a library's
   games from its `appmanifest_<appid>.acf` files, whose `installdir`
   names the folder under `common/` ("How Steam keeps its list of
@@ -781,16 +815,15 @@ Valve documents none of it.
   find-steam-app package says the list "syncs only on start". A game's
   manifest names no library: the copy step writes the shared manifest,
   unchanged, into a child's library.
-- **The `"apps"` map is not needed for a game to load, in Steam's own
-  folder.** The copy step puts a manifest and its folder into a child's
-  own library, entry `"0"`, and never touches the child's
-  `libraryfolders.vdf`. Steam showed the copy as installed and started
-  it, with no download (check 7). At its next start each Steam also
-  wrote back its own library list (check 5). Whether a new entry other
-  than `"0"`, with an `"apps"` map that lacks a game, loads that game the
-  same way is still untested. So is what Steam does with a stale entry
-  in the old library's map, though the parsers above say Steam itself
-  treats the map as a cache.
+- **The `"apps"` map is not needed for a game to load.** The copy step
+  puts a manifest and its folder into a child's own library, entry
+  `"0"`, and never touches the child's `libraryfolders.vdf`. Steam
+  showed the copy as installed and started it, with no download (check
+  7). At its next start each Steam also wrote back its own library list
+  (check 5). A new entry other than `"0"`, with an `"apps"` map that
+  lacks a game, loads that game the same way, and Steam drops a stale
+  entry from the old library's map, as the parsers above expect of a
+  cache (2026-11-01, above).
 - **A hand-written entry has worked.** On the kids' laptop on
   2026-10-07 a script wrote the shared folder into each account's
   `steamapps/libraryfolders.vdf` as entry `"1"`, with an `"apps"` map
