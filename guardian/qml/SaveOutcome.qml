@@ -5,10 +5,10 @@ import Cairn.Brand
 import Cairn.Family
 
 // What a Save on the Games page is doing, then what it did for each child,
-// which games have no picture and what helps (ADR-0047), or why nothing was
-// saved, in the house's plain sentences (ADR-0041). The Save's progress
-// window shows it. GamesSaving decides every value; this only picks the
-// words for it.
+// which games a look found, which games have no picture and what helps
+// (ADR-0047), or why nothing was saved, in the house's plain sentences
+// (ADR-0041). The Save's progress window shows it. GamesSaving decides
+// every value; this only picks the words for it.
 Column {
     id: box
 
@@ -62,15 +62,23 @@ Column {
     }
 
     // A Save that could not give every child every new game never opens
-    // by saying that each child sees their games. What a child sees of a
-    // game without a picture is said once, and the system log is named
-    // once, last, so nothing runs on from the command.
+    // by saying that each child sees their games, and a look whose games
+    // list could not be made never opens by saying every game shows. A look
+    // that made it names the games it found, or says there are none. What
+    // a child sees of a game without a picture is said once, and the system
+    // log is named once, last, so nothing runs on from the command.
     function savedSentence() {
         const said = [qsTr("Saved. Each child sees their games the next time they log in.")];
-        if (box.saving.kind === GamesSaving.Look)
+        if (box.saving.kind === GamesSaving.Look && box.saving.catalogueKept)
+            said[0] = qsTr("The shared folder was read again, but its list of games could not be made.");
+        else if (box.saving.kind === GamesSaving.Look)
             said[0] = qsTr("The shared folder was read again. Every game in it shows on the page.");
         else if (!box.saving.allGiven)
             said[0] = qsTr("Saved, but not every new game could be given. The sentences below say what each child has now, and what comes next.");
+        if (box.saving.newGames !== "")
+            said.push(qsTr("New games: %1.").arg(box.saving.newGames));
+        else if (box.saving.noNewGames)
+            said.push(qsTr("No new games."));
         if (box.saving.picturesKept)
             said.push(qsTr("The game pictures could not all be copied from your own Steam this time, so a game without one shows its name on a child's screen. Pictures copied before stay. Pressing Look for new games tries again."));
         if (box.saving.picturesMissing !== "")

@@ -231,8 +231,9 @@ closed while a game moves, and Save asks the parent first.**
 ### The root side
 
 - `cairn-family save-games` keeps its arguments, polkit action and
-  password message ("A grown-up's password is needed to change which
-  games a child has."), so ADR-0039's one root command still holds.
+  password message ("A grown-up's password is needed to look for new
+  games, or to change which games a child has.", since #220), so
+  ADR-0039's one root command still holds.
 - After `looking`, it takes every appid newly ticked for any child that
   the full games list does not have, and runs the move step with them as
   a system job, as the Guardian, under the same `systemd-inhibit` lock

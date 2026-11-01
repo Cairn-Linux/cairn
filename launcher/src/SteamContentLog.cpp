@@ -54,7 +54,7 @@ void SteamContentLog::startLaunch(const QString& appId) {
     m_tail.skipToEnd();
 }
 
-void SteamContentLog::read() {
+void SteamContentLog::read(const QDateTime& now) {
     if (m_appId.isEmpty()) {
         return;
     }
@@ -83,7 +83,7 @@ void SteamContentLog::read() {
         }
         const bool offSchedule =
             app == m_appId && line.contains(" scheduler finished : removed from schedule ");
-        m_offSchedule = offSchedule ? SteamLaunchLog::timeOf(line) : std::nullopt;
+        m_offSchedule = offSchedule ? SteamLaunchLog::timeOf(line, now) : std::nullopt;
     }
 }
 

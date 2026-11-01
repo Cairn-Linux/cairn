@@ -49,9 +49,9 @@ public:
 
     // A Steam tile was pressed: only what the log gains from now counts.
     void startLaunch(const QString& appId);
-    // Reads what the log has gained since last time and says where the
-    // launch has got to. The last line about the game decides.
-    Step read();
+    // Reads what the log has gained since last time, at `now`, and says
+    // where the launch has got to. The last line about the game decides.
+    Step read(const QDateTime& now);
     // Since the tap, Steam's log has named `-applaunch <appid>`: Steam took
     // the tap. As of the last read().
     bool reachedSteam() const;
@@ -81,9 +81,16 @@ public:
     static Step stepOf(const QByteArray& line, const QString& appId);
     // `console_log.txt` in the child's own Steam folder.
     static QString defaultPath();
-    // The local time a line of Steam's logs starts with, such as
-    // `[2026-10-20 21:32:29]`, or nothing.
-    static std::optional<QDateTime> timeOf(const QByteArray& line);
+    // The moment a line of Steam's logs starts with, such as
+    // `[2026-10-20 21:32:29]`, for a line read at `now`, or nothing. Steam
+    // writes the local time with no zone, so in the hour that comes twice
+    // when the clocks go back, each time means two moments an hour apart.
+    // A line is written before it is read, so it is the later of them
+    // unless that comes after the read, and then the earlier, also when
+    // both do, as after the clock was set back (#248). The read counts as
+    // ending two seconds after `now`, since Steam can write a line while
+    // its logs are read.
+    static std::optional<QDateTime> timeOf(const QByteArray& line, const QDateTime& now);
 
 private:
     LogTail m_tail;

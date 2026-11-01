@@ -35,8 +35,8 @@ public:
     // Only what the log gains from now counts: at a tap, and again when Steam
     // is started again. Empty for anything but a Steam game.
     void startLaunch(const QString& appId);
-    // Reads what the log has gained since last time.
-    void read();
+    // Reads what the log has gained since last time, at `now`.
+    void read(const QDateTime& now);
     // When Steam took the game off its schedule, if that is the last thing it
     // did for the launch and none of the launch's downloads still runs, as of
     // the last read(); otherwise nothing.

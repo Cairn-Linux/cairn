@@ -1390,7 +1390,7 @@ TestCase {
         showGames(window);
         mouseClick(findChild(window, "lookForGames"));
         tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
-        compare(saveOutcome(window), "The shared folder was read again. Every game in it shows on the page. " + missingSentence("A game with a long name that will not fit on one line"));
+        compare(saveOutcome(window), "The shared folder was read again. Every game in it shows on the page. No new games. " + missingSentence("A game with a long name that will not fit on one line"));
     }
 
     // A picture Cairn could not use is not mended by opening Steam, so it
@@ -1402,7 +1402,7 @@ TestCase {
         showGames(window);
         mouseClick(findChild(window, "lookForGames"));
         tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
-        compare(saveOutcome(window), "The shared folder was read again. Every game in it shows on the page. Cairn could not use your own Steam's picture for A game with a long name that will not fit on one line. On a child's screen a game without a picture shows its name instead. The system log says why. In a terminal: journalctl -t cairn-family");
+        compare(saveOutcome(window), "The shared folder was read again. Every game in it shows on the page. No new games. Cairn could not use your own Steam's picture for A game with a long name that will not fit on one line. On a child's screen a game without a picture shows its name instead. The system log says why. In a terminal: journalctl -t cairn-family");
     }
 
     // A picture step that did not go to its end gets one sentence, and
@@ -1452,7 +1452,7 @@ TestCase {
         showGames(window);
         mouseClick(findChild(window, "lookForGames"));
         tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
-        compare(saveOutcome(window), "The shared folder was read again. Every game in it shows on the page.");
+        compare(saveOutcome(window), "The shared folder was read again. Every game in it shows on the page. No new games.");
     }
 
     // Each game copied is named as it comes.
@@ -1626,6 +1626,17 @@ TestCase {
                 "tag": "a tool left out",
                 "scenario": "save-tools-left-out",
                 "look": false
+            },
+            {
+                "tag": "a look that found new games",
+                "scenario": "save-done",
+                "look": true,
+                "installed": ["Pajama Sam 2", "Spy Fox 2", "Freddi Fish 2", "Putt-Putt Saves the Zoo"]
+            },
+            {
+                "tag": "a look whose list was kept",
+                "scenario": "save-catalogue-kept",
+                "look": true
             }
         ];
     }
@@ -1635,6 +1646,8 @@ TestCase {
             "gamesScenario": data.scenario
         });
         showGames(window);
+        if (data.installed)
+            standIns.installSharedGames(data.installed);
         if (!data.look)
             mouseClick(card(window, 1));
         mouseClick(findChild(window, data.look ? "lookForGames" : "saveButton"));
@@ -1682,7 +1695,7 @@ TestCase {
         showGames(window);
         mouseClick(findChild(window, "lookForGames"));
         tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
-        compare(saveOutcome(window), "The shared folder was read again. Every game in it shows on the page.");
+        compare(saveOutcome(window), "The shared folder was read again. Every game in it shows on the page. No new games.");
         compare(findChild(window, "saveProgressHeading").text, "Looking for new games");
         // It names no child, so it says nothing about any child's list.
         compare(findChild(window, "saveResults").count, 0);
@@ -1698,6 +1711,32 @@ TestCase {
         keyClick(Qt.Key_Down);
         keyClick(Qt.Key_PageDown);
         compare(words.contentY, 0, "Words that fit moved");
+    }
+
+    // A look names each game the page did not show before it, so a parent
+    // who has just installed one need not search the grid for it (#220).
+    function test_aLookNamesTheGamesItFound() {
+        const window = makeWindow("done", {
+            "gamesScenario": "save-done"
+        });
+        showGames(window);
+        standIns.installSharedGames(["Pajama Sam 2", "Spy Fox 2"]);
+        mouseClick(findChild(window, "lookForGames"));
+        tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
+        compare(saveOutcome(window), "The shared folder was read again. Every game in it shows on the page. New games: Pajama Sam 2 and Spy Fox 2.");
+        compare(window.gamesPage.sharedCount, 10);
+    }
+
+    // A look whose games list could not be made says so first, never that
+    // every game shows, and names no game as new (#227).
+    function test_aLookWhoseListWasKeptSaysSoFirst() {
+        const window = makeWindow("done", {
+            "gamesScenario": "save-catalogue-kept"
+        });
+        showGames(window);
+        mouseClick(findChild(window, "lookForGames"));
+        tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
+        compare(saveOutcome(window), "The shared folder was read again, but its list of games could not be made. The list of shared games could not be made again, so the page shows the one from before. The system log says why. In a terminal: journalctl -t cairn-family");
     }
 
     // While a look runs, the page speaks of looking, never of saving, and

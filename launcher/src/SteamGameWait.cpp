@@ -43,7 +43,7 @@ bool SteamGameWait::stillComing() {
         return false;
     }
     const QDateTime now = QDateTime::currentDateTime();
-    m_log.read();
+    m_log.read(now);
     m_lastStep = m_questions.read(m_log);
     m_steamNow = m_startup.read(now);
     m_stallNow = m_stall.read(m_log, m_steamNow, now);
@@ -53,11 +53,11 @@ bool SteamGameWait::stillComing() {
     // stopped getting the game ready: what it still needs must come from them.
     const bool needsServers =
         m_lastStep == SteamLaunchLog::Step::Nothing || m_stallNow == SteamStall::Now::Stalled;
-    m_signInNow = needsServers ? m_signIn.read() : SteamSignIn::Now::Fine;
+    m_signInNow = needsServers ? m_signIn.read(now) : SteamSignIn::Now::Fine;
     // Logging the child out frees a game the cloud question holds, but only
     // once Steam has signed in again (#211, ADR-0045).
     m_logOutFreesHeldGame =
-        m_questions.heldByCloudQuestion() && m_signIn.read() == SteamSignIn::Now::Fine;
+        m_questions.heldByCloudQuestion() && m_signIn.read(now) == SteamSignIn::Now::Fine;
     if (m_signInNow == SteamSignIn::Now::Refused ||
         (m_stallNow == SteamStall::Now::Stuck && !newReaper())) {
         return false;

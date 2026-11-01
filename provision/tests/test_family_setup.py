@@ -16,7 +16,7 @@ import shlex
 import tempfile
 import unittest
 
-from test_provision import GROUP_GETENT, GROUP_NUMBERS, getent_stub, id_stub, run_steps
+from test_provision import GROUP_GETENT, GROUP_NUMBERS, SECRET, getent_stub, id_stub, run_steps
 
 HERE = pathlib.Path(__file__).resolve().parent.parent
 FAMILY = HERE / "cairn-family-setup.sh"
@@ -415,6 +415,85 @@ class FlatpakTest(Scenario):
         code, output, _ = self.run_script("install_flatpaks\necho after")
         self.assertNotEqual(code, 0, output)
         self.assertNotIn("after", output.splitlines())
+
+
+def root_id_stub(accounts):
+    """id_stub for a run as root: `id -u` with no account answers 0."""
+    root = '[ "$*" != -u ] || { echo 0; exit 0; }\n'
+    return id_stub(accounts).replace("#!/bin/bash\n", "#!/bin/bash\n" + root, 1)
+
+
+class PasswordRunTest(Scenario):
+    """The family's whole run, from its first check to the Flatpaks, with a
+    recognisable fake password for the Guardian in CAIRN_GUARDIAN_PASSWORD
+    (#103). Every command that would change the computer is a stand-in,
+    and every folder the run writes is in the temporary folder."""
+
+    def setUp(self):
+        super().setUp()
+        repo = self.state / "repo"
+        prefix = self.state / "prefix"
+        libexec = prefix / "libexec" / "cairn"
+        libexec.mkdir(parents=True)
+        # The image's helpers are the checkout's own, so check_checkout passes.
+        for source, installed in CheckoutTest.FILES.items():
+            (repo / source).parent.mkdir(parents=True, exist_ok=True)
+            (repo / source).write_text(f"{installed}\n")
+            (libexec / installed).write_text(f"{installed}\n")
+        command = libexec / "cairn-family"
+        command.write_text(FAMILY_STAND_IN)
+        command.chmod(0o755)
+        self.groups("".join(f"{group}:x:{number}:\n" for group, number in (
+            ("cairn-l1", 461), ("cairn-l2", 462), ("cairn-l3", 463), ("cairn-l4", 464),
+            ("cairn-guardian", 465))))
+        for name in ("groupadd", "chown", "chmod", "getfacl", "setfacl", "restorecon"):
+            self.stubs[name] = logger(name)
+        # Neither app is there yet, and both install.
+        self.stubs["flatpak"] = logger("flatpak") + '[ "$1" != info ]\n'
+        # FAMILY_COMMAND was made from PREFIX when the script was loaded, so
+        # it is set again with it.
+        folders = {
+            "REPO": repo, "PREFIX": prefix, "FAMILY_COMMAND": command,
+            "APPS": self.state / "applications", "SHARED_LIBRARY": self.state / "steam-library",
+            "GAME_PICTURES": self.state / "game-pictures", "GAMES_FILE": self.state / "games.json",
+            "GAME_LISTS": self.state / "games",
+        }
+        self.folders = "".join(f"{name}={shlex.quote(str(path))}\n" for name, path in folders.items())
+
+    def run_family(self, accounts=None):
+        """main, as root. Returns (code, output, every line the stand-ins logged)."""
+        self.stubs["id"] = root_id_stub(accounts or {})
+        mark = shlex.quote(str(self.mark))
+        code, output, calls = run_steps(
+            f"IMAGE_MARK={mark}\nGROUP_NUMBERS={mark}\n{self.folders}main --guardian gina --child ada",
+            env_extra={"STATE": str(self.state), "CAIRN_GUARDIAN_PASSWORD": SECRET},
+            extra_stubs=self.stubs, script=FAMILY,
+        )
+        more = self.state / "calls"
+        return code, output, calls + (more.read_text() if more.exists() else "")
+
+    def test_a_new_guardians_password_reaches_only_chpasswd(self):
+        code, output, calls = self.run_family()
+        self.assertEqual(code, 0, output)
+        self.assertIn("done: ", output)
+        self.assertNotIn(SECRET, output)
+        self.assertIn(f"chpasswd stdin: gina:{SECRET}", calls.splitlines())
+        for line in calls.splitlines():
+            if not line.startswith("chpasswd stdin:"):
+                self.assertNotIn(SECRET, line)
+        # The trace was on before the password step, and is on again after it.
+        self.assertIn("+ useradd --create-home --groups wheel gina", output)
+        self.assertIn("+ make_children", output)
+
+    def test_an_existing_guardians_run_never_prints_it(self):
+        # The step does not run, so the variable stays set for the whole run,
+        # and no stand-in may be given it either.
+        code, output, calls = self.run_family({"gina": (1001, ["gina", "wheel", "cairn-guardian"])})
+        self.assertEqual(code, 0, output)
+        self.assertIn("done: ", output)
+        self.assertNotIn(SECRET, output)
+        self.assertNotIn(SECRET, calls)
+        self.assertNotIn("chpasswd", calls)
 
 
 # getfacl's dump: the old number in entries that must move, and in places

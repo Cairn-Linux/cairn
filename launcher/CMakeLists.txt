@@ -162,6 +162,25 @@ target_include_directories(tst_steamlaunchlog PRIVATE src)
 target_link_libraries(tst_steamlaunchlog PRIVATE Qt6::Core Qt6::Test)
 add_test(NAME steamlaunchlog COMMAND tst_steamlaunchlog)
 
+# The moment a time in Steam's logs means where the clocks change, and what
+# each reader of those logs makes of it (#248). CTest sets the zone for this
+# program alone, before it starts, so no other test runs in it and nothing
+# changes the zone while Qt runs. The zone is Mountain time as a POSIX rule,
+# which needs no time-zone database: the image's build stage may run the
+# tests where there is none. Run in any other zone, the program skips, and
+# CTest shows it as skipped.
+qt_add_executable(tst_steamlogtime tests/tst_steamlogtime.cpp src/SteamLaunchLog.h
+    src/SteamLaunchLog.cpp src/SteamContentLog.h src/SteamContentLog.cpp src/SteamStall.h
+    src/SteamStall.cpp src/SteamStartup.h src/SteamStartup.cpp src/SteamSignIn.h
+    src/SteamSignIn.cpp src/LogTail.h src/LogTail.cpp)
+target_include_directories(tst_steamlogtime PRIVATE src)
+target_link_libraries(tst_steamlogtime PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME steamlogtime COMMAND tst_steamlogtime)
+set_tests_properties(steamlogtime PROPERTIES
+    ENVIRONMENT "TZ=MST7MDT,M3.2.0,M11.1.0"
+    SKIP_REGULAR_EXPRESSION "SKIP   : "
+)
+
 qt_add_executable(tst_steamcontentlog tests/tst_steamcontentlog.cpp src/SteamContentLog.h
     src/SteamContentLog.cpp src/SteamLaunchLog.h src/SteamLaunchLog.cpp src/LogTail.h src/LogTail.cpp)
 target_include_directories(tst_steamcontentlog PRIVATE src)
@@ -308,3 +327,9 @@ add_test(NAME navigation COMMAND tst_navigation)
 set_tests_properties(tilemodel manifest tilefiles applauncher appscope launchwindows giveupwatch steamatlogin steamrestart gridscroller closerequest logout batterylook upowerdevice foreignwindowlist tokens_loaded doorsfromtiles navigation PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QML_IMPORT_PATH=${QT_QML_OUTPUT_DIRECTORY}"
 )
+
+# These two write Steam's log lines from the clock, and the code they test
+# reads the clock itself. In UTC no hour comes twice or is skipped, so they
+# pass at any hour of the year; the hours the clocks change in have a test
+# of their own (steamlogtime, #248). APPEND keeps the settings above.
+set_property(TEST applauncher steamgamewait APPEND PROPERTY ENVIRONMENT "TZ=UTC")
