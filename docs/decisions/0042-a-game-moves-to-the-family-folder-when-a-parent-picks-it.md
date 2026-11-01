@@ -5,8 +5,8 @@
 overturns a bullet of the Decision.
 **Date:** 2026-10-29
 **Closes:** (none) — the Games page of issue #167 and the parent's set-up
-step in #130; part of ROADMAP P1-5. Once accepted, amends ADR-0033 and
-ADR-0041.
+step in #130; part of ROADMAP P1-5. Once accepted, amends ADR-0033,
+ADR-0038 and ADR-0041.
 **Amended by:** ADR-0046, proposed (a Save also fills the tools folder
 from the Guardian's Steam, as the Guardian, after the children's lists
 lose the games taken off and before the first copy, so after any move);
@@ -141,8 +141,10 @@ closed while a game moves, and Save asks the parent first.**
   `cp -R --reflink=always --preserve=timestamps`, and keeps no mode or
   ACL from the source. Each new file and folder then takes the family
   folder's default ACL and setgid bit, and its run bits from the
-  source's mode, as Steam's own install there would. It takes no
-  extra disk, and a few seconds even for a large game. If the filesystem
+  source's mode. The step then gives the group the owner's bits on each
+  of them, so the group can write them, as it can Steam's own installs
+  there, and another Guardian's Steam can update the game too. It takes
+  no extra disk, and a few seconds even for a large game. If the filesystem
   cannot reflink, as for a library on another drive, the game does not
   move: Cairn never fills the disk with a full copy, as the copy step
   never does.
@@ -166,14 +168,23 @@ closed while a game moves, and Save asks the parent first.**
   manifest, and puts the set-aside manifest back. A Steam started
   meanwhile sees the game in one library or, between steps 3 and 4, in
   none, until it starts again.
+  If a rename fails, the step undoes what it did, and puts the set-aside
+  manifest back only once the temporary family manifest is gone, so no
+  later run can finish the move as well.
+  Two runs never overlap: each holds a lock on the family folder's
+  `steamapps/` for the whole run.
 - **Which games.** A game moves only if the copy step would then copy
   it: the same rules, read once from the one manifest. Its appid is a
   number, its `installdir` is one plain folder name, its `StateFlags` is
-  exactly 4, it is not on a beta branch, and `downloading/` has nothing
-  for it. Every file in it can be read by every account, since the
-  copy step runs as the child. The family folder must have neither a
-  manifest nor a `common/<installdir>` for it. Otherwise the game stays
-  where it is, with a reason.
+  exactly 4, it is not on a beta branch, and neither its library's
+  `downloading/` nor the family folder's has anything for it. Every file
+  in it can be read by every account, since the copy step runs as the
+  child. The family folder must have neither a manifest nor a
+  `common/<installdir>` for it. Otherwise the game stays where it is,
+  with a reason.
+  One of Steam's own tools never moves, since kidscan does not count it
+  as a game. Nor does a game installed in two of the Guardian's
+  libraries, which would stay installed in the other.
 - **As the Guardian.** The step runs as the Guardian whose password
   opened the Save (`PKEXEC_UID`), never as root. The Guardian owns the
   game's files in their own home, and the family folder is writable by
@@ -321,11 +332,16 @@ closed while a game moves, and Save asks the parent first.**
    the library-list entry and its marker, and the Steam-open guard.
    It lands alone, as the copy step did, since it writes in a Guardian's
    home.
+   Mason settled its open points on 2026-10-31: the Wine prefix stays
+   behind, a game on another drive stays put with `other-drive`, Cairn
+   writes the folder's marker when it has none, and nothing moves back.
+   Landed 2026-11-01, with no caller yet.
 2. **`cairn-family save-games` runs it,** with the new lines, as a system
    job under the inhibitor lock, with tests in `tst_gamessave`.
 3. **The Games page lists the Guardian's own Steam,** asks to close Steam,
-   says what moved, and drops the interim note; `docs/TRY.md`,
-   `guardian/README.md` and `provision/README.md` change with it.
+   says what moved, and drops the interim note; `docs/TRY.md` and
+   `guardian/README.md` change with it, and `provision/README.md` then
+   says what runs the step.
 
 ### Checks in the VM
 
@@ -338,6 +354,9 @@ different levels:
    `btrfs subvolume show` for the Guardian's home and `/var/lib/cairn`,
    and a test file moved between scratch folders in each, to confirm the
    `EXDEV`.
+   Its first half was read on 2026-10-31 (the research note's "What the
+   VM showed on 2026-10-31"); the comparison waits for an entry Cairn
+   wrote.
 2. **The first move.** On a Guardian whose list does not name the family
    folder, pick a game in `~/.local/share/Steam` for `ada` with Steam
    open. The window asks, closes Steam, moves the game and copies it to

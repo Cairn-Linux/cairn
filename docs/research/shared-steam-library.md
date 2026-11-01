@@ -770,6 +770,24 @@ Valve documents none of it.
   by reflink, with 0 bytes extra. So a reflink from `/var/lib/cairn` to
   `/var/home` works on the image. `ada`'s Steam had never been signed
   in, so whether that copy starts is still unchecked.
+- **What the VM showed on 2026-10-31** (ADR-0042 check 1, first half,
+  read over ssh as the Guardian). Both of the Guardian's lists held the
+  same text, mode 0755: Steam's own folder as entry `"0"`, and the family
+  folder as entry `"1"`, written by Steam's Storage step two days before.
+  Entry `"0"` names the real path in `/var/home`. The password database
+  gives the home as `/home/guardian`, and `/home` is a link to
+  `/var/home`, so a library has to be matched by its real path.
+  Entry `"1"` had `label` `""`, a 19-digit `contentid`, a non-zero
+  `totalsize`, `update_clean_bytes_tally` and
+  `time_last_update_verified` both at `"0"`, and an `"apps"` map whose
+  sizes are each game's `SizeOnDisk`. Neither entry had `mounted`.
+  The marker held the same `contentid` and `label` `""`, mode 0775,
+  owned by the Guardian and `cairn-guardian`. Steam's own files in the
+  family folder are mode 0775 with the folder's ACL.
+  `/var/home` is the btrfs subvolume `home`, and `/var` a folder of the
+  subvolume `root`, on the same filesystem. A rename of a scratch file
+  between the Guardian's `~/.cache` and `/var/tmp` failed with `EXDEV`
+  both ways.
 - **A manifest is what makes a game installed.** Steam knows a library's
   games from its `appmanifest_<appid>.acf` files, whose `installdir`
   names the folder under `common/` ("How Steam keeps its list of

@@ -13,7 +13,9 @@ boot screen); ADR-0046, proposed (tmpfiles also makes
 cairn-share-tools, in /usr/libexec/cairn, and the family's setup also
 compares it with the checkout); ADR-0043, proposed (the build leaves
 only KDE's own pictures in /usr/share/plasma/avatars and removes
-Bazzite's copies of game art from /usr/share/pixmaps/faces)
+Bazzite's copies of game art from /usr/share/pixmaps/faces); ADR-0042,
+proposed (the build installs the move step, cairn-share-games, in
+/usr/libexec/cairn)
 
 ## Context
 
