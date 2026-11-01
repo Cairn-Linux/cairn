@@ -2,10 +2,11 @@
 
 **Status:** proposed. Mason decided on 2026-10-30 to build #181's
 button, and on 2026-10-31 answered the plan's seven questions, each as
-the plan recommended. It becomes accepted when the checks E11 to E16
-under "Checks in the VM" have run in the cairn-iso VM without
-overturning a bullet of the Decision (E11 only if memory is tight), and
-the 4 GB check has run for answer 5.
+the plan recommended. It becomes accepted when the checks under "Before
+anything is built" have run without overturning a bullet of the Decision
+(E11 only if memory is tight), with what E12 and E13 found written into
+"Updates Steam puts off", and when the pieces, once built, have passed
+the checks under "Once the pieces are built".
 **Date:** 2026-11-01
 **Closes:** (none) — part of issue #181, its piece after ADR-0046; part of
 ROADMAP P1-5 and P1-13. Once accepted, amends ADR-0027, ADR-0032,
@@ -276,7 +277,7 @@ the card writes.
   Nothing it runs may end because nobody reads its lines.
 - A Family window opened again later learns from systemd that the
   update's unit runs (inference: systemd tells any account a unit's
-  state).
+  state; check 7 under "Once the pieces are built").
   It shows "Ada's Steam is being updated." with **Stop**, and no
   progress in the first version.
   That Stop asks for the password again (answer 1).
@@ -452,7 +453,8 @@ copy and the logout.
   The image's default is 15 s, shorter than E16(a)'s close of 26 s.
   Without a limit of its own, systemd would kill the helper halfway
   through the close after Stop or at the time limit, and the release
-  halfway through its own (inference; checked when it is built).
+  halfway through its own (inference; checks 2 and 3 under "Once the
+  pieces are built").
 - **Known limit (E17(b)).**
   When the whole unit is killed, by hand or perhaps by systemd-oomd,
   which kills whole groups of processes, systemd kills the
@@ -471,8 +473,8 @@ copy and the logout.
   If a program of that child's would not end, both stay until a
   restart.
   A new update for the same child runs under a new invocation id, so it
-  clears its own child's leftovers too (inference; checked when it is
-  built).
+  clears its own child's leftovers too (inference; check 4 under "Once
+  the pieces are built").
 
 ### The watcher
 
@@ -737,9 +739,12 @@ only.
   `setpriv` are in the image, the watcher is C++ with Qt, and the shared
   library is a CMake change.
 
-## Checks in the VM
+## Checks
 
-In cairn-iso, with the test child `ada`.
+### Before anything is built
+
+E11 to E16 and the sleep check run in cairn-iso, with the test child
+`ada`, and the 4 GB check on a computer with 4 GB.
 Each run starts from a snapshot, with `ada` logged out, her Steam signed
 in, and a note of where each of her Steam logs ended.
 For a **stale tool T**, a reflink copy of each of `ada`'s four tools,
@@ -861,6 +866,44 @@ hers, owned by her and labelled again.
   which need a newer build of a tool from Valve; E15, which needs an
   update of Steam itself, Valve's next or a forced one; the 4 GB check;
   and the sleep check.
+
+### Once the pieces are built
+
+In cairn-iso, with an image built from the pieces, the Guardian logged
+in to Plasma, `ada` and a second child.
+
+1. **A run to its end:** the card's stage lines and a result, Cairn in
+   `systemd-inhibit --list` meanwhile, and Ada able to log in at once
+   afterwards.
+2. **Stop**, during a download, and again with `ada`'s network cut, as
+   in E16(a), whose close took 26 s.
+   Passes when the card gives Stop's sentence, nothing of `ada`'s is
+   left, and she can log in at once.
+3. **The release:** the helper's main process killed (`kill -KILL`)
+   mid-run.
+   Passes when the release ends `ada`'s hidden Steam and frees the list,
+   the card gives the sentence for `failed`, and she can log in.
+4. **A killed unit** (`systemctl kill -s KILL`) mid-run: `ada` stays
+   refused, and her hidden Steam runs on.
+   Then a Save for the second child.
+   Passes when its copy closes `ada`'s Steam and frees the list first,
+   and she can log in afterwards.
+5. **A refused press:** with the second child's visit open, an update
+   for `ada` is held `busy`.
+   Passes when the visit's Steam carries on, and the second child is
+   still refused at login until the visit closes.
+6. **`updating`:** during `ada`'s update, a Save holds the second
+   child's copy `updating`, and **Log out** and **Open Steam** for the
+   second child each say that a child's Steam is being updated.
+7. **The window:** closed and opened again mid-run, it shows "Ada's
+   Steam is being updated." with **Stop**, which asks for the password
+   and lets Ada in.
+   The update also runs on after the Guardian logs out.
+8. **The results** the VM can bring about: no internet; a Steam never
+   signed in, with E16(b)'s child; too little space before the start;
+   and, on a laptop, on battery.
+   `journalctl -t cairn-family -t cairn-steam-visit` shows the same
+   words, and no Steam name or path.
 
 ## Alternatives considered
 
