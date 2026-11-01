@@ -58,7 +58,10 @@
 // A question on a hidden window holds its game across taps, also after
 // Steam signs in again (#211). A later tap on that game that Steam takes
 // without a step is the same question, so it ends as the first one did,
-// with the same reason (SteamQuestions).
+// with the same reason (SteamQuestions). When it is the question about the
+// game's cloud saves and Steam has signed in again, logging the child out
+// frees the game, so the journal and the grown-up screen say so too
+// (ADR-0045).
 class SteamGameWait {
 public:
     explicit SteamGameWait(QString processRoot = QStringLiteral("/proc"),
@@ -104,9 +107,11 @@ public:
     // client gets a work limit and an offline wait of its own. Whichever tap
     // it was for, the questions the old client asked went with it.
     void steamRestarted(bool started);
-    // Logging the child out and back in would help, and Steam's logs gave no
-    // other reason at the last stillComing(): the journal's note is the
-    // stall's.
+    // Logging the child out and back in would help, at the last
+    // stillComing(): Steam stopped getting the game ready and its logs gave
+    // no other reason, so the journal's note is the stall's (#206); or
+    // Steam, signed in again, still holds the game behind its cloud question
+    // from an earlier tap (#211).
     bool logOutWouldHelp() const;
     // What Steam's log said at the last stillComing(), for the journal. A tap
     // Steam took without a step, on a game it still holds behind a question
@@ -147,6 +152,9 @@ private:
     SteamStartup::Now m_steamNow = SteamStartup::Now::Ready;
     SteamSignIn::Now m_signInNow = SteamSignIn::Now::Fine;
     SteamStall::Now m_stallNow = SteamStall::Now::Fine;
+    // At the last stillComing(), Steam held the game behind its cloud
+    // question from an earlier tap and had signed in again (#211).
+    bool m_logOutFreesHeldGame = false;
     bool m_sentAgain = false;
     QElapsedTimer m_sinceSteamStarted;
     // Since the tap, or since Steam was started again for it: the work limit

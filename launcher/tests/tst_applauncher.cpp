@@ -1010,7 +1010,10 @@ private slots:
     // saves on a window the kiosk hides and kept the question. Each later
     // tap, even once Steam had signed in again, made it write only the tap's
     // own line. Each of those taps ends at its first look and names the
-    // question in the journal too, with no line on the grown-up screen.
+    // question in the journal too. Once Steam has signed in again, the
+    // grown-up screen also says to log out and back in, which frees the
+    // game; not at the tap that met the question, nor while Steam is still
+    // offline, nor for the next tile that is not a Steam game (ADR-0045).
     void aGameHeldByAQuestionSaysSoAtEveryTap() {
         const QTemporaryDir dir;
         QVERIFY(dir.isValid());
@@ -1025,12 +1028,21 @@ private slots:
 
         AppLauncher launcher(this);
         launcher.setLaunchGraceMilliseconds(200);
-        for (int tap = 0; tap < 3; ++tap) {
+        for (int tap = 0; tap < 2; ++tap) {
             QTest::ignoreMessage(QtWarningMsg, "Steam is waiting for an answer about Pajama Sam 2 "
                                                "on a window the kiosk hides.");
             QTest::ignoreMessage(QtWarningMsg,
                                  "Nothing of Pajama Sam 2 came on the screen in time.");
         }
+        for (int tap = 0; tap < 2; ++tap) {
+            QTest::ignoreMessage(QtWarningMsg,
+                                 "Steam is waiting for an answer about Pajama Sam 2 on a window "
+                                 "the kiosk hides. Log the child out and back in, then try it "
+                                 "again.");
+            QTest::ignoreMessage(QtWarningMsg,
+                                 "Nothing of Pajama Sam 2 came on the screen in time.");
+        }
+        QTest::ignoreMessage(QtWarningMsg, "Nothing of Draw came on the screen in time.");
         const QString console = QStringLiteral("console_log.txt");
         steamLogs(console, 0, "LogonFailure No Connection");
         launcher.launch(QStringLiteral("Pajama Sam 2"), pajamaSam2());
@@ -1041,18 +1053,34 @@ private slots:
         QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::None);
         launcher.dismiss();
 
+        // Still offline.
+        QElapsedTimer sinceTap;
+        sinceTap.start();
+        launcher.launch(QStringLiteral("Pajama Sam 2"), pajamaSam2());
+        steamLogs(console, 0, pajamaSam2Taken());
+        QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
+        // At the first look, not after the offline wait.
+        QVERIFY(sinceTap.elapsed() < 2000);
+        QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::None);
+        launcher.dismiss();
+
         steamLogs(console, 0, "Waiting for compat in post-logon took: 0.098334s");
         for (int tap = 0; tap < 2; ++tap) {
-            QElapsedTimer sinceTap;
             sinceTap.start();
             launcher.launch(QStringLiteral("Pajama Sam 2"), pajamaSam2());
             steamLogs(console, 0, pajamaSam2Taken());
             QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
-            // At the first look, not after a wait.
             QVERIFY(sinceTap.elapsed() < 2000);
-            QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::None);
+            QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::LogOutAndBackIn);
             launcher.dismiss();
+            QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::None);
         }
+
+        launcher.launch(QStringLiteral("Draw"),
+                        {shell(), QStringLiteral("-c"), QStringLiteral("exit 0")});
+        QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
+        QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::None);
+        launcher.dismiss();
         forgetSteamsLogs();
         qputenv("PATH", path);
     }
@@ -1719,8 +1747,10 @@ private slots:
         qputenv("PATH", path);
     }
 
-    // The line is only for a launch Steam stopped on part-way (ADR-0045):
-    // never for another failure, nor for a window that opened on its own.
+    // The line is only for what logging out mends (ADR-0045): a launch
+    // Steam stopped on part-way, or a game its cloud question holds once
+    // Steam has signed in again (#211). Never for another failure, nor for
+    // a window that opened on its own.
     void aFailedLaunchWithoutAStallAddsNoLine() {
         const QTemporaryDir dir;
         QVERIFY(dir.isValid());
