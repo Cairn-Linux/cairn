@@ -535,8 +535,14 @@ writable `/usr`, and Test Guardian's wallet opened by a password login:
   password**, which has the keyboard, so the card's words were a scroll
   below. This was fixed after the check: when Family comes back to the
   front, on any of its pages, the page now stays where it was, and the
-  keyboard comes back to the item it was on. The VM has not seen the fix
-  yet.
+  keyboard comes back to the item it was on.
+- A re-check on 2026-11-01, with a Release build of the fix, saw the
+  page stay where it was each time one of kwalletd's boxes closed, the
+  box after Cancel included. Between the box asking for the wallet's
+  own password and the one asking for the new password, the card's
+  words stayed in sight. On the Children page, after another window had
+  the keyboard, a click on Family's title bar brought it back with the
+  page unmoved, and Tab then scrolled to the next button, as before.
 
 Not checked: a program asking for the shut wallet after **Leave it as
 it is**, kwalletd refusing the change, `[KSecretD] Enabled=false`, and
