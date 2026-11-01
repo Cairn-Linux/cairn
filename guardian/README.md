@@ -576,7 +576,11 @@ box. After the password, it made "Cy B", with the login `cyb`.
 - KRunner still lists "Users - System Settings", which opens System
   Settings without the page (ADR-0043).
 - Words that scroll in the Save's window and the Steam window move with
-  the wheel or a drag, not the keyboard.
+  the wheel or a drag, not the keyboard (#243).
 - The Steam window's cap uses the free height of all screens together,
   so on a short screen beside a taller one it can still run past the
   bottom.
+- A first tap on a game card gives it the focus before it turns. So a
+  card cut off at the page's edge, or within 17 pixels of it, first
+  scrolls into full view with 17 pixels of room, as it does for the
+  keyboard. On the cairn-iso VM that moved the cards 18 pixels (#219).
