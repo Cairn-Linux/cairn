@@ -2,8 +2,8 @@
 
 **Status:** proposed. Mason decided on 2026-10-30 to build #181's
 button, and on 2026-10-31 answered the plan's seven questions, each as
-the plan recommended. It becomes accepted when the checks under "Before
-anything is built" have run without overturning a bullet of the Decision
+the plan recommended. It becomes accepted when the checks that need
+nothing built have run without overturning a bullet of the Decision
 (E11 only if memory is tight), with what E12 and E13 found written into
 "Updates Steam puts off", and when the pieces, once built, have passed
 the checks under "Once the pieces are built".
@@ -273,6 +273,8 @@ The held words a copy or a logout already has (`logged-in`, `busy`,
 `copying`, `logging-out`, `still-running`, `not-set-up`, `not-started`)
 get sentences like the page's own for them, which the change that builds
 the card writes.
+So does `not-updating`, for a Stop in a window opened again after the
+update had ended.
 
 ### Stop
 
@@ -618,7 +620,7 @@ and numbers, never a Steam name or a path, as ADR-0041 requires:
 
 | Line | Meaning |
 |---|---|
-| `starting LOGIN` | The first line: the password was accepted and the job starts |
+| `starting LOGIN` | The first line: the password was accepted and the work starts |
 | `waiting LOGIN` | The child's last login is still ending |
 | `steam-starting LOGIN` | The child's Steam is being started out of sight |
 | `steam-updating LOGIN DONE TOTAL` | Steam is updating itself; DONE and TOTAL in KB, both 0 while its updater gives no sizes |
@@ -762,12 +764,12 @@ only.
   - **ADR-0046:** its section "Later (#181)" is this ADR.
 - DESIGN §3.2's Games row and §8.3 name the button, marked proposed.
 - No new dependency: cage, `systemd-inhibit`, `systemd-ac-power` and
-  `setpriv` are in the image, the watcher is C++ with Qt, and the shared
-  library is a CMake change.
+  `setpriv` are in the image, the watcher is C++ with Qt, and the library
+  it shares with the launcher is a CMake change.
 
 ## Checks
 
-### Before anything is built
+### Checks that need nothing built
 
 E11 to E16 and the sleep check run in cairn-iso, with the test child
 `ada`, and the 4 GB check on a computer with 4 GB.
@@ -877,7 +879,7 @@ hers, owned by her and labelled again.
    (inference: both ask logind the same way); and Plasma's sleep timer at
    1 minute, with nobody at the keyboard.
    All again with `--what=idle` alone.
-   On a laptop, if the project has one, the lid too, with each lock.
+   On a laptop with Plasma, the lid too, with each lock.
    Passes when, with the update's lock, the sleep timer does not suspend
    the computer, and Plasma's Sleep and the lid do.
    Fails when they do not: then this ADR is amended as "Power, sleep and
@@ -921,6 +923,10 @@ in to Plasma, `ada` and a second child.
    Then a Save for the second child.
    Passes when its copy closes `ada`'s Steam and frees the list first,
    and she can log in afterwards.
+   Then the same again, with a new update for `ada` in place of the
+   Save, which runs under the killed unit's name.
+   It passes when that update closes her old hidden Steam first, and
+   then runs as usual.
 5. **A refused press:** with the second child's visit open, an update
    for `ada` is held `busy`.
    Passes when the visit's Steam carries on, and the second child is
@@ -975,8 +981,9 @@ in to Plasma, `ada` and a second child.
   lever after E12 to E14.
 - **A killed unit's list left to a restart alone,** as ADR-0041 leaves a
   killed copy's: simpler, but Ada stays refused until someone restarts
-  the computer. The plan proposed the narrowing, and Mason's note on
-  #181 says the same.
+  the computer. The plan and the report of E17 on #181 both propose
+  narrowing it, in a form that would let Ada in while her hidden Steam
+  still ran; the narrowing above closes that Steam first.
 - **Copying newer builds from the parent's Steam over a child's own:**
   ADR-0046 never touches a tool the child's Steam has, and the client's
   own files are far past ADR-0033's "writes none of Steam's files of its
