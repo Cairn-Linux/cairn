@@ -199,6 +199,11 @@ qt_add_lupdate(
 # Stand-ins for pkexec with the root helper behind it, for Steam, and for
 # the system's account tools.
 set(guardian_fixtures "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures")
+# A stand-in for kwalletd, for the tests of the wallet's offer (ADR-0043).
+# Those tests run on a session bus that starts no service from the
+# computer's own service files, so a test never wakes the real kwalletd.
+set(stand_in_wallet tests/StandInWallet.h tests/StandInWallet.cpp)
+set(private_session_bus "--config-file=${guardian_fixtures}/session-bus.conf")
 
 qt_add_executable(tst_steamvisit tests/tst_steamvisit.cpp src/SteamVisit.h src/SteamVisit.cpp)
 target_include_directories(tst_steamvisit PRIVATE src)
@@ -480,6 +485,13 @@ target_link_libraries(tst_accountpage PRIVATE Qt6::Qml Qt6::Gui Qt6::DBus Qt6::T
 target_compile_definitions(tst_accountpage PRIVATE FIXTURES="${guardian_fixtures}")
 add_test(NAME accountpage COMMAND "${DBUS_RUN_SESSION}" -- $<TARGET_FILE:tst_accountpage>)
 
+qt_add_executable(tst_walletpassword tests/tst_walletpassword.cpp src/WalletPassword.h
+    src/WalletPassword.cpp ${stand_in_wallet})
+target_include_directories(tst_walletpassword PRIVATE src tests)
+target_link_libraries(tst_walletpassword PRIVATE Qt6::Qml Qt6::DBus Qt6::Test)
+add_test(NAME walletpassword COMMAND "${DBUS_RUN_SESSION}" ${private_session_bus} --
+    $<TARGET_FILE:tst_walletpassword>)
+
 # The image's Kiosk line that hides Plasma's Users page, and its step that
 # leaves only KDE's own pictures in Plasma's picture folder (ADR-0043).
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
@@ -495,6 +507,6 @@ set_tests_properties(steamvisit ownsteam screenlockwatch steamforchild steamwind
     loginname childlist familychange saverun savereport loginsessions loginwatch childlogout
     gamechoices childrenpage
     gamepicture gameshelf keyvalues steammanifest ownsteamgames gamespage familywindow
-    newpassword ownpasswordcommand picturefile accountpage PROPERTIES
+    newpassword ownpasswordcommand picturefile accountpage walletpassword PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QML_IMPORT_PATH=${QT_QML_OUTPUT_DIRECTORY}"
 )
