@@ -6,8 +6,8 @@ at a path of their own. It becomes accepted when the same checks pass
 with the programs and files where the image puts them. "Only KDE's
 pictures", added on 2026-10-31, passed its checks in the VM that day,
 on the VM's writable `/usr` rather than in a built image. "KDE Wallet's
-password", added the same day, has not been checked in the VM yet, and
-acceptance waits for its checks too.
+password", added the same day, was checked in the VM that night in the
+same way; what it showed is at the end of its section.
 **Date:** 2026-10-30; "Only KDE's pictures" and "KDE Wallet's password"
 2026-10-31
 **Closes:** (none) — the System Settings half of issue #113, and the
@@ -371,7 +371,8 @@ After a Guardian changes their password on Your account, the next login
 opens no wallet, and the first program that wants it makes KWallet ask
 for the wallet's own password: the old one. That is read from the
 source, where ksecretd opens the wallet with the hash pam_kwallet hands
-it; it has not been seen yet.
+it. In the VM the wallet stayed shut at that login; a program asking
+for it was not tried.
 
 Plasma's Users page offers the change (plasma-workspace 6.7.5,
 `kcms/users`, read from the source). Once AccountsService has taken a new
@@ -503,6 +504,34 @@ and that anything else the page says ends it, at every step.
 each, a key held down on either button, and what comes into sight, the
 smallest window included.
 
-Not checked in the VM yet: the offer after a real password change,
-kwalletd's box over Family on Wayland, and the wallet opening by itself
-at the next login.
+Checked in the cairn-iso VM on 2026-10-31, with a Release build of this
+branch's Family at `/usr/libexec/cairn/cairn-guardian` on the VM's
+writable `/usr`, and Test Guardian's wallet opened by a password login:
+
+- A new password brought the card. In the VM's window, too short for
+  both, the sentence showed whole near the top, with the card's first
+  lines under it and its buttons a scroll below.
+- kwalletd's box opened in front of Family, with the keyboard in its
+  first field. With the wallet open it asked only for the new password,
+  twice. At the next login with the new password the wallet opened by
+  itself, and no box came.
+- **Leave it as it is**, with Enter held down on it, took the card away,
+  left both fields empty and put the keyboard on **Change password**.
+  No box came. At the next login the wallet stayed shut, ksecretd wrote
+  "Wallet failed to get opened by PAM, error code is -9", and no box
+  came by itself.
+- With the wallet shut, kwalletd's box first asked for the wallet's own
+  password. Cancel there gave KDE's box "Unable to open wallet. The
+  wallet must be opened in order to change the password.", and the card
+  kept its words. Tried again, the box took the wallet's own password,
+  then the new one, and at the next login the wallet opened by itself.
+- With KWallet turned off, no card came, and nothing about the wallet
+  was logged.
+- ksecretd wrote "Using kwallet without parent window!" once for each of
+  its boxes.
+- Each time Family came back to the front after one of those boxes, its
+  page scrolled up to **Change password**, which has the keyboard, so
+  the card's words were a scroll below.
+
+Not checked: a program asking for the shut wallet after **Leave it as
+it is**, kwalletd refusing the change, and an image built with podman.

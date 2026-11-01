@@ -584,8 +584,8 @@ box. After the password, it made "Cy B", with the login `cyb`.
   lists the child the add made and refuses their name. Moving that child
   to another level runs the steps the add may not have finished: the
   lock on the password and their "Steam for <child>" entry (#212).
-- The offer to change KDE Wallet's password has not been seen on the
-  VM yet: kwalletd's box over Family on Wayland, and the wallet opening by
-  itself at the next login (ADR-0043).
+- After **Leave it as it is**, what a program that needs the wallet
+  shows has not been tried. In the VM the wallet stayed shut at the next
+  login, and no box came by itself (ADR-0043).
 - KRunner still lists "Users - System Settings", which opens System
   Settings without the page (ADR-0043).
