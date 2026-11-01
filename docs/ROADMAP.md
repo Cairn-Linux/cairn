@@ -477,8 +477,9 @@ done, and what could sink it. Decisions that change the design get an ADR in
   `/var` are separate btrfs subvolumes of one filesystem, and a rename
   between them fails with `EXDEV`. Steam's own entry and marker for the
   family folder have the layout the move step writes, apart from two
-  keys Steam fills itself, `update_clean_bytes_tally` and
-  `time_last_update_verified`.
+  keys Steam is expected to add when it next writes the list,
+  `update_clean_bytes_tally` and `time_last_update_verified` (check 1's
+  second half compares).
 - **ADR-0046 (2026-10-30, #206, #181, proposed): Steam's tools come with
   a child's games.** A new child's Steam first met Steam's own tools, the
   Steam Linux Runtimes and Proton, at their first tap: it fetched scout

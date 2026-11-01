@@ -758,7 +758,7 @@ in. Only Putt-Putt 6 and the Activity Pack were started, because their
 
 Added 2026-10-29 for ADR-0042, which has Cairn move a game from the
 Guardian's own Steam library into the shared folder itself.
-Desk research only, and the VM's facts from the same day.
+Desk research only, and the VM's facts from 2026-10-29 and 2026-10-31.
 Valve documents none of it.
 
 - **What the VM showed on 2026-10-29.** The maintainer installed three
@@ -771,9 +771,10 @@ Valve documents none of it.
   `/var/home` works on the image. `ada`'s Steam had never been signed
   in, so whether that copy starts is still unchecked.
 - **What the VM showed on 2026-10-31** (ADR-0042 check 1, first half,
-  read over ssh as the Guardian). Both of the Guardian's lists held the
-  same text, mode 0755: Steam's own folder as entry `"0"`, and the family
-  folder as entry `"1"`, written by Steam's Storage step two days before.
+  read over ssh as the Guardian, and `btrfs subvolume show` with sudo,
+  which it needs). Both of the Guardian's lists held the same text, mode
+  0755: Steam's own folder as entry `"0"`, and the family folder as entry
+  `"1"`, written by Steam's Storage step two days before.
   Entry `"0"` names the real path in `/var/home`. The password database
   gives the home as `/home/guardian`, and `/home` is a link to
   `/var/home`, so a library has to be matched by its real path.

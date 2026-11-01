@@ -209,9 +209,11 @@ none of this.
 
 A parent who installs a game the way Steam offers gets it in their own
 Steam folder, and no child can be given it from there. ADR-0042 has the
-image move such a game into the family folder when the parent picks it
-for a child. Provisioning does none of this. Nothing runs the step yet:
-`cairn-family save-games` will, in ADR-0042's second step.
+image move such a game into the family folder,
+`/var/lib/cairn/steam-library` (the shared folder above), when the
+parent picks it for a child. Provisioning does none of this. Nothing
+runs the step yet: `cairn-family save-games` will, in ADR-0042's second
+step.
 
 - `cairn-share-games` (`cairn-share-games.py`) takes the appids of the
   games to move. It refuses to run as root, and is meant to run as the
@@ -229,11 +231,15 @@ for a child. Provisioning does none of this. Nothing runs the step yet:
   group gets the owner's bits on each file and folder, as on Steam's own
   installs there. Then its manifest is written there, the old manifest
   is set aside, the copy and the new manifest take their names, and the
-  original goes. A run ended anywhere is finished or undone by the next
-  one, so a game is never in two libraries. One ended between the
-  set-aside and the renames leaves it in none until then. Two runs never
-  overlap. The game's Wine prefix, shader cache and workshop items stay
-  where they were.
+  original goes. The order keeps a game out of two libraries at every
+  point, and a run ended anywhere is finished or undone by the next one.
+  One ended between the set-aside and the renames leaves the game in no
+  library until then. The game's Wine prefix, shader cache and workshop
+  items stay where they were.
+- Two runs never overlap: each holds a lock for the whole run, and a
+  second run waits. The lock is `steamapps/.cairn-move-lock` in the
+  family folder, a file only Guardians can open, so no child can hold it
+  and keep a Save waiting. The first run makes it, and it stays.
 - At its first move it adds the family folder to both of the Guardian's
   library lists, `config/` and `steamapps/libraryfolders.vdf`, and keeps
   each list as it was beside it as `libraryfolders.vdf.before-cairn`. It

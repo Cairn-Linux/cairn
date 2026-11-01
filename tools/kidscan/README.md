@@ -91,6 +91,11 @@ copied later still shows (ADR-0047).
    its folder is a real folder with a plain `toolmanifest.vdf`, neither a
    link, and `TOOL_BUILD` is the `<appid>-<buildid>` name of a build in
    the tools folder.
+   On the image the move step (ADR-0042) takes the copy step's rules
+   from here too, so a game moves only if the copy step would then copy
+   it, and it never moves an app `is_steam_tool` calls a tool. Both
+   steps rely on `plain_folder_name` refusing a name that starts
+   `.cairn-`, for names only they use.
 4. **Runs `scummvm --detect` per install directory.** Titles ScummVM
    recognises get a native launch command, one tile per detected game (a
    Steam "pack" can hold several). Everything else gets

@@ -40,9 +40,8 @@ APPID_DENYLIST = {
 }
 PROTON_NAME_RE = re.compile(r"^(proton|steam linux runtime|steamworks)", re.I)
 
-# A Steam app id, as provisioning's copy step and picture step also read it
-# (ADR-0033): those programs use these rules from here, so the three cannot
-# drift apart.
+# A Steam app id, as provisioning's steps also read it (ADR-0033): they use
+# these rules from here, so none of them can drift apart from kidscan.
 APPID = re.compile(r"[1-9][0-9]{0,9}")
 
 # StateFlags is a bit field, and 4 is FullyInstalled. A game with an update
@@ -198,9 +197,10 @@ def fully_installed(state):
 
 def is_steam_tool(appid, name):
     """Whether an app is one of Steam's own tools, a runtime, Proton or a
-    redistributable, rather than a game. Three programs take the rule from
-    here: kidscan leaves these apps out of the tiles, and on the image the
-    tools step and the copy step take only these apps (ADR-0046)."""
+    redistributable, rather than a game. Four programs take the rule from
+    here: kidscan leaves these apps out of the tiles, on the image the
+    tools step and the copy step take only these apps (ADR-0046), and the
+    move step never moves one (ADR-0042)."""
     return appid in APPID_DENYLIST or bool(PROTON_NAME_RE.match(name))
 
 
