@@ -4,8 +4,9 @@ import Cairn.Brand
 
 // A thin bar beside a part that scrolls, when what it holds is taller than
 // it: the bar is as long as the share in sight, and as far down as the part
-// is scrolled. It only shows the place; the wheel and a drag scroll the
-// part itself. It shares the part's parent, and whoever uses it sets its x.
+// is scrolled. It only shows the place; the wheel, a drag and the arrow and
+// page keys (ScrollKeys.qml) scroll the part itself. It shares the part's
+// parent, and whoever uses it sets its x.
 Rectangle {
     id: mark
 

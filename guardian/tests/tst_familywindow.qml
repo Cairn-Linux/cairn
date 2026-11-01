@@ -1217,6 +1217,12 @@ TestCase {
         mouseClick(findChild(window, "saveButton"));
         compare(window.gamesPage.busy, true);
         compare(saveOutcome(window), "Confirm with your password, or your fingerprint, in the box that opened.");
+        // The Save's box takes the keyboard, and Tab does not leave it for
+        // the page behind.
+        const box = findChild(window, "saveProgressBox");
+        tryCompare(box, "activeFocus", true);
+        keyClick(Qt.Key_Tab);
+        verify(box.activeFocus, "Tab left the Save's box");
         verify(!findChild(window, "saveButton").enabled);
         verify(!findChild(window, "putBack").enabled);
         verify(!findChild(window, "lookForGames").enabled);
@@ -1537,15 +1543,16 @@ TestCase {
     }
 
     // #243: the words of a long result scrolled with the wheel or a drag
-    // only. While Close has the keyboard, Up and Down scroll them a line,
-    // and Page Up and Page Down their part's height less a line, as far as
-    // they go; a held key goes on scrolling. Tab still goes nowhere else,
-    // and Enter still puts the box away.
+    // only. While Close has the keyboard, Up and Down scroll them a line
+    // as the box draws it, and Page Up and Page Down their part's height
+    // less a line, as far as they go; a held key goes on scrolling. Tab
+    // still goes nowhere else, and Enter still puts the box away.
     function test_theKeysScrollALongResult() {
         const window = saveALongResult();
         const close = findChild(window, "closeSaveProgress");
         const words = findChild(window, "saveWords");
-        const line = Tokens.bodySize * Tokens.bodyLineHeight;
+        const outcome = findChild(window, "saveOutcome");
+        const line = outcome.height / outcome.lineCount;
         const page = words.height - line;
         const end = words.contentHeight - words.height;
         verify(end > page, "The result is less than a page longer than its part, so this tests too little");

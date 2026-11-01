@@ -226,7 +226,7 @@ message (#172), up to the free height Qt gives, less three heading sizes
 Plasma's panel, which Qt under Wayland counts as free. When the words are
 taller than that, such as at 200% on a small screen, they scroll beside a
 thin bar, and the buttons stay in sight under them (#231). Up, Down, Page
-Up and Page Down scroll them while a button has the keyboard (#243). If
+Up and Page Down scroll the words while a button has the keyboard (#243). If
 KWin gives it any other height, such as the height it had for the last
 message as the password box closes, the window puts its own height back.
 Each step with a button to press, such as "did not open", asks to bring
@@ -484,17 +484,19 @@ lists and stand-in pictures into a temporary folder, and replace the
 start of the Steam window with one that writes down what it was asked.
 They cover turning games for two children and saving once, the exact
 arguments pkexec is given, a child held or a game left out, every
-refusal keeping the changes, every control waiting while a Save
-runs, a logged-in child's games greyed, the logout and why it did not
-finish, and the progress window, with Close in sight under a long result
-in the smallest window, and the arrow and page keys scrolling that result
-from Close (#243). They also check that a card turned on a page scrolled
-down to the games stays where it was in the window, and so does a card
-without the focus tapped at the page's edge, cut off or close to it. Tab
-still brings such a card into full view. `heldKey` sends the repeats of
-a key held down, which TestCase cannot, so the tests check that a game
-card, a button, a child, a level and a picture each count it once, and
-that a held Down goes on scrolling the Save's words.
+refusal keeping the changes, every control waiting while a Save runs,
+with the keyboard kept in the Save's box, a logged-in child's games
+greyed, the logout and why it did not finish, and the progress window,
+with Close in sight under a long result in the smallest window, and the
+arrow and page keys scrolling that result from Close, a line or a page
+at a time as the box draws its words (#243). They also check that a card
+turned on a page scrolled down to the games stays where it was in the
+window, and so does a card without the focus tapped at the page's edge,
+cut off or close to it. Tab still brings such a card into full view.
+`heldKey` sends the repeats of a key held down, which TestCase cannot, so
+the tests check that a game card, a button, a child, a level and a
+picture each count it once, and that a held Down goes on scrolling the
+Save's words.
 `loginsessions` checks the rule for a login, and asks the test machine's
 own logind when it has one;
 `loginwatch` sends logind's signals on a bus of its own.
@@ -508,15 +510,18 @@ window, that the window is no taller than they are, and that it fits a
 under Wayland gives the same screen at 200%, it checks that the window
 leaves three heading sizes free for its title bar and the panel, that the
 wheel scrolls the words beside a thin bar, and that Open and Done show
-whole under them and work (#231). The arrow and page keys must scroll the
-words from Open, Cancel and Done, with Tab and Enter as before (#243). It
-also checks that the window grows again after the password box closes,
-puts its height back when it is resized from outside to an old height,
-and comes to the front when the visit did not open.
-`CAIRN_SCREENSHOT=/path/steam-for.png` saves a picture of each of those
-steps beside that path. These tests run offscreen, so they check the
-window's own layout and its answer to a resize, not what KWin does. They
-also run by hand with `QT_QPA_PLATFORM=wayland` inside a nested
+whole under them and work (#231). On a screen 320 pixels tall, where the
+words are several pages long whatever font stands in for the brand's,
+the arrow and page keys must scroll them a line or a page at a time from
+Open, Cancel and Done, with Tab and Enter as before. Where the words'
+part is less than a line tall, Page Up and Page Down must still move
+them a line (#243). It also checks that the window grows again after the
+password box closes, puts its height back when it is resized from
+outside to an old height, and comes to the front when the visit did not
+open. `CAIRN_SCREENSHOT=/path/steam-for.png` saves a picture of each of
+those steps beside that path. These tests run offscreen, so they check
+the window's own layout and its answer to a resize, not what KWin does.
+They also run by hand with `QT_QPA_PLATFORM=wayland` inside a nested
 `kwin_wayland --virtual --no-lockscreen`, started under its own
 `dbus-run-session`, with `__EGL_VENDOR_LIBRARY_FILENAMES` set to Mesa's
 file on a laptop with an Nvidia card. There, without the window putting
