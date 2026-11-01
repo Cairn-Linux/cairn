@@ -182,7 +182,7 @@ locked icon, nothing to probe.
 | Permissions | Per-child app allowlist, game allowlist, browser access |
 | Time | Schedules and daily limits |
 | System | OS updates and rollback (§10), Wi-Fi, printers |
-| Games | Run the scanner, choose each child's own games from the Guardian's own Steam (ADR-0041, ADR-0042), assign categories, manage tiles (§8.7) |
+| Games | Run the scanner, choose each child's own games from the Guardian's own Steam (ADR-0041, ADR-0042), update a child's Steam while they are logged out (§8.3; ADR-0048, proposed), assign categories, manage tiles (§8.7) |
 | Data | Reset a child account; export creations (§11) |
 
 #### Two access paths
@@ -628,6 +628,14 @@ Mechanism:
   child's Steam still updates its own copies, and a tool Cairn has no
   copy of, or a build newer than Cairn's copy, still downloads when a
   game first needs it.
+- A Guardian can update a child's own Steam while the child is logged
+  out, one child at a time, from a button on the Family app's Games
+  page. After a warning that it can take a while, the child's Steam runs
+  as the child, out of sight, while a card shows what Steam is doing. It
+  starts only on mains power, has Stop and a 90-minute limit, and the
+  child cannot log in meanwhile. The card ends by saying plainly what
+  Steam left for later, since Steam may hold back updates for games and
+  tools a child has not played lately (ADR-0048, proposed).
 - Proton work happens in the background; the game comes up fullscreen.
 
 **Known failure modes.** Steam forces its window open for client updates, game
