@@ -105,6 +105,22 @@ class BrandBuildTests(unittest.TestCase):
                     )
                     self.assertNotIn("Traceback", refused.stderr)
 
+    def test_the_focus_ring_minimum_is_three_to_one(self):
+        # Moss measures 2.83:1 on Sand and 4.01:1 on Ink, just either side of
+        # 3:1, so a ring of Moss pins the minimum from both sides. setUp reads
+        # the tokens again for each test, so this changes no other test.
+        semantic = self.tokens["semantic"]
+        semantic["focus"] = "moss"
+        with self.assertRaises(brand_build.BuildError) as refused:
+            brand_build.validate_focus_contrasts(self.tokens)
+        self.assertEqual(
+            str(refused.exception),
+            "focus ring contrast is below 3:1: moss-on-sand measures 2.83:1",
+        )
+        semantic["focus"] = "fjord"
+        semantic["focus-on-ink"] = "moss"
+        brand_build.validate_focus_contrasts(self.tokens)
+
     def test_every_recorded_contrast_is_recomputed(self):
         self.assertEqual(brand_build.measured_contrast("#000000", "#FFFFFF"), 21.0)
         computed = brand_build.recomputed_contrasts(self.tokens)
@@ -157,6 +173,18 @@ class BrandBuildTests(unittest.TestCase):
             )
         family = self.tokens["font"]["family"]
         self.assertIn(f'readonly property string fontFamily: "{family}"', lines)
+
+    def test_each_ring_says_its_contrast_on_its_grounds(self):
+        # The figures a reader of Tokens.qml sees beside each ring.
+        qml = brand_build.render_qml(self.tokens)
+        self.assertIn(
+            "readonly property color focus: fjord  "
+            "// 5.77:1 on Sand, 6.29:1 on Paper",
+            qml,
+        )
+        self.assertIn(
+            "readonly property color focusOnInk: sky  // 7.45:1 on Ink", qml
+        )
 
     def test_css_switches_the_focus_ring_on_ink(self):
         # The page's ring is the one for Sand and Paper. What sits inside an
