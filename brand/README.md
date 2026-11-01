@@ -32,6 +32,15 @@ guideline (a design canvas, v0.1); this directory is what programs import.
 - **Label colour follows the tokens.** `--cairn-on-practice` is Ink, not
   Sand. Ink on Moss measures 4.01:1; Sand on Moss measures 2.83:1, below
   the project's 3:1 label minimum. The tokens correct the v0.1 sketch.
+- **The focus ring follows the ground.** On Sand and Paper it is
+  `--cairn-focus` (`Tokens.focus`), Fjord: 5.77:1 and 6.29:1. On Ink it
+  is `--cairn-focus-on-ink` (`Tokens.focusOnInk`), Sky: 7.45:1.
+  In CSS, what sits inside `.cairn-on-ink` takes the ring for Ink. The
+  surface itself keeps `--cairn-focus`, since its own ring is drawn on the
+  page around it. In QML and in `boot_screen.py`, use the ring for the
+  ground it is drawn on. Sky on Sand is 1.52:1 and Fjord on Ink 1.97:1,
+  below the 3:1 WCAG 1.4.11 asks of a focus ring. The tokens correct the
+  v0.1 guide, which gives Sky for focus everywhere (#216).
 - **Ochre and Moss are never text.** They are fills for large shapes only.
 - **Body text is Ink on Sand** (11.4:1; the guide's 12.9:1 figure is a
   little high). Child-facing text is 18px minimum; Guardian and docs 16px.
@@ -59,9 +68,10 @@ The first command writes `tokens.css`, the QML singleton and module files,
 the three mark SVGs, the image's two icons and console colour, and the
 boot screen.
 The second checks every recorded contrast figure, the 3:1 label policy,
-reserved QML names, and byte-for-byte generated output. A PNG is
-compared by its pixels, since another zlib may compress them to other
-bytes.
+the 3:1 focus ring policy against the grounds each ring is for (Sand and
+Paper for `focus`, Ink for `focus-on-ink`), reserved QML names, and
+byte-for-byte generated output. A PNG is compared by its pixels, since
+another zlib may compress them to other bytes.
 Both commands use the Python standard library only.
 
 Applications compile the module in with

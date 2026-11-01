@@ -222,8 +222,11 @@ themselves.
   The journal command above also says it for each such launch: "Steam is
   waiting for an answer about …" or "Steam refused to start …".
   Steam keeps the question for that game. The game stays held after the
-  internet comes back, until the child logs out and back in, and each tap
-  on it says "did not start" again, with the same journal line. Other
+  internet comes back, until the child logs out and back in. Each tap on
+  it says "did not start" again, and the journal names the question again.
+  For Steam Cloud's question, once Steam has signed in again, the screen
+  also says "Log out and back in, then try it again.", and the journal
+  line ends "Log the child out and back in, then try it again." Other
   games still start.
 - If the journal says "Steam could not sign in", Steam no longer accepts the
   child's saved sign-in. Log the child out, open Steam for the child from

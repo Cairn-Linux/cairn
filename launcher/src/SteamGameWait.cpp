@@ -2,7 +2,6 @@
 #include "SteamGameWait.h"
 
 #include <QDateTime>
-#include <QFileInfo>
 
 #include <algorithm>
 #include <optional>
@@ -19,7 +18,7 @@ void SteamGameWait::steamStartedAtLogin() {
 }
 
 void SteamGameWait::startLaunch(const QStringList& exec) {
-    m_appId = appIdOf(exec);
+    m_appId = SteamLaunchLog::appIdOf(exec);
     m_reapersBefore = m_reapers.of(m_appId);
     m_log.startLaunch(m_appId);
     m_stall.startLaunch(m_appId);
@@ -28,6 +27,7 @@ void SteamGameWait::startLaunch(const QStringList& exec) {
     m_steamNow = SteamStartup::Now::Ready;
     m_signInNow = SteamSignIn::Now::Fine;
     m_stallNow = SteamStall::Now::Fine;
+    m_logOutFreesHeldGame = false;
     m_sentAgain = false;
     m_sinceLaunch.start();
     m_sinceTapSent.start();
@@ -47,13 +47,17 @@ bool SteamGameWait::stillComing() {
     m_lastStep = m_questions.read(m_log);
     m_steamNow = m_startup.read(now);
     m_stallNow = m_stall.read(m_log, m_steamNow, now);
-    // Once Steam has the game in hand, its sign-in no longer matters: it
-    // starts games while it cannot reach its servers, and signing in again
-    // does not free a game it holds behind a question. Unless it stopped
-    // getting the game ready: what it still needs must come from them.
+    // Once Steam has the game in hand, its sign-in no longer decides the
+    // wait: it starts games while it cannot reach its servers, and signing
+    // in again does not free a game it holds behind a question. Unless it
+    // stopped getting the game ready: what it still needs must come from them.
     const bool needsServers =
         m_lastStep == SteamLaunchLog::Step::Nothing || m_stallNow == SteamStall::Now::Stalled;
     m_signInNow = needsServers ? m_signIn.read() : SteamSignIn::Now::Fine;
+    // Logging the child out frees a game the cloud question holds, but only
+    // once Steam has signed in again (#211, ADR-0045).
+    m_logOutFreesHeldGame =
+        m_questions.heldByCloudQuestion() && m_signIn.read() == SteamSignIn::Now::Fine;
     if (m_signInNow == SteamSignIn::Now::Refused ||
         (m_stallNow == SteamStall::Now::Stuck && !newReaper())) {
         return false;
@@ -130,7 +134,7 @@ void SteamGameWait::steamRestarted(bool started) {
 }
 
 bool SteamGameWait::logOutWouldHelp() const {
-    return !steamGaveAReason() && m_stall.logOutWouldHelp();
+    return m_logOutFreesHeldGame || (!steamGaveAReason() && m_stall.logOutWouldHelp());
 }
 
 SteamLaunchLog::Step SteamGameWait::lastStep() const {
@@ -152,6 +156,11 @@ QString SteamGameWait::journalNote(const QString& title) const {
             .arg(title);
     }
     if (m_lastStep == SteamLaunchLog::Step::WaitingForAnswer) {
+        if (m_logOutFreesHeldGame) {
+            return QStringLiteral("Steam is waiting for an answer about %1 on a window the kiosk "
+                                  "hides. Log the child out and back in, then try it again.")
+                .arg(title);
+        }
         return QStringLiteral(
                    "Steam is waiting for an answer about %1 on a window the kiosk hides.")
             .arg(title);
@@ -186,20 +195,6 @@ void SteamGameWait::setLimitMilliseconds(int milliseconds) {
 
 void SteamGameWait::setWorkLimitMilliseconds(int milliseconds) {
     m_workLimitMilliseconds = milliseconds;
-}
-
-QString SteamGameWait::appIdOf(const QStringList& exec) {
-    if (exec.size() < 3 || QFileInfo(exec.first()).fileName() != QStringLiteral("steam")) {
-        return {};
-    }
-    const qsizetype flag = exec.indexOf(QStringLiteral("-applaunch"));
-    if (flag < 0 || flag + 1 >= exec.size()) {
-        return {};
-    }
-    const QString& appId = exec.at(flag + 1);
-    bool number = false;
-    appId.toULongLong(&number);
-    return number ? appId : QString();
 }
 
 bool SteamGameWait::newReaper() const {

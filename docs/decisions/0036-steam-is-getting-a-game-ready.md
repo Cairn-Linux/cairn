@@ -411,15 +411,16 @@ each game whose launch stood at a question when the launcher last looked.
 A later tap on that game that Steam takes without writing a step is the
 same question. The journal says "Steam is waiting for an answer about
 Pajama Sam 2 on a window the kiosk hides." again, and the tap ends at its
-first look. Steam's sign-in does not decide then, as for a game Steam has
-in hand, because the connection coming back does not free the game.
-That holds whether Steam cannot reach its servers or its sign-in was
-turned down: a held game names the question either way, and a tap on
-another game still names the sign-in. Logging the child out, which both
-need, frees the game, and the next tap names the sign-in if that is still
-wrong. Steam writes the same single line for an app id it will not launch
-at all, so a tap with no step is a question only for a game Steam asked
-one about.
+first look. Steam's sign-in does not decide the wait then, as for a game
+Steam has in hand, because the connection coming back does not free the
+game. It decides only whether the grown-up screen adds a line (ADR-0045).
+The wait ends the same way whether Steam cannot reach its servers or its
+sign-in was turned down: a held game names the question either way, and a
+tap on another game still names the sign-in. Logging the child out, which
+both need, frees the game, and the next tap names the sign-in if that is
+still wrong. Steam writes the same single line for an app id it will not
+launch at all, so a tap with no step is a question only for a game Steam
+asked one about.
 
 A game is forgotten when Steam writes another step for it, when the launch
 log shows a new client starting (its own start command, a tap that started
@@ -428,10 +429,11 @@ tap. A Steam the launcher could not start again may still be running with
 its questions, so they are kept. Logging the child out ends the launcher,
 and with it everything it remembered.
 
-The grown-up screen still adds no line for a question (ADR-0045). Whether
-it should say "Log out and back in, then try it again." for the cloud
-question once Steam has signed in again is open, and needs ADR-0045
-amended (#211).
+Since 2026-10-31, once Steam has signed in again, a later tap on a game
+the cloud question holds adds "Log out and back in, then try it again."
+to the grown-up screen, and the journal's line says the same (ADR-0045,
+"The cloud question, once Steam has signed in again"). For any other
+question the screen adds no line.
 
 Tested in C++: a later tap on the questioned game is the question at every
 look once Steam has taken the tap, while Steam is still offline and once it
@@ -440,11 +442,13 @@ while one is held; each game keeps its own question; a step for the game,
 each kind of new client, and starting Steam again, for this tap or an
 earlier one, each forget it, and a restart that failed does not; and a
 question asked again holds the game again. An `AppLauncher` test runs the
-VM's case: the first tap and two later ones each end on the grown-up
-screen with the question in the journal and no line on the screen.
+VM's case: the first tap and each later one end on the grown-up screen
+with the question in the journal; ADR-0045 says which of them also show
+its line.
 
-Run on the test VM on 2026-10-31, with this change's launcher laid over
-`/usr`. With ada's Steam signed in and the network taken down, a tap on
+Run on the test VM on 2026-10-31, with #230's launcher laid over `/usr`,
+before the grown-up screen had a line for the cloud question.
+With ada's Steam signed in and the network taken down, a tap on
 Pajama Sam 2 met the cloud question and ended at its first look, 15
 seconds after the tap, with the question in the journal. Steam signed in
 again a second after the network came back. A tap on Test Game Three,

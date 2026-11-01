@@ -78,6 +78,51 @@ class BrandBuildTests(unittest.TestCase):
             )
             self.assertNotIn("Traceback", refused.stderr)
 
+    def test_a_focus_ring_too_faint_for_its_ground_is_refused(self):
+        # Sky on Sand was the ring at a child's tiles, which was hard to find
+        # (#216). Fjord on Ink is what the login screen would get from the
+        # ring for light grounds.
+        faint_rings = {
+            "focus": ("sky", "sky-on-sand measures 1.52:1"),
+            "focus-on-ink": ("fjord", "fjord-on-ink measures 1.97:1"),
+        }
+        for ring_name, (color_name, measured) in faint_rings.items():
+            with self.subTest(ring_name):
+                temporary, copied_brand = self.temporary_brand_copy()
+                with temporary:
+                    tokens_path = copied_brand / "tokens.json"
+                    copied_tokens = json.loads(tokens_path.read_text(encoding="utf-8"))
+                    copied_tokens["semantic"][ring_name] = color_name
+                    tokens_path.write_text(
+                        json.dumps(copied_tokens, indent=2) + "\n",
+                        encoding="utf-8",
+                    )
+
+                    refused = self.run_copied_build(copied_brand)
+
+                    self.assertNotEqual(refused.returncode, 0)
+                    self.assertEqual(
+                        refused.stderr.strip(),
+                        f"focus ring contrast is below 3:1: {measured}",
+                    )
+                    self.assertNotIn("Traceback", refused.stderr)
+
+    def test_the_focus_ring_minimum_is_three_to_one(self):
+        # Moss measures 2.83:1 on Sand and 4.01:1 on Ink, just either side of
+        # 3:1, so a ring of Moss pins the minimum from both sides. setUp reads
+        # the tokens again for each test, so this changes no other test.
+        semantic = self.tokens["semantic"]
+        semantic["focus"] = "moss"
+        with self.assertRaises(brand_build.BuildError) as refused:
+            brand_build.validate_focus_contrasts(self.tokens)
+        self.assertEqual(
+            str(refused.exception),
+            "focus ring contrast is below 3:1: moss-on-sand measures 2.83:1",
+        )
+        semantic["focus"] = "fjord"
+        semantic["focus-on-ink"] = "moss"
+        brand_build.validate_focus_contrasts(self.tokens)
+
     def test_every_recorded_contrast_is_recomputed(self):
         self.assertEqual(brand_build.measured_contrast("#000000", "#FFFFFF"), 21.0)
         computed = brand_build.recomputed_contrasts(self.tokens)
@@ -111,8 +156,56 @@ class BrandBuildTests(unittest.TestCase):
             self.assertIn(
                 f"readonly property int {property_name}: {value}", lines
             )
+        semantic = self.tokens["semantic"]
+        for name in (
+            "ground",
+            "card",
+            "dark-ground",
+            "text",
+            "link",
+            "link-on-ink",
+            "selection",
+            "focus",
+            "focus-on-ink",
+        ):
+            self.assertIn(
+                f"readonly property color {brand_build.camel(name)}: "
+                f"{brand_build.camel(semantic[name])}",
+                lines,
+            )
         family = self.tokens["font"]["family"]
         self.assertIn(f'readonly property string fontFamily: "{family}"', lines)
+
+    def test_each_ring_says_its_contrast_on_its_grounds(self):
+        # The figures a reader of Tokens.qml sees beside each ring.
+        qml = brand_build.render_qml(self.tokens)
+        self.assertIn(
+            "readonly property color focus: fjord  "
+            "// 5.77:1 on Sand, 6.29:1 on Paper",
+            qml,
+        )
+        self.assertIn(
+            "readonly property color focusOnInk: sky  // 7.45:1 on Ink", qml
+        )
+
+    def test_css_switches_the_focus_ring_on_ink(self):
+        # The page's ring is the one for Sand and Paper. What sits inside an
+        # Ink surface takes the one for Ink, as links do. The surface's own
+        # ring is drawn on the page around it, so it keeps the page's.
+        css = brand_build.render_css(self.tokens)
+        semantic = self.tokens["semantic"]
+        self.assertIn(
+            f"--cairn-focus:        var(--cairn-{semantic['focus']});", css
+        )
+        self.assertIn(
+            f"--cairn-focus-on-ink: var(--cairn-{semantic['focus-on-ink']});", css
+        )
+        surface = css[css.index(".cairn-on-ink {"):]
+        surface = surface[:surface.index("}")]
+        self.assertNotIn("--cairn-focus", surface)
+        self.assertIn(
+            ".cairn-on-ink > * { --cairn-focus: var(--cairn-focus-on-ink); }", css
+        )
 
     def test_generation_is_byte_deterministic(self):
         temporary, copied_brand = self.temporary_brand_copy()
@@ -379,7 +472,7 @@ class BootScreenTests(unittest.TestCase):
         colors = self.tokens["color"]
         semantic = self.tokens["semantic"]
         middle = rows[len(rows) // 2]
-        self.assertEqual(middle[0][:3], boot_screen.rgb(colors[semantic["focus"]]["hex"]))
+        self.assertEqual(middle[0][:3], boot_screen.rgb(colors[semantic["focus-on-ink"]]["hex"]))
         self.assertEqual(
             middle[len(middle) // 2],
             (*boot_screen.rgb(colors[semantic["card"]]["hex"]), 255),
