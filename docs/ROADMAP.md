@@ -477,9 +477,15 @@ done, and what could sink it. Decisions that change the design get an ADR in
   `/var` are separate btrfs subvolumes of one filesystem, and a rename
   between them fails with `EXDEV`. Steam's own entry and marker for the
   family folder have the layout the move step writes, apart from two
-  keys Steam is expected to add when it next writes the list,
-  `update_clean_bytes_tally` and `time_last_update_verified` (check 1's
-  second half compares).
+  keys Steam adds when it next writes the list,
+  `update_clean_bytes_tally` and `time_last_update_verified`.
+  On 2026-11-01 the step ran by hand in the VM, on a real game put in the
+  Guardian's own folder by hand: it moved in 0.09 s, and the Guardian's
+  Steam loaded it from the family folder with no download and started
+  it. Steam kept the entry Cairn wrote and filled in its map, and a move
+  killed at fifteen points was settled by the next run each time
+  (checks 1, 3, 4, 6, 10 and 12, some by hand). A moved game's files are
+  group-writable, where those Steam's own Move put there are not.
 - **ADR-0046 (2026-10-30, #206, #181, proposed): Steam's tools come with
   a child's games.** A new child's Steam first met Steam's own tools, the
   Steam Linux Runtimes and Proton, at their first tap: it fetched scout

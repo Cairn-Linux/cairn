@@ -356,8 +356,8 @@ different levels:
    and a test file moved between scratch folders in each, to confirm the
    `EXDEV`.
    Its first half was read on 2026-10-31 (the research note's "What the
-   VM showed on 2026-10-31"); the comparison waits for an entry Cairn
-   wrote.
+   VM showed on 2026-10-31"), and the comparison with an entry Cairn
+   wrote ran on 2026-11-01 ("First run", below).
 2. **The first move.** On a Guardian whose list does not name the family
    folder, pick a game in `~/.local/share/Steam` for `ada` with Steam
    open. The window asks, closes Steam, moves the game and copies it to
@@ -395,6 +395,67 @@ different levels:
     moves a further game with Steam closed. The Guardian's Steam shows
     it installed in the family folder and downloads nothing. Record both
     `"apps"` maps before Steam starts and after.
+
+### First run, 2026-11-01
+
+In cairn-iso, with the move step and kidscan from step 1 put over the
+`/usr` of main 8afdaf3's image, run by hand over ssh as the Guardian,
+with the VM's clock in EST.
+Nothing runs the step yet, so what needs the Games page or a Save waits
+for steps 2 and 3.
+The Guardian's own library held only Steam's tools, and no Steam window
+was opened, so a real game was put there by hand with Steam closed:
+Freddi Fish 2 (294530, 249 MB, a native game), reflink-copied from the
+family folder, whose copy was then removed.
+Stand-in games with made-up appids did the rest.
+
+- Steam took the hand-placed game as installed in its own folder at the
+  next start, with no download, and moved it to entry `"0"`'s `"apps"`
+  map. With that Steam open, the step said `not-moved 294530
+  steam-open` and changed nothing.
+- With Steam closed, the step said `library had` and `moved 294530` in
+  0.09 s. The family manifest was the old one byte for byte, the 32
+  files kept their sums and times, the old library kept nothing, and the
+  disk's use did not grow.
+- Check 4 held for the files: the Guardian and `cairn-guardian`, each
+  folder setgid with the default ACL, each mask the owner's bits,
+  `other::r-x`, and `ada` and `ben` could read every file.
+  The files of the three games Steam's own Move put in the family folder
+  on 2026-10-29 are 0755 with mask `r-x`, so the group cannot write
+  them. A moved game's files are group-writable where those are not.
+- Check 12 held with the real game. At Steam's next start the family
+  entry's map lacked it and entry `"0"` still named it. Steam loaded it
+  from the family folder with no download, and wrote both maps back as
+  they were before the round trip. `steam -applaunch 294530` started it
+  from the family folder in 3 s.
+- Playing it there left Steam Cloud's `steam_autocloud.vdf`, which holds
+  the Guardian's Steam account id, in the game's `Saves` folder, where
+  every account can read it and the copy step would copy it. Steam also
+  made `shadercache/294530` and an empty `compatdata/294530` there.
+- With the family folder taken out of both lists by hand, the step moved
+  a stand-in with `library added`. Each list gained Cairn's entry before
+  its last brace, with the marker's `contentid`, and nothing else
+  changed; the backups, the lists' modes and the marker were right.
+  Steam's own entry differs in `totalsize`, the filesystem's size, in
+  the two keys Cairn leaves out, and in a map of every game (check 1).
+- Steam kept Cairn's entry at its next two starts (check 3) and wrote it
+  as its own, with all seven games in the folder in its map, though
+  Cairn's map named only the stand-in.
+- A 1 GiB stand-in in 8,193 files moved in 0.62 s. Killed at fifteen
+  points from 0.1 to 0.6 s, the step ended before any change, during
+  the copy, with the copy whole, after the temporary family manifest,
+  and after the renames with the original whole or half removed. Each
+  time the game had one manifest, and the next run with no appids left
+  it whole in one library, with only the lock behind (check 6, by hand).
+- Check 10 held by hand: with the game in both places, the step said
+  `shared 294530` and left the Guardian's copy alone. The refusals, the
+  lock (a child gets "Permission denied"), Steam's tools and six other
+  reasons held too, each with nothing changed.
+- Not run: checks 2 and 3 through the Games page and Settings › Storage,
+  check 4's copy for `ada`, and checks 5, 7, 8, 9 and 11 (no update, no
+  Windows game, one disk, no Steam window). Afterwards the game went
+  back to the family folder as it was, and the stand-ins and the lock
+  were removed.
 
 ## Alternatives considered
 
@@ -437,6 +498,10 @@ So the step gives the group the owner's bits on each file and folder of
 the copy, before anything else changes.
 A second Guardian's Steam would need that to update the game, which
 stays untested (ADR-0033).
+In the first run in the VM, Steam's own folders and manifests in the
+family folder gave the group the owner's bits, but the files of the
+games Steam's own Move put there did not: the group can only read them
+("First run", above).
 
 **Two runs never overlap.**
 Each run holds a lock for the whole run, and a second run waits.
@@ -506,5 +571,5 @@ its own changes from each point a move can be ended at, each by a kill in
 a child process, and then the next run.
 Other tests hold each rule above, the lock's file and its hold through a
 whole run, SIGTERM and SIGHUP after the set-aside, and every reason.
-None of this has run in the VM yet; check 4 now also looks at the
-group's mask.
+The step first ran in the VM on 2026-11-01 ("First run", above), and
+check 4 now also looks at the group's mask.
