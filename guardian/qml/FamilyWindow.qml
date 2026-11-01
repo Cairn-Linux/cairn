@@ -19,6 +19,11 @@ Window {
 
     readonly property int margin: Tokens.headingSize
 
+    // A game card being turned, and where it was in the window before the
+    // change, until the page is laid out again (#219).
+    property Item heldCard: null
+    property real heldCardY: 0
+
     title: qsTr("Family")
     width: Tokens.headingSize * 26
     height: Tokens.headingSize * 34
@@ -57,12 +62,29 @@ Window {
             y = bottom - flickable.height;
         if (top < y)
             y = top;
+        window.scrollTo(y);
+    }
+
+    // Scrolls the page to y, or as far as it goes.
+    function scrollTo(y) {
         const lowest = Math.max(0, flickable.contentHeight - flickable.height);
         flickable.contentY = Math.max(0, Math.min(y, lowest));
     }
 
     // The keyboard never lands on something out of sight.
     onActiveFocusItemChanged: window.showItem(window.activeFocusItem)
+
+    // In each frame the window first lays out what changed, then says so
+    // here, then draws. A card held in place has moved by as much as the
+    // page grew or shrank above it, so the page scrolls by as much, and the
+    // card is drawn where it was (#219).
+    onAfterAnimating: {
+        const card = window.heldCard;
+        if (!card)
+            return;
+        window.heldCard = null;
+        window.scrollTo(flickable.contentY + card.mapToItem(window.contentItem, 0, 0).y - window.heldCardY);
+    }
 
     // A child added on the Children page is on the Games page too.
     Connections {
@@ -182,6 +204,12 @@ Window {
             width: window.width - window.margin * 2
             visible: window.showing === "games"
             page: window.gamesPage
+
+            // Where the card is before the change, to keep it there.
+            onCardTurning: card => {
+                window.heldCard = card;
+                window.heldCardY = card.mapToItem(window.contentItem, 0, 0).y;
+            }
         }
 
         AccountView {

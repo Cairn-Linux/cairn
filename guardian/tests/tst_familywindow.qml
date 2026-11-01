@@ -843,6 +843,47 @@ TestCase {
         tryCompare(card(window, 2), "activeFocus", true);
     }
 
+    // #219: scrolled down to the games in a short window, the first tap on
+    // a card showed "Not saved yet" above the grid, and every card moved
+    // down by as much, so the tapped card left the pointer. The card now
+    // stays where it was in the window, and so it does when Space turns it
+    // back and the sentence goes.
+    function test_aTurnedCardStaysWhereItWas() {
+        const window = makeWindow("done", {
+            "smallest": true
+        });
+        showGames(window);
+        waitForPolish(window);
+        const scroller = findChild(window, "scroller");
+        const sentence = findChild(window, "unsavedSentence");
+        const area = findChild(window, "childArea");
+        const freddi = card(window, 1);
+        const place = () => freddi.mapToItem(window.contentItem, 0, 0).y;
+        // The card in the middle of the window, with the keyboard's focus,
+        // so the tap's own focus does not scroll the page.
+        const middle = freddi.mapToItem(scroller.contentItem, 0, 0).y + freddi.height / 2 - scroller.height / 2;
+        scroller.contentY = Math.max(0, Math.min(middle, scroller.contentHeight - scroller.height));
+        freddi.forceActiveFocus();
+        waitForPolish(window);
+        verify(!sentence.visible);
+        const before = place();
+        const areaBefore = area.y;
+        mouseClick(freddi);
+        compare(freddi.onList, true);
+        verify(sentence.visible);
+        // Once the page is laid out again, the games are lower down it...
+        waitForPolish(window);
+        verify(area.y > areaBefore, "The sentence did not move the games down the page");
+        // ...and the card is where it was in the window.
+        tryVerify(() => Math.abs(place() - before) <= 1, 1000, "The tapped card moved from " + before + " to " + place());
+        keyClick(Qt.Key_Space);
+        compare(freddi.onList, false);
+        verify(!sentence.visible);
+        waitForPolish(window);
+        verify(area.y < areaBefore + 1, "The games did not move back up the page");
+        tryVerify(() => Math.abs(place() - before) <= 1, 1000, "The turned card moved from " + before + " to " + place());
+    }
+
     // A grown-up holding Enter or Space on a game card turns it once. Each
     // of the keyboard's repeats turned it the other way, about 25 times a
     // second, and the grid jumped up and down until the key came up.
