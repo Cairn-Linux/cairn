@@ -28,18 +28,18 @@
     <name>PasswordRow</name>
     <message>
         <location filename="../theme/PasswordRow.qml" line="18"/>
-        <location filename="../theme/PasswordRow.qml" line="59"/>
-        <location filename="../theme/PasswordRow.qml" line="73"/>
+        <location filename="../theme/PasswordRow.qml" line="60"/>
+        <location filename="../theme/PasswordRow.qml" line="74"/>
         <source>Password for %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../theme/PasswordRow.qml" line="87"/>
+        <location filename="../theme/PasswordRow.qml" line="88"/>
         <source>Back</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../theme/PasswordRow.qml" line="93"/>
+        <location filename="../theme/PasswordRow.qml" line="94"/>
         <source>Log in</source>
         <translation type="unfinished"></translation>
     </message>

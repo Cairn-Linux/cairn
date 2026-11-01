@@ -33,6 +33,35 @@ class SteamLaunchLogTest : public QObject {
     Q_OBJECT
 
 private slots:
+    void theAppIdComesFromApplaunch_data() {
+        QTest::addColumn<QStringList>("exec");
+        QTest::addColumn<QString>("appId");
+        QTest::newRow("steam") << QStringList{QStringLiteral("steam"), QStringLiteral("-applaunch"),
+                                              QStringLiteral("294650")}
+                               << QStringLiteral("294650");
+        QTest::newRow("full path")
+            << QStringList{QStringLiteral("/usr/bin/steam"), QStringLiteral("-applaunch"),
+                           QStringLiteral("70")}
+            << QStringLiteral("70");
+        QTest::newRow("not steam")
+            << QStringList{QStringLiteral("scummvm"), QStringLiteral("-applaunch"),
+                           QStringLiteral("70")}
+            << QString();
+        QTest::newRow("no app id")
+            << QStringList{QStringLiteral("steam"), QStringLiteral("-applaunch")} << QString();
+        QTest::newRow("not a number")
+            << QStringList{QStringLiteral("steam"), QStringLiteral("-applaunch"),
+                           QStringLiteral("x")}
+            << QString();
+        QTest::newRow("nothing") << QStringList{} << QString();
+    }
+
+    void theAppIdComesFromApplaunch() {
+        QFETCH(const QStringList, exec);
+        QFETCH(const QString, appId);
+        QCOMPARE(SteamLaunchLog::appIdOf(exec), appId);
+    }
+
     // Each line is one Steam wrote on the kids' laptop.
     void eachLineSaysAStep_data() {
         QTest::addColumn<QByteArray>("line");
@@ -133,6 +162,80 @@ private slots:
         append(path, "[2026-10-20 15:31:00] System startup time: 16.79 seconds\n");
         log.read();
         QVERIFY(!log.downloading());
+        QCOMPARE(log.step(), Step::Nothing);
+    }
+
+    // The question Steam asks when it could not check a game's Steam Cloud
+    // saves is told apart from its other questions, such as the one before
+    // a game's interstitials, as written on the test VM (#211). The last
+    // step about the game decides; lines about anything else change nothing.
+    void theLastStepSaysWhetherSteamAsksAboutCloudSaves_data() {
+        QTest::addColumn<QByteArray>("lines");
+        QTest::addColumn<Step>("step");
+        QTest::addColumn<bool>("cloud");
+        const QByteArray question =
+            line("waiting for user response to SynchronizingCloud \"syncfailed\"");
+        QTest::newRow("cloud sync failed")
+            << line("changed task to SynchronizingCloud with \"\"") + question
+            << Step::WaitingForAnswer << true;
+        QTest::newRow("then a line about something else")
+            << question +
+                   "[2026-10-20 15:30:44] CAPIJobRequestUserStats - Server response failed 2\n"
+            << Step::WaitingForAnswer << true;
+        QTest::newRow("syncing the cloud")
+            << line("changed task to SynchronizingCloud with \"\"") << Step::Working << false;
+        QTest::newRow("another question")
+            << line("changed task to ShowInterstitials with \"\"") +
+                   line("waiting for user response to ShowInterstitials \"\"")
+            << Step::WaitingForAnswer << false;
+        // Made up: the logs saved so far hold no other question about the
+        // cloud. Only the one seen to hold a game counts.
+        QTest::newRow("another cloud question")
+            << line("waiting for user response to SynchronizingCloud \"conflict\"")
+            << Step::WaitingForAnswer << false;
+        QTest::newRow("answered") << question + line("changed task to SynchronizingStats with \"\"")
+                                  << Step::Working << false;
+        QTest::newRow("another game's")
+            << line("waiting for user response to SynchronizingCloud \"syncfailed\"", "70")
+            << Step::Nothing << false;
+    }
+
+    void theLastStepSaysWhetherSteamAsksAboutCloudSaves() {
+        QFETCH(const QByteArray, lines);
+        QFETCH(const Step, step);
+        QFETCH(const bool, cloud);
+        const QTemporaryDir dir;
+        const QString path = dir.filePath(QStringLiteral("console_log.txt"));
+        SteamLaunchLog log(path);
+        log.startLaunch(QStringLiteral("294650"));
+        QVERIFY(!log.cloudSyncFailed());
+        append(path, lines);
+        QCOMPARE(log.read(), step);
+        QCOMPARE(log.cloudSyncFailed(), cloud);
+        QCOMPARE(log.read(), step);
+        QCOMPARE(log.cloudSyncFailed(), cloud);
+    }
+
+    // A new tap forgets the cloud question, and so does a new log.
+    void aNewTapOrANewLogForgetsTheCloudQuestion() {
+        const QTemporaryDir dir;
+        const QString path = dir.filePath(QStringLiteral("console_log.txt"));
+        const QByteArray question =
+            line("waiting for user response to SynchronizingCloud \"syncfailed\"");
+        SteamLaunchLog log(path);
+        log.startLaunch(QStringLiteral("294650"));
+        append(path, question);
+        log.read();
+        QVERIFY(log.cloudSyncFailed());
+        log.startLaunch(QStringLiteral("294650"));
+        QVERIFY(!log.cloudSyncFailed());
+        append(path, question);
+        log.read();
+        QVERIFY(log.cloudSyncFailed());
+        QVERIFY(QFile::remove(path));
+        append(path, "[2026-10-20 15:31:00] System startup time: 16.79 seconds\n");
+        log.read();
+        QVERIFY(!log.cloudSyncFailed());
         QCOMPARE(log.step(), Step::Nothing);
     }
 

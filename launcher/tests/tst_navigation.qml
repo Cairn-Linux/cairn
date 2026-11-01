@@ -300,7 +300,7 @@ TestCase {
         compare(appLauncher.state, AppLauncher.Failed);
         compare(grownUp.appTitle, "Quits cleanly");
         compare(grownUp.openedOnItsOwn, false);
-        // A launch Steam did not stop on part-way gets no line (ADR-0045).
+        // A launch that is not a Steam game gets no line (ADR-0045).
         compare(appLauncher.grownUpStep, AppLauncher.None);
         compare(findChild(grownUp, "grownUpStep").visible, false);
         compare(grownUp.Accessible.description, "Quits cleanly did not start.");

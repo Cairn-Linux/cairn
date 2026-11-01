@@ -70,22 +70,37 @@ void pajamaSam2Says(const QString& path, const QByteArray& says) {
     steamLine(path, 0, "GameAction [AppID 292780, ActionID 1] : LaunchApp " + says);
 }
 
-// #211 on the test VM: a tap on Pajama Sam 2 while Steam could not reach its
-// servers. Steam took it and asked about the game's cloud saves on a window
-// the kiosk hides, and the tap ended on that question.
-void askedAboutPajamaSam2(SteamGameWait& wait, const QString& console) {
-    steamLine(console, 0, "LogonFailure No Connection");
-    wait.startLaunch(pajamaSam2());
+// Steam taking a tap on Pajama Sam 2 and asking about the game's cloud
+// saves on a window the kiosk hides, as on the test VM while it was
+// offline (#211).
+void cloudQuestionForPajamaSam2(const QString& console) {
     steamLine(console, 0, pajamaSam2Taken());
     pajamaSam2Says(console, "changed task to SynchronizingCloud with \"\"");
     pajamaSam2Says(console, "waiting for user response to SynchronizingCloud \"syncfailed\"");
-    QVERIFY(!wait.stillComing());
-    QCOMPARE(wait.lastStep(), SteamLaunchLog::Step::WaitingForAnswer);
 }
 
 QString pajamaSam2Question() {
     return QStringLiteral(
         "Steam is waiting for an answer about Pajama Sam 2 on a window the kiosk hides.");
+}
+
+QString pajamaSam2QuestionAndLogOut() {
+    return QStringLiteral("Steam is waiting for an answer about Pajama Sam 2 on a window the "
+                          "kiosk hides. Log the child out and back in, then try it again.");
+}
+
+// #211 on the test VM: a tap on Pajama Sam 2 while Steam could not reach its
+// servers. Steam took it and asked about the game's cloud saves on a window
+// the kiosk hides, and the tap ended on that question, with no line on the
+// grown-up screen.
+void askedAboutPajamaSam2(SteamGameWait& wait, const QString& console) {
+    steamLine(console, 0, "LogonFailure No Connection");
+    wait.startLaunch(pajamaSam2());
+    cloudQuestionForPajamaSam2(console);
+    QVERIFY(!wait.stillComing());
+    QCOMPARE(wait.lastStep(), SteamLaunchLog::Step::WaitingForAnswer);
+    QVERIFY(!wait.logOutWouldHelp());
+    QCOMPARE(wait.journalNote(QStringLiteral("Pajama Sam 2")), pajamaSam2Question());
 }
 
 // The test VM's stuck run (#206): Steam took the tap, fetched scout, and
@@ -141,33 +156,6 @@ private slots:
     void initTestCase() {
         QVERIFY(dataHome().isValid());
         qputenv("XDG_DATA_HOME", dataHome().path().toUtf8());
-    }
-
-    void theAppIdComesFromApplaunch_data() {
-        QTest::addColumn<QStringList>("exec");
-        QTest::addColumn<QString>("appId");
-        QTest::newRow("steam") << steamGame() << QStringLiteral("294650");
-        QTest::newRow("full path")
-            << QStringList{QStringLiteral("/usr/bin/steam"), QStringLiteral("-applaunch"),
-                           QStringLiteral("70")}
-            << QStringLiteral("70");
-        QTest::newRow("not steam")
-            << QStringList{QStringLiteral("scummvm"), QStringLiteral("-applaunch"),
-                           QStringLiteral("70")}
-            << QString();
-        QTest::newRow("no app id")
-            << QStringList{QStringLiteral("steam"), QStringLiteral("-applaunch")} << QString();
-        QTest::newRow("not a number")
-            << QStringList{QStringLiteral("steam"), QStringLiteral("-applaunch"),
-                           QStringLiteral("x")}
-            << QString();
-        QTest::newRow("nothing") << QStringList{} << QString();
-    }
-
-    void theAppIdComesFromApplaunch() {
-        QFETCH(const QStringList, exec);
-        QFETCH(const QString, appId);
-        QCOMPARE(SteamGameWait::appIdOf(exec), appId);
     }
 
     // With nothing to say Steam is working on it, a Steam game is not waited
@@ -945,16 +933,27 @@ private slots:
     // Pajama Sam 2, while Steam was still offline or once it had signed in
     // again, made it write only the tap's own line. Each such tap ends at
     // its first look, as the first one did, and the journal names the
-    // question, with no line on the grown-up screen.
+    // question. Once Steam has signed in again, logging the child out frees
+    // the game, so the journal and the grown-up screen say that too; not
+    // while Steam is still offline, nor while its sign-in is turned down
+    // (ADR-0045).
     void aGameHeldByAQuestionSaysSoAtEveryTap_data() {
         QTest::addColumn<QByteArray>("signIn");
+        QTest::addColumn<bool>("logOut");
+        QTest::addColumn<QString>("note");
         QTest::newRow("signed in again")
-            << QByteArray("Waiting for compat in post-logon took: 0.098334s");
-        QTest::newRow("still offline") << QByteArray("LogonFailure No Connection");
+            << QByteArray("Waiting for compat in post-logon took: 0.098334s") << true
+            << pajamaSam2QuestionAndLogOut();
+        QTest::newRow("still offline")
+            << QByteArray("LogonFailure No Connection") << false << pajamaSam2Question();
+        QTest::newRow("sign-in turned down")
+            << QByteArray("LogonFailure Access Denied") << false << pajamaSam2Question();
     }
 
     void aGameHeldByAQuestionSaysSoAtEveryTap() {
         QFETCH(const QByteArray, signIn);
+        QFETCH(const bool, logOut);
+        QFETCH(const QString, note);
         const QTemporaryDir root;
         const QString log = root.filePath(QStringLiteral("console_log.txt"));
         SteamGameWait wait(root.path(), log, root.filePath(QStringLiteral("bootstrap_log.txt")));
@@ -968,14 +967,15 @@ private slots:
             QCOMPARE(wait.signIn(), SteamSignIn::Now::Fine);
             QVERIFY(!wait.steamWorking());
             QVERIFY(!wait.sendAgain());
-            QVERIFY(!wait.logOutWouldHelp());
-            QCOMPARE(wait.journalNote(QStringLiteral("Pajama Sam 2")), pajamaSam2Question());
+            QCOMPARE(wait.logOutWouldHelp(), logOut);
+            QCOMPARE(wait.journalNote(QStringLiteral("Pajama Sam 2")), note);
         }
     }
 
     // The question holds only its own game. A tap on another that Steam
     // takes without a step, as it does for an app id it will not launch,
-    // says no more than it did before (#211).
+    // says no more than it did before, and so does a tile that is not a
+    // Steam game after a tap that said to log out (#211).
     void aQuestionHoldsOnlyItsOwnGame() {
         const QTemporaryDir root;
         const QString log = root.filePath(QStringLiteral("console_log.txt"));
@@ -988,10 +988,69 @@ private slots:
                   "ExecCommandLine: \"'~/.steam/root/ubuntu12_32/steam' '-applaunch' '900001'\"");
         QVERIFY(!wait.stillComing());
         QCOMPARE(wait.lastStep(), SteamLaunchLog::Step::Nothing);
+        QVERIFY(!wait.logOutWouldHelp());
         QCOMPARE(wait.journalNote(QStringLiteral("A made-up game")), QString());
         wait.startLaunch(pajamaSam2());
         steamLine(log, 0, pajamaSam2Taken());
         QVERIFY(!wait.stillComing());
+        QVERIFY(wait.logOutWouldHelp());
+        QCOMPARE(wait.journalNote(QStringLiteral("Pajama Sam 2")), pajamaSam2QuestionAndLogOut());
+        wait.startLaunch({QStringLiteral("tuxpaint")});
+        QVERIFY(!wait.stillComing());
+        QVERIFY(!wait.logOutWouldHelp());
+        QCOMPARE(wait.journalNote(QStringLiteral("Draw")), QString());
+    }
+
+    // The tap that met the cloud question adds no line, whatever Steam's
+    // sign-in says, signed in before the tap or again during it: Steam had
+    // just failed to check the game's saves. The next tap says to log out
+    // if that still helps (ADR-0045).
+    void theTapThatMeetsTheCloudQuestionAddsNoLine_data() {
+        QTest::addColumn<QByteArray>("before");
+        QTest::addColumn<QByteArray>("during");
+        QTest::newRow("signed in before the tap")
+            << QByteArray("Waiting for compat in post-logon took: 0.098334s") << QByteArray();
+        QTest::newRow("signed in again during the tap")
+            << QByteArray("LogonFailure No Connection")
+            << QByteArray("Waiting for compat in post-logon took: 0.098334s");
+    }
+
+    void theTapThatMeetsTheCloudQuestionAddsNoLine() {
+        QFETCH(const QByteArray, before);
+        QFETCH(const QByteArray, during);
+        const QTemporaryDir root;
+        const QString log = root.filePath(QStringLiteral("console_log.txt"));
+        SteamGameWait wait(root.path(), log, root.filePath(QStringLiteral("bootstrap_log.txt")));
+        steamLine(log, 0, before);
+        wait.startLaunch(pajamaSam2());
+        cloudQuestionForPajamaSam2(log);
+        if (!during.isEmpty()) {
+            steamLine(log, 0, during);
+        }
+        QVERIFY(!wait.stillComing());
+        QCOMPARE(wait.lastStep(), SteamLaunchLog::Step::WaitingForAnswer);
+        QVERIFY(!wait.logOutWouldHelp());
+        QCOMPARE(wait.journalNote(QStringLiteral("Pajama Sam 2")), pajamaSam2Question());
+    }
+
+    // Another question Steam keeps holds its game too, but what frees the
+    // game is not known, so a later tap adds no line, even with Steam
+    // signed in (ADR-0045).
+    void anotherQuestionSteamKeepsAddsNoLine() {
+        const QTemporaryDir root;
+        const QString log = root.filePath(QStringLiteral("console_log.txt"));
+        SteamGameWait wait(root.path(), log, root.filePath(QStringLiteral("bootstrap_log.txt")));
+        steamLine(log, 0, "Waiting for compat in post-logon took: 0.098334s");
+        wait.startLaunch(pajamaSam2());
+        steamLine(log, 0, pajamaSam2Taken());
+        pajamaSam2Says(log, "changed task to ShowInterstitials with \"\"");
+        pajamaSam2Says(log, "waiting for user response to ShowInterstitials \"\"");
+        QVERIFY(!wait.stillComing());
+        wait.startLaunch(pajamaSam2());
+        steamLine(log, 0, pajamaSam2Taken());
+        QVERIFY(!wait.stillComing());
+        QCOMPARE(wait.lastStep(), SteamLaunchLog::Step::WaitingForAnswer);
+        QVERIFY(!wait.logOutWouldHelp());
         QCOMPARE(wait.journalNote(QStringLiteral("Pajama Sam 2")), pajamaSam2Question());
     }
 
@@ -1029,11 +1088,13 @@ private slots:
         QVERIFY(!wait.stillComing());
         QCOMPARE(wait.lastStep(), SteamLaunchLog::Step::Nothing);
         QCOMPARE(wait.journalNote(QStringLiteral("Pajama Sam 2")), QString());
+        QVERIFY(!wait.logOutWouldHelp());
     }
 
     // A Steam started again holds none of the old client's questions, also
     // when it was started again for an earlier tap. One that could not be
-    // started again may still run and hold them (#211).
+    // started again may still run and hold them, and logging the child out
+    // ends it, so a held game gets the line (#211).
     void steamStartedAgainFreesTheGamesHeldByAQuestion_data() {
         QTest::addColumn<QString>("restart");
         QTest::addColumn<bool>("held");
@@ -1070,6 +1131,7 @@ private slots:
         QVERIFY(!wait.stillComing());
         QCOMPARE(wait.lastStep() == SteamLaunchLog::Step::WaitingForAnswer, held);
         QCOMPARE(wait.journalNote(QStringLiteral("Ada's game")).isEmpty(), !held);
+        QCOMPARE(wait.logOutWouldHelp(), held);
     }
 
     void notASteamGameIsNeverSentAgain() {

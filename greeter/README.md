@@ -7,7 +7,10 @@ theme and the small C++ module the theme imports.
 - `theme/`: the SDDM theme, QML only. `Main.qml` draws the tiles from the
   brand tokens; `FamilyTile.qml` is one round tile, `PasswordRow.qml` the
   password field under a tile that needs one, `TextButton.qml` its two
-  buttons. `mark-on-ink.svg` links to the brand's mark.
+  buttons. `mark-on-ink.svg` links to the brand's mark. The screen is
+  Ink, so its focus rings use `Tokens.focusOnInk`, Sky, 7.45:1.
+  `Tokens.focus` is the ring for light grounds and would be 1.97:1 here
+  (#216).
 - `src/`: `Cairn.Greeter`, the module. `AccountKind` says what kind of
   family member an account is from its groups (ADR-0011) and whether its
   tile asks for a password. It takes the role from the family's one rule
