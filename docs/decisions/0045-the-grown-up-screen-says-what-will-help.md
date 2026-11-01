@@ -193,12 +193,14 @@ Consequences:
 - `SteamSignIn` counts Steam as signed in whenever nothing in its log says
   otherwise. A Steam that has lost the internet and not noticed yet, or
   whose cloud check failed while it stayed signed in, could get the line
-  when logging out would not help. On the development laptop on
-  2026-10-28, Steam wrote `LogonFailure No Connection` two seconds after
-  its network device went away. On the test VM on 2026-10-31 it wrote one
-  about six seconds after the VM's network link went down. How long any
-  Steam takes when the Wi-Fi stays up and the line beyond it goes down has
-  not been measured.
+  when logging out would not help. On the test VM on 2026-10-31, Steam
+  wrote `LogonFailure No Connection` about six seconds after the VM's
+  network link went down. Its log said the network device was lost in
+  that same second, so the six seconds passed before Steam noticed. On the
+  development laptop on 2026-10-28, the first one came two seconds after
+  Steam's log said the device was lost; when the device itself went is not
+  known there. How long any Steam takes when the Wi-Fi stays up and the
+  line beyond it goes down has not been measured.
 - No new string and no new value of `AppLauncher.GrownUpStep`, so the
   screen and its QML are unchanged.
 

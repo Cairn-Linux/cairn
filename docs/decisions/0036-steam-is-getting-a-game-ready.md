@@ -446,8 +446,9 @@ VM's case: the first tap and each later one end on the grown-up screen
 with the question in the journal; ADR-0045 says which of them also show
 its line.
 
-Run on the test VM on 2026-10-31, with this change's launcher laid over
-`/usr`. With ada's Steam signed in and the network taken down, a tap on
+Run on the test VM on 2026-10-31, with #230's launcher laid over `/usr`,
+before the grown-up screen had a line for the cloud question.
+With ada's Steam signed in and the network taken down, a tap on
 Pajama Sam 2 met the cloud question and ended at its first look, 15
 seconds after the tap, with the question in the journal. Steam signed in
 again a second after the network came back. A tap on Test Game Three,
