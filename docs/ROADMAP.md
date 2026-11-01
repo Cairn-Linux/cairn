@@ -435,7 +435,7 @@ done, and what could sink it. Decisions that change the design get an ADR in
   and does nothing. A launcher test pins Draw's command line in the
   manifest the image installs. Printing is looked at again when the
   Guardian tool links to Plasma's printer settings (ADR-0040).
-  Not yet seen on the VM.
+  Checked in the VM on 2026-10-31, from the tile and from `open draw`.
 - **Steam updating itself at login keeps the tiles (2026-10-30, #183,
   amends ADR-0037).** On 2026-10-27 the kids' laptop showed the grown-up
   screen for 13 minutes at a login, with Steam's updater box and its
