@@ -595,8 +595,8 @@ only.
   A run can keep Ada from logging in for up to 90 minutes.
   A Save, a visit and a logout, for any child, wait too, since the list
   names one child for the whole computer.
-  The warning says so before the password, and **Stop** lets Ada in at
-  once.
+  The warning says before the password that Ada cannot log in meanwhile,
+  and **Stop** lets her in at once.
 - **Memory.**
   In E10, systemd counted 2.26 GB at the peak for `ada`'s processes.
   That count includes page cache, so it is an upper bound; the
