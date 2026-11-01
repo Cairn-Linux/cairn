@@ -59,7 +59,10 @@ def run_steps(snippet, accounts=None, env_extra=None, extra_stubs=None, script=S
         stubs = {"id": id_stub(accounts or {}), **(extra_stubs or {})}
         for name in ("useradd", "gpasswd", "passwd"):
             stubs[name] = f'#!/bin/sh\necho "{name} $*" >> {log}\n'
-        stubs["chpasswd"] = f'#!/bin/sh\nprintf "chpasswd stdin: " >> {log}\ncat >> {log}\n'
+        # Only shell builtins, so a test can cut PATH down to the stand-ins.
+        stubs["chpasswd"] = (
+            f'#!/bin/sh\nwhile IFS= read -r line; do printf "chpasswd stdin: %s\\n" "$line" >> {log}; done\n'
+        )
         for name, body in stubs.items():
             stub = bin_dir / name
             stub.write_text(body)
@@ -100,6 +103,17 @@ class PasswordTest(unittest.TestCase):
         for line in calls.splitlines():
             if not line.startswith("chpasswd stdin:"):
                 self.assertNotIn(SECRET, line)
+
+    def test_the_step_runs_no_program_but_chpasswd(self):
+        # The test above sees only the stand-ins. Here PATH holds nothing but
+        # them, so a program the step ran by name, other than chpasswd or
+        # passwd, would not be found, and the run would stop. A program named
+        # by its full path would still run.
+        snippet = 'guardian=gina\nPATH="${PATH%%:*}"\nset_guardian_password'
+        code, output, calls = run_steps(snippet, env_extra={"CAIRN_GUARDIAN_PASSWORD": SECRET})
+        self.assertEqual(code, 0, output)
+        self.assertIn("changed: password set for gina", output)
+        self.assertIn(f"chpasswd stdin: gina:{SECRET}", calls.splitlines())
 
     def test_tracing_comes_back_and_the_variable_goes(self):
         snippet = NEW_GUARDIAN + '\necho "left: ${CAIRN_GUARDIAN_PASSWORD-unset}"\ntrue after'

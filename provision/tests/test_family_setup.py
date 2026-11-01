@@ -486,11 +486,13 @@ class PasswordRunTest(Scenario):
         self.assertIn("+ make_children", output)
 
     def test_an_existing_guardians_run_never_prints_it(self):
-        # The step does not run, so the variable stays set for the whole run.
+        # The step does not run, so the variable stays set for the whole run,
+        # and no stand-in may be given it either.
         code, output, calls = self.run_family({"gina": (1001, ["gina", "wheel", "cairn-guardian"])})
         self.assertEqual(code, 0, output)
         self.assertIn("done: ", output)
         self.assertNotIn(SECRET, output)
+        self.assertNotIn(SECRET, calls)
         self.assertNotIn("chpasswd", calls)
 
 

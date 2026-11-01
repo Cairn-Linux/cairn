@@ -107,30 +107,42 @@ is the Guardian's password, in the one step described above, which both
 share.
 
 Everything else on provisioning's path was checked for a secret on
-2026-10-31:
+2026-10-31, and so were the two places beside it that a grown-up's
+password goes through:
 
-- A child has no password: this script and `cairn-family create-child`
-  lock it.
+- A child has no password to leak: `cairn-provision.sh` and
+  `cairn-family create-child` lock the account's password.
 - `cairn-renumber-guardians.sh` handles no secret.
 - `cairn-family set-own-password`, which the Family app runs when a
   grown-up changes their own password, reads the new one on its standard
-  input and hands it to `chpasswd` on chpasswd's. The journal gets whose
-  password changed and the answer, never the password (ADR-0043).
-- The visit helper never sees a password: `pkexec` asks for it in
+  input and writes it to `chpasswd`'s standard input. The journal gets
+  whose password was asked for and the answer, never the password
+  (ADR-0043).
+- The visit helper never asks for a password: `pkexec` asks for it in
   polkit's own box.
 - The copy step, the picture step, the tools step and kidscan run without
   a trace, and none of them reads Steam's sign-in files.
 - `CAIRN_GUARDIAN_PASSWORD` stays in the environment of the programs the
   script starts before the password step, and through the whole run when
-  the Guardian already has an account. Those programs are root's own, and
-  only root can read their environment. The one program provisioning runs
-  as a child, the copy, starts with only the few variables `env -i` gives
-  it.
+  the Guardian already has an account. Those programs run as root, and
+  only root can read their environment. The copy, which only
+  `cairn-provision.sh` runs, is the one exception. `setpriv` becomes the
+  child and starts `env`, which holds the run's whole environment for a
+  moment, then starts the copy with only `HOME`, `USER`, `LOGNAME` and
+  `PATH`. In that moment any program of the child's could read it.
+  None is running: the visit helper starts the copy only once nothing of
+  the child's is left, and lists the child in `/run/cairn/steam-visits`,
+  as a visit does, so they cannot log in until the copy ends.
 
 `tests/test_provision.py` runs the password step, and
 `tests/test_family_setup.py` the family's whole setup, with a fake
-password, and both look for it in everything printed.
-The first-boot wizard keeps the same rule (ROADMAP P1-6).
+password. Both look for it in everything printed and in what the
+stand-ins were given. One test runs the step with nothing but the
+stand-ins on `PATH`, so any other program the step ran by name would stop
+the run. A program named by its full path would still get past the tests;
+the step names none.
+The first-boot wizard, when it comes, must keep the same rule (ROADMAP
+P1-6, #111).
 
 ## On a computer that runs the image
 
