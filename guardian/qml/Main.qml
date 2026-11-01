@@ -17,18 +17,31 @@ Window {
     readonly property bool asksFirst: visit.step === SteamForChild.Ready || visit.step === SteamForChild.NotOpened
 
     title: qsTr("Steam for %1").arg(child)
+    // The room the buttons take under the words, when the step has any.
+    readonly property real buttonsRoom: buttons.visible ? buttons.height + Tokens.bodySize : 0
     // The size follows the words, and only the words, for every step: it
-    // grows and shrinks with each message (#172). Bound as the most and the
-    // least the window may be, so KWin keeps to it. Rounded up, as a
-    // window's height is whole pixels and the words' height may not be.
-    readonly property int wordsHeight: Math.ceil(content.implicitHeight) + margin * 2
+    // grows and shrinks with each message (#172). A window's height is
+    // whole pixels, so the words and the buttons' room are each rounded up
+    // on their own. Their sum could round down to a whole number first, in
+    // floating point, and leave the words' part a hair short of them.
+    readonly property int wordsHeight: Math.ceil(content.implicitHeight) + Math.ceil(buttonsRoom) + margin * 2
+    // The free height Qt gives, for all screens together. Under Wayland it
+    // counts Plasma's panel as free.
+    property int screenHeight: Screen.desktopAvailableHeight
+    // At most that, less three heading sizes (84 px at the usual text
+    // size): room for KWin's title bar, about 30 px, which is not part of
+    // the window's height, and for Plasma's usual 44 px panel. Past that,
+    // such as at 200% on a small screen, the words scroll above the buttons
+    // (#231). Bound as the most and the least the window may be, so KWin
+    // keeps to it.
+    readonly property int fitHeight: Math.min(wordsHeight, screenHeight - Tokens.headingSize * 3)
 
     width: Tokens.headingSize * 22
-    height: wordsHeight
+    height: fitHeight
     minimumWidth: width
     maximumWidth: width
-    minimumHeight: wordsHeight
-    maximumHeight: wordsHeight
+    minimumHeight: fitHeight
+    maximumHeight: fitHeight
     color: Tokens.ground
     visible: true
 
@@ -37,11 +50,11 @@ Window {
     // Nothing in the window would then change to put it right, and the
     // buttons stay cut off (#172), so any other height is put back.
     onHeightChanged: Qt.callLater(window.fitWords)
-    onWordsHeightChanged: Qt.callLater(window.fitWords)
+    onFitHeightChanged: Qt.callLater(window.fitWords)
 
     function fitWords() {
-        if (height !== wordsHeight)
-            height = wordsHeight;
+        if (height !== fitHeight)
+            height = fitHeight;
     }
 
     onClosing: close => {
@@ -85,77 +98,107 @@ Window {
         }
     }
 
-    Column {
-        id: content
+    // The words. When they are taller than the window has room for, they
+    // scroll, and the buttons stay in sight under them (#231).
+    Flickable {
+        id: scroller
 
-        objectName: "content"
+        objectName: "wordsScroller"
         x: window.margin
         y: window.margin
         width: window.width - window.margin * 2
-        spacing: Tokens.bodySize
+        // As tall as the words, the very same number when they fit, so they
+        // neither scroll nor show the bar; up to what the window leaves.
+        height: Math.min(content.implicitHeight, window.height - window.margin * 2 - window.buttonsRoom)
+        contentHeight: content.implicitHeight
+        interactive: contentHeight > height
+        boundsBehavior: Flickable.StopAtBounds
+        clip: true
 
-        Text {
-            objectName: "heading"
-            width: parent.width
-            wrapMode: Text.WordWrap
-            text: words.heading()
-            font.family: Tokens.fontFamily
-            font.pixelSize: Tokens.headingSize
-            font.weight: Tokens.weightBold
-            lineHeight: Tokens.headingLineHeight
-            color: Tokens.text
-            Accessible.role: Accessible.Heading
-            Accessible.name: text
-        }
+        Column {
+            id: content
 
-        Repeater {
-            model: words.paragraphs()
+            objectName: "content"
+            width: scroller.width
+            spacing: Tokens.bodySize
 
             Text {
-                required property string modelData
-
-                objectName: "paragraph"
-                width: content.width
+                objectName: "heading"
+                width: parent.width
                 wrapMode: Text.WordWrap
-                text: modelData
+                text: words.heading()
                 font.family: Tokens.fontFamily
-                font.pixelSize: Tokens.bodySize
-                lineHeight: Tokens.bodyLineHeight
+                font.pixelSize: Tokens.headingSize
+                font.weight: Tokens.weightBold
+                lineHeight: Tokens.headingLineHeight
                 color: Tokens.text
-                Accessible.role: Accessible.StaticText
+                Accessible.role: Accessible.Heading
                 Accessible.name: text
+            }
+
+            Repeater {
+                model: words.paragraphs()
+
+                Text {
+                    required property string modelData
+
+                    objectName: "paragraph"
+                    width: content.width
+                    wrapMode: Text.WordWrap
+                    text: modelData
+                    font.family: Tokens.fontFamily
+                    font.pixelSize: Tokens.bodySize
+                    lineHeight: Tokens.bodyLineHeight
+                    color: Tokens.text
+                    Accessible.role: Accessible.StaticText
+                    Accessible.name: text
+                }
+            }
+        }
+    }
+
+    // Where the words are, when there are more than fit, as on the Family
+    // window's page.
+    ScrollMark {
+        objectName: "scrollIndicator"
+        flickable: scroller
+        x: window.width - width - Tokens.focusOffset
+    }
+
+    Row {
+        id: buttons
+
+        objectName: "buttons"
+        anchors.left: parent.left
+        anchors.leftMargin: window.margin
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: window.margin
+        spacing: Tokens.bodySize
+        topPadding: Tokens.bodySize
+        // From the words, not from the button: a hidden row hides the
+        // button too, which would then never show the row again.
+        visible: words.mainButtonText() !== ""
+
+        TextButton {
+            id: mainButton
+
+            objectName: "mainButton"
+            text: words.mainButtonText()
+            visible: text !== ""
+            focus: true
+            onActivated: window.pressMainButton()
+            onVisibleChanged: {
+                if (visible)
+                    forceActiveFocus();
             }
         }
 
-        Row {
-            objectName: "buttons"
-            spacing: Tokens.bodySize
-            topPadding: Tokens.bodySize
-            // From the words, not from the button: a hidden row hides the
-            // button too, which would then never show the row again.
-            visible: words.mainButtonText() !== ""
-
-            TextButton {
-                id: mainButton
-
-                objectName: "mainButton"
-                text: words.mainButtonText()
-                visible: text !== ""
-                focus: true
-                onActivated: window.pressMainButton()
-                onVisibleChanged: {
-                    if (visible)
-                        forceActiveFocus();
-                }
-            }
-
-            TextButton {
-                objectName: "wayOutButton"
-                quiet: true
-                text: window.visit.step === SteamForChild.Ready ? qsTr("Cancel") : qsTr("Close")
-                visible: window.asksFirst
-                onActivated: window.close()
-            }
+        TextButton {
+            objectName: "wayOutButton"
+            quiet: true
+            text: window.visit.step === SteamForChild.Ready ? qsTr("Cancel") : qsTr("Close")
+            visible: window.asksFirst
+            onActivated: window.close()
         }
     }
 }
