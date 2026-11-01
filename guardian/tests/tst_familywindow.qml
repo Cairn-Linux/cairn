@@ -875,8 +875,8 @@ TestCase {
         const area = findChild(window, "childArea");
         const freddi = card(window, 1);
         const place = () => freddi.mapToItem(window.contentItem, 0, 0).y;
-        // The card in the middle of the window, with the keyboard's focus,
-        // so the tap's own focus does not scroll the page.
+        // The card in the middle of the window, with the keyboard's focus
+        // already. The next test taps a card without it, at the page's edge.
         const middle = freddi.mapToItem(scroller.contentItem, 0, 0).y + freddi.height / 2 - scroller.height / 2;
         scroller.contentY = Math.max(0, Math.min(middle, scroller.contentHeight - scroller.height));
         freddi.forceActiveFocus();

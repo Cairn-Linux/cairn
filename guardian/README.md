@@ -85,8 +85,12 @@ The Games page (ADR-0041):
    above says "not saved", and a sentence names every child with changes.
    When that sentence comes or goes above the grid, the page scrolls by
    as much, so the card stays where it was in the window, under the
-   pointer (#219). The parent can change several children and save once.
-   **Put back as saved** undoes the changes for the child picked.
+   pointer (#219). So does a card cut off at the page's edge, or close
+   to it. The focus a tap gives it would scroll it into full view, but
+   the card turns first, so the page scrolls that back too. Tab, which
+   turns nothing, still brings a card into full view. The parent can
+   change several children and save once. **Put back as saved** undoes
+   the changes for the child picked.
 4. **Save** runs `cairn-family save-games` through `pkexec` once, with
    each changed child's whole new list, so one password covers the whole
    Save. It is ready only when there is something to save, and **Put
@@ -479,7 +483,9 @@ refusal keeping the changes, every control waiting while a Save
 runs, a logged-in child's games greyed, the logout and why it did not
 finish, and the progress window, with Close in sight under a long result
 in the smallest window. They also check that a card turned on a page
-scrolled down to the games stays where it was in the window. `heldKey`
+scrolled down to the games stays where it was in the window, and so
+does a card without the focus tapped at the page's edge, cut off or
+close to it. Tab still brings such a card into full view. `heldKey`
 sends the repeats of a key held down, which TestCase cannot, so the tests
 check that a game card, a button, a child, a level and a picture each
 count it once.
@@ -580,7 +586,3 @@ box. After the password, it made "Cy B", with the login `cyb`.
 - The Steam window's cap uses the free height of all screens together,
   so on a short screen beside a taller one it can still run past the
   bottom.
-- A first tap on a game card gives it the focus before it turns. So a
-  card cut off at the page's edge, or within 17 pixels of it, first
-  scrolls into full view with 17 pixels of room, as it does for the
-  keyboard. On the cairn-iso VM that moved the cards 18 pixels (#219).
