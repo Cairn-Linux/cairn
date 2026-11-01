@@ -472,7 +472,7 @@ class BootScreenTests(unittest.TestCase):
         colors = self.tokens["color"]
         semantic = self.tokens["semantic"]
         middle = rows[len(rows) // 2]
-        self.assertEqual(middle[0][:3], boot_screen.rgb(colors[semantic["focus"]]["hex"]))
+        self.assertEqual(middle[0][:3], boot_screen.rgb(colors[semantic["focus-on-ink"]]["hex"]))
         self.assertEqual(
             middle[len(middle) // 2],
             (*boot_screen.rgb(colors[semantic["card"]]["hex"]), 255),
