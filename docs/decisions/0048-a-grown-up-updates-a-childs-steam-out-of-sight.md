@@ -211,6 +211,12 @@ The stage lines:
 - Steam is getting 2 updates: 0.4 of 1.6 GB.
 - Closing Ada's Steam.
 
+Steam's updater writes the sizes of its own update as it goes.
+For the other updates, Steam writes what each will download before it
+starts, but whether it says how far each has got is not checked
+(inference; E12 records it).
+Without that, the line is a count, "Steam is getting 2 updates.", with
+no bar.
 A game is named as the full games list names it (ADR-0041).
 Steam's tools are "the tools Steam runs games with", as in the Save's
 window, never one by one (ADR-0046).
@@ -512,7 +518,7 @@ copy and the logout.
     the box it shows when the account plays elsewhere, or the box that
     says steamwebhelper is not responding.
 - Which window names mean a question, and which are Steam's own quiet
-  windows, is recorded in E12 to E16.
+  windows, is recorded in E12, E13, E15 and E16.
   How the watcher lists them, with no new dependency, is for the change
   that builds it.
 - It prints only fixed words, appids and numbers, only when something
@@ -606,7 +612,7 @@ and numbers, never a Steam name or a path, as ADR-0041 requires:
 | `steam-updating LOGIN DONE TOTAL` | Steam is updating itself; DONE and TOTAL in KB, both 0 while its updater gives no sizes |
 | `signing-in LOGIN` | Steam is ready and signing in |
 | `checking LOGIN` | Steam is signed in, and is updating no app |
-| `app LOGIN APPID DONE TOTAL` | Steam is getting the app's update, in bytes |
+| `app LOGIN APPID DONE TOTAL` | Steam is getting the app's update, in bytes; TOTAL from Steam's prefetch line, and DONE 0 while Steam says nothing of how far it has got (inference; E12) |
 | `app-done LOGIN APPID` | The app's update has finished |
 | `restarting LOGIN` | Steam is started once more, to install an update of itself |
 | `closing LOGIN` | Steam is asked to save and quit |
@@ -775,9 +781,13 @@ hers, owned by her and labelled again.
    Watch T in `content_log.txt` (`Update Required`, `not played for N
    seconds`, `Update delayed`, `finished update`) and in its manifest
    (`buildid`, `StateFlags`, `ScheduledAutoUpdate`).
+   During T's download, record whatever says how far it has got: the
+   `update started` line, the rate and `stats:` lines, and
+   `BytesDownloaded` in its manifest over time.
+   Record the window names too.
    Passes if (a) updates T: no lever is needed.
-   If (a) waits while (b) updates, a lever is needed, and E13 and E14
-   decide which.
+   If (a) waits while (b) updates, Steam is waiting, and E13 decides
+   whether validating fetches T ("Updates Steam puts off").
    Fails if neither updates T: the button covers only Steam's own
    update, and the warning and the results are amended to say so.
 3. **E13. Validate or launch a tool.**
@@ -801,8 +811,9 @@ hers, owned by her and labelled again.
    It needs an update of the client: Valve's next, or
    `-forcesteamupdate -forcepackagedownload` added to the start once,
    undocumented options that repair tools use.
-   Start hidden, follow `updateui_child.txt`, and note the process ids of
-   cage and its child around each `Update complete, launching Steam...`.
+   Start hidden, follow `updateui_child.txt` and the window names, and
+   note the process ids of cage and its child around each `Update
+   complete, launching Steam...`.
    Also, with `ada`'s Steam stopped, run `/usr/bin/steam
    -forcesteamupdate -exitsteam` as her: does the update install with no
    `Startup - Steam Client launched` line?
