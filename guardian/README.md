@@ -501,6 +501,10 @@ the Guardian tool's other tests need no bus.
 
 What the stand-ins cannot show was run in the VM (`docs/research/steam-visit.md`).
 
+Add a child was checked in the cairn-iso VM on 2026-10-31 (#212). Beside
+two children named Cy, it refused "Cy" and " cy " before any password
+box. After the password, it made "Cy B", with the login `cyb`.
+
 ## Not yet
 
 - Logging out, restarting or shutting down during a visit still stops the
@@ -511,7 +515,6 @@ What the stand-ins cannot show was run in the VM (`docs/research/steam-visit.md`
   cage at once in the same way.
 - The Guardian's own Steam, started again by the window, runs in the
   window's own systemd unit, which then stays until Steam ends.
-- Neither `cairn-family` nor the Guardian tool has run in the VM yet.
 - Whether Plasma's own lid handling honours the copy's inhibitor lock is
   to be checked in the VM (ADR-0041, step 6).
 - The Guardian tool cannot reset a child, set a PIN, or make an existing
