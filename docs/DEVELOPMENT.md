@@ -281,11 +281,13 @@ podman run --rm --security-opt label=disable \
   xwd -root -silent | xwdtopnm | pnmtopng > /out/boot.png'
 ```
 
-`boot.png` shows the password prompt at 800 by 600. Started with
+`boot.png` shows the password prompt at 800 by 600, drawn with Pango, as
+after the real root is mounted. Started with
 `--debug --debug-file=/out/plymouthd.log`, Plymouth also logs the size
 of every line of text it draws, which is how to tell whether a sentence
-fits. That is Pango, as after the real root is mounted. To draw as the
-initramfs does, with FreeType, first move `label-pango.so` out of
+fits. It writes that file only when it quits, so run `plymouth quit`
+after the picture, before the container ends. To draw as the initramfs
+does, with FreeType, first move `label-pango.so` out of
 `/usr/lib64/plymouth/` and `/usr/bin/fc-match` out of the way, and link
 `/usr/share/fonts/Plymouth.ttf` to the brand's
 `AtkinsonHyperlegibleNext-Regular.otf`. Caps Lock does not show this way.

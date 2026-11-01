@@ -41,8 +41,8 @@ Plymouth's modules to draw them. Checked in the image on 2026-10-29:
 ### What the maintainer chose
 
 The first version of this ADR, on 2026-10-29, put the stones on the
-launcher's Sand and left four questions. Mason answered them on
-2026-10-31:
+launcher's Sand. Its pull request, #201, asked the maintainer four
+questions. Mason answered them on 2026-10-31:
 
 1. **Ink, with Sand stones.** The screen has the login screen's ground
    from power-on, as the brand guide's "Boot splash is the mark alone,
