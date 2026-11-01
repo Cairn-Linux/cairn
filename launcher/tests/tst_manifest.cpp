@@ -232,6 +232,29 @@ private slots:
         QCOMPARE(model.data(model.index(0), TileModel::TitleRole).toString(),
                  QStringLiteral("Paint"));
     }
+
+    // The manifest the image and provisioning install. Draw's options come
+    // after the app id, where flatpak hands them to Tux Paint: --autosave and
+    // --saveovernew keep the picture when the child leaves (ADR-0019), and
+    // --noprint turns off a Print button its sandbox can never use (#221).
+    // Tux Paint quits at once on an option it does not know, so the whole
+    // command is pinned.
+    void installedDrawStartsTuxPaintWithPrintOff() {
+        const Manifest::Result result = Manifest::read(QStringLiteral(CAIRN_MANIFEST_JSON));
+        QVERIFY2(result.error.isEmpty(), qPrintable(result.error));
+        QVERIFY2(result.skipped.isEmpty(), qPrintable(result.skipped.join(QLatin1Char('\n'))));
+        QStringList drawExec;
+        for (const TileModel::Tile& tile : result.tiles) {
+            if (tile.title == QStringLiteral("Draw")) {
+                drawExec = tile.exec;
+            }
+        }
+        QCOMPARE(drawExec,
+                 (QStringList{QStringLiteral("flatpak"), QStringLiteral("run"),
+                              QStringLiteral("org.tuxpaint.Tuxpaint"),
+                              QStringLiteral("--fullscreen=native"), QStringLiteral("--autosave"),
+                              QStringLiteral("--saveovernew"), QStringLiteral("--noprint")}));
+    }
 };
 
 } // namespace

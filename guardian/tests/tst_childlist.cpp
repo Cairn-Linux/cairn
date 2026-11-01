@@ -67,6 +67,36 @@ private slots:
     void noChildren() {
         QVERIFY(childrenAmong({}).empty());
     }
+
+    // One name to a family, whatever the case of its letters and spaces at
+    // either end; an accent, a letter more or an initial makes another.
+    void sameNameIgnoresOnlyCaseAndSpacesAtTheEnds() {
+        QVERIFY(sameName(QStringLiteral("Cy"), QStringLiteral("Cy")));
+        QVERIFY(sameName(QStringLiteral("Cy"), QStringLiteral("cy")));
+        QVERIFY(sameName(QStringLiteral("  CY "), QStringLiteral("Cy")));
+        QVERIFY(sameName(QStringLiteral("ZOË"), QStringLiteral("zoë")));
+        QVERIFY(!sameName(QStringLiteral("Zoe"), QStringLiteral("Zoë")));
+        QVERIFY(!sameName(QStringLiteral("Cyd"), QStringLiteral("Cy")));
+        QVERIFY(!sameName(QStringLiteral("Cy B"), QStringLiteral("Cy")));
+    }
+
+    // By the name the login screen shows, the login when there is no full
+    // name; the first when two share one.
+    void theChildWithAName() {
+        const std::vector<ListedChild> children = childrenAmong({
+            account(1001, "ada", {"ada", "cairn-l1"}, "Ada"),
+            account(1002, "cy", {"cy", "cairn-l1"}),
+            account(1003, "cy2", {"cy2", "cairn-l2"}, "Cy"),
+        });
+        const ListedChild* ada = childNamed(children, QStringLiteral("ADA"));
+        QVERIFY(ada != nullptr);
+        QCOMPARE(ada->login, QStringLiteral("ada"));
+        const ListedChild* cy = childNamed(children, QStringLiteral("Cy"));
+        QVERIFY(cy != nullptr);
+        QCOMPARE(cy->login, QStringLiteral("cy"));
+        QVERIFY(childNamed(children, QStringLiteral("Ben")) == nullptr);
+        QVERIFY(childNamed(children, QStringLiteral("cy2")) == nullptr);
+    }
 };
 
 } // namespace

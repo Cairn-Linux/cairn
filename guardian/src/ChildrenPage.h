@@ -44,12 +44,13 @@ public:
     };
     Q_ENUM(Step)
 
-    // Why nothing changed. The first two the page finds itself; the rest
+    // Why nothing changed. The first three the page finds itself; the rest
     // are cairn-family's own words (ADR-0039) and pkexec's.
     enum class Reason : std::uint8_t {
         None,
         NoName,
         NoShortName,
+        SameName, // a child on the list has that name already (#212)
         NotRoot,
         NotAGrownUp,
         Usage,
@@ -105,7 +106,7 @@ private:
         QString fullName;
     };
 
-    std::optional<QString> loginToAdd(const QString& login, const QString& fullName) const;
+    std::optional<QString> unfinishedLogin(const QString& fullName) const;
     void rememberAdd(const QString& answer);
     void run(const QStringList& arguments, Step onDone);
     void finished(const QString& answer);

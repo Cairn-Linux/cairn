@@ -3,6 +3,8 @@
 **Status:** accepted
 **Date:** 2026-09-29
 **Closes:** (none) — addresses issue #77; amends ADR-0018
+**Amended by:** the section "Tux Paint's Print button is off" below
+(2026-10-31, #221)
 
 ## Context
 
@@ -95,3 +97,51 @@ keeps Super+Q is for the L3 session work.
 - Checked on 2026-09-29 in the VM, under a real seat, against Tux Paint,
   GCompris, a Steam game, the Terminal, the grown-up screen and a frozen
   app (`docs/research/kiosk-containment.md`).
+
+## Tux Paint's Print button is off (2026-10-31, #221)
+
+In a user test on the cairn-iso VM on 2026-10-31, ada tapped Print in
+Draw, then "Yes, print it!". Tux Paint answered "Sorry! Your picture could
+not be printed!", and the journal had `lpr: Error - No default
+destination.` Tux Paint prints by running `lpr` inside its Flatpak
+sandbox. The sandbox has no `cups` socket and no network, so no picture
+can be printed from it, whether the computer has a printer or not.
+Printers are the Guardian's
+([DESIGN §3.2](../DESIGN.md#32-the-guardian-role)), and the Guardian tool
+does not link to Plasma's printer settings yet (ADR-0040).
+
+**Draw starts Tux Paint with `--noprint`.** Mason chose it on 2026-10-31.
+It is Tux Paint's own option, like `--autosave`, not a reskin. The Print
+button stays in its place, grey like Undo on a new picture, and a tap on
+it does nothing. Ctrl+P does nothing either.
+
+The option goes on the command line beside `--autosave --saveovernew`,
+not in a configuration file. The system-wide file the Flatpak reads,
+`/app/etc/tuxpaint/tuxpaint.conf`, is part of Flathub's build, so changing
+it would mean building Tux Paint ourselves. The user's own file,
+`~/.tuxpaintrc`, is outside what the sandbox can see. The sandbox gets
+`~/.tuxpaint`, kept in `~/.var/app/org.tuxpaint.Tuxpaint/`, and
+`~/Pictures/TuxPaint`, but not the rest of the home folder. Using the
+file would take a Flatpak override and a copy in every child's home. The
+command line is read at every start and wins over both files.
+
+- A child never meets a Print button that can only say "Sorry!".
+- The Draw tile and the Terminal's `open` both start Tux Paint from the
+  manifest, so both have Print off.
+- A grown-up who opens Tux Paint from Plasma's menu still has Print, and
+  gets the same "Sorry!": the Flatpak cannot print for anyone.
+- Tux Paint quits at once on an option it does not know, so a misspelt
+  option would put every Draw launch on the grown-up screen. A launcher
+  test reads the manifest the image installs and pins Draw's whole
+  command line.
+- Printing is looked at again when the Guardian tool links to Plasma's
+  printer settings (ADR-0040). Then Tux Paint could get the `cups` socket
+  from a system Flatpak override and print where a Guardian has set up a
+  printer, with `--printdelay` to limit how often a child can print.
+- Checked in the source of Tux Paint 0.9.35, the version Flathub builds:
+  the option marks the button as not available, and neither a tap nor
+  Ctrl+P prints. Seen nested on the dev PC with Fedora's 0.9.35: the
+  button is grey where it was blue. Seen in the kiosk on the cairn-iso VM
+  on 2026-10-31. From the Draw tile, Print is grey, and neither a tap nor
+  Ctrl+P changes anything. From the Terminal's `open draw`, Print is grey
+  and a tap changes nothing.

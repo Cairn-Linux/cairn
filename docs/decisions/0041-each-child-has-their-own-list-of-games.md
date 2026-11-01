@@ -446,6 +446,14 @@ It moves to per-child lists when it is reinstalled from the image.
   every account, and children keep copies of games taken off their list.
   At L1 and L2 a child reaches games only through their tiles, so the
   list holds.
+  ScummVM's own menu is a way around the tiles: its Return to Launcher
+  leads to ScummVM's game manager, which could add and start any
+  ScummVM game in the shared folder (#215).
+  Ctrl+F5 opens that menu in every ScummVM game, and the kiosk keeps
+  Ctrl+F5 from the games.
+  Plain F5 opens it too in the Humongous games, and so does F5 held
+  down before Ctrl in any game, both by ScummVM 2.0.0's source.
+  Whether the kiosk takes F5 as well is not decided.
   Before levels 3 and 4 ship (#107), Cairn must keep a child from opening
   games off their list from the shared folder or from old copies.
 - Every child the family's setup made before step 4 has a copy of every

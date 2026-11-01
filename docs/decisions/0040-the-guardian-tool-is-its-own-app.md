@@ -11,7 +11,8 @@ The names `cairn-guardian` and "Family" are now the program's names.
 switch between them and a read-only Games page landed 2026-10-28, and
 highlighting games and Save the same day); ADR-0043, proposed (a third page, Your account,
 with the Guardian's own password and picture, and "Family" in System
-Settings in place of Plasma's hidden Users page)
+Settings in place of Plasma's hidden Users page); the section "A name a
+child on the list already has" below (2026-10-31, #212)
 
 ## Context
 
@@ -113,10 +114,11 @@ step 4, and ADR-0041 says how they work.
   When the name leaves nothing, a second field asks for a short name. If
   any account or group already has the login, it adds 2, 3 and so on, so
   the Add form never names an existing child, whom `create-child` would
-  change instead. Spaces at either end of the name are dropped. Then the
-  window checks the whole request with `cairn-family`'s own rule
-  (`FamilyRequest`), so a name the command would refuse is refused before
-  the password is asked for.
+  change instead. Spaces at either end of the name are dropped. A name a
+  child on the list already has is refused before the login name is made
+  (the last section, #212). Then the window checks the whole request with
+  `cairn-family`'s own rule (`FamilyRequest`), so a name the command
+  would refuse is refused before the password is asked for.
 - **Move to level N:** one button per level the page can give, the same
   words up or down, with no warning and no second question (DESIGN §3).
   A child at level 3 or 4 shows that level and is offered 1 and 2.
@@ -131,7 +133,7 @@ step 4, and ADR-0041 says how they work.
   command can be run first and calls a missing one unknown, never a
   wrong password.
 - **Sentences:** each of ADR-0039's words, pkexec's two, an unknown
-  answer and the window's own two checks is a `Reason` in C++, and the
+  answer and each of the window's own checks is a `Reason` in C++, and the
   page's QML picks a `qsTr` sentence for each, as the Steam window does.
   A closed box and a wrong password share one; every other reason has its
   own. They say what happened and what to do next, in the parent's
@@ -153,10 +155,11 @@ step 4, and ADR-0041 says how they work.
 - **Trying an add again:** a `create-child` that fails, or whose answer
   cannot be read, may have made the account before it stopped, so the
   child is on the list. The window remembers that login. Adding the same
-  name again gives `create-child` the same login while it is free or is
-  still that child, so the second run finishes the first instead of
-  making a second account with the same name. A `done` for that login
-  forgets it.
+  name again, whatever the case of its letters (#212), gives
+  `create-child` the same login while it is free or is still that child,
+  so the second run finishes the first instead of making a second account
+  with the same name. A `done` for that login forgets it. So does closing
+  the window (the last section).
 - **Keyboard and scrolling:** after each change, focus goes back to where
   the parent was: the child's row, or the name field (the short name
   field when that is what is missing). The window scrolls so the outcome
@@ -181,3 +184,74 @@ step 4, and ADR-0041 says how they work.
   (#113); the Games page; the links to Plasma's own pages for Wi-Fi,
   printers and updates; the About page with Fedora's notice (P1-14).
 - Dependencies: Qt only. pkexec through `QProcess` adds no library.
+
+## A name a child on the list already has (2026-10-31, #212)
+
+In a user test on the cairn-iso VM on 2026-10-31, the family already had
+a child called Cy, with the login `cy`. The parent added "Cy" again, at
+level 1, and nothing warned them. The window gave the new account the
+login `cy2`, as this ADR says, and the name "Cy". From then on every
+screen showed two Cys that could not be told apart: two rows on
+Children, two choices on Games, two "Steam for Cy" entries in the menu,
+and two tiles on the login screen, told apart only by colour. At level 1
+a tap on a tile logs straight in, so a child could land in the other
+child's account. Family cannot rename or remove a child yet, so only a
+terminal could undo it.
+
+The numbered login keeps the form from changing an existing account.
+Nothing kept apart the name, which every screen shows.
+
+**Add a child refuses a name that a child on the list already has,
+whatever the case of its letters, before the password is asked for.**
+
+- The name is compared with each listed child's name as the login screen
+  shows it: the full name, or the login name when there is none. The
+  case of a letter does not count, nor do spaces at either end, so "cy"
+  and " CY " are Cy's name. An accent counts: "Zoe" is not "Zoë".
+- The page says "Cy already has an account on this computer. To add
+  another child, give them a different name, such as one with an
+  initial.", with the name as the parent typed it. Like every refusal,
+  it leaves the form filled in, and focus goes back to the name.
+- The check comes before the one for a missing short name. A name in
+  another alphabet that a child already has is refused even with the
+  short name left empty.
+- Trying an add again still works. The same name, whatever the case of
+  its letters, gets the remembered login, as "Trying an add again" says.
+  The child the failed add made is on the list by then, but the retry is
+  not refused for having that child's name.
+- The login rule stays. A login that another account or a group already
+  has still gets 2, 3 and so on, so the form never names an existing
+  account. That now happens only for a name no child on the list has,
+  when its login is taken all the same: by a child with another name,
+  as when the parent types "Cy" beside a child called "Cy B" whose login
+  is `cy`, by an account that is not a child, or by a group.
+
+### Consequences
+
+- The form can no longer make two children with one name, as long as no
+  child is made outside Family while it is open. A family with two
+  children of one name gives one of them an initial, as the sentence
+  says.
+- The window compares the name with the children as it last read them:
+  when it opened, and after each change. A child made in a terminal
+  since then is not compared. A retry is not compared at all, so a child
+  of that name made elsewhere between a failed add and its retry does
+  not stop it.
+- Only children are compared. A child may still get a grown-up's name;
+  a grown-up's tile asks for a password, so a child cannot land in that
+  account with a tap.
+- A window closed after a failed add forgets it, as before. Opened
+  again, it lists the child the add made like any other and refuses
+  their name, so no second account is made. That child may still lack
+  the steps after `useradd`: the lock on the password and their "Steam
+  for <child>" entry. Moving them to another level runs both, as
+  `set-level` does for every child. Remembering a failed add from one
+  window to the next would need a file the window keeps, which is not
+  done.
+- A family that already has two children of one name, such as the VM's
+  `cy` and `cy2`, still needs a terminal to rename or remove one.
+- Tested in C++, in `tst_childlist` and `tst_childrenpage`, and in the
+  real window, in `tst_familywindow`. Checked in the cairn-iso VM on
+  2026-10-31, beside its two children named Cy, `cy` and `cy2`. "Cy"
+  and " cy " were refused before any password box, and "Cy B" was added
+  after the password, with the login `cyb`.

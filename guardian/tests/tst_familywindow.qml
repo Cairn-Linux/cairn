@@ -108,6 +108,22 @@ TestCase {
         compare(outcome(window), "Type the child's name first.");
     }
 
+    // A name a child on the list has is refused before any password, with
+    // the name as typed. The form stays as it was, and focus goes back to
+    // the name to change it (#212).
+    function test_aNameAChildHasIsRefused() {
+        const window = makeWindow("asking");
+        nameField(window).text = "Ben";
+        mouseClick(findChild(window, "level2"));
+        mouseClick(findChild(window, "addButton"));
+        compare(window.page.reason, ChildrenPage.SameName);
+        verify(!window.page.busy);
+        compare(outcome(window), "Ben already has an account on this computer. To add another child, give them a different name, such as one with an initial.");
+        compare(nameField(window).text, "Ben");
+        compare(findChild(window, "addChildForm").level, 2);
+        tryCompare(findChild(nameField(window), "input"), "activeFocus", true);
+    }
+
     // The keyboard alone: type, Tab to level 2, Space, then Enter in the
     // name field adds the child.
     function test_addWithTheKeyboard() {
