@@ -107,7 +107,15 @@ The Games page (ADR-0041):
 5. **Look for new games** runs `cairn-family save-games` with no child
    named, which changes no list but makes the full games list, the
    pictures and the tools folder again from the Guardian's own Steam, so
-   a game just installed shows. Save does that too.
+   a game just installed shows. Save does that too. Both run
+   `save-games`, and pkexec tells Cairn's actions apart only by the
+   command's first argument, so both password boxes say "A grown-up's
+   password is needed to look for new games, or to change which games a
+   child has." Afterwards the window names each game that was not on the
+   page when the look began, such as "New games: Spy Fox 2.", or says
+   "No new games." When the full games list could not be made, it opens
+   by saying so (#227), and says nothing about new games, since which
+   games are new is not known then.
 6. **Open Steam for <child>** opens the same window as the "Steam for
    <child>" menu entry, as a program of its own. If it cannot be
    started, the reason is under `-t cairn-guardian`; if it started and
@@ -363,10 +371,10 @@ QML draws, C++ decides (ADR-0002):
 | `src/LoginWatch` | Keeps who is logged in up to date, reading again on logind's `SessionNew` and `SessionRemoved`. |
 | `src/ChildLogOut` | "Log Ada out": the warning, the password box, `cairn-family log-out` through `pkexec`, and why the child is not logged out, as values the page's QML puts into a sentence. |
 | `src/SteamWindowStart` | Starts a child's Steam window as a program of its own, and notes in the journal when it cannot. |
-| `src/SaveResults` | How far a Save has got, one child's result from a Save, as the map the page's QML reads, and whether every child got every new game. |
+| `src/SaveResults` | How far a Save has got, why nothing was saved, one child's result from a Save, as the map the page's QML reads, whether every child got every new game, and which games a look found. |
 | `src/GameShelf` | Every shared game from the full games list, each marked when it is on one child's own list, and whether that list could be read. |
 | `src/GameChoices` | The changes to each child's list not saved yet, and `save-games`'s arguments for them. |
-| `src/GamesSaving` | One Save as the page shows it: the password box, how far it has got, each game copied so far, each child's result, or why nothing was saved, each as a value the page's QML puts into a sentence. |
+| `src/GamesSaving` | One Save as the page shows it: the password box, how far it has got, each game copied so far, each child's result, the games a look found, or why nothing was saved, each as a value the page's QML puts into a sentence. |
 | `src/SaveRun` | Runs `pkexec` with `cairn-family save-games` or `log-out`, and passes on each line as it arrives, then the answer, pkexec's own exit code, or `not-started` when nothing could be started. |
 | `src/SaveReport` | Reads `save-games`'s lines into how far it has got, each game copied, each child's counts, held word, games left out and tools, whether a tool was left out of the tools folder, and the games without a picture, taking only its fixed words and the children the Save named. |
 | `src/PkexecAnswer` | pkexec's own two exit codes, for both runners of `cairn-family`. |
@@ -437,13 +445,13 @@ words, pkexec's own 126 and 127, answers that cannot be read, or waiting
 like an open password box, and writes down the arguments it was given.
 Its `save-*` scenarios answer `save-games` in many lines, as the real
 command does: every game given, a child held by a word, games left out,
-a copy still running, a run cut off before `done`, Steam's tools
-taken, left out, copied, missing or still being copied, the pictures
-kept, a game without one, or two games without one, with the full list
-kept; `save-done` also writes each child's list into the folder
-`CAIRN_TEST_GAMES` names. Its `log-out-*` scenarios answer `log-out`:
-done, which empties the file `CAIRN_TEST_LOGGED_IN` names, held by a
-word, or still running.
+a copy still running, a Save or a look cut off before `done`, Steam's
+tools taken, left out, copied, missing or still being copied, the
+pictures kept, a game without one, or two games without one, with the
+full list kept, or only the full list kept; `save-done` also writes
+each child's list into the folder `CAIRN_TEST_GAMES` names. Its
+`log-out-*` scenarios answer `log-out`: done, which empties the file
+`CAIRN_TEST_LOGGED_IN` names, held by a word, or still running.
 The Guardian tool's tests give the page a table of accounts in place of
 the system's, so they cover the order, who is left out, the login names,
 every check before a change, one change at a time, trying an add again
@@ -456,9 +464,11 @@ They cover turning games for two children and saving once, the exact
 arguments pkexec is given, a child held or a game left out, every
 refusal keeping the changes, every control waiting while a Save
 runs, a logged-in child's games greyed, the logout and why it did not
-finish, and the progress window. `heldKey` sends the repeats of a key
-held down, which TestCase cannot, so the tests check that a game card, a
-button, a child, a level and a picture each count it once.
+finish, and the progress window, with the games a look found, which
+they add to the full list after the page has read it. `heldKey` sends
+the repeats of a key held down, which TestCase cannot, so the tests
+check that a game card, a button, a child, a level and a picture each
+count it once.
 `loginsessions` checks the rule for a login, and asks the test machine's
 own logind when it has one;
 `loginwatch` sends logind's signals on a bus of its own.
