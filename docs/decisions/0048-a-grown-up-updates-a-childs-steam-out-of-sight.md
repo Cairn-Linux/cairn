@@ -218,8 +218,9 @@ starts, but whether it says how far each has got is not checked
 Without that, the line is a count, "Steam is getting 2 updates.", with
 no bar.
 A game is named as the full games list names it (ADR-0041).
-Steam's tools are "the tools Steam runs games with", as in the Save's
-window, never one by one (ADR-0046).
+Steam's tools, which ADR-0046's rule tells from games (below), are "the
+tools Steam runs games with", as in the Save's window, never one by one
+(ADR-0046).
 An app that is neither is counted, not named.
 
 ### The results
@@ -604,6 +605,9 @@ helper validates each tool Steam left, once the end rule holds.
 It runs `/usr/bin/steam steam://validate/<appid>` as Ada, on her hidden
 display, for each tool by its appid and for the tools it runs in, scout
 with soldier, as Mason's addition of 2026-10-30 asked.
+A tool is an app that ADR-0046's rule calls one, kidscan's
+`is_steam_tool` with a `toolmanifest.vdf` in its folder, and the helper
+validates nothing else.
 Then the run ends by the end rule again, and the result names what is
 still left.
 If E12 shows Steam fetching them by itself, or E13 fails, Cairn asks
@@ -943,6 +947,11 @@ in to Plasma, `ada` and a second child.
    and, on a laptop, on battery.
    `journalctl -t cairn-family -t cairn-steam-visit` shows the same
    words, and no Steam name or path.
+9. **Never a game** (answer 3), if E12 and E13 brought in validating:
+   with a stale tool and a game whose update Steam left, a run validates
+   the tool and the tools it runs in.
+   Passes when Steam's `console_log.txt` shows validating for those
+   tools alone, and none for the game.
 
 ## Alternatives considered
 
