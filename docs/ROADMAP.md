@@ -425,18 +425,21 @@ done, and what could sink it. Decisions that change the design get an ADR in
   Adopting an account Cairn did not make stays #113's next part.
 - **ADR-0044 (2026-10-29, #165, proposed): the boot screen builds the
   stones.** From power-on to the login screen, and at shutdown, the
-  screen is the launcher's starting screen: the mark's stones building
-  on Sand, one every `motion.stone`. A Plymouth theme on Fedora's
-  `script` module, with its images and numbers drawn by
-  `brand/build.py` from the tokens and committed. A disk-password prompt
-  shows the whole mark, still, over "Type the password to start this
-  computer." in the brand's typeface, a box with a dot per letter, and
-  "Caps Lock is on." when it is, and says when a password did not work;
-  the words are English only, because Plymouth's script cannot
-  translate. The image builds its initramfs again with the theme, the
-  brand's font and Cairn's `os-release`. Checked in the VM on
-  2026-10-29, the disk prompt included; accepted once seen on a real
-  computer and with a disk encrypted at install.
+  screen is the launcher's starting screen on the login screen's ground:
+  the mark's stones building in Sand on Ink, one every `motion.stone`.
+  A Plymouth theme on Fedora's `script` module, with its images and
+  numbers drawn by `brand/build.py` from the tokens and committed. A
+  disk-password prompt shows the whole mark, still, over "A grown-up
+  needs to type the password to start this computer." in the brand's
+  typeface, a box with a dot per letter, and "Caps Lock is on." when it
+  is, and says when a password did not work; the words are English only
+  until Phase 3, because Plymouth's script cannot translate. The image
+  builds its initramfs again with the theme, the brand's font and
+  Cairn's `os-release`. Checked in the VM on 2026-10-29 on Sand, the
+  disk prompt included. On 2026-10-31 the maintainer chose Ink, the
+  grown-up in the first sentence and English until Phase 3, and the Ink
+  screen was checked in a container and in the VM. Accepted once seen on a
+  real computer; the prompt on a disk encrypted at install is a later check.
 - **Draw's Print button is off (2026-10-31, #221, amends ADR-0019).** In
   the user test on the VM, the tester tapped Print in Draw as `ada`, and
   Tux Paint said "Sorry! Your picture could not be printed!". Its Flatpak
@@ -710,7 +713,7 @@ first-boot wizard, quick-actions overlay, signed image, CI, ISO.
 | P1-11 | Documentation site skeleton: install, hardware tiers stated plainly, "what this does not do" (no remote management), rollback, getting creations out. |
 | P1-12 | Guardian-loss recovery path (DESIGN §14 Q9) decided and documented. |
 | P1-13 | Steam integration (moved from Phase 3 by ADR-0004): client `-silent` at login (done for a child with a Steam tile, ADR-0027), `steam -applaunch` tiles from the `kidscan` manifest (game tiles from the shared folder, with pictures found by app id and kept while a child has the game, ADR-0033, ADR-0035 and ADR-0047), launch watchdog with the "needs a grown-up" screen (a game Steam is getting ready waits and says so, ADR-0036, proposed; a tap lost to Steam's own update is sent again, ADR-0037, proposed; a Steam that cannot sign in ends the wait soon, #182; Steam's updater windows are hidden while it updates itself, #183; a launch Steam stops on part-way gets Steam started again once and otherwise says to log out and back in, #206 and ADR-0045; a later tap on a game Steam holds behind a hidden question names it in the journal, and for the cloud question, once Steam has signed in again, the grown-up screen says to log out and back in, #211 and ADR-0045; a child's Steam gets the parent's Steam tools with their new games, ADR-0046, proposed), the child role in a Steam Family, Steam Families documented as the family's relationship with Valve, Flatpak-vs-RPM client decision. Builds on P0-10. From P0-10 (ADR-0031): what a child-role account's client locks, once the family has a child member; Steam's toast over a running game; and what a client update, a Steam Guard prompt or a sign-in expiry puts on the child's screen (`docs/research/steam-containment.md`). |
-| P1-14 | Base image compliance. Checklist in `docs/research/base-image-policy.md`. Done in the image on 2026-10-21 (ADR-0038, slice 5): `os-release` rewritten, `fedora-logos` swapped for `generic-logos` (a `cairn-logos` package can follow with P1-2), no `fedora-release-notes`, Bazzite's terminal banner and support links removed, Bazzite, Universal Blue and Fedora in `NOTICE`. The boot screen is Cairn's own since 2026-10-29 (#165, ADR-0044, proposed): the stones building on Sand at boot and shutdown, a plain disk-password prompt, and an initramfs the image builds again, so a computer that updated from Bazzite is called `cairn` and has "Cairn Linux" boot titles (checked in the VM that day). The grown-up's start-menu button shows the Cairn mark under both names it may hold, existing accounts included (#166 step 1, 2026-10-30). The pictures a grown-up chooses from are KDE's own: the image removes the game art Bazzite adds to Plasma's picture folder (#166, ADR-0043, 2026-10-31). The Guardian's wallpaper, colours, loading splash and lock screen are the rest of #166. Left: the Fedora "not provided or supported" notice on the Guardian tool's About page (#167) and the website, the installer's artwork (bootc-image-builder installs `fedora-logos` there, slice 6), Bazzite's updater and portal menu entries (P1-1), and Cairn's own version in the image labels (P1-3). Blocks publishing any image. |
+| P1-14 | Base image compliance. Checklist in `docs/research/base-image-policy.md`. Done in the image on 2026-10-21 (ADR-0038, slice 5): `os-release` rewritten, `fedora-logos` swapped for `generic-logos` (a `cairn-logos` package can follow with P1-2), no `fedora-release-notes`, Bazzite's terminal banner and support links removed, Bazzite, Universal Blue and Fedora in `NOTICE`. The boot screen is Cairn's own since 2026-10-29 (#165, ADR-0044, proposed): the stones building at boot and shutdown, on Ink since 2026-10-31, a plain disk-password prompt, and an initramfs the image builds again, so a computer that updated from Bazzite is called `cairn` and has "Cairn Linux" boot titles (checked in the VM that day). The grown-up's start-menu button shows the Cairn mark under both names it may hold, existing accounts included (#166 step 1, 2026-10-30). The pictures a grown-up chooses from are KDE's own: the image removes the game art Bazzite adds to Plasma's picture folder (#166, ADR-0043, 2026-10-31). The Guardian's wallpaper, colours, loading splash and lock screen are the rest of #166. Left: the Fedora "not provided or supported" notice on the Guardian tool's About page (#167) and the website, the installer's artwork (bootc-image-builder installs `fedora-logos` there, slice 6), Bazzite's updater and portal menu entries (P1-1), and Cairn's own version in the image labels (P1-3). Blocks publishing any image. |
 | P1-15 | High-contrast and large-text modes as per-child Guardian settings, driven by token-set variants from `brand/build.py` (ADR-0008). |
 | P1-17 | **Child test 2** (ADR-0031): what Phase 0 did not see. A child opens something from the Terminal, once #83 decides how a child who cannot read meets it; a child leaves an app on their own (#77); a child meets the grown-up screen and presses Back (ADR-0030); Steam games with the overlay off (#74) and a Guardian's way to step in (#88), or no Steam in that run, as #8 asked. Also #8's script rows, none of which an evening ran: a native ScummVM game scanned, launched, quit and launched again; ScummVM frozen and ended with Ctrl-Alt-Home; every help button and outside link in the allowed apps; a stale or unrelated window that cannot trap the child; a sibling at the login screen and the Guardian tile; a level change interrupted part-way, which fails closed; no path from a child's session to Plasma. A child at the tiles with the battery low, and whether a child who cannot read notices the battery's fill (ADR-0034). Whether a game's picture tells the younger child which game it is, and whether the pictures pull the children away from Draw (ADR-0035). On a Minimum-tier laptop if the project has one by then. Blocks publishing any image, like P1-14 and #86. |
 
