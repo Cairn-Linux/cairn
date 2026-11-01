@@ -249,6 +249,12 @@ no installed app's manifest in Ada's libraries still says it needs an
 update.
 A tool Steam left for later is named in the second sentence as the tools
 Steam runs games with.
+Whether a question Steam asked out of sight comes back when Ada's Steam
+is opened again is not checked (inference).
+"You stopped the update." is for the window whose **Stop** was pressed.
+When the update was stopped from somewhere else, such as a window
+opened again later, the card says "The update was stopped. Steam keeps
+what it downloaded. Ada can log in now."
 
 Before Steam starts, the update can also be held:
 
@@ -260,7 +266,9 @@ Before Steam starts, the update can also be held:
   is finished.
 
 When the helper ends without its last word, the card says "The update
-stopped before it finished. Steam keeps what it downloaded."
+stopped before it finished. Trying again is safe. If Ada cannot log in,
+restart the computer. The reason is in the system log. In a terminal:
+journalctl -t cairn-family -t cairn-steam-visit".
 The held words a copy or a logout already has (`logged-in`, `busy`,
 `copying`, `logging-out`, `still-running`, `not-set-up`, `not-started`)
 get sentences like the page's own for them, which the change that builds
@@ -670,6 +678,9 @@ only.
   left.
 - **The parent waits instead of the child.**
   A run can keep Ada from logging in for up to 90 minutes.
+  The login screen still tells her "Try again soon.", as for a visit: it
+  reads only the list, so it cannot tell an update from a visit
+  (ADR-0032).
   A visit and a logout, for any child, wait too, and a Save copies no
   child's new games, since the list names one child for the whole
   computer.
@@ -711,7 +722,9 @@ only.
   Cairn could not tell.
 - **Given up:** a promise that everything is current, since Valve
   decides when a game's update is due and Cairn never asks for one;
-  live progress in a window opened again later; starting on battery.
+  live progress in a window opened again later, and the result there,
+  which that parent finds only in the system log (`journalctl -t
+  cairn-family`); starting on battery.
 - **Left for ADRs of their own** (answer 6): updating every child at
   once, and updates at night.
 - **New pieces:** a fourth mode of the visit helper, which reads the
