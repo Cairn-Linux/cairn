@@ -17,10 +17,10 @@ Window {
     property string showing: "children"
     readonly property Item shownView: window.showing === "games" ? gamesView : window.showing === "account" ? accountView : childrenView
 
-    readonly property int margin: Tokens.headingSize
-
     // The item the keyboard is on, kept while another window has it.
     property Item keyboardItem: null
+
+    readonly property int margin: Tokens.headingSize
 
     title: qsTr("Family")
     width: Tokens.headingSize * 26

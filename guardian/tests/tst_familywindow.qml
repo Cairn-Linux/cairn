@@ -239,15 +239,6 @@ TestCase {
         return place.y >= 0 && place.y + item.height <= window.height;
     }
 
-    // Whether an item on the page shows whole where the page scrolls. One
-    // scrolled up under the switch between pages is inside the window, but
-    // out of sight.
-    function inSightOnThePage(window, item) {
-        const scroller = findChild(window, "scroller");
-        const place = item.mapToItem(scroller, 0, 0);
-        return place.y >= 0 && place.y + item.height <= scroller.height;
-    }
-
     // With the window short and scrolled down to the form, the sentence
     // after Add is scrolled into sight.
     function test_theOutcomeComesIntoSight() {
@@ -279,6 +270,15 @@ TestCase {
         keyClick(Qt.Key_Tab);
         tryCompare(add, "activeFocus", true);
         verify(inSight(window, add));
+    }
+
+    // Whether an item on the page shows whole where the page scrolls. One
+    // scrolled up under the switch between pages is inside the window, but
+    // out of sight.
+    function inSightOnThePage(window, item) {
+        const scroller = findChild(window, "scroller");
+        const place = item.mapToItem(scroller, 0, 0);
+        return place.y >= 0 && place.y + item.height <= scroller.height;
     }
 
     // Another window comes to the front and takes the keyboard, as
