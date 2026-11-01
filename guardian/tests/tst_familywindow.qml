@@ -1508,6 +1508,74 @@ TestCase {
         verify(!progressWindow(window).visible);
     }
 
+    // Words that fit in the Save's box neither scroll nor show the bar. The
+    // box once added its margins and Close's room to the words' height,
+    // then took them away again for the words' part, which need not give
+    // that height back exactly. In the brand font a short result's part
+    // came out 2.8e-14 px shorter than its words, and in Noto Sans, the
+    // stand-in on Fedora, so did the part for a game without a picture.
+    // Each result here has a height of its own, so the test does not hang
+    // on one font's rounding.
+    function test_wordsThatFitDoNotScroll_data() {
+        return [
+            {
+                "tag": "a look",
+                "scenario": "save-done",
+                "look": true
+            },
+            {
+                "tag": "a Save",
+                "scenario": "save-done",
+                "look": false
+            },
+            {
+                "tag": "a closed password box",
+                "scenario": "not-authorized",
+                "look": false
+            },
+            {
+                "tag": "another Save running, for a look",
+                "scenario": "refused-busy",
+                "look": true
+            },
+            {
+                "tag": "a game without a picture",
+                "scenario": "save-pictures-missing",
+                "look": false
+            },
+            {
+                "tag": "a logged-in child",
+                "scenario": "save-held-logged-in",
+                "look": false
+            },
+            {
+                "tag": "a tool left out",
+                "scenario": "save-tools-left-out",
+                "look": false
+            }
+        ];
+    }
+
+    function test_wordsThatFitDoNotScroll(data) {
+        const window = makeWindow("done", {
+            "gamesScenario": data.scenario
+        });
+        showGames(window);
+        if (!data.look)
+            mouseClick(card(window, 1));
+        mouseClick(findChild(window, data.look ? "lookForGames" : "saveButton"));
+        tryVerify(() => progressWindow(window).ended);
+        waitForPolish(window);
+        const box = findChild(window, "saveProgressBox");
+        verify(box.height < window.height - Tokens.headingSize * 2, "The box is as tall as the window allows, so the words may not fit");
+        const words = findChild(window, "saveWords");
+        verify(!words.interactive, "Words that fit scroll");
+        verify(!findChild(window, "saveScrollMark").visible, "A bar beside words that fit");
+        // The very same number, not within a pixel: a part a hair shorter
+        // than its words scrolls.
+        verify(words.height === words.contentHeight, "The words' part is " + words.height + " px tall, for words " + words.contentHeight + " px tall");
+    }
+
     function test_aClosedPasswordBoxKeepsTheChanges() {
         const window = makeWindow("done", {
             "gamesScenario": "not-authorized"

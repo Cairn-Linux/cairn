@@ -20,9 +20,11 @@ Window {
     // The room the buttons take under the words, when the step has any.
     readonly property real buttonsRoom: buttons.visible ? buttons.height + Tokens.bodySize : 0
     // The size follows the words, and only the words, for every step: it
-    // grows and shrinks with each message (#172). Rounded up, as a window's
-    // height is whole pixels and the words' height may not be.
-    readonly property int wordsHeight: Math.ceil(content.implicitHeight + buttonsRoom) + margin * 2
+    // grows and shrinks with each message (#172). A window's height is
+    // whole pixels, so the words and the buttons' room are each rounded up
+    // on their own. Their sum could round down to a whole number first, in
+    // floating point, and leave the words' part a hair short of them.
+    readonly property int wordsHeight: Math.ceil(content.implicitHeight) + Math.ceil(buttonsRoom) + margin * 2
     // The free height Qt gives, for all screens together. Under Wayland it
     // counts Plasma's panel as free.
     property int screenHeight: Screen.desktopAvailableHeight
@@ -105,7 +107,9 @@ Window {
         x: window.margin
         y: window.margin
         width: window.width - window.margin * 2
-        height: window.height - window.margin * 2 - window.buttonsRoom
+        // As tall as the words, the very same number when they fit, so they
+        // neither scroll nor show the bar; up to what the window leaves.
+        height: Math.min(content.implicitHeight, window.height - window.margin * 2 - window.buttonsRoom)
         contentHeight: content.implicitHeight
         interactive: contentHeight > height
         boundsBehavior: Flickable.StopAtBounds

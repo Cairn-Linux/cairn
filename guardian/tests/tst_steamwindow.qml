@@ -129,6 +129,9 @@ TestCase {
         const scroller = findChild(window, "wordsScroller");
         verify(scroller.contentHeight <= scroller.height, "The words scroll in step " + step);
         verify(!findChild(window, "scrollIndicator").visible, "A bar beside words that fit in step " + step);
+        // The very same number, not within a pixel: a part a hair shorter
+        // than its words scrolls.
+        verify(scroller.height === scroller.contentHeight, "The words' part is " + scroller.height + " px tall, for words " + scroller.contentHeight + " px tall, in step " + step);
         const last = pieces(window).pop();
         verify(window.height >= last.bottom + window.margin, "No margin under the last piece in step " + step);
         verify(window.height <= last.bottom + window.margin + 1, "More than a margin under the last piece in step " + step + ": " + window.height);
