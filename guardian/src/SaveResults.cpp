@@ -4,6 +4,8 @@
 #include "GamesSaving.h"
 
 #include <QHash>
+#include <QSet>
+#include <QStringList>
 #include <QVariantList>
 
 #include <algorithm>
@@ -115,6 +117,21 @@ QHash<QString, QString> SaveResults::titlesOf(const QList<GameShelf::Game>& game
         titles.insert(game.appId, game.title);
     }
     return titles;
+}
+
+QStringList SaveResults::newAppIds(const QList<GameShelf::Game>& listed,
+                                   const QList<GameShelf::Game>& shown) {
+    QSet<QString> before;
+    for (const GameShelf::Game& game : shown) {
+        before.insert(game.appId);
+    }
+    QStringList found;
+    for (const GameShelf::Game& game : listed) {
+        if (!before.contains(game.appId)) {
+            found.append(game.appId);
+        }
+    }
+    return found;
 }
 
 QVariantMap SaveResults::forChild(const SaveReport::Child& child, const QString& name,
