@@ -27,6 +27,11 @@ Column {
             newField.takeFocus();
     }
 
+    // A button takes only the first press of a key held down.
+    function takeFocusOnButton() {
+        changeButton.forceActiveFocus();
+    }
+
     function submit() {
         form.page.changePassword(newField.text, againField.text);
     }
@@ -77,6 +82,8 @@ Column {
     }
 
     TextButton {
+        id: changeButton
+
         objectName: "changePasswordButton"
         text: qsTr("Change password")
         onActivated: form.submit()
