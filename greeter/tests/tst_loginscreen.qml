@@ -2,6 +2,7 @@
 import QtQuick
 import QtQuick.Window
 import QtTest
+import Cairn.Brand
 
 // The real theme from greeter/theme with a stand-in for SDDM. Accounts: Ada
 // (L1), Ben (L3) and Test Guardian (a Guardian, named as on the test VM),
@@ -224,5 +225,21 @@ TestCase {
         mouseClick(tiles.itemAtIndex(0));
         keyClick(Qt.Key_Return);
         compare(logins.count, 1);
+    }
+
+    // The login screen is Ink, so every focus ring on it is the one for Ink.
+    // The ring for Sand and Paper is Fjord, 1.97:1 on Ink (#216).
+    function test_theRingsAreTheOnesForInk() {
+        const ring = findChild(tiles.itemAtIndex(0), "focusRing");
+        verify(ring.visible);
+        compare(ring.border.color, Tokens.focusOnInk);
+        mouseClick(tiles.itemAtIndex(2));
+        const box = findChild(passwordRow, "passwordBox");
+        verify(findChild(passwordRow, "passwordField").activeFocus);
+        compare(box.border.color, Tokens.focusOnInk);
+        const back = findChild(passwordRow, "backButton");
+        back.forceActiveFocus();
+        verify(back.border.width > 0);
+        compare(back.border.color, Tokens.focusOnInk);
     }
 }

@@ -303,6 +303,7 @@ A later tap on a game Steam keeps stuck ends at its first look (ADR-0036).
 Either way the grown-up screen adds "Log out and back in, then try it
 again." under the sentence that names the tile, unless Steam's logs gave
 another reason, such as a refused sign-in or a question (ADR-0045).
+The cloud question, below, is the one exception.
 `AppLauncher.grownUpStep` says which line, if any; `GrownUpScreen.qml`
 draws it.
 A question Steam asks on a window the kiosk hides, such as about a game's
@@ -312,8 +313,14 @@ Steam keeps the question, and for later taps on that game writes only the
 tap's own line, even once it is back online.
 `SteamQuestions` remembers the question for its game until Steam writes
 another step for it or a new client starts, so each of those taps ends at
-its first look with the same journal line, and the grown-up screen adds
-no line (#211).
+its first look with the same journal line (#211).
+For the cloud question, once `SteamSignIn` says Steam has signed in
+again, logging the child out is what frees the game: those taps add "Log
+out and back in, then try it again." to the grown-up screen, and the
+journal line ends "Log the child out and back in, then try it again."
+(ADR-0045).
+The tap that met the question adds no line, nor do taps while Steam is
+offline or its sign-in is turned down, nor any other question.
 With `--scope-apps`, which the kiosk wrapper passes, every program starts
 in a systemd user scope of its own, `cairn-app-<launcher pid>-<n>.scope`,
 so the grown-up's give-up key can end it and whatever it started

@@ -51,14 +51,16 @@ Item {
         return Tokens.sandLabel;
     }
 
-    // The focus ring, outside the circle so it never covers the letter.
+    // The focus ring, outside the circle so it never covers the letter. The
+    // login screen is Ink, so it is the ring for Ink.
     Rectangle {
+        objectName: "focusRing"
         anchors.centerIn: circle
         width: circle.width + (Tokens.focusOffset + Tokens.focusWidth) * 2
         height: width
         radius: width / 2
         color: "transparent"
-        border.color: Tokens.focus
+        border.color: Tokens.focusOnInk
         border.width: Tokens.focusWidth
         visible: tile.activeFocus || tile.chosen
     }

@@ -14,7 +14,7 @@ Rectangle {
     height: Tokens.headingSize * 2
     radius: Tokens.radiusSm
     color: Tokens.fjord
-    border.color: Tokens.focus
+    border.color: Tokens.focusOnInk
     border.width: button.activeFocus ? Tokens.focusWidth : 0
     activeFocusOnTab: true
 
