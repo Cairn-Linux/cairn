@@ -159,13 +159,23 @@ class BrandBuildTests(unittest.TestCase):
         self.assertIn(f'readonly property string fontFamily: "{family}"', lines)
 
     def test_css_switches_the_focus_ring_on_ink(self):
-        # Inside an Ink surface the ring turns to the one for Ink, as links do.
+        # The page's ring is the one for Sand and Paper. What sits inside an
+        # Ink surface takes the one for Ink, as links do. The surface's own
+        # ring is drawn on the page around it, so it keeps the page's.
         css = brand_build.render_css(self.tokens)
-        on_ink = self.tokens["semantic"]["focus-on-ink"]
-        self.assertIn(f"--cairn-focus-on-ink: var(--cairn-{on_ink});", css)
+        semantic = self.tokens["semantic"]
+        self.assertIn(
+            f"--cairn-focus:        var(--cairn-{semantic['focus']});", css
+        )
+        self.assertIn(
+            f"--cairn-focus-on-ink: var(--cairn-{semantic['focus-on-ink']});", css
+        )
         surface = css[css.index(".cairn-on-ink {"):]
         surface = surface[:surface.index("}")]
-        self.assertIn("--cairn-focus: var(--cairn-focus-on-ink);", surface)
+        self.assertNotIn("--cairn-focus", surface)
+        self.assertIn(
+            ".cairn-on-ink > * { --cairn-focus: var(--cairn-focus-on-ink); }", css
+        )
 
     def test_generation_is_byte_deterministic(self):
         temporary, copied_brand = self.temporary_brand_copy()
