@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import QtQuick
 import QtTest
+import Cairn.Brand
 import Cairn.Guardian
 
 TestCase {
@@ -9,9 +10,13 @@ TestCase {
     name: "SteamWindow"
     when: windowShown
 
-    // The smallest screen Cairn is tested on, 1280 by 800, less a panel
-    // along one edge, as Plasma's own.
-    readonly property int screenHeight: 800 - 48
+    // The free height of the smallest screen Cairn is tested on, 1280 by
+    // 800, as Qt under Wayland gives it, with Plasma's panel counted as
+    // free. Every window here is on it unless a test gives another, so the
+    // tests do not depend on the test machine's own screen.
+    readonly property int screenHeight: 800
+    // The same screen at 200%, as the test VM's Plasma has it (#231).
+    readonly property int shortScreen: 400
 
     Component {
         id: windowComponent
@@ -33,9 +38,19 @@ TestCase {
         }
     }
 
-    function makeWindow(scenario, ownSteamRunning) {
+    // Stands for words of an exact height, whatever the font.
+    Component {
+        id: spacerComponent
+
+        Item {}
+    }
+
+    // On the 1280 by 800 screen, unless `screenHeight` gives another
+    // screen's free height.
+    function makeWindow(scenario, ownSteamRunning, screenHeight) {
         const window = createTemporaryObject(windowComponent, testCase, {
             "visit": standIns.visit(scenario, ownSteamRunning),
+            "screenHeight": screenHeight === undefined ? testCase.screenHeight : screenHeight,
             // A window of its own, as it is in Plasma, so it is active
             // only when it has the focus itself.
             "transientParent": null
@@ -46,10 +61,11 @@ TestCase {
         return window;
     }
 
-    // Presses the main button where the window shows it. The column moves
-    // the button when the window next draws, so the press waits for that.
+    // Presses the main button where the window shows it. The window places
+    // its words and buttons when it next draws, so the press waits for that.
     function pressMainButton(window) {
         waitForPolish(findChild(window, "content"));
+        waitForPolish(findChild(window, "buttons"));
         mouseClick(findChild(window, "mainButton"));
     }
 
@@ -63,20 +79,19 @@ TestCase {
         return [heading(window)].concat(paragraphs.map(item => item.text)).join(" ");
     }
 
-    // Each piece of the window that is shown, and its edges in the window.
+    // Each piece of the window that is shown, and its edges in the window:
+    // the heading and paragraphs, then the buttons under them.
     function pieces(window) {
         const shown = [];
-        const content = findChild(window, "content");
-        for (const item of content.children) {
-            if (!item.visible || item.height === 0)
-                continue;
-            if (item.objectName === "buttons") {
-                for (const button of item.children) {
-                    if (button.visible)
-                        shown.push(button);
-                }
-            } else {
+        for (const item of findChild(window, "content").children) {
+            if (item.visible && item.height > 0)
                 shown.push(item);
+        }
+        const buttons = findChild(window, "buttons");
+        if (buttons.visible) {
+            for (const button of buttons.children) {
+                if (button.visible)
+                    shown.push(button);
             }
         }
         return shown.map(item => {
@@ -94,19 +109,44 @@ TestCase {
         return pieces(window).filter(piece => piece.right > window.width || piece.bottom > window.height).map(piece => piece.name);
     }
 
-    // The window shows all of what it says, with its buttons, and fits on
-    // the smallest screen.
+    // Whether an item, with `room` around it for a focus ring, shows whole
+    // inside the window and inside every item above it that clips. Within
+    // a pixel, as the window draws whole pixels.
+    function shownWhole(window, item, room) {
+        for (let above = item.parent; above; above = above.parent) {
+            if (!above.clip && above !== window.contentItem)
+                continue;
+            const corner = item.mapToItem(above, -room, -room);
+            if (corner.x < -1 || corner.y < -1 || corner.x + item.width + room * 2 > above.width + 1 || corner.y + item.height + room * 2 > above.height + 1)
+                return false;
+        }
+        return true;
+    }
+
+    // The window shows all of what it says, with its buttons, is no taller
+    // than that, and fits the 1280 by 800 screen without scrolling.
     function verifyFits(window, picture) {
         const step = window.visit.step;
         // The column places its pieces when the window next draws. Under
         // KWin the window can take its new height a moment after that.
         waitForPolish(findChild(window, "content"));
         waitForPolish(window.contentItem);
+        // Offscreen, as the tests run, the window's content takes a new
+        // height a turn of the event loop after the window does. The buttons
+        // sit at the content's foot, so until then the margin under them
+        // would be measured from where the old height put them.
+        tryCompare(window.contentItem, "height", window.height);
         tryVerify(() => cutOff(window).length === 0, 2000);
         compare(cutOff(window), [], "Cut off in step " + step);
+        const scroller = findChild(window, "wordsScroller");
+        verify(scroller.contentHeight <= scroller.height, "The words scroll in step " + step);
+        verify(!findChild(window, "scrollIndicator").visible, "A bar beside words that fit in step " + step);
+        // The very same number, not within a pixel: a part a hair shorter
+        // than its words scrolls.
+        verify(scroller.height === scroller.contentHeight, "The words' part is " + scroller.height + " px tall, for words " + scroller.contentHeight + " px tall, in step " + step);
         const last = pieces(window).pop();
         verify(window.height >= last.bottom + window.margin, "No margin under the last piece in step " + step);
-        verify(window.height <= testCase.screenHeight, "Taller than the screen in step " + step + ": " + window.height);
+        verify(window.height <= last.bottom + window.margin + 1, "More than a margin under the last piece in step " + step + ": " + window.height);
         if (picture !== undefined && standIns.screenshotPath() !== "") {
             wait(200);
             grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-" + picture + ".png"));
@@ -384,6 +424,95 @@ TestCase {
         verifyFits(window);
         standIns.resizeFromOutside(window, window.width, window.wordsHeight + 100);
         tryCompare(window, "height", window.wordsHeight);
+    }
+
+    // A window's height is whole pixels, so it is rounded up from the words
+    // and the buttons' room. Words 200 px tall and a hair more, 2^-45 px,
+    // and the buttons' 90 px add up to exactly 290 in floating point: the
+    // hair is lost in the sum. A window rounded up from that sum left the
+    // words' part a hair short of them, so they scrolled beside the bar.
+    // Here a spacer stands for such words, with the heading and the
+    // paragraphs hidden, so their height is exact in any font.
+    function test_wordsAHairOverAWholePixelFit() {
+        const window = makeWindow("open", false);
+        const content = findChild(window, "content");
+        for (const item of content.children)
+            item.visible = false;
+        const tall = 200 + Math.pow(2, -45);
+        createTemporaryObject(spacerComponent, content, {
+            "width": content.width,
+            "height": tall
+        });
+        waitForPolish(content);
+        verify(content.implicitHeight === tall, "The words are " + content.implicitHeight + " px tall, not " + tall);
+        verify(tall + window.buttonsRoom === Math.round(tall + window.buttonsRoom), "The sum keeps the hair, so this tests nothing");
+        verifyFits(window);
+    }
+
+    // #231: at 200% on a 1280 by 800 screen the window ran past the bottom
+    // of the screen, with Open and Done under the panel. It now leaves room
+    // for its title bar and the panel, its words scroll beside a thin bar,
+    // and the buttons stay whole under them, and work.
+    function test_aShortScreenKeepsTheButtonsInSight_data() {
+        return [
+            {
+                "tag": "ready",
+                "open": false
+            },
+            {
+                "tag": "open",
+                "open": true
+            }
+        ];
+    }
+
+    function test_aShortScreenKeepsTheButtonsInSight(data) {
+        const window = makeWindow("open", true, testCase.shortScreen);
+        if (data.open) {
+            pressMainButton(window);
+            tryCompare(window.visit, "step", SteamForChild.Open);
+        }
+        const step = window.visit.step;
+        compare(step, data.open ? SteamForChild.Open : SteamForChild.Ready);
+        waitForPolish(findChild(window, "content"));
+        waitForPolish(findChild(window, "buttons"));
+        tryCompare(window, "height", window.fitHeight);
+        verify(window.height + Tokens.headingSize * 3 <= testCase.shortScreen, "No room for the title bar and the panel: " + window.height);
+        const scroller = findChild(window, "wordsScroller");
+        verify(scroller.contentHeight > scroller.height, "The words fit, so this tests nothing");
+        verify(scroller.clip, "The words draw past their part of the window");
+        verify(findChild(window, "scrollIndicator").visible);
+        const main = findChild(window, "mainButton");
+        for (const button of findChild(window, "buttons").children) {
+            if (button.visible)
+                verify(shownWhole(window, button, Tokens.focusOffset + Tokens.focusWidth), button.text + " is cut off");
+        }
+        verify(scroller.mapToItem(window.contentItem, 0, scroller.height).y <= main.mapToItem(window.contentItem, 0, 0).y, "The words run under the buttons");
+        if (standIns.screenshotPath() !== "") {
+            wait(200);
+            grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-short-" + data.tag + ".png"));
+        }
+        // The wheel scrolls the words, as a parent would. Scrolled to the
+        // end, the last paragraph shows whole.
+        mouseWheel(scroller, scroller.width / 2, scroller.height / 2, 0, -120);
+        tryVerify(() => scroller.contentY > 1, 2000, "The wheel does not scroll the words");
+        scroller.contentY = scroller.contentHeight - scroller.height;
+        const paragraphs = Array.from(findChild(window, "content").children).filter(item => item.objectName === "paragraph");
+        verify(shownWhole(window, paragraphs[paragraphs.length - 1], 0), "The last paragraph does not show whole");
+        // Open goes on to the password, and Done closes the visit.
+        mouseClick(main);
+        tryVerify(() => window.visit.step !== step);
+    }
+
+    // The tests above give the window a screen of their own. Left alone,
+    // it takes the free height Qt gives for its screen (#231).
+    function test_itTakesTheFreeHeightQtGives() {
+        const window = createTemporaryObject(windowComponent, testCase, {
+            "visit": standIns.visit("open", false),
+            "transientParent": null
+        });
+        verify(window !== null);
+        compare(window.screenHeight, window.Screen.desktopAvailableHeight, "The window does not take the free height Qt gives");
     }
 
     // When the child's Steam does not open, the window comes in front of

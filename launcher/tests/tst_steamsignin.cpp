@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "SteamSignIn.h"
 
+#include <QDateTime>
 #include <QFile>
 #include <QTemporaryDir>
 #include <QTest>
@@ -30,13 +31,20 @@ void append(const QString& path, const QByteArray& text) {
     log.write(text);
 }
 
+// When the test reads the logs: the morning after their lines. It matters
+// only for a time in an hour the clocks change in, which tst_steamlogtime
+// tests.
+QDateTime nextMorning() {
+    return {QDate(2026, 10, 28), QTime(9, 0)};
+}
+
 // The two logs of one Steam in a folder of the test's own.
 struct Logs {
     QTemporaryDir dir;
     QString console = dir.filePath(QStringLiteral("console_log.txt"));
     QString bootstrap = dir.filePath(QStringLiteral("bootstrap_log.txt"));
     Now now() const {
-        return SteamSignIn(console, bootstrap).read();
+        return SteamSignIn(console, bootstrap).read(nextMorning());
     }
 };
 
