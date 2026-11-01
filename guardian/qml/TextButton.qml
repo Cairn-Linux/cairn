@@ -38,6 +38,7 @@ Rectangle {
     Keys.onSpacePressed: event => button.keyPressed(event)
 
     Rectangle {
+        objectName: "focusRing"
         anchors.fill: parent
         anchors.margins: -Tokens.focusOffset - Tokens.focusWidth
         radius: button.radius + Tokens.focusOffset + Tokens.focusWidth

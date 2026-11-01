@@ -99,9 +99,17 @@ Item {
         Keys.onEscapePressed: progress.close()
 
         Flickable {
+            id: scroller
+
+            objectName: "saveProgressScroller"
+            // Room for Close's focus ring inside the clip. Close sits at the
+            // left and bottom of what scrolls, so the clip would cut those
+            // two sides of its ring off.
+            readonly property real ring: Tokens.focusOffset + Tokens.focusWidth
+
             anchors.fill: parent
-            anchors.margins: progress.margin
-            contentHeight: column.implicitHeight
+            anchors.margins: progress.margin - scroller.ring
+            contentHeight: column.implicitHeight + scroller.ring * 2
             // Only a box taller than the window scrolls; otherwise its
             // buttons take every press at once.
             interactive: contentHeight > height
@@ -111,7 +119,9 @@ Item {
             Column {
                 id: column
 
-                width: parent.width
+                x: scroller.ring
+                y: scroller.ring
+                width: scroller.width - scroller.ring * 2
                 spacing: Tokens.bodySize
 
                 Text {
