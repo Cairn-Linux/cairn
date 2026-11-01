@@ -208,6 +208,20 @@ TestCase {
         return place.y >= 0 && place.y + item.height <= window.height;
     }
 
+    // Whether an item, with `room` around it for a focus ring, shows whole
+    // inside the window and inside every item above it that clips. Within
+    // a pixel, as the window draws whole pixels.
+    function shownWhole(window, item, room) {
+        for (let above = item.parent; above; above = above.parent) {
+            if (!above.clip && above !== window.contentItem)
+                continue;
+            const corner = item.mapToItem(above, -room, -room);
+            if (corner.x < -1 || corner.y < -1 || corner.x + item.width + room * 2 > above.width + 1 || corner.y + item.height + room * 2 > above.height + 1)
+                return false;
+        }
+        return true;
+    }
+
     // With the window short and scrolled down to the form, the sentence
     // after Add is scrolled into sight.
     function test_theOutcomeComesIntoSight() {
@@ -1273,6 +1287,49 @@ TestCase {
         verify(!progressWindow(window).visible);
         compare(window.gamesPage.saving.step, GamesSaving.Ready);
         tryCompare(findChild(window, "saveButton"), "activeFocus", true);
+    }
+
+    // #218: in a short window a long result was cut off with no sign that
+    // it scrolls, and Close, which had the focus, was out of sight under
+    // it, with its focus ring cut once it was dragged into sight. Close now
+    // stays whole under the words, and the words scroll beside the page's
+    // own bar.
+    function test_aLongResultKeepsCloseInSight() {
+        const window = makeWindow("done", {
+            "gamesScenario": "save-tools"
+        });
+        showGames(window);
+        mouseClick(card(window, 1));
+        chooseChild(window, "ben");
+        mouseClick(card(window, 0));
+        window.width = window.minimumWidth;
+        window.height = window.minimumHeight;
+        // Save is out of sight in so short a window, so the keyboard
+        // presses it.
+        findChild(window, "saveButton").forceActiveFocus();
+        keyClick(Qt.Key_Return);
+        tryCompare(window.gamesPage.saving, "step", GamesSaving.Saved);
+        const close = findChild(window, "closeSaveProgress");
+        tryCompare(close, "activeFocus", true);
+        waitForPolish(window);
+        const words = findChild(window, "saveWords");
+        verify(words.contentHeight > words.height, "The result fits, so this tests nothing");
+        verify(findChild(window, "saveScrollMark").visible);
+        verify(shownWhole(window, close, Tokens.focusOffset + Tokens.focusWidth), "Close or its focus ring is cut off");
+        const box = findChild(window, "saveProgressBox");
+        verify(words.mapToItem(box, 0, words.height).y <= close.mapToItem(box, 0, 0).y, "The words run under Close");
+        if (standIns.screenshotPath() !== "") {
+            wait(300);
+            grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-games-long-result.png"));
+        }
+        // Scrolled to their end, the words show the end of the last result,
+        // which alone is taller than they are here.
+        words.contentY = words.contentHeight - words.height;
+        const last = result(window, 1);
+        const end = last.mapToItem(words, 0, last.height).y;
+        verify(end > 0 && end <= words.height + 1, "The words do not scroll to their end: " + end);
+        mouseClick(close);
+        verify(!progressWindow(window).visible);
     }
 
     function test_aClosedPasswordBoxKeepsTheChanges() {

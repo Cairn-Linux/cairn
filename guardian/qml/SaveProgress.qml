@@ -17,6 +17,8 @@ Item {
 
     readonly property bool ended: progress.saving.step === GamesSaving.Saved || progress.saving.step === GamesSaving.NotSaved
     readonly property int margin: Tokens.headingSize
+    // The room Close takes under the words, once the Save has ended.
+    readonly property real closeRoom: progress.ended ? closeButton.height + Tokens.bodySize : 0
 
     // The window was put away; focus goes back to the page.
     signal closed
@@ -84,7 +86,10 @@ Item {
         objectName: "saveProgressBox"
         anchors.centerIn: parent
         width: Math.min(progress.width - progress.margin * 2, Tokens.headingSize * 20)
-        height: Math.min(column.implicitHeight + progress.margin * 2, progress.height - progress.margin * 2)
+        // As tall as the words and Close, up to the window less a margin.
+        // A box that would be taller keeps Close and lets the words scroll
+        // (#218).
+        height: Math.min(column.implicitHeight + progress.closeRoom + progress.margin * 2, progress.height - progress.margin * 2)
         radius: Tokens.radiusCard
         color: Tokens.card
         border.color: Tokens.line
@@ -99,11 +104,15 @@ Item {
         Keys.onEscapePressed: progress.close()
 
         Flickable {
-            anchors.fill: parent
-            anchors.margins: progress.margin
+            id: words
+
+            objectName: "saveWords"
+            x: progress.margin
+            y: progress.margin
+            width: box.width - progress.margin * 2
+            height: box.height - progress.margin * 2 - progress.closeRoom
             contentHeight: column.implicitHeight
-            // Only a box taller than the window scrolls; otherwise its
-            // buttons take every press at once.
+            // Only words taller than their part of the box scroll.
             interactive: contentHeight > height
             boundsBehavior: Flickable.StopAtBounds
             clip: true
@@ -152,19 +161,33 @@ Item {
                         text: progress.copiedSentence(modelData)
                     }
                 }
-
-                TextButton {
-                    id: closeButton
-
-                    objectName: "closeSaveProgress"
-                    visible: progress.ended
-                    text: qsTr("Close")
-                    Keys.onTabPressed: event => event.accepted = true
-                    Keys.onBacktabPressed: event => event.accepted = true
-                    Keys.onEscapePressed: progress.close()
-                    onActivated: progress.close()
-                }
             }
+        }
+
+        // The page's own bar, in the box's margin beside the words, as far
+        // in from the box's edge as the page's is from the window's.
+        ScrollMark {
+            objectName: "saveScrollMark"
+            flickable: words
+            x: box.width - box.border.width - Tokens.focusOffset - width
+        }
+
+        // Under the words and outside them, so Close and its focus ring
+        // always show, however long the words are.
+        TextButton {
+            id: closeButton
+
+            objectName: "closeSaveProgress"
+            anchors.left: parent.left
+            anchors.leftMargin: progress.margin
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: progress.margin
+            visible: progress.ended
+            text: qsTr("Close")
+            Keys.onTabPressed: event => event.accepted = true
+            Keys.onBacktabPressed: event => event.accepted = true
+            Keys.onEscapePressed: progress.close()
+            onActivated: progress.close()
         }
     }
 }
