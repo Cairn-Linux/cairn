@@ -226,9 +226,9 @@ for a child. Provisioning does none of this. Nothing runs the step yet:
   that Guardian's Steam is open, and only by reflink, so a game on
   another drive stays where it is.
 - The game's folder is copied into the family folder first, and the
-  group gets the owner's bits on each file, as on Steam's own installs
-  there. Then its manifest is written there, the old manifest is set
-  aside, the copy and the new manifest take their names, and the
+  group gets the owner's bits on each file and folder, as on Steam's own
+  installs there. Then its manifest is written there, the old manifest
+  is set aside, the copy and the new manifest take their names, and the
   original goes. A run ended anywhere is finished or undone by the next
   one, so a game is never in two libraries. One ended between the
   set-aside and the renames leaves it in none until then. Two runs never
