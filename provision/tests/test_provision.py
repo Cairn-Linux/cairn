@@ -108,6 +108,27 @@ class PasswordTest(unittest.TestCase):
         self.assertIn("left: unset", output)
         self.assertIn("+ true after", output)
 
+    def test_a_trace_that_was_off_stays_off(self):
+        # A caller that turned the trace off, to keep a secret of its own out
+        # of it, must not find it on again after the step.
+        snippet = "{ set +x; } 2> /dev/null\n" + NEW_GUARDIAN + "\ntrue after"
+        code, output, _ = run_steps(snippet, env_extra={"CAIRN_GUARDIAN_PASSWORD": SECRET})
+        self.assertEqual(code, 0, output)
+        self.assertIn("changed: password set for gina", output)
+        self.assertNotIn("+ set_level_group", output)
+        self.assertNotIn("+ true after", output)
+        self.assertNotIn(SECRET, output)
+
+    def test_the_step_traces_nothing_of_its_own(self):
+        # Not even the line that turns the trace off: between the step's name
+        # and the next step, the trace is silent.
+        code, output, _ = run_steps(NEW_GUARDIAN, env_extra={"CAIRN_GUARDIAN_PASSWORD": SECRET})
+        self.assertEqual(code, 0, output)
+        lines = output.splitlines()
+        start = lines.index("+ set_guardian_password")
+        end = lines.index("+ set_level_group gina cairn-guardian")
+        self.assertEqual([line for line in lines[start + 1:end] if line.startswith("+")], [])
+
     def test_no_password_says_how_to_set_one(self):
         code, output, calls = run_steps(NEW_GUARDIAN)
         self.assertEqual(code, 0, output)
