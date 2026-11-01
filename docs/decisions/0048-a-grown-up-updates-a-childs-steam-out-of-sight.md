@@ -129,8 +129,8 @@ and her Steam was signed in from before.
   test: result=NoLAN` in Steam's `connection_log.txt`, 4 s after the
   start.
   In 10 minutes there was no `LogonFailure` line and no sign-in.
-  Steam opened two hidden windows named "Unexpected Transport Error",
-  which wait for a click.
+  Steam opened two hidden windows named "Unexpected Transport Error": a
+  dialog that waits.
   `steam -shutdown` did not close it; after its 25 s, ending `ada`'s
   session did, in 1 s.
   A Steam that was signed in and then lost the internet wrote
@@ -342,8 +342,11 @@ the card writes.
   you. Try again soon." (E17(a)).
 - It writes a marker of its own first, `/run/cairn/steam-update`, as a
   copy and a logout do.
-  While it runs, a visit, a copy (so a Save, for any child), a logout and
-  another update are refused with a new busy word, `updating`.
+  While it runs, a visit, a logout and another update, for any child,
+  are refused with a new busy word, `updating`.
+  In a Save, each child's copy is held `updating`, as it is held `busy`
+  during a visit, while the rest of the Save goes ahead (ADR-0041); a
+  Save that only takes games off takes no lock, and is not held.
 - Nine places learn the word: the helper's `busy_reason`, the held words
   of `CopyJob` and `LogOutCommand`, the Save's results (`SaveResults`),
   `ChildLogOut`, `SteamForChild`, and the sentences in
@@ -361,7 +364,7 @@ command (ADR-0039, ADR-0041), shaped like `log-out`.
   `cairn-family`'s path, `auth_admin`, with
   `org.freedesktop.policykit.exec.argv1` `update-steam`.
   The levels rule already answers no to it, before any password box, for
-  any account that is not an administrator (ADR-0023).
+  any account that is not an administrator (ADR-0032, ADR-0039).
 - It checks the caller (root, or an administrator through pkexec), that
   it was given exactly one login, and that the login is a child Cairn
   made.
@@ -430,8 +433,8 @@ copy and the logout.
   down when asked.
   The helper says `closing`, then `finished`, or `stuck` when a program
   of the child's would not end.
-  A stuck close lets Ada log in, as a copy's and a logout's do
-  (ADR-0041), and the card says "One of Ada's programs would not close.
+  A stuck close lets Ada log in, as a stuck logout does (ADR-0041), and
+  the card says "One of Ada's programs would not close.
   Restart the computer before Ada logs in."
 - **However it ends,** the helper's own trap removes the list and the
   marker, as a copy's does.
@@ -667,8 +670,9 @@ only.
   left.
 - **The parent waits instead of the child.**
   A run can keep Ada from logging in for up to 90 minutes.
-  A Save, a visit and a logout, for any child, wait too, since the list
-  names one child for the whole computer.
+  A visit and a logout, for any child, wait too, and a Save copies no
+  child's new games, since the list names one child for the whole
+  computer.
   The warning says before the password that Ada cannot log in meanwhile,
   and **Stop** lets her in at once.
 - **Memory.**
@@ -732,9 +736,10 @@ only.
     cage also runs headless.
     A visit is refused `updating` while an update runs, and every mode
     first clears what a killed update left.
-  - **ADR-0033:** check 15, whether Steam fetches an update in the
-    background before a tap, gets its answer for a Steam left running
-    out of sight, from E12.
+  - **ADR-0033:** check 15 asks whether Steam fetches an update in the
+    background before a tap.
+    E12 answers it for Steam's tools, in a Steam left running out of
+    sight; for a game's update, check 15 stays open.
     "Updates are each Steam's own" stays: the update is the child's own
     Steam doing its own updates.
   - **ADR-0041:** two subcommands and polkit actions with their own

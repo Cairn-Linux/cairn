@@ -14,8 +14,8 @@ instead of the Settings › Storage step); ADR-0046, proposed (on the image
 a child's first copy of each of Steam's tools comes from the parent's
 Steam with their games, so no visit is needed for the first fetch);
 ADR-0048, proposed (on the image a grown-up can have a child's own Steam
-update itself out of sight, and check 15 gets its answer for a Steam
-left running)
+update itself out of sight, and E12 answers check 15 for Steam's tools
+in a Steam left running)
 
 ## Context
 
