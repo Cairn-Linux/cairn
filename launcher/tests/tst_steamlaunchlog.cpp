@@ -188,6 +188,11 @@ private slots:
             << line("changed task to ShowInterstitials with \"\"") +
                    line("waiting for user response to ShowInterstitials \"\"")
             << Step::WaitingForAnswer << false;
+        // Made up: the logs saved so far hold no other question about the
+        // cloud. Only the one seen to hold a game counts.
+        QTest::newRow("another cloud question")
+            << line("waiting for user response to SynchronizingCloud \"conflict\"")
+            << Step::WaitingForAnswer << false;
         QTest::newRow("answered") << question + line("changed task to SynchronizingStats with \"\"")
                                   << Step::Working << false;
         QTest::newRow("another game's")

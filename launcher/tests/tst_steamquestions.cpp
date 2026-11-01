@@ -243,8 +243,9 @@ private slots:
 
     // Only a later tap that Steam takes on a game its cloud question holds
     // is held by the cloud question: not the tap that met the question, not
-    // a tap Steam has not taken yet, and not a tap in which a new client
-    // asks again (#211, ADR-0045).
+    // a tap Steam has not taken yet, not a tap in which a new client asks
+    // again, and not a tap on another game, also right after a held one
+    // (#211, ADR-0045).
     void aLaterTapOnAGameTheCloudQuestionHoldsIsSeen() {
         Taps taps;
         taps.asked("292780");
@@ -266,6 +267,8 @@ private slots:
         QVERIFY(!taps.questions.heldByCloudQuestion());
         QCOMPARE(taps.takenWithoutAStep("292780"), Step::WaitingForAnswer);
         QVERIFY(taps.questions.heldByCloudQuestion());
+        QCOMPARE(taps.takenWithoutAStep("900001"), Step::Nothing);
+        QVERIFY(!taps.questions.heldByCloudQuestion());
     }
 
     // Each game keeps its own question. A game another question holds is

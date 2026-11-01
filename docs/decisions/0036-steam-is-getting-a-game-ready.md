@@ -414,13 +414,13 @@ Pajama Sam 2 on a window the kiosk hides." again, and the tap ends at its
 first look. Steam's sign-in does not decide the wait then, as for a game
 Steam has in hand, because the connection coming back does not free the
 game. It decides only whether the grown-up screen adds a line (ADR-0045).
-That holds whether Steam cannot reach its servers or its sign-in was
-turned down: a held game names the question either way, and a tap on
-another game still names the sign-in. Logging the child out, which both
-need, frees the game, and the next tap names the sign-in if that is still
-wrong. Steam writes the same single line for an app id it will not launch
-at all, so a tap with no step is a question only for a game Steam asked
-one about.
+The wait ends the same way whether Steam cannot reach its servers or its
+sign-in was turned down: a held game names the question either way, and a
+tap on another game still names the sign-in. Logging the child out, which
+both need, frees the game, and the next tap names the sign-in if that is
+still wrong. Steam writes the same single line for an app id it will not
+launch at all, so a tap with no step is a question only for a game Steam
+asked one about.
 
 A game is forgotten when Steam writes another step for it, when the launch
 log shows a new client starting (its own start command, a tap that started

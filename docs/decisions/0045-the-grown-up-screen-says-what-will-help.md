@@ -59,10 +59,10 @@ It never shows when Steam's logs gave another reason (a refused sign-in,
 no connection, a question on a hidden window, or a refusal), because
 logging out is not what helps then. The one exception is a later tap on a
 game Steam holds behind its question about the game's cloud saves, once
-Steam has signed in again (the last section, #211). It never shows for a
-window that opened on its own, a tile that is coming soon, or a launch
-that went on to start. The journal's own line says the same, with the
-reason first (ADR-0036).
+Steam has signed in again ("The cloud question, once Steam has signed in
+again", below, #211). It never shows for a window that opened on its own,
+a tile that is coming soon, or a launch that went on to start. The
+journal's own line says the same, with the reason first (ADR-0036).
 
 It is an instruction on purpose. A grown-up reads it as "log the child
 out". A child can follow it alone: Log out is theirs to press (ADR-0021),
@@ -84,7 +84,8 @@ again." belongs on this screen, or in the Guardian tool.
   cases where logging out was seen to mend the launch, and why it gives
   way to any other reason Steam's logs give. Since 2026-10-31 there are
   two such cases: the stall, and the cloud question once Steam has signed
-  in again (the last section, #211).
+  in again ("The cloud question, once Steam has signed in again", below,
+  #211).
 - A later tap on a game Steam keeps stuck shows the line only while
   Steam writes no step for that game. If Steam writes one, such as the
   launch failing, the line goes and the journal gives Steam's reason.
@@ -201,11 +202,12 @@ Consequences:
   screen and its QML are unchanged.
 
 Tested in C++: Steam's launch log tells the cloud question from Steam's
-other questions, also when lines about something else follow it, and a
-new tap or a new log forgets it. `SteamQuestions` sees a later tap on a
-game the cloud question holds, at every look, and does not see the tap
-that met it, a tap Steam has not taken yet, a tap in which a new client
-asks again, another game, or a game another question holds. The line
+other questions, another question about the cloud saves among them, also
+when lines about something else follow it, and a new tap or a new log
+forgets it. `SteamQuestions` sees a later tap on a game the cloud question
+holds, at every look, and does not see the tap that met it, a tap Steam
+has not taken yet, a tap in which a new client asks again, another game,
+also right after a held tap, or a game another question holds. The line
 comes once Steam has signed in again, also when Steam could not be
 started again and still holds the game. It does not come while Steam is
 still offline, while its sign-in is turned down, at the tap that met the
@@ -220,15 +222,22 @@ line.
 
 To check it on the test VM:
 
-1. Log a child in, and wait until their Steam has signed in and a minute
-   has passed since the login.
+1. Log a child in, and wait until their Steam's `console_log.txt` has a
+   `Waiting for compat in post-logon took:` line and a minute has passed
+   since the login.
 2. Take the VM's network down, and tap Pajama Sam 2, a game with Steam
    Cloud saves. About 15 seconds after the tap the grown-up screen comes,
    with no line under "… did not start.", and the journal names the
    question.
 3. A minute later, with the network still down, tap it again: the same,
-   with no line.
-4. Bring the network back, and wait for Steam to sign in again.
+   with no line. Afterwards, check that `console_log.txt` has a
+   `LogonFailure No Connection` line after Steam's last sign-in and before
+   this tap. Until Steam writes one, `SteamSignIn` counts it as signed in,
+   and the screen adds the line (the consequence about `SteamSignIn`
+   above).
+4. Bring the network back, and wait until `console_log.txt` has a new
+   `Waiting for compat in post-logon took:` line after the `LogonFailure`
+   lines.
 5. Tap Pajama Sam 2. The grown-up screen comes about 15 seconds after the
    tap and adds "Log out and back in, then try it again." The journal
    says "Steam is waiting for an answer about … on a window the kiosk
