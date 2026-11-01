@@ -44,15 +44,24 @@ The Children page:
    give, 1 or 2. Up or down, the button and the sentence after it read
    the same (DESIGN §3). The new level starts the next time the child
    logs in, because PAM and the session read the groups at login.
-3. **Add a child:** the name for the login tile, and level 1 or 2. The
-   window makes the account's own short name from the name, such as `zoe`
-   from "Zoë", and asks for one only when the name has no letters a to z.
-   If an account or a group already has it, it uses `zoe2`, `zoe3` and so
-   on, so it never names an existing child.
+3. **Add a child:** the name for the login tile, and level 1 or 2. A
+   name a child on the list already has, whatever the case of its
+   letters, is refused before any password: "Cy already has an account
+   on this computer. To add another child, give them a different name,
+   such as one with an initial." Two children with one name would look
+   the same on every screen (#212). The window makes the account's own
+   short name from the name, such as `zoe` from "Zoë", and asks for one
+   only when the name has no letters a to z. If an account or a group
+   already has it, it uses `zoe2`, `zoe3` and so on, so it never names
+   an existing child.
 4. Each change runs `cairn-family` through `pkexec`, which asks for the
    Guardian's password every time. Every control waits until the answer
    is in, and one sentence says what happened, or why nothing changed and
    what to do next. A refusal leaves the form as it was.
+5. An add that failed may have made the account, so the child is on the
+   list. Adding the same name again, whatever the case of its letters,
+   finishes that add rather than being refused. Family remembers the
+   failed add only while it stays open.
 
 The Games page (ADR-0041):
 
@@ -355,7 +364,7 @@ QML draws, C++ decides (ADR-0002):
 | `qml/Main.qml` | The Steam window. |
 | `qml/SteamForWords.qml` | The Steam window's words for each step. |
 | `src/LoginName` | The account's login name, made from the name a parent types, and the first free one when it is taken. |
-| `src/ChildList` | The family's children among the accounts, in the order they were made, each with their name and level. |
+| `src/ChildList` | The family's children among the accounts, in the order they were made, each with their name and level, as maps for the pages' QML; and the rule for when two names are one, whatever the case of their letters. |
 | `src/FamilyChange` | Runs `pkexec` with `cairn-family`, one change at a time, and reads its one-line answer, or pkexec's own exit code. |
 | `src/ChildrenPage` | What the Children page shows and what its buttons do: the list, the checks before a change, and why a change was refused. Its account database is in its `Setup`, so a test can replace it. |
 | `src/GamesPage` | What the Games page shows and does: the children, the one picked, the games with each marked when it is on that child's list as saved and as wanted, turning a game, Save, a logged-in child's greyed games, and opening a child's Steam window. Its files, accounts, commands, program start and logind reader are in its `Setup`, so a test can replace them. |
@@ -513,6 +522,10 @@ the Guardian tool's other tests need no bus.
 
 What the stand-ins cannot show was run in the VM (`docs/research/steam-visit.md`).
 
+Add a child was checked in the cairn-iso VM on 2026-10-31 (#212). Beside
+two children named Cy, it refused "Cy" and " cy " before any password
+box. After the password, it made "Cy B", with the login `cyb`.
+
 ## Not yet
 
 - Logging out, restarting or shutting down during a visit still stops the
@@ -523,11 +536,14 @@ What the stand-ins cannot show was run in the VM (`docs/research/steam-visit.md`
   cage at once in the same way.
 - The Guardian's own Steam, started again by the window, runs in the
   window's own systemd unit, which then stays until Steam ends.
-- Neither `cairn-family` nor the Guardian tool has run in the VM yet.
 - Whether Plasma's own lid handling honours the copy's inhibitor lock is
   to be checked in the VM (ADR-0041, step 6).
 - The Guardian tool cannot reset a child, set a PIN, or make an existing
   account a child or a Guardian (#113).
+- A failed add is forgotten when Family closes. Opened again, Family
+  lists the child the add made and refuses their name. Moving that child
+  to another level runs the steps the add may not have finished: the
+  lock on the password and their "Steam for <child>" entry (#212).
 - KWallet keeps its own password when the Guardian's changes; Plasma's
   Users page offered to change both (ADR-0043).
 - KRunner still lists "Users - System Settings", which opens System

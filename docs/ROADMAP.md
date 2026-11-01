@@ -364,6 +364,11 @@ done, and what could sink it. Decisions that change the design get an ADR in
   Each change is one run of `cairn-family` through pkexec, one at a
   time, with a plain sentence after each answer. Accepted 2026-10-23,
   after a Guardian used it in the VM with the real password prompt.
+  Since 2026-10-31 Add a child refuses a name a child on the list
+  already has, whatever the case of its letters, before any password
+  (#212, a section in ADR-0040). In the user test on the VM it had made
+  a second "Cy", `cy2`, who looked the same as the first on every
+  screen. Checked in the VM the same day.
 - **ADR-0041 (2026-10-27, #167, proposed): each child has their own
   list of games.** Children of different ages need different games, so
   on the image a child gets copies and tiles only for the games a
