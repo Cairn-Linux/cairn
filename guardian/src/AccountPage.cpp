@@ -48,7 +48,8 @@ QVariantList picturesIn(const QDir& folder) {
 
 AccountPage::AccountPage(Setup setup, QObject* parent)
     : QObject(parent), m_setup(std::move(setup)),
-      m_change(new FamilyChange(m_setup.pkexec, m_setup.command, this)) {
+      m_change(new FamilyChange(m_setup.pkexec, m_setup.command, this)),
+      m_wallet(new WalletPassword(m_setup.walletBus, this)) {
     connect(m_change, &FamilyChange::finished, this, &AccountPage::passwordAnswered);
     if (m_setup.bus) {
         m_picture = new AccountPicture(*m_setup.bus, m_setup.uid, this);
@@ -96,6 +97,10 @@ AccountPage::Reason AccountPage::reason() const {
 
 bool AccountPage::busy() const {
     return m_step == Step::Asking || m_step == Step::SettingPicture;
+}
+
+WalletPassword* AccountPage::wallet() const {
+    return m_wallet;
 }
 
 // Checked here first, so the current password is asked for only when the
@@ -155,9 +160,11 @@ AccountPage::Reason AccountPage::reasonFor(const QString& answer) {
     return reasons.value(answer, Reason::Unknown);
 }
 
+// Only a password that changed makes the wallet's password differ from it.
 void AccountPage::passwordAnswered(const QString& answer) {
     if (answer == QStringLiteral("done")) {
         setStep(Step::PasswordChanged);
+        m_wallet->check();
         return;
     }
     setStep(Step::PasswordNotChanged, reasonFor(answer));
@@ -169,7 +176,10 @@ void AccountPage::pictureAnswered(bool changed) {
             changed ? Reason::None : Reason::PictureRefused);
 }
 
+// The wallet's offer belongs to the sentence about the password just
+// changed, so it goes as soon as the page says anything else.
 void AccountPage::setStep(Step step, Reason reason) {
+    m_wallet->withdraw();
     m_step = step;
     m_reason = reason;
     emit stepChanged();
