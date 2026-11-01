@@ -1260,19 +1260,41 @@ class SteamOpenTest(MoveTestCase):
         self.assertNoLeftovers()
 
     def test_steam_started_between_two_games_holds_the_second(self):
+        # Found before the second game's copy, so it is not even copied.
         self.machine.add_game(100, "First")
         self.machine.add_game(200, "Second")
         module = self.machine.load()
         real_finish = module.finish
+        copied = []
 
         def finish_while_steam_starts(game, family):
             real_finish(game, family)
             self.machine.steam_runs()
 
+        def copy(source, target):
+            copied.append(pathlib.Path(target).name)
+            return copy_tree(source, target)
+
         code, lines = self.machine.run_with_stand_in("100", "200", module=module,
-                                                      parts={"finish": finish_while_steam_starts})
+                                                      parts={"finish": finish_while_steam_starts,
+                                                             "reflink_copy": copy})
         self.assertEqual((code, lines), (0, ["library added", "moved 100", "not-moved 200 steam-open"]))
+        self.assertEqual(copied, ["probe", "100"])
         self.assertOnlyInOwnLibrary("200", "Second", manifest(200, "Second"))
+
+    def test_steam_started_before_the_lists_are_written_holds_every_game(self):
+        self.machine.add_game(100)
+
+        def probe_while_steam_starts(source, target):
+            self.machine.steam_runs()
+            return copy_tree(source, target)
+
+        before = self.machine.lists()
+        self.assertEqual(self.machine.run_with_stand_in("100", parts={"reflink_copy": probe_while_steam_starts}),
+                         (0, ["not-moved 100 steam-open"]))
+        self.assertEqual(self.machine.lists(), before)
+        self.assertFalse(os.path.lexists(self.machine.family / "libraryfolder.vdf"))
+        self.assertOnlyInOwnLibrary()
 
     def test_a_process_list_it_cannot_read_counts_as_open(self):
         self.machine.add_game(100)
