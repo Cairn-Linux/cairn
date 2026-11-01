@@ -15,6 +15,18 @@ LABWC_DIR = pathlib.Path(__file__).resolve().parent.parent / "labwc"
 CONFIG = LABWC_DIR / "rc.xml"
 ENVIRONMENT = LABWC_DIR / "environment"
 
+# The action of a binding that is there only to keep a key from the window
+# in front (#215). labwc throws away a binding whose only action is None,
+# so it needs a real one; this one turns off a setting nothing turns on.
+KEEP_FROM_APPS = "DisableScrollWheelEmulation"
+
+
+def combination(key):
+    # labwc reads a binding's modifier letters as written and its key name
+    # in any case (keybind.c), so "C-f5" is the same binding as "C-F5".
+    *modifiers, name = key.split("-")
+    return frozenset(modifiers), name.lower()
+
 
 class LabwcConfigTest(unittest.TestCase):
     def setUp(self):
@@ -110,16 +122,45 @@ class LabwcConfigTest(unittest.TestCase):
     def test_only_the_ways_out_and_the_volume_keys_are_bound(self):
         # ADR-0018 and ADR-0019: Ctrl-Alt-Home for a grown-up, Super+Q for
         # the child; and a laptop's volume keys (#43). Every other binding,
-        # Super alone included, does nothing.
+        # Super alone included, does nothing, and a key kept from the apps
+        # (below) does nothing on purpose.
         active = {
             k.get("key")
             for k in self.root.findall("./keyboard/keybind")
-            if any(a.get("name") != "None" for a in k.findall("action"))
+            if any(a.get("name") not in ("None", KEEP_FROM_APPS) for a in k.findall("action"))
         }
         self.assertEqual(
             active,
             {"C-A-Home", "W-q", "XF86_AudioRaiseVolume", "XF86_AudioLowerVolume", "XF86_AudioMute"},
         )
+
+    def test_scummvms_menu_key_is_kept_from_games(self):
+        # #215: Ctrl+F5 opened ScummVM's own menu over a game, and its
+        # Return to Launcher led to ScummVM's game manager. labwc keeps a
+        # key it has a binding for from the window in front, so a binding
+        # that does nothing keeps the menu shut. It is the only kept key.
+        keybinds = self.root.findall("./keyboard/keybind")
+        kept = [
+            k for k in keybinds if [a.get("name") for a in k.findall("action")] == [KEEP_FROM_APPS]
+        ]
+        self.assertEqual([k.get("key") for k in kept], ["C-F5"])
+        # labwc keeps only the last binding for a key, so a second one,
+        # None included, would hand Ctrl+F5 back to the games.
+        combinations = [combination(k.get("key")) for k in keybinds]
+        self.assertEqual(combinations.count(combination("C-F5")), 1)
+        # On release, labwc keeps back whichever key comes up first, so a
+        # game could miss Ctrl being let go.
+        self.assertIn(kept[0].get("onRelease"), (None, "no"))
+
+    def test_kept_keys_change_nothing_and_no_window_can_take_them(self):
+        # A kept key turns off scroll-wheel emulation, so it does nothing
+        # only while nothing turns that on. ToggleKeybinds is the one way
+        # labwc 0.9.6 lets a window have the keys the kiosk binds; it
+        # offers no protocol for a program to ask for them
+        # (kiosk-containment.md). labwc ignores the case of action names.
+        names = {action.get("name", "").lower() for action in self.root.iter("action")}
+        for name in ("EnableScrollWheelEmulation", "ToggleScrollWheelEmulation", "ToggleKeybinds"):
+            self.assertNotIn(name.lower(), names)
 
     def test_volume_keys_go_through_pipewire_and_stop_at_full(self):
         keybinds = {k.get("key"): k for k in self.root.findall("./keyboard/keybind")}
