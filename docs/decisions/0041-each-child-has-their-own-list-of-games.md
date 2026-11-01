@@ -550,4 +550,22 @@ in the shared folder is not new; the window's whole first paragraph for
 a Look that found two games, for one that found none, and for a kept
 list; and the polkit action's message and description.
 
-Not yet run on the test VM.
+Checked on the test VM (cairn-iso) on 2026-10-31, with this change's
+Family program and polkit action laid over main 20ca74d's `/usr`.
+A Look and a Save each asked "A grown-up's password is needed to look for
+new games, or to change which games a child has.", and the box's details
+named the action "Look for new games, or change which games a child has".
+A Look that found nothing new opened "The shared folder was read again.
+Every game in it shows on the page. No new games."
+With Freddi Fish 2's app manifest moved out of the shared folder, a Look
+said "No new games." and its card left the grid.
+With the manifest back, the next Look said "New games: Freddi Fish 2: The
+Case of the Haunted Schoolhouse." and the card came back.
+Two games back at once were named "Arthur's Birthday and Freddi Fish 2:
+The Case of the Haunted Schoolhouse.", in the grid's order.
+With a link in place of the shared folder's `steamapps`, a Look opened
+with "The shared folder was read again, but its list of games could not
+be made.", said nothing about new games, and the journal had `catalogue
+kept`.
+Not tried there: a Look cut off before `done`, a game back in the shared
+folder that is on the picked child's list, and a Save that went ahead.

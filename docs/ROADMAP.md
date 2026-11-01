@@ -529,7 +529,11 @@ done, and what could sink it. Decisions that change the design get an ADR in
   or says "No new games." A Look whose games list could not be made no
   longer opens by saying that every game in the shared folder shows on the
   page: it says first that the list could not be made. Tested in C++, QML
-  and Python; not yet checked on the test VM.
+  and Python, and on the test VM on 2026-10-31 with this change laid over
+  `/usr`: a Look and a Save asked with the new words, a Look named the game
+  and then the two games put back in the shared folder, a Look that found
+  nothing new said "No new games.", and a Look with a link for Steam's
+  folder there said first that its list could not be made.
 - **A Steam that cannot sign in needs a grown-up soon (2026-10-29, #182,
   amends ADR-0036).** On the kids' laptop a tap came while the tester
   account's Steam had its saved sign-in turned down. The starting screen
