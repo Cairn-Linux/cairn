@@ -203,18 +203,18 @@ restart the computer before the child logs in again, and stays open until
 the Guardian has read it.
 
 The window's size follows its words. It grows or shrinks with each new
-message (#172), up to the screen's free height less three heading sizes:
-room for KWin's title bar, and for Plasma's panel, which Qt under Wayland
-counts as free. When the words are taller than that, such as at 200% on a
-small screen, they scroll beside a thin bar, and the buttons stay in sight
-under them (#231). If KWin gives it any other height, such as the height
-it had for the last message as the password box closes, the window puts
-its own height back. Each step with a button to press, such as "did not
-open", asks to bring the window to the front, in case another window,
-such as Steam updating itself, came over it. KWin decides whether it
-does; it may only highlight the window in the taskbar. While the
-password box is up, the window has no button and leaves the box in
-front.
+message (#172), up to the free height Qt gives, less three heading sizes
+(84 pixels at the usual text size): room for KWin's title bar, and for
+Plasma's panel, which Qt under Wayland counts as free. When the words are
+taller than that, such as at 200% on a small screen, they scroll beside a
+thin bar, and the buttons stay in sight under them (#231). If KWin gives
+it any other height, such as the height it had for the last message as
+the password box closes, the window puts its own height back. Each step
+with a button to press, such as "did not open", asks to bring the window
+to the front, in case another window, such as Steam updating itself,
+came over it. KWin decides whether it does; it may only highlight the
+window in the taskbar. While the password box is up, the window has no
+button and leaves the box in front.
 
 ## cairn-family
 
@@ -479,14 +479,15 @@ Setting `CAIRN_SCREENSHOT=/path/family.png` when running
 `steamwindow` shows every message the Steam window can give, each
 reason it did not open with and without the Guardian's own Steam
 coming back, and checks that every word and button is inside the
-window and the window fits a 1280 by 800 screen, without scrolling. On a
-screen 400 pixels tall, as Qt under Wayland gives the same screen at 200%,
-it checks that the window leaves room for its title bar and the panel,
-that the words scroll beside a thin bar, and that Open and Done show whole
-under them and work (#231). It also checks that
-the window grows again after the password box closes, puts its height
-back when it is resized from outside to an old height, and comes to the
-front when the visit did not open. `CAIRN_SCREENSHOT=/path/steam-for.png`
+window, that the window is no taller than they are, and that it fits a
+1280 by 800 screen without scrolling. On a screen 400 pixels tall, as Qt
+under Wayland gives the same screen at 200%, it checks that the window
+leaves three heading sizes free for its title bar and the panel, that the
+wheel scrolls the words beside a thin bar, and that Open and Done show
+whole under them and work (#231). It also checks that the window grows
+again after the password box closes, puts its height back when it is
+resized from outside to an old height, and comes to the front when the
+visit did not open. `CAIRN_SCREENSHOT=/path/steam-for.png`
 saves a picture of each of those steps beside that path. These tests run
 offscreen, so they check the window's own layout and its answer to a
 resize, not what KWin does. They also run by hand with
@@ -548,3 +549,8 @@ What the stand-ins cannot show was run in the VM (`docs/research/steam-visit.md`
   Users page offered to change both (ADR-0043).
 - KRunner still lists "Users - System Settings", which opens System
   Settings without the page (ADR-0043).
+- Words that scroll in the Save's window and the Steam window move with
+  the wheel or a drag, not the keyboard.
+- The Steam window's cap uses the free height of all screens together,
+  so on a short screen beside a taller one it can still run past the
+  bottom.

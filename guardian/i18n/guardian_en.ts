@@ -584,12 +584,12 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="193"/>
+        <location filename="../qml/Main.qml" line="195"/>
         <source>Close</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="193"/>
+        <location filename="../qml/Main.qml" line="195"/>
         <source>Cancel</source>
         <translation type="unfinished"></translation>
     </message>

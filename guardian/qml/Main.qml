@@ -23,13 +23,15 @@ Window {
     // grows and shrinks with each message (#172). Rounded up, as a window's
     // height is whole pixels and the words' height may not be.
     readonly property int wordsHeight: Math.ceil(content.implicitHeight + buttonsRoom) + margin * 2
-    // The screen's height free of panels, as Qt gives it.
+    // The free height Qt gives, for all screens together. Under Wayland it
+    // counts Plasma's panel as free.
     property int screenHeight: Screen.desktopAvailableHeight
-    // But never taller than the screen has room for, such as at 200% on a
-    // small screen: then the words scroll above the buttons (#231). Room is
-    // kept for KWin's title bar, which is not part of the window's height,
-    // and for Plasma's panel, which Qt under Wayland counts as free. Bound
-    // as the most and the least the window may be, so KWin keeps to it.
+    // At most that, less three heading sizes (84 px at the usual text
+    // size): room for KWin's title bar, about 30 px, which is not part of
+    // the window's height, and for Plasma's usual 44 px panel. Past that,
+    // such as at 200% on a small screen, the words scroll above the buttons
+    // (#231). Bound as the most and the least the window may be, so KWin
+    // keeps to it.
     readonly property int fitHeight: Math.min(wordsHeight, screenHeight - Tokens.headingSize * 3)
 
     width: Tokens.headingSize * 22
