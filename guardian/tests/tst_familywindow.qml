@@ -1355,6 +1355,7 @@ TestCase {
         waitForPolish(window);
         const words = findChild(window, "saveWords");
         verify(words.contentHeight > words.height, "The result fits, so this tests nothing");
+        verify(words.clip, "The words draw past their part of the box");
         verify(findChild(window, "saveScrollMark").visible);
         verify(shownWhole(window, close, Tokens.focusOffset + Tokens.focusWidth), "Close or its focus ring is cut off");
         const box = findChild(window, "saveProgressBox");
@@ -1363,8 +1364,11 @@ TestCase {
             wait(300);
             grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-games-long-result.png"));
         }
-        // Scrolled to their end, the words show the end of the last result,
-        // which alone is taller than they are here.
+        // The wheel scrolls the words, as a parent would. Scrolled to their
+        // end, they show the end of the last result, which alone is taller
+        // than they are here.
+        mouseWheel(words, words.width / 2, words.height / 2, 0, -120);
+        tryVerify(() => words.contentY > 1, 2000, "The wheel does not scroll the words");
         words.contentY = words.contentHeight - words.height;
         const last = result(window, 1);
         const end = last.mapToItem(words, 0, last.height).y;
@@ -1409,6 +1413,13 @@ TestCase {
         compare(findChild(window, "saveProgressHeading").text, "Looking for new games");
         // It names no child, so it says nothing about any child's list.
         compare(findChild(window, "saveResults").count, 0);
+        // So short a result fits: no bar, and Close a line's space under
+        // the words.
+        waitForPolish(window);
+        const words = findChild(window, "saveWords");
+        verify(words.contentHeight <= words.height, "A short result scrolls");
+        verify(!findChild(window, "saveScrollMark").visible, "A bar beside words that fit");
+        compare(findChild(window, "closeSaveProgress").y, words.y + words.height + Tokens.bodySize, "Close is not a line's space under the words");
     }
 
     // While a look runs, the page speaks of looking, never of saving, and
@@ -1423,6 +1434,9 @@ TestCase {
         compare(saveOutcome(window), "Looking at the shared folder for games and their pictures.");
         // A look copies nothing, so it has no warning about the lid.
         verify(!findChild(window, "lidWarning").visible);
+        // There is no Close yet, so the words take the whole box.
+        waitForPolish(window);
+        compare(findChild(window, "saveWords").height, findChild(window, "saveProgressBox").height - Tokens.headingSize * 2, "Room kept for a Close that is not there");
     }
 
     // A look that did not run speaks of looking, not of saved changes.

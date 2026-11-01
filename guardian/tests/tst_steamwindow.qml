@@ -10,11 +10,12 @@ TestCase {
     name: "SteamWindow"
     when: windowShown
 
-    // The smallest screen Cairn is tested on, 1280 by 800, less a panel
-    // along one edge, as Plasma's own.
-    readonly property int screenHeight: 800 - 48
-    // The same screen at 200%, as the test VM's Plasma has it, and as Qt
-    // under Wayland gives it, with the panel counted as free (#231).
+    // The free height of the smallest screen Cairn is tested on, 1280 by
+    // 800, as Qt under Wayland gives it, with Plasma's panel counted as
+    // free. Every window here is on it unless a test gives another, so the
+    // tests do not depend on the test machine's own screen.
+    readonly property int screenHeight: 800
+    // The same screen at 200%, as the test VM's Plasma has it (#231).
     readonly property int shortScreen: 400
 
     Component {
@@ -37,18 +38,16 @@ TestCase {
         }
     }
 
-    // On the test machine's screen, unless `screenHeight` gives another
+    // On the 1280 by 800 screen, unless `screenHeight` gives another
     // screen's free height.
     function makeWindow(scenario, ownSteamRunning, screenHeight) {
-        const properties = {
+        const window = createTemporaryObject(windowComponent, testCase, {
             "visit": standIns.visit(scenario, ownSteamRunning),
+            "screenHeight": screenHeight === undefined ? testCase.screenHeight : screenHeight,
             // A window of its own, as it is in Plasma, so it is active
             // only when it has the focus itself.
             "transientParent": null
-        };
-        if (screenHeight !== undefined)
-            properties.screenHeight = screenHeight;
-        const window = createTemporaryObject(windowComponent, testCase, properties);
+        });
         verify(window !== null);
         window.requestActivate();
         tryCompare(window, "active", true);
@@ -117,8 +116,8 @@ TestCase {
         return true;
     }
 
-    // The window shows all of what it says, with its buttons, and fits on
-    // the smallest screen.
+    // The window shows all of what it says, with its buttons, is no taller
+    // than that, and fits the 1280 by 800 screen without scrolling.
     function verifyFits(window, picture) {
         const step = window.visit.step;
         // The column places its pieces when the window next draws. Under
@@ -129,9 +128,10 @@ TestCase {
         compare(cutOff(window), [], "Cut off in step " + step);
         const scroller = findChild(window, "wordsScroller");
         verify(scroller.contentHeight <= scroller.height, "The words scroll in step " + step);
+        verify(!findChild(window, "scrollIndicator").visible, "A bar beside words that fit in step " + step);
         const last = pieces(window).pop();
         verify(window.height >= last.bottom + window.margin, "No margin under the last piece in step " + step);
-        verify(window.height <= testCase.screenHeight, "Taller than the screen in step " + step + ": " + window.height);
+        verify(window.height <= last.bottom + window.margin + 1, "More than a margin under the last piece in step " + step + ": " + window.height);
         if (picture !== undefined && standIns.screenshotPath() !== "") {
             wait(200);
             grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-" + picture + ".png"));
@@ -442,6 +442,7 @@ TestCase {
         verify(window.height + Tokens.headingSize * 3 <= testCase.shortScreen, "No room for the title bar and the panel: " + window.height);
         const scroller = findChild(window, "wordsScroller");
         verify(scroller.contentHeight > scroller.height, "The words fit, so this tests nothing");
+        verify(scroller.clip, "The words draw past their part of the window");
         verify(findChild(window, "scrollIndicator").visible);
         const main = findChild(window, "mainButton");
         for (const button of findChild(window, "buttons").children) {
@@ -453,13 +454,27 @@ TestCase {
             wait(200);
             grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-short-" + data.tag + ".png"));
         }
-        // Scrolled to the end, the last paragraph shows whole.
+        // The wheel scrolls the words, as a parent would. Scrolled to the
+        // end, the last paragraph shows whole.
+        mouseWheel(scroller, scroller.width / 2, scroller.height / 2, 0, -120);
+        tryVerify(() => scroller.contentY > 1, 2000, "The wheel does not scroll the words");
         scroller.contentY = scroller.contentHeight - scroller.height;
         const paragraphs = Array.from(findChild(window, "content").children).filter(item => item.objectName === "paragraph");
         verify(shownWhole(window, paragraphs[paragraphs.length - 1], 0), "The last paragraph does not show whole");
         // Open goes on to the password, and Done closes the visit.
         mouseClick(main);
         tryVerify(() => window.visit.step !== step);
+    }
+
+    // The tests above give the window a screen of their own. Left alone,
+    // it takes the free height Qt gives for its screen (#231).
+    function test_itTakesTheFreeHeightQtGives() {
+        const window = createTemporaryObject(windowComponent, testCase, {
+            "visit": standIns.visit("open", false),
+            "transientParent": null
+        });
+        verify(window !== null);
+        compare(window.screenHeight, window.Screen.desktopAvailableHeight, "The window does not take the free height Qt gives");
     }
 
     // When the child's Steam does not open, the window comes in front of
