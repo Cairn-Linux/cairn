@@ -5,9 +5,10 @@ import Cairn.Brand
 import Cairn.Family
 
 // What a Save on the Games page is doing, then what it did for each child,
-// or why nothing was saved, in the house's plain sentences (ADR-0041). The
-// Save's progress window shows it. GamesSaving decides every value; this
-// only picks the words for it.
+// which games have no picture and what helps (ADR-0047), or why nothing was
+// saved, in the house's plain sentences (ADR-0041). The Save's progress
+// window shows it. GamesSaving decides every value; this only picks the
+// words for it.
 Column {
     id: box
 
@@ -15,9 +16,11 @@ Column {
 
     spacing: Tokens.bodySize / 2
 
+    // Plain text, so a game's name from Steam shows exactly as written.
     component Sentence: Text {
         width: box.width
         wrapMode: Text.WordWrap
+        textFormat: Text.PlainText
         font.family: Tokens.fontFamily
         font.pixelSize: Tokens.bodySize
         lineHeight: Tokens.bodyLineHeight
@@ -59,17 +62,29 @@ Column {
     }
 
     // A Save that could not give every child every new game never opens
-    // by saying that each child sees their games.
+    // by saying that each child sees their games. What a child sees of a
+    // game without a picture is said once, and the system log is named
+    // once, last, so nothing runs on from the command.
     function savedSentence() {
         const said = [qsTr("Saved. Each child sees their games the next time they log in.")];
         if (box.saving.kind === GamesSaving.Look)
             said[0] = qsTr("The shared folder was read again. Every game in it shows on the page.");
         else if (!box.saving.allGiven)
             said[0] = qsTr("Saved, but not every new game could be given. The sentences below say what each child has now, and what comes next.");
+        if (box.saving.picturesKept)
+            said.push(qsTr("The game pictures could not all be copied from your own Steam this time, so a game without one shows its name on a child's screen. Pictures copied before stay. Pressing Look for new games tries again."));
+        if (box.saving.picturesMissing !== "")
+            said.push(qsTr("No picture yet: %1. On a child's screen a game without a picture shows its name instead. Your own Steam keeps a game's picture once its library has shown the game: open Steam in your own login, then press Look for new games. If only another grown-up's Steam has the game, they can do the same in their own login.").arg(box.saving.picturesMissing));
+        if (box.saving.picturesRefused !== "" && box.saving.picturesMissing !== "")
+            said.push(qsTr("Cairn could not use your own Steam's picture for %1.").arg(box.saving.picturesRefused));
+        else if (box.saving.picturesRefused !== "")
+            said.push(qsTr("Cairn could not use your own Steam's picture for %1. On a child's screen a game without a picture shows its name instead.").arg(box.saving.picturesRefused));
         if (box.saving.catalogueKept)
-            said.push(qsTr("The list of shared games could not be made again, so the page shows the one from before. The reason is in the system log. In a terminal: journalctl -t cairn-family"));
+            said.push(qsTr("The list of shared games could not be made again, so the page shows the one from before."));
         if (box.saving.toolsLeftOut)
-            said.push(qsTr("Not every tool Steam runs games with could be taken from your own Steam, so a child who got new games may not have every tool yet. Their Steam downloads what is missing the first time a game needs it, which can take several minutes. If that game does not start, log the child out and back in, then try it again. The reason is in the system log. In a terminal: journalctl -t cairn-family"));
+            said.push(qsTr("Not every tool Steam runs games with could be taken from your own Steam, so a child who got new games may not have every tool yet. Their Steam downloads what is missing the first time a game needs it, which can take several minutes. If that game does not start, log the child out and back in, then try it again."));
+        if (box.saving.picturesKept || box.saving.picturesRefused !== "" || box.saving.catalogueKept || box.saving.toolsLeftOut)
+            said.push(qsTr("The system log says why. In a terminal: journalctl -t cairn-family"));
         return said.join(" ");
     }
 

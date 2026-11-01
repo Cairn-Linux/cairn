@@ -26,7 +26,8 @@ QStringList libraries(const QString& root, const QString& home);
 // The games in every library of every Steam in `home`, but for the
 // library in `sharedLibrary` and anything inside it, and the appids in
 // `shared`, which the family already has. Each game once, by appid, in
-// order of name. Files that cannot be read are passed over.
+// order of name. Files that cannot be read are passed over. A home that is
+// not a full path, such as none, finds none.
 QList<SteamManifest::Game> find(const QString& home, const QString& sharedLibrary,
                                 const QSet<QString>& shared);
 

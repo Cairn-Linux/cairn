@@ -72,3 +72,23 @@ std::optional<QByteArray> SystemTool::output(const QString& program, const QStri
     }
     return printed;
 }
+
+// The tool's own lines say whether it went to its end, so its exit status
+// is not needed. What follows the last line end was cut off, by the end of
+// the output or by the two-minute limit, so it is not a line.
+QStringList SystemTool::lines(const QString& program, const QStringList& arguments,
+                              qint64 maxBytes) {
+    QProcess process;
+    prepare(process);
+    process.setStandardInputFile(QProcess::nullDevice());
+    process.setStandardErrorFile(QProcess::nullDevice());
+    process.start(program, arguments);
+    finishes(process);
+    const QByteArray printed = process.readAllStandardOutput();
+    if (printed.size() > maxBytes) {
+        return {};
+    }
+    QStringList whole = QString::fromUtf8(printed).split(QLatin1Char('\n'));
+    whole.removeLast();
+    return whole;
+}
