@@ -74,8 +74,10 @@ The Games page (ADR-0041):
    off. A key held down counts once. Nothing is saved yet: the card says
    "Added, not saved yet" or "Taken off, not saved yet", the child's name
    above says "not saved", and a sentence names every child with changes.
-   The parent can change several children and save once. **Put back as
-   saved** undoes the changes for the child picked.
+   When that sentence comes or goes above the grid, the page scrolls by
+   as much, so the card stays where it was in the window, under the
+   pointer (#219). The parent can change several children and save once.
+   **Put back as saved** undoes the changes for the child picked.
 4. **Save** runs `cairn-family save-games` through `pkexec` once, with
    each changed child's whole new list, so one password covers the whole
    Save. It is ready only when there is something to save, and **Put
@@ -101,9 +103,12 @@ The Games page (ADR-0041):
    no game (ADR-0047). When a sentence about the pictures, the full
    games list or Steam's tools has its reason in the journal, the first
    paragraph ends by pointing there, once. **Close**, or Escape once it
-   has ended, puts it away. A child's games that could not be given stay
-   chosen, so pressing Save again tries them again. A closed password box
-   keeps every change. The page reads everything again after each Save.
+   has ended, puts it away. Close stays in sight at the bottom of the
+   window; when the words are taller than the window has room for, they
+   scroll beside a thin bar (#218). A child's games that could not be
+   given stay chosen, so pressing Save again tries them again. A closed
+   password box keeps every change. The page reads everything again
+   after each Save.
 5. **Look for new games** runs `cairn-family save-games` with no child
    named, which changes no list but makes the full games list, the
    pictures and the tools folder again from the Guardian's own Steam, so
@@ -198,9 +203,13 @@ restart the computer before the child logs in again, and stays open until
 the Guardian has read it.
 
 The window's size follows its words. It grows or shrinks with each new
-message (#172). If KWin gives it any other height, such as the height it
-had for the last message as the password box closes, the window puts its
-own height back. Each step with a button to press, such as "did not
+message (#172), up to the screen's free height less three heading sizes:
+room for KWin's title bar, and for Plasma's panel, which Qt under Wayland
+counts as free. When the words are taller than that, such as at 200% on a
+small screen, they scroll beside a thin bar, and the buttons stay in sight
+under them (#231). If KWin gives it any other height, such as the height
+it had for the last message as the password box closes, the window puts
+its own height back. Each step with a button to press, such as "did not
 open", asks to bring the window to the front, in case another window,
 such as Steam updating itself, came over it. KWin decides whether it
 does; it may only highlight the window in the taskbar. While the
@@ -380,7 +389,7 @@ QML draws, C++ decides (ADR-0002):
 | `qml/ChildChoice.qml`, `qml/GameCard.qml`, `qml/SaveOutcome.qml`, `qml/SaveResultWords.qml` | A child to pick on the Games page, one game in its grid, the sentences for a Save, and its words for what each child got. |
 | `qml/ChildGames.qml`, `qml/LoggedInCover.qml`, `qml/SaveProgress.qml` | The picked child's Steam, list and games, greyed and blurred while they are logged in; the card over them; and the Save's progress window, with the lid warning and Close. |
 | `qml/ChildRow.qml`, `qml/AddChildForm.qml`, `qml/LabelledField.qml`, `qml/LevelChoice.qml` | A child on the list, the Add form, a text field with its label, and one level to pick. |
-| `qml/TextButton.qml` | The button both windows use. |
+| `qml/TextButton.qml`, `qml/ScrollMark.qml` | The button both windows use, and the thin bar beside a part that scrolls, which shows where it is. |
 | `src/FamilyCommand` | `cairn-family create-child` and `set-level`: which accounts it may change, and the steps for each. Everything it reads from or does to the machine is in its `Setup`, so a test can replace it. |
 | `src/Caller` | Who started `cairn-family`: root, and through pkexec an administrator, with their home from the account database. |
 | `src/GamesSave` | `cairn-family save-games`: the checks, the lock, the pictures and full list, the games taken off, the tools folder, then each child in turn. Its `Setup` holds everything it reads from or does to the machine. |
@@ -456,9 +465,12 @@ They cover turning games for two children and saving once, the exact
 arguments pkexec is given, a child held or a game left out, every
 refusal keeping the changes, every control waiting while a Save
 runs, a logged-in child's games greyed, the logout and why it did not
-finish, and the progress window. `heldKey` sends the repeats of a key
-held down, which TestCase cannot, so the tests check that a game card, a
-button, a child, a level and a picture each count it once.
+finish, and the progress window, with Close in sight under a long result
+in the smallest window. They also check that a card turned on a page
+scrolled down to the games stays where it was in the window. `heldKey`
+sends the repeats of a key held down, which TestCase cannot, so the tests
+check that a game card, a button, a child, a level and a picture each
+count it once.
 `loginsessions` checks the rule for a login, and asks the test machine's
 own logind when it has one;
 `loginwatch` sends logind's signals on a bus of its own.
@@ -467,7 +479,11 @@ Setting `CAIRN_SCREENSHOT=/path/family.png` when running
 `steamwindow` shows every message the Steam window can give, each
 reason it did not open with and without the Guardian's own Steam
 coming back, and checks that every word and button is inside the
-window and the window fits a 1280 by 800 screen. It also checks that
+window and the window fits a 1280 by 800 screen, without scrolling. On a
+screen 400 pixels tall, as Qt under Wayland gives the same screen at 200%,
+it checks that the window leaves room for its title bar and the panel,
+that the words scroll beside a thin bar, and that Open and Done show whole
+under them and work (#231). It also checks that
 the window grows again after the password box closes, puts its height
 back when it is resized from outside to an old height, and comes to the
 front when the visit did not open. `CAIRN_SCREENSHOT=/path/steam-for.png`
