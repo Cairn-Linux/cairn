@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "SteamLaunchLog.h"
 
+#include <QDateTime>
 #include <QFile>
 #include <QTemporaryDir>
 #include <QTest>
@@ -26,6 +27,12 @@ void append(const QString& path, const QByteArray& text) {
     QFile log(path);
     QVERIFY(log.open(QIODevice::WriteOnly | QIODevice::Append));
     log.write(text);
+}
+
+// When the test reads the log: the morning after its lines. It matters only
+// for a time in an hour the clocks change in, which tst_steamlogtime tests.
+QDateTime nextMorning() {
+    return {QDate(2026, 10, 21), QTime(9, 0)};
 }
 
 // What Steam's own log says about a launch (ADR-0036).
@@ -106,9 +113,9 @@ private slots:
         append(path, line("changed task to DownloadingDepots with \"\""));
         SteamLaunchLog log(path);
         log.startLaunch(QStringLiteral("294650"));
-        QCOMPARE(log.read(), Step::Nothing);
+        QCOMPARE(log.read(nextMorning()), Step::Nothing);
         append(path, line("changed task to SynchronizingCloud with \"\""));
-        QCOMPARE(log.read(), Step::Working);
+        QCOMPARE(log.read(nextMorning()), Step::Working);
     }
 
     // The last line about the game decides; lines about others change nothing.
@@ -121,11 +128,11 @@ private slots:
                line("changed task to DownloadingDepots with \"\"") +
                    line("changed task to Completed with \"\"", "70") +
                    "[2026-10-20 15:30:44] CAPIJobRequestUserStats - Server response failed 2\n");
-        QCOMPARE(log.read(), Step::Working);
-        QCOMPARE(log.read(), Step::Working);
+        QCOMPARE(log.read(nextMorning()), Step::Working);
+        QCOMPARE(log.read(nextMorning()), Step::Working);
         append(path, line("changed task to WaitingGameWindow with \"\"") +
                          line("changed task to Completed with \"\""));
-        QCOMPARE(log.read(), Step::GameStarted);
+        QCOMPARE(log.read(nextMorning()), Step::GameStarted);
     }
 
     // A launch that stops while Steam says it is downloading is the stall of
@@ -139,28 +146,28 @@ private slots:
         QCOMPARE(log.step(), Step::Nothing);
         append(path, line("changed task to CheckShaderDepotManifest with \"\"") +
                          line("changed task to DownloadingDepots with \"\""));
-        log.read();
+        log.read(nextMorning());
         QVERIFY(log.downloading());
         QCOMPARE(log.step(), Step::Working);
         // Another game's download says nothing about this one.
         append(path, line("changed task to RunningInstallScript with \"\"") +
                          line("changed task to DownloadingDepots with \"\"", "70"));
-        log.read();
+        log.read(nextMorning());
         QVERIFY(!log.downloading());
         QCOMPARE(log.step(), Step::Working);
         append(path, line("changed task to DownloadingDepots with \"\""));
-        log.read();
+        log.read(nextMorning());
         QVERIFY(log.downloading());
         log.startLaunch(QStringLiteral("294650"));
         QVERIFY(!log.downloading());
         QCOMPARE(log.step(), Step::Nothing);
         // A new, smaller log forgets it too.
         append(path, line("changed task to DownloadingDepots with \"\""));
-        log.read();
+        log.read(nextMorning());
         QVERIFY(log.downloading());
         QVERIFY(QFile::remove(path));
         append(path, "[2026-10-20 15:31:00] System startup time: 16.79 seconds\n");
-        log.read();
+        log.read(nextMorning());
         QVERIFY(!log.downloading());
         QCOMPARE(log.step(), Step::Nothing);
     }
@@ -210,9 +217,9 @@ private slots:
         log.startLaunch(QStringLiteral("294650"));
         QVERIFY(!log.cloudSyncFailed());
         append(path, lines);
-        QCOMPARE(log.read(), step);
+        QCOMPARE(log.read(nextMorning()), step);
         QCOMPARE(log.cloudSyncFailed(), cloud);
-        QCOMPARE(log.read(), step);
+        QCOMPARE(log.read(nextMorning()), step);
         QCOMPARE(log.cloudSyncFailed(), cloud);
     }
 
@@ -225,16 +232,16 @@ private slots:
         SteamLaunchLog log(path);
         log.startLaunch(QStringLiteral("294650"));
         append(path, question);
-        log.read();
+        log.read(nextMorning());
         QVERIFY(log.cloudSyncFailed());
         log.startLaunch(QStringLiteral("294650"));
         QVERIFY(!log.cloudSyncFailed());
         append(path, question);
-        log.read();
+        log.read(nextMorning());
         QVERIFY(log.cloudSyncFailed());
         QVERIFY(QFile::remove(path));
         append(path, "[2026-10-20 15:31:00] System startup time: 16.79 seconds\n");
-        log.read();
+        log.read(nextMorning());
         QVERIFY(!log.cloudSyncFailed());
         QCOMPARE(log.step(), Step::Nothing);
     }
@@ -247,9 +254,9 @@ private slots:
         log.startLaunch(QStringLiteral("294650"));
         const QByteArray whole = line("changed task to DownloadingDepots with \"\"");
         append(path, whole.first(40));
-        QCOMPARE(log.read(), Step::Nothing);
+        QCOMPARE(log.read(nextMorning()), Step::Nothing);
         append(path, whole.mid(40));
-        QCOMPARE(log.read(), Step::Working);
+        QCOMPARE(log.read(nextMorning()), Step::Working);
     }
 
     // Steam began a new log after the tap: all of it is new.
@@ -261,7 +268,7 @@ private slots:
         log.startLaunch(QStringLiteral("294650"));
         QVERIFY(QFile::remove(path));
         append(path, line("changed task to DownloadingDepots with \"\""));
-        QCOMPARE(log.read(), Step::Working);
+        QCOMPARE(log.read(nextMorning()), Step::Working);
     }
 
     // No log at the tap, as before Steam's first start: the log that comes
@@ -271,9 +278,9 @@ private slots:
         const QString path = dir.filePath(QStringLiteral("console_log.txt"));
         SteamLaunchLog log(path);
         log.startLaunch(QStringLiteral("294650"));
-        QCOMPARE(log.read(), Step::Nothing);
+        QCOMPARE(log.read(nextMorning()), Step::Nothing);
         append(path, line("changed task to DownloadingDepots with \"\""));
-        QCOMPARE(log.read(), Step::Working);
+        QCOMPARE(log.read(nextMorning()), Step::Working);
     }
 
     // A new tap forgets what the last game's launch had got to.
@@ -283,9 +290,9 @@ private slots:
         SteamLaunchLog log(path);
         log.startLaunch(QStringLiteral("294650"));
         append(path, line("failed with AppError_33 with \"\""));
-        QCOMPARE(log.read(), Step::Refused);
+        QCOMPARE(log.read(nextMorning()), Step::Refused);
         log.startLaunch(QStringLiteral("294650"));
-        QCOMPARE(log.read(), Step::Nothing);
+        QCOMPARE(log.read(nextMorning()), Step::Nothing);
     }
 
     void noGameSaysNothing() {
@@ -293,7 +300,7 @@ private slots:
         const QString path = dir.filePath(QStringLiteral("console_log.txt"));
         append(path, line("changed task to DownloadingDepots with \"\""));
         SteamLaunchLog log(path);
-        QCOMPARE(log.read(), Step::Nothing);
+        QCOMPARE(log.read(nextMorning()), Step::Nothing);
         QCOMPARE(SteamLaunchLog::stepOf(line("changed task to DownloadingDepots with \"\""), {}),
                  Step::Nothing);
     }
@@ -305,11 +312,11 @@ private slots:
         SteamLaunchLog log(path);
         log.startLaunch(QStringLiteral("294650"));
         append(path, commandLine("'-applaunch' '2946501'"));
-        log.read();
+        log.read(nextMorning());
         QVERIFY(!log.reachedSteam());
         append(path, "[2026-10-20 21:40:13] ExecCommandLine: \"'~/.steam/root/ubuntu12_32/steam' "
                      "'-applaunch' '294650'\"\n");
-        log.read();
+        log.read(nextMorning());
         QVERIFY(log.reachedSteam());
         QVERIFY(!log.steamStartedAt());
     }
@@ -322,10 +329,10 @@ private slots:
         append(path, commandLine("'-srt-logger-opened' '-silent'"));
         SteamLaunchLog log(path);
         log.startLaunch(QStringLiteral("294650"));
-        log.read();
+        log.read(nextMorning());
         QVERIFY(!log.steamStartedAt());
         append(path, commandLine("'-srt-logger-opened' '-silent'"));
-        log.read();
+        log.read(nextMorning());
         QCOMPARE(log.steamStartedAt(),
                  QDateTime::fromString(QStringLiteral("2026-10-20 21:32:29"),
                                        QStringLiteral("yyyy-MM-dd HH:mm:ss")));
@@ -341,7 +348,7 @@ private slots:
         SteamLaunchLog log(path);
         log.startLaunch(QStringLiteral("294650"));
         append(path, commandLine("'-srt-logger-opened' '-applaunch' '294650'"));
-        log.read();
+        log.read(nextMorning());
         QVERIFY(log.reachedSteam());
         QVERIFY(!log.steamStartedAt());
     }
@@ -374,15 +381,15 @@ private slots:
         append(path, commandLine("'-srt-logger-opened' '-silent'") + QByteArray(500, 'x') + '\n');
         SteamLaunchLog log(path);
         log.startLaunch(QStringLiteral("294650"));
-        log.read();
+        log.read(nextMorning());
         QVERIFY(!log.clientStarted());
         if (newLog) {
             QVERIFY(QFile::remove(path));
         }
         append(path, lines);
-        log.read();
+        log.read(nextMorning());
         QCOMPARE(log.clientStarted(), started);
-        log.read();
+        log.read(nextMorning());
         QCOMPARE(log.clientStarted(), started);
         log.startLaunch(QStringLiteral("294650"));
         QVERIFY(!log.clientStarted());
@@ -396,13 +403,17 @@ private slots:
                                << true;
         QTest::newRow("no time") << QByteArray("Running install script evaluator") << false;
         QTest::newRow("not a time") << QByteArray("[2026-13-45 99:00:00] Startup - ") << false;
+        QTest::newRow("not an hour") << QByteArray("[2026-10-20 25:32:28] Startup - ") << false;
+        QTest::newRow("not a day") << QByteArray("[2026-02-30 21:32:28] Startup - ") << false;
+        QTest::newRow("a T for the space")
+            << QByteArray("[2026-10-20T21:32:28] Startup - ") << false;
         QTest::newRow("cut short") << QByteArray("[2026-10-20 21:3") << false;
     }
 
     void theTimeOfALine() {
         QFETCH(const QByteArray, line);
         QFETCH(const bool, valid);
-        QCOMPARE(SteamLaunchLog::timeOf(line).has_value(), valid);
+        QCOMPARE(SteamLaunchLog::timeOf(line, nextMorning()).has_value(), valid);
     }
 
     void theLogIsInTheChildsSteamFolder() {

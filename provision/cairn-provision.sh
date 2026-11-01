@@ -241,8 +241,14 @@ check_build() {
 # variable is set, which would show its value too. printf is a shell builtin,
 # so the password is never an argument another process could read; chpasswd
 # reads it on stdin. The variable is dropped afterwards.
+#
+# The trace comes back at the end only if it was on, so a caller that turned
+# it off, to keep a secret of its own out of it, finds it still off. $- holds
+# the shell's options, with an x while it traces. It is saved inside the
+# group that turns the trace off, whose own trace goes nowhere, so neither
+# the saving nor the set +x shows in the trace.
 set_guardian_password() {
-    { set +x; } 2> /dev/null
+    { local caller_options="$-"; set +x; } 2> /dev/null
     if [ -n "${CAIRN_GUARDIAN_PASSWORD:-}" ]; then
         printf '%s:%s\n' "$guardian" "$CAIRN_GUARDIAN_PASSWORD" | chpasswd
         changed "password set for $guardian"
@@ -252,7 +258,9 @@ set_guardian_password() {
         echo "note: $guardian has no password yet; set one with: passwd $guardian"
     fi
     unset CAIRN_GUARDIAN_PASSWORD
-    set -x
+    if [[ "$caller_options" == *x* ]]; then
+        set -x
+    fi
 }
 
 ensure_guardian() {
