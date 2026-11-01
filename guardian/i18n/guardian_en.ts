@@ -313,22 +313,22 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="114"/>
+        <location filename="../qml/FamilyWindow.qml" line="116"/>
         <source>Pages</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="120"/>
+        <location filename="../qml/FamilyWindow.qml" line="122"/>
         <source>Children</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="133"/>
+        <location filename="../qml/FamilyWindow.qml" line="135"/>
         <source>Games</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="147"/>
+        <location filename="../qml/FamilyWindow.qml" line="149"/>
         <source>Your account</source>
         <translation type="unfinished"></translation>
     </message>

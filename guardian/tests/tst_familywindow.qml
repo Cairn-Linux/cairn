@@ -882,6 +882,32 @@ TestCase {
         waitForPolish(window);
         verify(area.y < areaBefore + 1, "The games did not move back up the page");
         tryVerify(() => Math.abs(place() - before) <= 1, 1000, "The turned card moved from " + before + " to " + place());
+        // Once in place the card is let go, so the wheel scrolls the page.
+        const y = scroller.contentY;
+        mouseWheel(scroller, scroller.width / 2, scroller.height / 2, 0, 120);
+        tryVerify(() => scroller.contentY < y - 1, 2000, "The page no longer scrolls after a turn");
+    }
+
+    // A card turned, then another page opened before the window draws
+    // again, as two quick taps can on a slow computer. The card is not
+    // held there, so that page still opens at its top.
+    function test_aPageOpenedJustAfterATurnStartsAtItsTop() {
+        const window = makeWindow("done", {
+            "smallest": true
+        });
+        showGames(window);
+        waitForPolish(window);
+        const scroller = findChild(window, "scroller");
+        const freddi = card(window, 1);
+        scroller.contentY = Math.min(freddi.mapToItem(scroller.contentItem, 0, 0).y, scroller.contentHeight - scroller.height);
+        waitForPolish(window);
+        verify(scroller.contentY > 0);
+        freddi.turned();
+        findChild(window, "childrenTab").activated();
+        compare(window.showing, "children");
+        waitForPolish(window);
+        wait(100);
+        compare(scroller.contentY, 0, "The Children page did not open at its top");
     }
 
     // A grown-up holding Enter or Space on a game card turns it once. Each

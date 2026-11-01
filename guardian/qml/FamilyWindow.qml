@@ -42,6 +42,8 @@ Window {
         if (name === "account")
             window.accountPage.reload();
         window.showing = name;
+        // A card turned just before is on the page left behind.
+        window.heldCard = null;
         flickable.contentY = 0;
     }
 
