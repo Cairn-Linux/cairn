@@ -179,8 +179,13 @@ void AccountPageTest::initTestCase() {
     QVERIFY2(QDBusConnection::sessionBus().isConnected(),
              "run under dbus-run-session, as CTest does");
     QVERIFY(m_files.isValid());
+    // KDE's photos are in a folder of their own; another folder's
+    // pictures, as Bazzite's tf2 folder was, are not KDE's.
     QVERIFY(QDir(m_files.path()).mkpath(QStringLiteral("avatars/photos")));
-    for (const QString& name : {QStringLiteral("Konqi"), QStringLiteral("Artist Konqi")}) {
+    QVERIFY(QDir(m_files.path()).mkpath(QStringLiteral("avatars/tf2")));
+    for (const QString& name :
+         {QStringLiteral("Konqi"), QStringLiteral("Artist Konqi"), QStringLiteral("photos/Owl"),
+          QStringLiteral("photos/Air Balloon"), QStringLiteral("tf2/heavy")}) {
         QImage image(300, 200, QImage::Format_ARGB32);
         image.fill(Qt::darkGreen);
         QVERIFY(image.save(file(QStringLiteral("avatars/%1.png").arg(name))));
@@ -188,9 +193,14 @@ void AccountPageTest::initTestCase() {
     QImage photo(120, 80, QImage::Format_RGB32);
     photo.fill(Qt::darkBlue);
     QVERIFY(photo.save(file(QStringLiteral("avatars/bill.jpg"))));
-    QFile notes(file(QStringLiteral("avatars/notes.txt")));
-    QVERIFY(notes.open(QIODevice::WriteOnly));
-    notes.close();
+    // Files that are no pictures: a note, and the licence KDE puts beside
+    // each photo.
+    for (const QString& name :
+         {QStringLiteral("avatars/notes.txt"), QStringLiteral("avatars/photos/Owl.png.license")}) {
+        QFile other(file(name));
+        QVERIFY(other.open(QIODevice::WriteOnly));
+        other.close();
+    }
 
     // The stand-in answers from a thread of its own, so the page's calls,
     // which wait for their answer, get one.
@@ -230,17 +240,21 @@ void AccountPageTest::namesTheGrownUp() {
     QVERIFY(!page()->busy());
 }
 
-// Only the pictures, PNG and JPEG, by name, without their ending; never a
-// folder or another file.
+// Only the pictures, PNG and JPEG, by name, without their ending: those
+// at the top of the folder, then KDE's photos. Never a folder, another
+// file, or the pictures in another folder.
 void AccountPageTest::listsPlasmasPictures() {
     const QVariantList pictures = page()->pictures();
-    QCOMPARE(pictures.size(), 3);
-    QCOMPARE(pictures.at(0).toMap().value("name").toString(), QStringLiteral("Artist Konqi"));
+    QStringList names;
+    for (const QVariant& picture : pictures) {
+        names.append(picture.toMap().value("name").toString());
+    }
+    // In name order, whatever the case, as Plasma's own folder mixes both.
+    QCOMPARE(names, QStringList({"Artist Konqi", "bill", "Konqi", "Air Balloon", "Owl"}));
     QCOMPARE(pictures.at(0).toMap().value("url").toUrl(),
              QUrl::fromLocalFile(file(QStringLiteral("avatars/Artist Konqi.png"))));
-    // In name order, whatever the case, as Plasma's own folder mixes both.
-    QCOMPARE(pictures.at(1).toMap().value("name").toString(), QStringLiteral("bill"));
-    QCOMPARE(pictures.at(2).toMap().value("name").toString(), QStringLiteral("Konqi"));
+    QCOMPARE(pictures.at(3).toMap().value("url").toUrl(),
+             QUrl::fromLocalFile(file(QStringLiteral("avatars/photos/Air Balloon.png"))));
 }
 
 void AccountPageTest::showsThePictureItHasNow() {

@@ -98,6 +98,11 @@ add_test(NAME tilemodel COMMAND tst_tilemodel)
 qt_add_executable(tst_manifest tests/tst_manifest.cpp ${launcher_model_sources})
 target_include_directories(tst_manifest PRIVATE src)
 target_link_libraries(tst_manifest PRIVATE Qt6::Qml Qt6::Test)
+# The manifest the image and provisioning install, whose Draw command one
+# test pins (ADR-0019).
+target_compile_definitions(tst_manifest PRIVATE
+    CAIRN_MANIFEST_JSON="${PROJECT_SOURCE_DIR}/provision/manifest.json"
+)
 add_test(NAME manifest COMMAND tst_manifest)
 
 qt_add_executable(tst_tilefiles tests/tst_tilefiles.cpp ${launcher_model_sources})

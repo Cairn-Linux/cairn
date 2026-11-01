@@ -32,9 +32,10 @@ class AccountPage : public QObject {
     // The picture as a URL the page can show, changed after each new
     // picture so the page does not keep the old one; empty when none.
     Q_PROPERTY(QUrl picture READ picture NOTIFY pictureChanged)
-    // Plasma's own pictures to choose from, the PNG and JPEG files in its
-    // folder in name order, each as a map: url, and name, its file's name
-    // without the end, such as "Konqi".
+    // KDE's own pictures to choose from, each as a map: url, and name, its
+    // file's name without the end, such as "Konqi". First the PNG and JPEG
+    // files in Plasma's folder, then those in its photos folder, each in
+    // name order. The image leaves only KDE's there (ADR-0043).
     Q_PROPERTY(QVariantList pictures READ pictures CONSTANT)
     Q_PROPERTY(int maxPasswordLength READ maxPasswordLength CONSTANT)
     Q_PROPERTY(Step step READ step NOTIFY stepChanged)
@@ -84,6 +85,7 @@ public:
         std::function<std::optional<Account>(unsigned int)> lookUpUid = lookUpAccountByUid;
         // AccountsService's bus. Without one, the picture cannot change.
         std::optional<QDBusConnection> bus;
+        // Plasma's picture folder, with KDE's photos in its photos folder.
         QString stockPictures = QStringLiteral("/usr/share/plasma/avatars");
     };
 

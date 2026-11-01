@@ -73,7 +73,7 @@ sudo dnf install cage labwc sddm scummvm tuxpaint gcompris-qt \
 | `tuxpaint`, `gcompris-qt` | 0.9, 26.1 | Phase 0 app set. |
 | `malcontent`, `malcontent-control`, `malcontent-tools`, `malcontent-pam` | 0.14 | Parental controls. Fedora splits malcontent into daemons, the control app, the CLI and the PAM module; P0-7 needs all four. |
 | `xdotool`, `xterm`, `xeyes`, `foot`, `wlr-randr` | — | X11 and Wayland test clients for P0-4's focus-stealing and placeholder rows. |
-| `wtype`, `grim` | — | Keys and screenshots for a headless nested labwc: `wtype` sends Super+Q for the leave-key rows (ADR-0019), `grim` takes the screenshots the checklists read. |
+| `wtype`, `grim` | — | Keys and screenshots for a headless nested labwc: `wtype` sends Super+Q for the leave-key rows (ADR-0019) and Ctrl+F5 for ScummVM's menu row (#215), `grim` takes the screenshots the checklists read. |
 | `podman` | — | Builds the image locally in Phase 1; runs `bootc-image-builder`. |
 
 Steam: install the RPM (`sudo dnf install steam`, from `rpmfusion-nonfree`).
@@ -206,8 +206,11 @@ podman run --rm localhost/cairn:dev rpm -V --nomtime kde-settings steamdeck-kde-
 The second prints generic-logos' version, then says `fedora-logos` is not
 installed. The third lists `kcm-about-distrorc` and the two splash
 `bazzite_logo.svgz` files, which are Cairn's, and
-`kicker-extra-favoritesrc`, which Bazzite changed. Leave out `--nomtime`
-and `rpm -V` lists hundreds of files whose times the base changed.
+`kicker-extra-favoritesrc`, which Bazzite changed. It also lists the
+Steam Deck look's three folders of pictures in `/usr/share/plasma/avatars`
+and the 23 pictures in them as missing, because the build removes them
+(below). Leave out `--nomtime` and `rpm -V` lists hundreds of files whose
+times the base changed.
 
 The grown-up's start-menu button shows the Cairn mark (#166, first
 step). Valve's look names `distributor-logo-steamdeck`, which slice 5
@@ -224,6 +227,22 @@ podman run --rm -e QT_QPA_PLATFORM=offscreen \
 ```
 
 Both lines print `/usr/share/icons/hicolor/scalable/places/cairn-logo-on-ink.svg`.
+
+A grown-up chooses their picture from KDE's own (ADR-0043, "Only KDE's
+pictures"). `build_files/kde-pictures.sh` removes the game art Bazzite
+adds to Plasma's picture folder, and Bazzite's copies of it in
+`/usr/share/pixmaps/faces`. `build_files/check-guardian-desktop.sh` stops
+the build unless the folder holds exactly what `plasma-workspace` ships
+there. To look yourself:
+
+```sh
+podman run --rm localhost/cairn:dev sh -c 'rpm -qf --qf "%{NAME}\n" /usr/share/plasma/avatars/* | uniq -c; ls /usr/share/pixmaps/faces'
+```
+
+It prints `18 plasma-workspace`, for KDE's 17 drawings and its `photos`
+folder, then says there is no `/usr/share/pixmaps/faces`. On a computer
+that still has the art, `kde-pictures.sh --dry-run` prints each path the
+step would remove and removes nothing.
 
 The boot screen is Cairn's stones building (ADR-0044, #165).
 `brand/build.py` draws the Plymouth theme into `brand/image/plymouth/`,
@@ -328,7 +347,9 @@ Some tests need what a container build does not have, so they skip
 themselves there: two give-up tests need user namespaces or a systemd user
 manager, seven `copy_games` tests need a folder that can reflink
 (btrfs or XFS), one `provision` test reads `sysusers.d` and
-`build_files/`, which the build stage does not copy, and one `polkit_rules` test runs the
+`build_files/`, which the build stage does not copy, the
+`hideuserspage` and `kdepictures` tests run scripts from `build_files/`,
+and one `polkit_rules` test runs the
 levels rule with `node`, which the build stage does not install. The build log lists every skip under
 "Tests skipped in the build stage". Run `ctest` on the host before
 building an image; it is the only place those tests run.
