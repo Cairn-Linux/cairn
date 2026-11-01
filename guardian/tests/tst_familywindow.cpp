@@ -51,6 +51,14 @@ QByteArray gamesFile(const QJsonArray& entries) {
     return QJsonDocument(QJsonObject{{"version", 1}, {"entries", entries}}).toJson();
 }
 
+// One Steam game's entry in a games file.
+QJsonObject steamGame(const QString& appId, const QString& title) {
+    return {{"id", "steam-" + appId},
+            {"title", title},
+            {"category", "games"},
+            {"exec", QJsonArray{"steam", "-applaunch", appId}}};
+}
+
 // Makes the window's ChildrenPage for each test, over a family of two
 // children and a Guardian, with the stand-ins for pkexec and cairn-family.
 class StandInPages : public QObject {
@@ -125,15 +133,12 @@ public:
                                  "A game with a long name that will not fit on one line"};
         for (int i = 0; withGames && i < titles.size(); ++i) {
             const QString appId = QString::number(1001 + i);
-            const QJsonObject entry{{"id", "steam-" + appId},
-                                    {"title", titles.at(i)},
-                                    {"category", "games"},
-                                    {"exec", QJsonArray{"steam", "-applaunch", appId}}};
             if (i < titles.size() - 1) {
                 makePicture(files.filePath("pictures/" + appId + ".jpg"), titles.at(i), i, "JPEG");
             }
-            shared.append(entry);
+            shared.append(steamGame(appId, titles.at(i)));
         }
+        m_shared = shared;
         files.mkpath("games");
         writeFile(files.filePath("games.json"), gamesFile(shared));
         QJsonArray ada;
@@ -141,10 +146,7 @@ public:
         if (!shared.isEmpty()) {
             ada = {shared.at(0), shared.at(2), shared.at(3)};
             // One game on Cy's list that the shared folder no longer has.
-            cy = {shared.at(5), QJsonObject{{"id", "steam-2001"},
-                                            {"title", "Humongous Bowling"},
-                                            {"category", "games"},
-                                            {"exec", QJsonArray{"steam", "-applaunch", "2001"}}}};
+            cy = {shared.at(5), steamGame("2001", "Humongous Bowling")};
         }
         writeFile(files.filePath("games/ada.json"), gamesFile(ada));
         writeFile(files.filePath("games/cy.json"), gamesFile(cy));
@@ -264,6 +266,18 @@ public:
         writeFile(loggedInFile(), logins.join('\n').toUtf8());
     }
 
+    // Games installed in the shared folder since the page read it: the
+    // full list gets one more for each title, as the next look would make
+    // it. The stand-ins never write the full list, so the page sees them
+    // when it next reads everything, as at the end of a look.
+    Q_INVOKABLE void installSharedGames(const QStringList& titles) const {
+        QJsonArray shared = m_shared;
+        for (int i = 0; i < titles.size(); ++i) {
+            shared.append(steamGame(QString::number(1101 + i), titles.at(i)));
+        }
+        writeFile(QDir(m_files.path()).filePath("games.json"), gamesFile(shared));
+    }
+
     Q_INVOKABLE QStringList startedSteam() const {
         return m_startedSteam;
     }
@@ -302,6 +316,8 @@ private:
     }
 
     QTemporaryDir m_files;
+    // The shared games gamesPage() last wrote into the full list.
+    QJsonArray m_shared;
     QStringList m_startedSteam;
     StandInWallet m_kwalletd;
 };

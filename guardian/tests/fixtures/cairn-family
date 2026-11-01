@@ -24,7 +24,9 @@
 # save-pictures-missing and save-pictures-refused name game 1008 without a
 # picture. save-pictures-and-catalogue-kept says the full list was kept,
 # and names game 1007 without a picture and game 1008 with one that was
-# left out. Each then goes on as save-done.
+# left out, and save-catalogue-kept says only that the full list was
+# kept. Each then goes on as save-done. save-cut-off stops before `done`:
+# at its first child, or, in a look, which names none, after the tools.
 #
 # For set-own-password, when CAIRN_TEST_INPUT names a file, what came on
 # standard input is written to it, as the real command reads the new
@@ -86,11 +88,10 @@ save_games() {
     else
         echo "pictures made"
     fi
-    if [ "$scenario" = save-pictures-and-catalogue-kept ]; then
-        echo "catalogue kept"
-    else
-        echo "catalogue made"
-    fi
+    case "$scenario" in
+        save-pictures-and-catalogue-kept | save-catalogue-kept) echo "catalogue kept" ;;
+        *) echo "catalogue made" ;;
+    esac
     case "$scenario" in
         save-pictures-missing) echo "picture-missing 1008" ;;
         save-pictures-refused) echo "picture-refused 1008" ;;
@@ -112,7 +113,7 @@ save_games() {
             count=$((count + 1))
         done
         case "$scenario" in
-            save-done | save-pictures-*)
+            save-done | save-pictures-* | save-catalogue-kept)
                 if [ -n "$ids" ]; then
                     echo "copying $login"
                     for id in ${ids//,/ }; do
@@ -178,6 +179,9 @@ save_games() {
                 ;;
         esac
     done
+    if [ "$scenario" = save-cut-off ]; then
+        exit 1
+    fi
     echo "done"
 }
 

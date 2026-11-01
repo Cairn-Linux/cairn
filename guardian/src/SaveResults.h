@@ -8,18 +8,29 @@
 #include <QHash>
 #include <QList>
 #include <QString>
+#include <QStringList>
 #include <QVariantMap>
 
-// How far a Save has got, and what it did for each child, as the Games
-// page's QML reads them (ADR-0041), from cairn-family's own lines, read by
-// SaveReport.
+// How far a Save has got, what it did for each child or why nothing was
+// saved, and which games a look found, as the Games page's QML reads them
+// (ADR-0041): from cairn-family's own lines, read by SaveReport, its last
+// word, and the full games list it leaves.
 namespace SaveResults {
 
 // The stage the command's lines say, as the window's step of a Save.
 GamesSaving::Progress progressFor(SaveReport::Stage stage);
 
+// Why nothing was saved, from the run's last word: one of cairn-family's
+// refusal words, pkexec's own, or SaveRun's; Unknown for any other.
+GamesSaving::Reason reasonFor(const QString& answer);
+
 // Each game's title by its appid, for naming a game left out.
 QHash<QString, QString> titlesOf(const QList<GameShelf::Game>& games);
+
+// The appids of the games in `listed`, the full games list after a run,
+// that are not among `shown`, the games the page showed as it began, in
+// the full list's order.
+QStringList newAppIds(const QList<GameShelf::Game>& listed, const QList<GameShelf::Game>& shown);
 
 // The child's result as a map: login, name, added, removed, held (a
 // GamesSaving::Held), skipped, a list of maps with appId, title and

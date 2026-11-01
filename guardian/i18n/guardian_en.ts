@@ -345,7 +345,7 @@
 <context>
     <name>GamesSaving</name>
     <message>
-        <location filename="../src/GamesSaving.cpp" line="189"/>
+        <location filename="../src/GamesSaving.cpp" line="184"/>
         <source>Game %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -726,127 +726,142 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveOutcome.qml" line="69"/>
+        <location filename="../qml/SaveOutcome.qml" line="71"/>
         <source>Saved. Each child sees their games the next time they log in.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveOutcome.qml" line="71"/>
+        <location filename="../qml/SaveOutcome.qml" line="75"/>
         <source>The shared folder was read again. Every game in it shows on the page.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveOutcome.qml" line="73"/>
+        <location filename="../qml/SaveOutcome.qml" line="77"/>
         <source>Saved, but not every new game could be given. The sentences below say what each child has now, and what comes next.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveOutcome.qml" line="77"/>
+        <location filename="../qml/SaveOutcome.qml" line="85"/>
         <source>No picture yet: %1. On a child&apos;s screen a game without a picture shows its name instead. Your own Steam keeps a game&apos;s picture once its library has shown the game: open Steam in your own login, then press Look for new games. If only another grown-up&apos;s Steam has the game, they can do the same in their own login.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveOutcome.qml" line="75"/>
+        <location filename="../qml/SaveOutcome.qml" line="83"/>
         <source>The game pictures could not all be copied from your own Steam this time, so a game without one shows its name on a child&apos;s screen. Pictures copied before stay. Pressing Look for new games tries again.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <location filename="../qml/SaveOutcome.qml" line="73"/>
+        <source>The shared folder was read again, but its list of games could not be made.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <location filename="../qml/SaveOutcome.qml" line="79"/>
-        <source>Cairn could not use your own Steam&apos;s picture for %1.</source>
+        <source>New games: %1.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/SaveOutcome.qml" line="81"/>
-        <source>Cairn could not use your own Steam&apos;s picture for %1. On a child&apos;s screen a game without a picture shows its name instead.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/SaveOutcome.qml" line="83"/>
-        <source>The list of shared games could not be made again, so the page shows the one from before.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/SaveOutcome.qml" line="85"/>
-        <source>Not every tool Steam runs games with could be taken from your own Steam, so a child who got new games may not have every tool yet. Their Steam downloads what is missing the first time a game needs it, which can take several minutes. If that game does not start, log the child out and back in, then try it again.</source>
+        <source>No new games.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/SaveOutcome.qml" line="87"/>
+        <source>Cairn could not use your own Steam&apos;s picture for %1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="89"/>
+        <source>Cairn could not use your own Steam&apos;s picture for %1. On a child&apos;s screen a game without a picture shows its name instead.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="91"/>
+        <source>The list of shared games could not be made again, so the page shows the one from before.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="93"/>
+        <source>Not every tool Steam runs games with could be taken from your own Steam, so a child who got new games may not have every tool yet. Their Steam downloads what is missing the first time a game needs it, which can take several minutes. If that game does not start, log the child out and back in, then try it again.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="95"/>
         <source>The system log says why. In a terminal: journalctl -t cairn-family</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveOutcome.qml" line="97"/>
+        <location filename="../qml/SaveOutcome.qml" line="105"/>
         <source>Nothing was saved. It needs your password: the box was closed, or the password was not accepted. Your changes are still here.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveOutcome.qml" line="99"/>
+        <location filename="../qml/SaveOutcome.qml" line="107"/>
         <source>Cairn&apos;s family command could not be started, so nothing was saved. Your changes are still here. The reason is in the system log. In a terminal: journalctl -t cairn-guardian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveOutcome.qml" line="101"/>
+        <location filename="../qml/SaveOutcome.qml" line="109"/>
         <source>This account may not change the children&apos;s games. A grown-up&apos;s account can.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveOutcome.qml" line="103"/>
+        <location filename="../qml/SaveOutcome.qml" line="111"/>
         <source>Cairn&apos;s family command did not get the rights it needs, so nothing was saved. Close Family and open it again. If it happens again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveOutcome.qml" line="105"/>
+        <location filename="../qml/SaveOutcome.qml" line="113"/>
         <source>This window asked Cairn&apos;s family command for something it does not do, so nothing was saved. The window and the command may come from different versions of Cairn. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveOutcome.qml" line="107"/>
+        <location filename="../qml/SaveOutcome.qml" line="115"/>
         <source>One of the children is not a child&apos;s account on this computer any more, so nothing was saved. The page shows the children there are now.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveOutcome.qml" line="109"/>
+        <location filename="../qml/SaveOutcome.qml" line="117"/>
         <source>Another Save is still running, perhaps from another login, so nothing was saved. Wait until it ends, then press Save again.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveOutcome.qml" line="111"/>
+        <location filename="../qml/SaveOutcome.qml" line="119"/>
         <source>Cairn&apos;s family command did not answer as expected. Some lists may have been saved, and the page shows what is saved now. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveOutcome.qml" line="120"/>
+        <location filename="../qml/SaveOutcome.qml" line="128"/>
         <source>The shared folder was not looked at again. It needs your password: the box was closed, or the password was not accepted.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveOutcome.qml" line="122"/>
+        <location filename="../qml/SaveOutcome.qml" line="130"/>
         <source>This account may not look for new games for the children. A grown-up&apos;s account can.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveOutcome.qml" line="124"/>
+        <location filename="../qml/SaveOutcome.qml" line="132"/>
         <source>A Save is still running, perhaps from another login, so the shared folder was not looked at again. Wait until it ends, then press Look for new games again.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveOutcome.qml" line="126"/>
+        <location filename="../qml/SaveOutcome.qml" line="134"/>
         <source>Cairn&apos;s family command could not be started, so the shared folder was not looked at again. The reason is in the system log. In a terminal: journalctl -t cairn-guardian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveOutcome.qml" line="128"/>
+        <location filename="../qml/SaveOutcome.qml" line="136"/>
         <source>This window asked Cairn&apos;s family command for something it does not do, so the shared folder was not looked at again. The window and the command may come from different versions of Cairn. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveOutcome.qml" line="130"/>
+        <location filename="../qml/SaveOutcome.qml" line="138"/>
         <source>Cairn&apos;s family command did not get the rights it needs, so the shared folder was not looked at again. Close Family and open it again. If it happens again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveOutcome.qml" line="132"/>
+        <location filename="../qml/SaveOutcome.qml" line="140"/>
         <source>Cairn&apos;s family command did not answer as expected. No child&apos;s list was changed, and the page shows the games there are now. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
         <translation type="unfinished"></translation>
     </message>
