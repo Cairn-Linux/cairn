@@ -531,7 +531,7 @@ done, and what could sink it. Decisions that change the design get an ADR in
   result, which says what Steam left for later. One child per press,
   only on mains power, Stop at any time, 90 minutes at most, and the
   parent's own Steam stays open; the child cannot log in meanwhile. Of
-  the updates Steam puts off, Cairn asks for a tool's alone, never a
+  the updates Steam puts off, Cairn may ask for a tool's, never a
   game's, and only if E12 shows Steam waiting and E13 shows that
   validating the tool works (answer 3). In the VM on 2026-10-31
   a hidden Steam signed in after 10 s and closed in 4 s (E10), an
