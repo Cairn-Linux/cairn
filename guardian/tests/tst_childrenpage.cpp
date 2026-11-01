@@ -47,7 +47,14 @@ public:
                    std::ranges::any_of(
                        accounts, [&name](const Account& account) { return account.login == name; });
         };
-        page = std::make_unique<ChildrenPage>(setup);
+        m_setup = setup;
+        page = std::make_unique<ChildrenPage>(m_setup);
+    }
+
+    // The window closed and opened again: a new page, over the same
+    // accounts and stand-ins, that remembers nothing of the old one.
+    void reopen() {
+        page = std::make_unique<ChildrenPage>(m_setup);
     }
 
     ~StandInFamily() {
@@ -95,6 +102,7 @@ public:
 
 private:
     QTemporaryDir m_folder;
+    ChildrenPage::Setup m_setup;
 };
 
 QStringList loginsOf(const QVariantList& children) {
@@ -153,12 +161,51 @@ private slots:
         QCOMPARE(loginsOf(family.page->listedChildren()), QStringList({"ada", "ben", "zoe"}));
     }
 
-    // Never an existing child's login: create-child would change that child.
-    void aSecondAdaGetsANewLogin() {
+    // Never an existing child's login: create-child would change that
+    // child. Cy is not Cy B's name, but makes Cy B's login.
+    void anotherChildsLoginIsNotUsed() {
         StandInFamily family(QStringLiteral("done"));
-        family.page->addChild(QStringLiteral("Ada"), QString(), 1);
+        family.accounts.push_back(
+            {.uid = 1005, .groups = {"cy", "cairn-l1"}, .login = "cy", .fullName = "Cy B"});
+        family.page->reload();
+        family.page->addChild(QStringLiteral("Cy"), QString(), 1);
         QVERIFY(family.waitUntilAnswered());
-        QCOMPARE(family.runs().value(0).value(1), QStringLiteral("ada2"));
+        QCOMPARE(family.page->step(), ChildrenPage::Step::Added);
+        QCOMPARE(family.runs().value(0).value(1), QStringLiteral("cy2"));
+    }
+
+    // A name a child on the list has, whatever the case of its letters, is
+    // refused before the password is asked for, with the name as typed. A
+    // child with no full name is listed, and named on the login screen, by
+    // their login. A missing short name is not asked for first.
+    void aNameAChildHasIsRefused_data() {
+        QTest::addColumn<QString>("name");
+        QTest::addColumn<QString>("subject");
+
+        QTest::newRow("the same") << "Ada" << "Ada";
+        QTest::newRow("small letters") << "ada" << "ada";
+        QTest::newRow("capitals and spaces") << "  BEN " << "BEN";
+        QTest::newRow("a login as the name") << "Dee" << "Dee";
+        QTest::newRow("another alphabet") << QStringLiteral("анна") << QStringLiteral("анна");
+    }
+
+    void aNameAChildHasIsRefused() {
+        QFETCH(const QString, name);
+        QFETCH(const QString, subject);
+        StandInFamily family(QStringLiteral("done"));
+        family.accounts.push_back(
+            {.uid = 1005, .groups = {"dee", "cairn-l2"}, .login = "dee", .fullName = {}});
+        family.accounts.push_back({.uid = 1006,
+                                   .groups = {"anna", "cairn-l1"},
+                                   .login = "anna",
+                                   .fullName = QStringLiteral("Анна")});
+        family.page->reload();
+        family.page->addChild(name, QString(), 1);
+        QCOMPARE(family.page->step(), ChildrenPage::Step::NotChanged);
+        QCOMPARE(family.page->reason(), ChildrenPage::Reason::SameName);
+        QCOMPARE(family.page->subject(), subject);
+        QVERIFY(!family.page->busy());
+        QVERIFY(family.runs().isEmpty());
     }
 
     // useradd makes a group of the same name, so a group blocks it too.
@@ -199,8 +246,8 @@ private slots:
         QTest::newRow("comma") << "Ada, L" << 1 << ChildrenPage::Reason::BadFullName;
         QTest::newRow("backslash") << "Ada\\L" << 1 << ChildrenPage::Reason::BadFullName;
         QTest::newRow("line break") << "Ada\nL" << 1 << ChildrenPage::Reason::BadFullName;
-        QTest::newRow("level 3") << "Ada" << 3 << ChildrenPage::Reason::BadLevel;
-        QTest::newRow("level 0") << "Ada" << 0 << ChildrenPage::Reason::BadLevel;
+        QTest::newRow("level 3") << "Dee" << 3 << ChildrenPage::Reason::BadLevel;
+        QTest::newRow("level 0") << "Dee" << 0 << ChildrenPage::Reason::BadLevel;
     }
 
     void refusedWithoutRunning() {
@@ -263,10 +310,46 @@ private slots:
                  QList<QStringList>({{"create-child", "cy", "1", "--full-name", "Cy"},
                                      {"create-child", "cy", "1", "--full-name", "Cy"}}));
 
-        // Once it is done, another Cy is another child.
+        // Once it is done, Cy is a child like any other, so the name is
+        // refused.
         family.page->addChild(QStringLiteral("Cy"), QString(), 1);
+        QCOMPARE(family.page->reason(), ChildrenPage::Reason::SameName);
+        QCOMPARE(family.runs().size(), 2);
+    }
+
+    // The same name in other capitals finishes it too, with the name as
+    // typed now.
+    void addingAgainInOtherCapitalsFinishesTheFirst() {
+        StandInFamily family(QStringLiteral("refused-failed"));
+        family.page->addChild(QStringLiteral("Cy"), QString(), 1);
+        family.accounts.push_back(
+            {.uid = 1005, .groups = {"cy", "cairn-l1"}, .login = "cy", .fullName = "Cy"});
         QVERIFY(family.waitUntilAnswered());
-        QCOMPARE(family.runs().value(2).value(1), QStringLiteral("cy2"));
+
+        StandInFamily::answerWith(QStringLiteral("done"));
+        family.page->addChild(QStringLiteral(" CY "), QString(), 2);
+        QVERIFY(family.waitUntilAnswered());
+        QCOMPARE(family.page->step(), ChildrenPage::Step::Added);
+        QCOMPARE(family.runs().value(1),
+                 QStringList({"create-child", "cy", "2", "--full-name", "CY"}));
+    }
+
+    // Closed after a failed add and opened again, the window has forgotten
+    // it. The child the add made is on the list like any other, so the
+    // name is refused, and no second Cy is made.
+    void aWindowOpenedAgainRefusesTheName() {
+        StandInFamily family(QStringLiteral("refused-failed"));
+        family.page->addChild(QStringLiteral("Cy"), QString(), 1);
+        family.accounts.push_back(
+            {.uid = 1005, .groups = {"cy", "cairn-l1"}, .login = "cy", .fullName = "Cy"});
+        QVERIFY(family.waitUntilAnswered());
+
+        family.reopen();
+        StandInFamily::answerWith(QStringLiteral("done"));
+        family.page->addChild(QStringLiteral("Cy"), QString(), 1);
+        QCOMPARE(family.page->step(), ChildrenPage::Step::NotChanged);
+        QCOMPARE(family.page->reason(), ChildrenPage::Reason::SameName);
+        QCOMPARE(family.runs().size(), 1);
     }
 
     // The same after an answer the window cannot read, and after a closed
@@ -281,7 +364,7 @@ private slots:
         family.page->addChild(QStringLiteral("Cy"), QString(), 2);
         QVERIFY(family.waitUntilAnswered());
         StandInFamily::answerWith(QStringLiteral("done"));
-        family.page->addChild(QStringLiteral("Ben"), QString(), 2);
+        family.page->addChild(QStringLiteral("Dee"), QString(), 2);
         QVERIFY(family.waitUntilAnswered());
         family.page->addChild(QStringLiteral("Cy"), QString(), 2);
         QVERIFY(family.waitUntilAnswered());
@@ -289,15 +372,28 @@ private slots:
         for (const QStringList& run : family.runs()) {
             logins.append(run.value(1));
         }
-        QCOMPARE(logins, QStringList({"cy", "cy", "ben2", "cy"}));
+        QCOMPARE(logins, QStringList({"cy", "cy", "dee", "cy"}));
     }
 
-    // Another account took the login meanwhile, so it is not used again.
+    // Another account took the login meanwhile, so it is not used again:
+    // an account that is not a child, or another child, whom create-child
+    // would change.
+    void anUnfinishedLoginNowSomeoneElsesIsNotUsed_data() {
+        QTest::addColumn<QStringList>("groups");
+        QTest::addColumn<QString>("fullName");
+
+        QTest::newRow("not a child") << QStringList{"cy"} << QString();
+        QTest::newRow("another child") << QStringList{"cy", "cairn-l1"} << QStringLiteral("Cy B");
+    }
+
     void anUnfinishedLoginNowSomeoneElsesIsNotUsed() {
+        QFETCH(const QStringList, groups);
+        QFETCH(const QString, fullName);
         StandInFamily family(QStringLiteral("refused-failed"));
         family.page->addChild(QStringLiteral("Cy"), QString(), 1);
         QVERIFY(family.waitUntilAnswered());
-        family.accounts.push_back({.uid = 1005, .groups = {"cy"}, .login = "cy", .fullName = {}});
+        family.accounts.push_back(
+            {.uid = 1005, .groups = groups, .login = "cy", .fullName = fullName});
         family.page->reload();
         StandInFamily::answerWith(QStringLiteral("done"));
         family.page->addChild(QStringLiteral("Cy"), QString(), 1);

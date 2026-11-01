@@ -4,7 +4,8 @@
 **Date:** 2026-09-03
 **Closes:** ROADMAP D8 (DESIGN §14 Q4, Q5)
 **Amended by:** ADR-0044, proposed (the boot screen's three Plymouth
-strings are English only; Plymouth's script cannot translate)
+strings are English only until Phase 3; Plymouth's script cannot
+translate)
 
 ## Context
 

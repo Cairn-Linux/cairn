@@ -263,6 +263,8 @@ themselves.
 ## Known gaps
 
 - Level 2 looks the same as level 1 for now.
+- Draw cannot print yet, so Tux Paint's Print button is grey and does
+  nothing.
 - In a child's session the brightness keys do nothing, and a second
   screen extends the desktop instead of mirroring it.
 - The battery shows above the tiles and says when it is low, but not
