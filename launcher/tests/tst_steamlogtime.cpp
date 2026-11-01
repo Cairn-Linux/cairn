@@ -88,6 +88,15 @@ private slots:
             << line("2026-11-01 01:10:00") << look() << utc(night, QTime(8, 10));
         QTest::newRow("the second pass, written as it is read")
             << line("2026-11-01 01:30:00") << look() << utc(night, QTime(8, 30));
+        // Steam wrote it while the look read its logs, in a second that
+        // began after the look took its `now`.
+        QTest::newRow("the second pass, written two seconds into the read")
+            << line("2026-11-01 01:30:00") << utc(night, QTime(8, 29, 58))
+            << utc(night, QTime(8, 30));
+        // Read as the second pass, it would be three seconds after now: too
+        // late for a line written during the read.
+        QTest::newRow("the first pass, 59 minutes 57 seconds old")
+            << line("2026-11-01 01:30:03") << look() << utc(night, QTime(7, 30, 3));
         // Read as the second pass, it would be 20 minutes after now.
         QTest::newRow("the first pass, 40 minutes old")
             << line("2026-11-01 01:50:00") << look() << utc(night, QTime(7, 50));

@@ -325,12 +325,13 @@ offline or its sign-in is turned down, nor any other question.
 Steam writes the times in its logs as local time, with no zone.
 In the hour that comes twice when the clocks go back, each of those
 times means two moments an hour apart.
-The launcher takes the later one unless it is after the moment it reads
-the line, and then the earlier, because a line is written before it is
-read (#248).
-That is right for every line under an hour old.
-A line written in the first pass and read over an hour later reads an
-hour fresher than it is.
+A line is written before it is read, so the launcher takes the later one
+unless it is after the moment the launcher reads the line, and then the
+earlier (#248).
+It allows two seconds for a line Steam writes as the launcher reads.
+So a line Steam has just written reads as just written.
+A line written in the first pass and read about an hour later or more
+reads an hour fresher than it is.
 With `--scope-apps`, which the kiosk wrapper passes, every program starts
 in a systemd user scope of its own, `cairn-app-<launcher pid>-<n>.scope`,
 so the grown-up's give-up key can end it and whatever it started

@@ -11,19 +11,25 @@
 #include <utility>
 
 namespace {
+// A reader takes its `now`, then reads Steam's logs, so a line Steam writes
+// during the read can carry a second that begins after `now`. A read takes
+// a few milliseconds; this allows far more.
+constexpr qint64 longestReadSeconds = 2;
+
 // The moment a local date and time means, for a line read at `now`
 // (#248). Outside the hours the clocks change in, PreferBefore and
 // PreferAfter give the same moment. In the hour that comes twice in
 // autumn, PreferBefore gives its first pass and PreferAfter its second. In
 // the hour the clocks skip in spring, which Steam should never write, they
 // give the time an hour earlier and an hour later: 02:30 is 01:30 or 03:30.
-// Either way the later is the one unless it is after `now`.
+// Either way the later is the one, unless it comes after the read has
+// ended and so cannot be when the line was written.
 QDateTime momentOf(QDate date, QTime time, const QDateTime& now) {
     const QDateTime first(date, time, QTimeZone::LocalTime,
                           QDateTime::TransitionResolution::PreferBefore);
     const QDateTime second(date, time, QTimeZone::LocalTime,
                            QDateTime::TransitionResolution::PreferAfter);
-    return second <= now ? second : first;
+    return second <= now.addSecs(longestReadSeconds) ? second : first;
 }
 } // namespace
 

@@ -85,9 +85,11 @@ public:
     // `[2026-10-20 21:32:29]`, for a line read at `now`, or nothing. Steam
     // writes the local time with no zone, so in the hour that comes twice
     // when the clocks go back, each time means two moments an hour apart.
-    // A line is written before it is read, so it is the later of them that
-    // is not after `now`, or the earlier when both are, as after the clock
-    // was set back (#248).
+    // A line is written before it is read, so it is the later of them
+    // unless that comes after the read, and then the earlier, also when
+    // both do, as after the clock was set back (#248). The read counts as
+    // ending two seconds after `now`, since Steam can write a line while
+    // its logs are read.
     static std::optional<QDateTime> timeOf(const QByteArray& line, const QDateTime& now);
 
 private:
