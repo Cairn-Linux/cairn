@@ -323,17 +323,17 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="122"/>
+        <location filename="../qml/FamilyWindow.qml" line="126"/>
         <source>Children</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="135"/>
+        <location filename="../qml/FamilyWindow.qml" line="139"/>
         <source>Games</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="149"/>
+        <location filename="../qml/FamilyWindow.qml" line="153"/>
         <source>Your account</source>
         <translation type="unfinished"></translation>
     </message>
@@ -866,22 +866,22 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveProgress.qml" line="132"/>
+        <location filename="../qml/SaveProgress.qml" line="133"/>
         <source>Looking for new games</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveProgress.qml" line="132"/>
+        <location filename="../qml/SaveProgress.qml" line="133"/>
         <source>Saving games</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveProgress.qml" line="145"/>
+        <location filename="../qml/SaveProgress.qml" line="146"/>
         <source>Do not log out or close the lid until this is finished.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveProgress.qml" line="186"/>
+        <location filename="../qml/SaveProgress.qml" line="187"/>
         <source>Close</source>
         <translation type="unfinished"></translation>
     </message>

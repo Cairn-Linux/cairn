@@ -356,6 +356,25 @@ TestCase {
         compare(findChild(window, "gamesTab").Accessible.checked, false);
     }
 
+    // #242: right after Family opened, Tab showed no focus ring and moved
+    // nothing until something was clicked. The Save's box, hidden until a
+    // Save, had the keyboard, and it keeps Tab. The keyboard now starts on
+    // the Children button, whose ring shows while it has it, and Tab and
+    // Shift+Tab go on from there.
+    function test_theKeyboardStartsOnChildren() {
+        const window = makeWindow("done");
+        const children = findChild(window, "childrenTab");
+        tryCompare(children, "activeFocus", true);
+        verify(window.activeFocusItem === children, "The keyboard is on " + window.activeFocusItem);
+        keyClick(Qt.Key_Tab);
+        tryCompare(findChild(window, "gamesTab"), "activeFocus", true);
+        keyClick(Qt.Key_Backtab, Qt.ShiftModifier);
+        tryCompare(children, "activeFocus", true);
+        // Back from the first button is the page's last control.
+        keyClick(Qt.Key_Backtab, Qt.ShiftModifier);
+        tryCompare(findChild(window, "addButton"), "activeFocus", true);
+    }
+
     function showAccount(window) {
         mouseClick(findChild(window, "accountTab"));
         compare(window.showing, "account");

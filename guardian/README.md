@@ -26,7 +26,8 @@ and its keywords include games and Steam, so a search in the menu for
 either finds it.
 
 Three buttons above the page, **Children**, **Games** and **Your
-account**, move between its pages. The window opens on Children.
+account**, move between its pages. The window opens on Children, with
+the keyboard on its button, so Tab and Shift+Tab start there (#242).
 
 System Settings lists it too, as "Family" under System, where Plasma's
 Users page was: the image hides that page with KDE Kiosk
@@ -473,7 +474,9 @@ The Guardian tool's tests give the page a table of accounts in place of
 the system's, so they cover the order, who is left out, the login names,
 every check before a change, one change at a time, trying an add again
 after it failed, a missing command, and the sentence and the keyboard
-focus after each answer, with no root and no real account.
+focus after each answer, with no root and no real account. When the
+window opens, the keyboard must be on the Children button, and Tab and
+Shift+Tab must go on from it (#242).
 The Games page's tests write their own full games list, children's
 lists and stand-in pictures into a temporary folder, and replace the
 start of the Steam window with one that writes down what it was asked.

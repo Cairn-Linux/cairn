@@ -56,6 +56,8 @@ Item {
         progress.closed();
     }
 
+    // The box takes the keyboard when it shows, and not before: hidden, it
+    // kept Tab from the page when Family opened (#242).
     onVisibleChanged: {
         if (progress.visible)
             box.forceActiveFocus();
@@ -94,7 +96,6 @@ Item {
         color: Tokens.card
         border.color: Tokens.line
         border.width: Tokens.strokeHairline
-        focus: true
 
         // Focus stays in the box: Tab goes nowhere else, and Escape closes
         // it only once the Save has ended. Close says the same once it has
