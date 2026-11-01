@@ -19,9 +19,9 @@ class SaveRun;
 
 // A Save on the Games page, as the page shows it (ADR-0041): the password
 // box, how far cairn-family save-games has got, then what it did for each
-// child, or why nothing was saved. The page gives it the arguments; this
-// runs them and turns every word the command says into one of the values
-// below, for the page to put into a sentence.
+// child, which games a look found, or why nothing was saved. The page
+// gives it the arguments; this runs them and turns every word the command
+// says into one of the values below, for the page to put into a sentence.
 class GamesSaving : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -53,6 +53,12 @@ class GamesSaving : public QObject {
     // yet, and of those whose picture there was left out; "" for none.
     Q_PROPERTY(QString picturesMissing READ picturesMissing NOTIFY changed)
     Q_PROPERTY(QString picturesRefused READ picturesRefused NOTIFY changed)
+    // After a look that went to its end and made the full games list again,
+    // the titles, as one list in words, of the games in it that the page did
+    // not show when the look began, or noNewGames when there are none. A
+    // Save, and a look whose list was kept, say neither.
+    Q_PROPERTY(QString newGames READ newGames NOTIFY changed)
+    Q_PROPERTY(bool noNewGames READ noNewGames NOTIFY changed)
     // A Save in which some child's copy ran could not take every one of
     // Steam's tools from the Guardian's own Steam (ADR-0046).
     Q_PROPERTY(bool toolsLeftOut READ toolsLeftOut NOTIFY changed)
@@ -134,8 +140,8 @@ public:
     enum class Tools : std::uint8_t { NoToolNews, ToolsCopied, ToolsMissing, NoToolsToCopy };
     Q_ENUM(Tools)
 
-    // `catalogue` is the full games list, which names each game a Save or a
-    // look says has no picture, one it has just found among them.
+    // `catalogue` is the full games list. It is read again as a run ends, so
+    // a game just found is named by its title, and a look knows what it found.
     GamesSaving(const QString& pkexec, const QString& command, QString catalogue,
                 QObject* parent = nullptr);
 
@@ -151,6 +157,8 @@ public:
     bool picturesKept() const;
     QString picturesMissing() const;
     QString picturesRefused() const;
+    QString newGames() const;
+    bool noNewGames() const;
     bool toolsLeftOut() const;
     bool busy() const;
 
@@ -167,8 +175,6 @@ public:
     // The progress window's Close: the same, once the Save has ended.
     Q_INVOKABLE void close();
 
-    static Reason reasonFor(const QString& answer);
-
 signals:
     void changed();
     // The Save has ended, however it ended, and the lists can be read again.
@@ -179,6 +185,7 @@ private:
     void finished(const QString& answer);
     QString nameOf(const QString& login) const;
     QString titlesInWords(const QStringList& appIds) const;
+    bool lookMadeTheList() const;
 
     SaveRun* m_run;
     QString m_catalogue;
@@ -188,4 +195,8 @@ private:
     Reason m_reason = Reason::NoReason;
     QHash<QString, QString> m_names;
     QHash<QString, QString> m_titles;
+    // The games the page showed as the run began, and the appids of the
+    // games in the full list afterwards that were not among them.
+    QList<GameShelf::Game> m_shown;
+    QStringList m_newGames;
 };

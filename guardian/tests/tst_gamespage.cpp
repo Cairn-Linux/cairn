@@ -774,6 +774,84 @@ private slots:
         QCOMPARE(page->saving()->picturesMissing(), QString());
     }
 
+    // ---- the games a look found (#220) ----
+
+    void aLookNamesTheGamesItFound_data() {
+        QTest::addColumn<QString>("scenario");
+        QTest::addColumn<bool>("look");
+        QTest::addColumn<QString>("newGames");
+        QTest::newRow("a look") << "save-done" << true << "Game six and Game four";
+        QTest::newRow("its list kept") << "save-catalogue-kept" << true << "";
+        QTest::newRow("its list never said") << "done" << true << "";
+        QTest::newRow("cut off before done") << "save-cut-off" << true << "";
+        QTest::newRow("a Save") << "save-done" << false << "";
+    }
+
+    // A look that went to its end and made the full list again names each
+    // game in it that the page did not show when the look began, in the
+    // list's order, which is neither the appids' order nor the titles': not
+    // a game that left, nor one the page showed. It does not also say that
+    // none is new. Nothing else knows which games are new, so it names
+    // none, though the full list here changed every time.
+    void aLookNamesTheGamesItFound() {
+        QFETCH(const QString, scenario);
+        QFETCH(const bool, look);
+        QFETCH(const QString, newGames);
+        const auto page = makePage();
+        write(path("games.json"),
+              gamesFile({game("1006", "Game six"), game("1001", "Game one"),
+                         game("1003", "Game three"), game("1004", "Game four")}));
+        if (!look) {
+            page->turn("1001");
+        }
+        saveWith(*page, scenario, look);
+        QCOMPARE(page->saving()->newGames(), newGames);
+        QVERIFY(!page->saving()->noNewGames());
+    }
+
+    void onlyALookThatMadeTheListSaysNoGameIsNew_data() {
+        QTest::addColumn<QString>("scenario");
+        QTest::addColumn<bool>("look");
+        QTest::addColumn<bool>("noNewGames");
+        QTest::newRow("a look") << "save-done" << true << true;
+        QTest::newRow("its list kept") << "save-catalogue-kept" << true << false;
+        QTest::newRow("its list never said") << "done" << true << false;
+        QTest::newRow("cut off before done") << "save-cut-off" << true << false;
+        QTest::newRow("a Save") << "save-done" << false << false;
+    }
+
+    // With the full list as the page read it, no game is new. Only a look
+    // that went to its end and made the list again says so, and only until
+    // Close. A kept list, a list never said, a look cut off before "done"
+    // and a Save do not know, so they say nothing about new games.
+    void onlyALookThatMadeTheListSaysNoGameIsNew() {
+        QFETCH(const QString, scenario);
+        QFETCH(const bool, look);
+        QFETCH(const bool, noNewGames);
+        const auto page = makePage();
+        if (!look) {
+            page->turn("1001");
+        }
+        saveWith(*page, scenario, look);
+        QCOMPARE(page->saving()->noNewGames(), noNewGames);
+        QCOMPARE(page->saving()->newGames(), QString());
+        page->saving()->close();
+        QVERIFY(!page->saving()->noNewGames());
+    }
+
+    // A game on the picked child's list that the shared folder had lost was
+    // on the page, marked no longer shared, so it is not new when it is back.
+    void aGameBackInTheFolderWasOnThePage() {
+        write(path("games/ada.json"),
+              gamesFile({game("1002", "Game two"), game("1009", "Game nine")}));
+        const auto page = makePage();
+        write(path("games.json"),
+              gamesFile({game("1001", "Game one"), game("1002", "Game two"),
+                         game("1003", "Game three"), game("1009", "Game nine")}));
+        saveWith(*page, "save-done", true);
+        QVERIFY(page->saving()->noNewGames());
+    }
+
     // Looking for new games names no child, so no list the page read, old
     // or unreadable, is written back.
     void lookForGamesChangesNoList() {
