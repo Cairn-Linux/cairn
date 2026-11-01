@@ -261,12 +261,11 @@ the card writes.
   downloaded, and Ada can log in at once (answer 1).
   `SystemJob` learns to read its input while it waits for the job;
   today it waits only for the job.
-- Only that word stops it.
+- Closing the window does not stop it.
   The update is a system job outside the Guardian's session, as a copy
-  is (ADR-0041).
-  So the window closing, the screen lock and the Guardian's logout leave
-  it running, and nothing it runs may end because nobody reads its
-  lines.
+  is (ADR-0041), so the window closing, the screen lock and the
+  Guardian's logout leave it running.
+  Nothing it runs may end because nobody reads its lines.
 - A Family window opened again later learns from systemd that the
   update's unit runs (inference: systemd tells any account a unit's
   state).
@@ -387,7 +386,8 @@ copy and the logout.
   - bash sits in the middle because SELinux refuses a PAM-started
     process that enters Steam's script directly
     (`docs/research/steam-visit.md`).
-  - Pixman keeps the GPU asleep, and cage ends when Steam ends.
+  - Pixman lets cage draw without the GPU, and cage ends when Steam
+    ends.
   - The unit gets no hardening that takes away the user namespaces
     Steam's runtime needs.
 - **The watcher**, below, runs as the child.
