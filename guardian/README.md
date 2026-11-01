@@ -169,7 +169,20 @@ The Your account page (ADR-0043):
    polkit asks for the password in use now (`auth_self`). Once it is
    changed both fields are emptied; after a refusal they stay, so a
    slip is mended without typing both again.
-4. One sentence under each part says what happened, or why nothing
+4. **KDE Wallet:** once a new password is in place, a card under its
+   sentence offers to change KDE Wallet's password too, as Plasma's
+   Users page did. It comes only when kwalletd, asked over D-Bus, says
+   KWallet is on and has the wallet `pam_kwallet` opens at login; with
+   no such wallet, KWallet off or no kwalletd, nothing is offered and
+   nothing is said. **Change the wallet's password** asks kwalletd,
+   whose own box asks for the passwords, which Family never sees.
+   **Leave it as it is**, a new picture or another password ends the
+   offer, and only the next new password brings it back. After either
+   button the keyboard is on **Change password**, where a key still
+   held down does nothing. In a window too short for the sentence and
+   the card, the sentence's top stays in sight, with the card's start
+   under it.
+5. One sentence under each part says what happened, or why nothing
    changed and what to do next, and the window scrolls to it.
 
 A child who is logged in has their games greyed and blurred under a
@@ -406,11 +419,12 @@ QML draws, C++ decides (ADR-0002):
 | `src/SaveRun` | Runs `pkexec` with `cairn-family save-games` or `log-out`, and passes on each line as it arrives, then the answer, pkexec's own exit code, or `not-started` when nothing could be started. |
 | `src/SaveReport` | Reads `save-games`'s lines into how far it has got, each game copied, each child's counts, held word, games left out and tools, whether a tool was left out of the tools folder, and the games without a picture, taking only its fixed words and the children the Save named. |
 | `src/PkexecAnswer` | pkexec's own two exit codes, for both runners of `cairn-family`. |
-| `src/AccountPage` | What the Your account page shows and does: the Guardian's name and picture, KDE's pictures, a new picture, and a new password, checked first and sent to `cairn-family set-own-password` on standard input. Its commands, account database and bus are in its `Setup`, so a test can replace them. |
+| `src/AccountPage` | What the Your account page shows and does: the Guardian's name and picture, KDE's pictures, a new picture, and a new password, checked first and sent to `cairn-family set-own-password` on standard input, and after a new password the wallet's offer (`WalletPassword`). Its commands, account database and both buses (AccountsService's system bus, kwalletd's session bus) are in its `Setup`, so a test can replace them. |
 | `src/AccountPicture` | The Guardian's own picture through AccountsService on the system bus, with Qt D-Bus: reading `IconFile`, and `SetIconFile`, waited for without blocking the window. |
+| `src/WalletPassword` | KDE Wallet's password after the Guardian's own has changed: whether to offer the change, from kwalletd's answers on the session bus (`isEnabled`, `localWallet`, `wallets`), each waited for without blocking the window, and kwalletd's `changePassword`, whose own box asks for the passwords. |
 | `src/PictureFile` | A chosen picture made ready for AccountsService: a square from its middle, turned as the camera meant, at most 256 pixels, as PNG. |
 | `src/NewPassword` | The one rule for a new password, which the window and `cairn-family` both check. |
-| `qml/AccountView.qml`, `qml/PictureSection.qml`, `qml/PasswordForm.qml`, `qml/PictureTile.qml`, `qml/OutcomeBox.qml` | The Your account page with its password sentences, the picture section with its file dialog, the password form, one of Plasma's pictures to tap, and the box a sentence goes in. |
+| `qml/AccountView.qml`, `qml/PictureSection.qml`, `qml/PasswordForm.qml`, `qml/PasswordAnswers.qml`, `qml/PictureTile.qml`, `qml/OutcomeBox.qml`, `qml/WalletOffer.qml` | The Your account page, the picture section with its file dialog, the password form, the sentence about a password change with the wallet's card under it, one of Plasma's pictures to tap, the box a sentence goes in, and the card that offers to change KDE Wallet's password. |
 | `src/GamePicture` | A game's picture by its app id, with the launcher's rule: `<folder>/<appid>.jpg` when it is a plain file, not a link. The Games page and `cairn-family` both use it. |
 | `qml/FamilyWindow.qml`, `qml/ChildrenView.qml`, `qml/GamesView.qml` | The Guardian tool's window with its switch between pages, its Children page with the sentence for every answer, and its Games page. |
 | `qml/ChildChoice.qml`, `qml/GameCard.qml`, `qml/SaveOutcome.qml`, `qml/SaveResultWords.qml` | A child to pick on the Games page, one game in its grid, the sentences for a Save, and its words for what each child got. |
@@ -452,7 +466,7 @@ journalctl -t cairn-steam-for -t cairn-steam-visit --since today
 
 ## Tests
 
-CTest runs thirty-nine here, among them `steamvisit`, `ownsteam`,
+CTest runs forty here, among them `steamvisit`, `ownsteam`,
 `screenlockwatch`,
 `steamforchild`, `steamwindow` (the real window in Qt Quick Test),
 `familycommand`, `steamentry`, and for the Guardian tool `loginname`,
@@ -462,12 +476,13 @@ CTest runs thirty-nine here, among them `steamvisit`, `ownsteam`,
 `familywindow` (the real window in Qt Quick Test, all three pages and
 the switch), and for a grown-up's own password and picture
 `newpassword`, `ownpasswordcommand`, `picturefile`, `accountpage`,
-`hideuserspage` and `kdepictures`. They use stand-ins in `tests/fixtures/`
-for `pkexec` with the helper behind it, which takes a scenario where the
-helper's path goes, and for the Guardian's Steam client, over a stand-in
-process list. `pkexec-family` stands in for `pkexec` as the Guardian
-tool uses it: like pkexec, it refuses a command that is not there with
-127, and otherwise runs it. Behind it, the stand-in `cairn-family`
+`walletpassword`, `hideuserspage` and `kdepictures`. They use stand-ins
+in `tests/fixtures/` for `pkexec` with the helper behind it, which takes
+a scenario where the helper's path goes, and for the Guardian's Steam
+client, over a stand-in process list. `pkexec-family` stands in for
+`pkexec` as the Guardian tool uses it: like pkexec, it refuses a command
+that is not there with 127, and otherwise runs it. Behind it, the
+stand-in `cairn-family`
 answers as `CAIRN_TEST_SCENARIO` says: each of the command's refusal
 words, pkexec's own 126 and 127, answers that cannot be read, or waiting
 like an open password box, and writes down the arguments it was given.
@@ -560,6 +575,20 @@ waiting calls get their answer) and the pkexec stand-ins, whose
 password on standard input and never in the arguments, every answer,
 one change at a time, a picture taken, refused or unreadable, and
 KDE's photos listed after its drawings, and no other folder's pictures.
+With the stand-in kwalletd in `tests/StandInWallet`, it also checks that
+only a password that changed brings the wallet's offer, and that
+anything else the page says ends it: while kwalletd is still asked,
+while the offer shows, and while kwalletd's box asks. `walletpassword`
+runs the offer itself against that stand-in: each of kwalletd's answers,
+an error or an answer of the wrong type at each question, no kwalletd,
+the order of the questions, a check withdrawn before kwalletd answered,
+and what `changePassword` is handed. `familywindow` has it too, for the
+card's words, buttons and focus, a key held down on its buttons, and
+what stays in sight in the smallest window. These three run on
+`tests/fixtures/session-bus.conf`, a session bus that starts no service
+from the computer's own service files, so no test wakes the real
+kwalletd, and a kwalletd a test leaves out is absent, as on a computer
+without KDE.
 `hideuserspage` runs the Kiosk script on Bazzite's own `kdeglobals`, on
 none, and twice, and reads the result with `kreadconfig6` when it is
 there. `kdepictures` runs the image's picture step on a folder of
@@ -571,8 +600,9 @@ not KDE's, and before anything goes when rpm cannot answer.
 `steamentry` checks the entry's text against
 provisioning's own `steam_entry`. The screen-lock tests and the Steam
 window's tests run on a session bus of their own under
-`dbus-run-session`, which the build needs, and so does `loginwatch`;
-the Guardian tool's other tests need no bus.
+`dbus-run-session`, which the build needs, and so do `loginwatch`,
+`accountpage`, `walletpassword` and `familywindow`; the Guardian tool's
+other tests need no bus.
 
 What the stand-ins cannot show was run in the VM (`docs/research/steam-visit.md`).
 
@@ -598,8 +628,9 @@ box. After the password, it made "Cy B", with the login `cyb`.
   lists the child the add made and refuses their name. Moving that child
   to another level runs the steps the add may not have finished: the
   lock on the password and their "Steam for <child>" entry (#212).
-- KWallet keeps its own password when the Guardian's changes; Plasma's
-  Users page offered to change both (ADR-0043).
+- After **Leave it as it is**, what a program that needs the wallet
+  shows has not been tried. In the VM the wallet stayed shut at the next
+  login, and no box came by itself (ADR-0043).
 - KRunner still lists "Users - System Settings", which opens System
   Settings without the page (ADR-0043).
 - While a Save runs, its words scroll with the wheel or a drag only: the

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "AccountPage.h"
+#include "StandInWallet.h"
 
 #include <QDBusConnection>
 #include <QDBusMessage>
@@ -96,12 +97,15 @@ class AccountPageTest : public QObject {
     QThread m_thread;
     Asked m_asked;
     std::unique_ptr<QDBusConnection> m_serviceBus;
+    // kwalletd, in the test's own thread: the page never waits for it.
+    StandInWallet m_kwalletd;
 
     QString file(const QString& name) const {
         return QDir(m_files.path()).filePath(name);
     }
 
-    std::unique_ptr<AccountPage> page(bool withBus = true, unsigned int uid = 1000) {
+    std::unique_ptr<AccountPage> page(bool withBus = true, unsigned int uid = 1000,
+                                      bool withWallet = false) {
         AccountPage::Setup setup;
         setup.pkexec = QStringLiteral(FIXTURES "/pkexec-family");
         setup.command = QStringLiteral(FIXTURES "/cairn-family");
@@ -117,6 +121,9 @@ class AccountPageTest : public QObject {
         };
         if (withBus) {
             setup.bus = QDBusConnection::sessionBus();
+        }
+        if (withWallet) {
+            setup.walletBus = QDBusConnection::sessionBus();
         }
         setup.stockPictures = file(QStringLiteral("avatars"));
         return std::make_unique<AccountPage>(setup);
@@ -173,6 +180,13 @@ private slots:
     void everyAnswer_data();
     void everyAnswer();
     void oneChangeAtATime();
+
+    void aChangedPasswordOffersTheWallet();
+    void noOfferForAPasswordNotChanged_data();
+    void noOfferForAPasswordNotChanged();
+    void anotherChangeEndsTheOffer();
+    void anotherChangeEndsTheCheckAndTheBox();
+    void noWalletBusNoOffer();
 };
 
 void AccountPageTest::initTestCase() {
@@ -218,9 +232,12 @@ void AccountPageTest::initTestCase() {
     QVERIFY(m_serviceBus->registerObject(
         userPath, user, QDBusConnection::ExportAllSlots | QDBusConnection::ExportAllProperties));
     QVERIFY(m_serviceBus->registerService(QStringLiteral("org.freedesktop.Accounts")));
+    QVERIFY2(m_kwalletd.start(), "kwalletd's name is taken: run under dbus-run-session, as "
+                                 "CTest does, never on a real session");
 }
 
 void AccountPageTest::cleanupTestCase() {
+    QDBusConnection::disconnectFromBus(QStringLiteral("kwalletd"));
     QDBusConnection::disconnectFromBus(m_serviceBus->name());
     m_thread.quit();
     m_thread.wait();
@@ -232,6 +249,7 @@ void AccountPageTest::init() {
     m_asked.given.clear();
     m_asked.lastPicture = QImage();
     m_asked.refuse = false;
+    m_kwalletd.reset();
 }
 
 void AccountPageTest::namesTheGrownUp() {
@@ -421,6 +439,108 @@ void AccountPageTest::oneChangeAtATime() {
     QCOMPARE(arguments.readAll().count("run\n"), 1);
     const QMutexLocker lock(&m_asked.mutex);
     QVERIFY(m_asked.given.isEmpty());
+}
+
+// A new password in place: the page asks kwalletd, and offers to change
+// the wallet's password too (ADR-0043).
+void AccountPageTest::aChangedPasswordOffersTheWallet() {
+    qputenv("CAIRN_TEST_SCENARIO", "done");
+    const std::unique_ptr<AccountPage> account = page(true, 1000, true);
+    QCOMPARE(account->wallet()->step(), WalletPassword::Step::NotOffered);
+    account->changePassword(QStringLiteral("new"), QStringLiteral("new"));
+    QTRY_COMPARE_WITH_TIMEOUT(account->step(), AccountPage::Step::PasswordChanged,
+                              kAnswerMilliseconds);
+    QTRY_COMPARE_WITH_TIMEOUT(account->wallet()->step(), WalletPassword::Step::Offered,
+                              kAnswerMilliseconds);
+    QCOMPARE(m_kwalletd.asked, QStringList({"isEnabled", "localWallet", "wallets"}));
+}
+
+// A password that did not change leaves the wallet's password the same as
+// the login password, so kwalletd is not even asked.
+void AccountPageTest::noOfferForAPasswordNotChanged_data() {
+    QTest::addColumn<QString>("scenario");
+    QTest::addColumn<QString>("again");
+
+    QTest::newRow("failed") << "refused-failed" << "new";
+    QTest::newRow("box closed") << "dismissed" << "new";
+    QTest::newRow("wrong password") << "not-authorized" << "new";
+    QTest::newRow("garbage") << "garbage" << "new";
+    QTest::newRow("different") << "done" << "newt";
+}
+
+void AccountPageTest::noOfferForAPasswordNotChanged() {
+    QFETCH(const QString, scenario);
+    QFETCH(const QString, again);
+    qputenv("CAIRN_TEST_SCENARIO", scenario.toLocal8Bit());
+    const std::unique_ptr<AccountPage> account = page(true, 1000, true);
+    account->changePassword(QStringLiteral("new"), again);
+    QTRY_COMPARE_WITH_TIMEOUT(account->step(), AccountPage::Step::PasswordNotChanged,
+                              kAnswerMilliseconds);
+    QTest::qWait(300);
+    QCOMPARE(account->wallet()->step(), WalletPassword::Step::NotOffered);
+    QVERIFY(m_kwalletd.asked.isEmpty());
+}
+
+// The offer belongs to the sentence about the new password, so a picture,
+// or another password, takes it away.
+void AccountPageTest::anotherChangeEndsTheOffer() {
+    qputenv("CAIRN_TEST_SCENARIO", "done");
+    const std::unique_ptr<AccountPage> account = page(true, 1000, true);
+    account->changePassword(QStringLiteral("new"), QStringLiteral("new"));
+    QTRY_COMPARE_WITH_TIMEOUT(account->wallet()->step(), WalletPassword::Step::Offered,
+                              kAnswerMilliseconds);
+    account->choosePicture(QUrl::fromLocalFile(file(QStringLiteral("avatars/notes.txt"))));
+    QCOMPARE(account->step(), AccountPage::Step::PictureNotChanged);
+    QCOMPARE(account->wallet()->step(), WalletPassword::Step::NotOffered);
+
+    account->changePassword(QStringLiteral("new"), QStringLiteral("new"));
+    QTRY_COMPARE_WITH_TIMEOUT(account->wallet()->step(), WalletPassword::Step::Offered,
+                              kAnswerMilliseconds);
+    account->changePassword(QStringLiteral("one"), QStringLiteral("two"));
+    QCOMPARE(account->reason(), AccountPage::Reason::Different);
+    QCOMPARE(account->wallet()->step(), WalletPassword::Step::NotOffered);
+}
+
+// Not only an offer that shows: a picture ends the wallet's part while
+// kwalletd is still being asked, so no offer turns up later under the
+// picture's sentence, and while kwalletd's box asks.
+void AccountPageTest::anotherChangeEndsTheCheckAndTheBox() {
+    qputenv("CAIRN_TEST_SCENARIO", "done");
+    const std::unique_ptr<AccountPage> account = page(true, 1000, true);
+    const QUrl notAPicture = QUrl::fromLocalFile(file(QStringLiteral("avatars/notes.txt")));
+    m_kwalletd.holding = true;
+    account->changePassword(QStringLiteral("new"), QStringLiteral("new"));
+    QTRY_COMPARE_WITH_TIMEOUT(m_kwalletd.asked, QStringList{"isEnabled"}, kAnswerMilliseconds);
+    QCOMPARE(account->wallet()->step(), WalletPassword::Step::Checking);
+    account->choosePicture(notAPicture);
+    QCOMPARE(account->wallet()->step(), WalletPassword::Step::NotOffered);
+    m_kwalletd.release();
+    QTest::qWait(300);
+    QCOMPARE(account->wallet()->step(), WalletPassword::Step::NotOffered);
+    QCOMPARE(m_kwalletd.asked, QStringList{"isEnabled"});
+
+    account->changePassword(QStringLiteral("new"), QStringLiteral("new"));
+    QTRY_COMPARE_WITH_TIMEOUT(account->wallet()->step(), WalletPassword::Step::Offered,
+                              kAnswerMilliseconds);
+    account->wallet()->change();
+    QTRY_VERIFY_WITH_TIMEOUT(
+        m_kwalletd.asked.constLast().startsWith(QStringLiteral("changePassword")),
+        kAnswerMilliseconds);
+    QCOMPARE(account->wallet()->step(), WalletPassword::Step::WalletAsks);
+    account->choosePicture(notAPicture);
+    QCOMPARE(account->wallet()->step(), WalletPassword::Step::NotOffered);
+}
+
+// With no kwalletd bus in the page's Setup, nothing is asked or offered.
+void AccountPageTest::noWalletBusNoOffer() {
+    qputenv("CAIRN_TEST_SCENARIO", "done");
+    const std::unique_ptr<AccountPage> account = page();
+    account->changePassword(QStringLiteral("new"), QStringLiteral("new"));
+    QTRY_COMPARE_WITH_TIMEOUT(account->step(), AccountPage::Step::PasswordChanged,
+                              kAnswerMilliseconds);
+    QTest::qWait(300);
+    QCOMPARE(account->wallet()->step(), WalletPassword::Step::NotOffered);
+    QVERIFY(m_kwalletd.asked.isEmpty());
 }
 
 } // namespace

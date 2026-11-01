@@ -17,6 +17,9 @@ Window {
     property string showing: "children"
     readonly property Item shownView: window.showing === "games" ? gamesView : window.showing === "account" ? accountView : childrenView
 
+    // The item the keyboard is on, kept while another window has it.
+    property Item keyboardItem: null
+
     readonly property int margin: Tokens.headingSize
 
     // A game card being turned, and where it was in the window before the
@@ -73,8 +76,21 @@ Window {
         flickable.contentY = Math.max(0, Math.min(y, lowest));
     }
 
-    // The keyboard never lands on something out of sight.
-    onActiveFocusItemChanged: window.showItem(window.activeFocusItem)
+    // The keyboard never lands on something out of sight: each time it
+    // moves to another item, the page scrolls to show it. A control that
+    // waits while a change runs hands the keyboard to the window, so its
+    // return is a move too. While another window is in front, such as KDE
+    // Wallet's box, nothing here has the keyboard; when Family comes back
+    // to the front, the keyboard comes back to the item it was on, and the
+    // page stays where it was. A button may have scrolled it on purpose,
+    // to show what the button changed.
+    onActiveFocusItemChanged: {
+        const item = window.activeFocusItem;
+        if (item === null || item === window.keyboardItem)
+            return;
+        window.keyboardItem = item;
+        window.showItem(item);
+    }
 
     // In each frame the window first lays out what changed, then says so
     // here, then draws. A held card has moved by as much as the page grew
