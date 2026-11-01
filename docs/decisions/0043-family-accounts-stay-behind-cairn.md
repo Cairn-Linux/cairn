@@ -502,7 +502,8 @@ withdrawn before kwalletd answered, and what `changePassword` is given.
 and that anything else the page says ends it, at every step.
 `familywindow` covers the card's words and buttons, the focus after
 each, a key held down on either button, and what comes into sight, the
-smallest window included.
+smallest window included, and that the card's words stay in sight when
+Family comes back to the front after another window.
 
 Checked in the cairn-iso VM on 2026-10-31, with a Release build of this
 branch's Family at `/usr/libexec/cairn/cairn-guardian` on the VM's
@@ -532,7 +533,10 @@ writable `/usr`, and Test Guardian's wallet opened by a password login:
 - Each time Family came back to the front after one of kwalletd's boxes,
   the box after Cancel included, its page scrolled up to **Change
   password**, which has the keyboard, so the card's words were a scroll
-  below.
+  below. This was fixed after the check: when Family comes back to the
+  front, on any of its pages, the page now stays where it was, and the
+  keyboard comes back to the item it was on. The VM has not seen the fix
+  yet.
 
 Not checked: a program asking for the shut wallet after **Leave it as
 it is**, kwalletd refusing the change, `[KSecretD] Enabled=false`, and
