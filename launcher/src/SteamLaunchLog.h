@@ -69,6 +69,10 @@ public:
     // The last step about the game since the tap was DownloadingDepots, as
     // of the last read().
     bool downloading() const;
+    // The last step about the game since the tap was the question Steam
+    // asks when it could not check the game's Steam Cloud saves,
+    // `SynchronizingCloud "syncfailed"`, as of the last read() (#211).
+    bool cloudSyncFailed() const;
 
     // The app id in `steam -applaunch <appid>`, or empty for anything else.
     static QString appIdOf(const QStringList& exec);
@@ -86,6 +90,7 @@ private:
     QString m_appId;
     Step m_step = Step::Nothing;
     bool m_downloading = false;
+    bool m_cloudSyncFailed = false;
     bool m_reached = false;
     bool m_clientStarted = false;
     std::optional<QDateTime> m_steamStartedAt;

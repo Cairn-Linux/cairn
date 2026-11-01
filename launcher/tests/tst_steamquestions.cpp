@@ -40,6 +40,14 @@ QByteArray cloudQuestion(const QByteArray& appId = "292780") {
            step("waiting for user response to SynchronizingCloud \"syncfailed\"", appId);
 }
 
+// The question Steam asks before a game's interstitials, as it wrote it on
+// the test VM (2026-10-30). Steam answered it itself there, in the same
+// second; here nothing answers it.
+QByteArray anotherQuestion(const QByteArray& appId = "292780") {
+    return step("changed task to ShowInterstitials with \"\"", appId) +
+           step("waiting for user response to ShowInterstitials \"\"", appId);
+}
+
 // A client's own start command, as the login's `steam -silent` runs it.
 QByteArray ownStart() {
     return "[2026-10-31 10:12:03] ExecCommandLine: \"'/var/home/child/.local/share/Steam/"
@@ -231,6 +239,47 @@ private slots:
         taps.console(ownStart() + tapTaken("292780") + cloudQuestion());
         QCOMPARE(taps.read(), Step::WaitingForAnswer);
         QCOMPARE(taps.takenWithoutAStep("292780"), Step::WaitingForAnswer);
+    }
+
+    // Only a later tap that Steam takes on a game its cloud question holds
+    // is held by the cloud question: not the tap that met the question, not
+    // a tap Steam has not taken yet, and not a tap in which a new client
+    // asks again (#211, ADR-0045).
+    void aLaterTapOnAGameTheCloudQuestionHoldsIsSeen() {
+        Taps taps;
+        taps.asked("292780");
+        QVERIFY(!taps.questions.heldByCloudQuestion());
+        taps.tap(pajamaSam2());
+        QCOMPARE(taps.read(), Step::Nothing);
+        QVERIFY(!taps.questions.heldByCloudQuestion());
+        taps.console(tapTaken("292780"));
+        QCOMPARE(taps.read(), Step::WaitingForAnswer);
+        QVERIFY(taps.questions.heldByCloudQuestion());
+        QCOMPARE(taps.read(), Step::WaitingForAnswer);
+        QVERIFY(taps.questions.heldByCloudQuestion());
+        // A new client takes the same tap and asks again: this tap met the
+        // question after all.
+        taps.console(ownStart() + tapTaken("292780") + cloudQuestion());
+        QCOMPARE(taps.read(), Step::WaitingForAnswer);
+        QVERIFY(!taps.questions.heldByCloudQuestion());
+        QCOMPARE(taps.takenWithoutAStep("900001"), Step::Nothing);
+        QVERIFY(!taps.questions.heldByCloudQuestion());
+        QCOMPARE(taps.takenWithoutAStep("292780"), Step::WaitingForAnswer);
+        QVERIFY(taps.questions.heldByCloudQuestion());
+    }
+
+    // Each game keeps its own question. A game another question holds is
+    // held all the same, but not by the cloud question.
+    void anotherQuestionIsNotTheCloudQuestion() {
+        Taps taps;
+        taps.asked("294650");
+        taps.tap(pajamaSam2());
+        taps.console(tapTaken("292780") + anotherQuestion());
+        QCOMPARE(taps.read(), Step::WaitingForAnswer);
+        QCOMPARE(taps.takenWithoutAStep("292780"), Step::WaitingForAnswer);
+        QVERIFY(!taps.questions.heldByCloudQuestion());
+        QCOMPARE(taps.takenWithoutAStep("294650"), Step::WaitingForAnswer);
+        QVERIFY(taps.questions.heldByCloudQuestion());
     }
 };
 
