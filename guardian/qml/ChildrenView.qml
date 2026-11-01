@@ -48,6 +48,8 @@ Column {
             return qsTr("Type the child's name first.");
         case ChildrenPage.NoShortName:
             return qsTr("Type a short name for the account as well, with letters a to z.");
+        case ChildrenPage.SameName:
+            return qsTr("%1 already has an account on this computer. To add another child, give them a different name, such as one with an initial.").arg(name);
         case ChildrenPage.BadFullName:
             return qsTr("A name cannot hold a colon, a comma, a backslash or a line break. Change the name and try again.");
         case ChildrenPage.BadName:

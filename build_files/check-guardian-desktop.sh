@@ -1,9 +1,10 @@
 #!/bin/bash
 # SPDX-License-Identifier: Apache-2.0
-# Checks the Guardian's desktop where guardian-desktop.sh changed it
-# (#166). Runs in its own step of the Containerfile after build.sh, so a
-# base update that renames the start-menu icon, or gives Breeze one of
-# its own, stops the build until it is dealt with.
+# Checks the Guardian's desktop where guardian-desktop.sh and
+# kde-pictures.sh changed it (#166). Runs in its own step of the
+# Containerfile after build.sh, so a base update that renames the
+# start-menu icon, gives Breeze one of its own, or moves KDE's pictures
+# to another package stops the build until it is dealt with.
 
 set -ouex pipefail
 
@@ -59,6 +60,21 @@ for theme in breeze-dark breeze ''; do
     done
 done
 rm -r "${config}"
+
+# Plasma's picture folder holds every one of KDE's own pictures and
+# nothing else, so Family's Your account page offers no game art
+# (ADR-0043). grep stops the build here if plasma-workspace ships none.
+avatars=/usr/share/plasma/avatars
+kde_pictures=$(rpm -ql plasma-workspace | grep "^${avatars}/" | LC_ALL=C sort)
+[[ "$(find "${avatars}" -mindepth 1 | LC_ALL=C sort)" == "${kde_pictures}" ]]
+# Among them, what Family lists: KDE's drawings, and its photos.
+ls "${avatars}"/*.png "${avatars}"/photos/*.png >/dev/null
+
+# GNOME's face folder, where Bazzite kept its copies of the game art,
+# holds nothing that no package owns.
+if [[ -e /usr/share/pixmaps/faces ]]; then
+    find /usr/share/pixmaps/faces -print0 | xargs -0 rpm -qf
+fi
 
 # The icon cache's fingerprint covers Cairn's folder too.
 [[ -s /usr/share/cairn/icons.sum ]]

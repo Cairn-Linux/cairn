@@ -78,6 +78,9 @@ with non-Fedora or modified Fedora Materials"):
   website or ISO. Describe the lineage in prose only: "Cairn Linux is built
   on Bazzite, a Universal Blue image derived from Fedora." Not "Bazzite
   Cairn", not "Fedora Cairn".
+  *In the image since 2026-10-31 (ADR-0043):* the game art Bazzite adds
+  to Plasma's picture folder is gone, so Cairn's Family app offers only
+  KDE's pictures for a grown-up's own.
 - [ ] **Say plainly that Cairn is not affiliated with or supported by**
   Bazzite, Universal Blue, Red Hat or the Fedora Project. Put it in the
   README, the website footer, the About screen, and `NOTICE`.

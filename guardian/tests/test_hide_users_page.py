@@ -27,6 +27,10 @@ font=Noto Sans,10,-1,5,50,0,0,0,0,0
 """
 
 
+# The image's build stage runs the tests without build_files/; the image's
+# own build runs the script there. Only the missing folder skips, so a
+# script renamed or gone fails here.
+@unittest.skipUnless(SCRIPT.parent.is_dir(), "the build stage does not copy build_files")
 class HideUsersPageTest(unittest.TestCase):
     def setUp(self):
         self.folder = tempfile.TemporaryDirectory()

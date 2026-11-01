@@ -13,7 +13,7 @@ guideline (a design canvas, v0.1); this directory is what programs import.
 | `tests/` | Python generator tests and QML tests for both import routes. |
 | `build.py` | The generator and validator. Edit `tokens.json`, run it, then run it again with `--check`. |
 | `mark.svg` | The mark, variant C "Trail stack", in Ink. For light grounds. |
-| `mark-on-ink.svg` | The mark in Sand. For Ink grounds: terminal, login. |
+| `mark-on-ink.svg` | The mark in Sand. For Ink grounds: terminal, login, boot screen. |
 | `mark-currentcolor.svg` | The mark filled with `currentColor` for inline use in HTML. |
 | `image/cairn-logo.svg` | The mark in Ink for the image's icon theme, in a square box with one base-stone height of clear space. |
 | `image/cairn-logo-on-ink.svg` | The same in Sand. The image's logo for dark grounds: the Guardian's start button, the splash, System Settings' About page. |
