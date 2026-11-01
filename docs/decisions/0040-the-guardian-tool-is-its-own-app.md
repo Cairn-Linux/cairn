@@ -252,6 +252,6 @@ whatever the case of its letters, before the password is asked for.**
   `cy` and `cy2`, still needs a terminal to rename or remove one.
 - Tested in C++, in `tst_childlist` and `tst_childrenpage`, and in the
   real window, in `tst_familywindow`. Checked in the cairn-iso VM on
-  2026-10-31, beside the two children named Cy from the user test.
-  "Cy" and " cy " were refused before any password box, and "Cy B" was
-  added after the password, with the login `cyb`.
+  2026-10-31, beside its two children named Cy, `cy` and `cy2`. "Cy"
+  and " cy " were refused before any password box, and "Cy B" was added
+  after the password, with the login `cyb`.
