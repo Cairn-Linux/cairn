@@ -2,7 +2,6 @@
 #include "SteamGameWait.h"
 
 #include <QDateTime>
-#include <QFileInfo>
 
 #include <algorithm>
 #include <optional>
@@ -19,7 +18,7 @@ void SteamGameWait::steamStartedAtLogin() {
 }
 
 void SteamGameWait::startLaunch(const QStringList& exec) {
-    m_appId = appIdOf(exec);
+    m_appId = SteamLaunchLog::appIdOf(exec);
     m_reapersBefore = m_reapers.of(m_appId);
     m_log.startLaunch(m_appId);
     m_stall.startLaunch(m_appId);
@@ -186,20 +185,6 @@ void SteamGameWait::setLimitMilliseconds(int milliseconds) {
 
 void SteamGameWait::setWorkLimitMilliseconds(int milliseconds) {
     m_workLimitMilliseconds = milliseconds;
-}
-
-QString SteamGameWait::appIdOf(const QStringList& exec) {
-    if (exec.size() < 3 || QFileInfo(exec.first()).fileName() != QStringLiteral("steam")) {
-        return {};
-    }
-    const qsizetype flag = exec.indexOf(QStringLiteral("-applaunch"));
-    if (flag < 0 || flag + 1 >= exec.size()) {
-        return {};
-    }
-    const QString& appId = exec.at(flag + 1);
-    bool number = false;
-    appId.toULongLong(&number);
-    return number ? appId : QString();
 }
 
 bool SteamGameWait::newReaper() const {

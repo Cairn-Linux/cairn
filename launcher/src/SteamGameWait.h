@@ -128,9 +128,6 @@ public:
     void setOfflineLimitMilliseconds(int milliseconds);
     void setRetakeLimitMilliseconds(int milliseconds);
 
-    // The app id in `steam -applaunch <appid>`, or empty for anything else.
-    static QString appIdOf(const QStringList& exec);
-
 private:
     // A reaper for the game is running that was not there at the tap.
     bool newReaper() const;

@@ -6,6 +6,7 @@
 #include <QByteArray>
 #include <QDateTime>
 #include <QString>
+#include <QStringList>
 
 #include <cstdint>
 #include <optional>
@@ -69,6 +70,8 @@ public:
     // of the last read().
     bool downloading() const;
 
+    // The app id in `steam -applaunch <appid>`, or empty for anything else.
+    static QString appIdOf(const QStringList& exec);
     // What one line of the log says about the game, or Nothing when the
     // line is not about it.
     static Step stepOf(const QByteArray& line, const QString& appId);

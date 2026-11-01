@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "SteamLaunchLog.h"
 
+#include <QFileInfo>
 #include <QList>
 #include <QStandardPaths>
 
@@ -73,6 +74,20 @@ SteamLaunchLog::Step SteamLaunchLog::step() const {
 
 bool SteamLaunchLog::downloading() const {
     return m_downloading;
+}
+
+QString SteamLaunchLog::appIdOf(const QStringList& exec) {
+    if (exec.size() < 3 || QFileInfo(exec.first()).fileName() != QStringLiteral("steam")) {
+        return {};
+    }
+    const qsizetype flag = exec.indexOf(QStringLiteral("-applaunch"));
+    if (flag < 0 || flag + 1 >= exec.size()) {
+        return {};
+    }
+    const QString& appId = exec.at(flag + 1);
+    bool number = false;
+    appId.toULongLong(&number);
+    return number ? appId : QString();
 }
 
 SteamLaunchLog::Step SteamLaunchLog::stepOf(const QByteArray& line, const QString& appId) {

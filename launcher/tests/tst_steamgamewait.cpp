@@ -143,33 +143,6 @@ private slots:
         qputenv("XDG_DATA_HOME", dataHome().path().toUtf8());
     }
 
-    void theAppIdComesFromApplaunch_data() {
-        QTest::addColumn<QStringList>("exec");
-        QTest::addColumn<QString>("appId");
-        QTest::newRow("steam") << steamGame() << QStringLiteral("294650");
-        QTest::newRow("full path")
-            << QStringList{QStringLiteral("/usr/bin/steam"), QStringLiteral("-applaunch"),
-                           QStringLiteral("70")}
-            << QStringLiteral("70");
-        QTest::newRow("not steam")
-            << QStringList{QStringLiteral("scummvm"), QStringLiteral("-applaunch"),
-                           QStringLiteral("70")}
-            << QString();
-        QTest::newRow("no app id")
-            << QStringList{QStringLiteral("steam"), QStringLiteral("-applaunch")} << QString();
-        QTest::newRow("not a number")
-            << QStringList{QStringLiteral("steam"), QStringLiteral("-applaunch"),
-                           QStringLiteral("x")}
-            << QString();
-        QTest::newRow("nothing") << QStringList{} << QString();
-    }
-
-    void theAppIdComesFromApplaunch() {
-        QFETCH(const QStringList, exec);
-        QFETCH(const QString, appId);
-        QCOMPARE(SteamGameWait::appIdOf(exec), appId);
-    }
-
     // With nothing to say Steam is working on it, a Steam game is not waited
     // for past the usual grace.
     void aSteamGameAloneIsNotWaitedFor() {

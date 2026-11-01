@@ -3,7 +3,7 @@
 
 #include "GamesFile.h"
 #include "Manifest.h"
-#include "SteamGameWait.h"
+#include "SteamLaunchLog.h"
 
 #include <QSet>
 
@@ -30,7 +30,7 @@ TileFiles::Result TileFiles::read(const QString& manifestPath, const QString& ga
     // Guardian's own choice, so the games file's is left out without a word.
     QSet<QString> appIds;
     for (const TileModel::Tile& tile : std::as_const(result.tiles)) {
-        const QString appId = SteamGameWait::appIdOf(tile.exec);
+        const QString appId = SteamLaunchLog::appIdOf(tile.exec);
         if (!appId.isEmpty()) {
             appIds.insert(appId);
         }
