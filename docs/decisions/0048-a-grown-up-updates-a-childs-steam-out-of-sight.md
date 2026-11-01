@@ -805,10 +805,12 @@ hers, owned by her and labelled again.
    `BytesDownloaded` in its manifest over time.
    Record the window names too.
    Passes if (a) updates T: no lever is needed.
-   If (a) waits while (b) updates, Steam is waiting, and E13 decides
-   whether validating fetches T ("Updates Steam puts off").
-   Fails if neither updates T: the button covers only Steam's own
-   update, and the warning and the results are amended to say so.
+   If (a) waits, Steam is waiting, and E13 decides whether validating
+   fetches T ("Updates Steam puts off"); (b) shows whether a game played
+   lately would have been enough.
+   Fails if neither (a), (b) nor E13's validating updates T: then the
+   button covers only Steam's own update, and the warning and the results
+   are amended to say so.
 3. **E13. Validate or launch a tool.**
    T is made stale and Steam started hidden.
    After the sign-in, as `ada`, with her hidden display, run
@@ -924,8 +926,8 @@ in to Plasma, `ada` and a second child.
    Passes when the visit's Steam carries on, and the second child is
    still refused at login until the visit closes.
 6. **`updating`:** during `ada`'s update, a Save holds the second
-   child's copy `updating`, and **Log out** and **Open Steam** for the
-   second child each say that a child's Steam is being updated.
+   child's copy `updating`, and logging the second child out, or opening
+   their Steam, says that a child's Steam is being updated.
 7. **The window:** closed and opened again mid-run, it shows "Ada's
    Steam is being updated." with **Stop**, which asks for the password
    and lets Ada in.
@@ -968,6 +970,13 @@ in to Plasma, `ada` and a second child.
   open unless the 4 GB check says otherwise.
 - **Every child at once, or at night:** answer 6 leaves both to an ADR of
   their own.
+- **No push in the first build, and a later amendment for one:** answer
+  3 already says what Cairn may do, and the plan has this ADR name the
+  lever after E12 to E14.
+- **A killed unit's list left to a restart alone,** as ADR-0041 leaves a
+  killed copy's: simpler, but Ada stays refused until someone restarts
+  the computer. The plan proposed the narrowing, and Mason's note on
+  #181 says the same.
 - **Copying newer builds from the parent's Steam over a child's own:**
   ADR-0046 never touches a tool the child's Steam has, and the client's
   own files are far past ADR-0033's "writes none of Steam's files of its
