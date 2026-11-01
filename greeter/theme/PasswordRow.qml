@@ -33,12 +33,13 @@ Column {
     }
 
     Rectangle {
+        objectName: "passwordBox"
         anchors.horizontalCenter: parent.horizontalCenter
         width: Tokens.displaySize * 8
         height: Tokens.headingSize * 2
         radius: Tokens.radiusSm
         color: Tokens.card
-        border.color: field.activeFocus ? Tokens.focus : Tokens.line
+        border.color: field.activeFocus ? Tokens.focusOnInk : Tokens.line
         border.width: Tokens.focusWidth
 
         TextInput {

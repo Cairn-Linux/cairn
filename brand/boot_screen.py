@@ -184,8 +184,8 @@ def boot_colors(tokens):
     The ground is the login screen's dark ground, so the screen stays the
     same colour from the boot screen to the login screen. The stones and
     the words on it take that ground's label colour, as the mark's rule
-    asks. The password box is a card wearing the focus ring, as the login
-    screen's is, and the dots and letters in it take the card's label
+    asks. The password box is a card wearing the ring for Ink, as the
+    login screen's is, and the dots and letters in it take the card's label
     colour, because the ground's would vanish on the card.
     """
     semantic = tokens["semantic"]
@@ -195,7 +195,7 @@ def boot_colors(tokens):
         "ground": ground,
         "on-ground": semantic["on"][ground],
         "box": box,
-        "ring": semantic["focus"],
+        "ring": semantic["focus-on-ink"],
         "in-box": semantic["on"][box],
     }
 

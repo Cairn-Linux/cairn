@@ -21,7 +21,8 @@
   --cairn-link:         var(--cairn-fjord);
   --cairn-link-on-ink:  var(--cairn-sky);
   --cairn-selection:    var(--cairn-sky);
-  --cairn-focus:        var(--cairn-sky);
+  --cairn-focus:        var(--cairn-fjord);
+  --cairn-focus-on-ink: var(--cairn-sky);
   --cairn-focus-width:  3px;
   --cairn-focus-offset: 3px;
 
@@ -80,6 +81,11 @@
   --cairn-text: var(--cairn-on-ink);
   --cairn-link: var(--cairn-link-on-ink);
 }
+
+/* A ring is drawn on the ground around what it marks. What sits inside an
+   Ink surface takes the ring for Ink; the surface's own ring is drawn on
+   the page around it, so it keeps the page's. */
+.cairn-on-ink > * { --cairn-focus: var(--cairn-focus-on-ink); }
 
 /* Interaction states are themed, never browser defaults. */
 :focus-visible { outline: var(--cairn-focus-width) solid var(--cairn-focus); outline-offset: var(--cairn-focus-offset); }

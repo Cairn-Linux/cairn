@@ -18,6 +18,14 @@ import boot_screen
 
 HERE = Path(__file__).resolve().parent
 MINIMUM_LABEL_CONTRAST = 3.0
+# WCAG 1.4.11 asks a focus ring for 3:1 against the ground around it.
+MINIMUM_FOCUS_CONTRAST = 3.0
+# A ring that stands out on light grounds fades on Ink, so each ring is
+# for its own grounds, named here by their semantic tokens.
+FOCUS_GROUNDS = {
+    "focus": ("ground", "card"),
+    "focus-on-ink": ("dark-ground",),
+}
 QML_HANDLER_NAME = re.compile(r"^on[A-Z]")
 QML_PROPERTY = re.compile(
     r"^\s*(?:readonly\s+)?property\s+\S+\s+(\w+)\s*:", re.MULTILINE
@@ -147,6 +155,36 @@ def label_ratio_comment(tokens, label_name):
     return f"{label_contrast(tokens, label_name):.2f}:1"
 
 
+def focus_contrasts(tokens, ring_name):
+    """Each ground a focus ring is for, and the ring's contrast on it."""
+    colors = color_values(tokens)
+    semantic = tokens["semantic"]
+    ring = semantic[ring_name]
+    contrasts = []
+    for ground_name in FOCUS_GROUNDS[ring_name]:
+        ground = semantic[ground_name]
+        contrasts.append((ground, contrast_ratio(colors[ring], colors[ground])))
+    return contrasts
+
+
+def validate_focus_contrasts(tokens):
+    for ring_name in FOCUS_GROUNDS:
+        ring = tokens["semantic"][ring_name]
+        for ground, ratio in focus_contrasts(tokens, ring_name):
+            if ratio < MINIMUM_FOCUS_CONTRAST:
+                raise BuildError(
+                    f"focus ring contrast is below 3:1: {ring}-on-{ground} "
+                    f"measures {ratio:.2f}:1"
+                )
+
+
+def focus_ratio_comment(tokens, ring_name):
+    return ", ".join(
+        f"{ratio:.2f}:1 on {ground.capitalize()}"
+        for ground, ratio in focus_contrasts(tokens, ring_name)
+    )
+
+
 def motion_tokens(tokens):
     return {name: value for name, value in tokens["motion"].items() if name != "note"}
 
@@ -188,6 +226,7 @@ def render_css(tokens):
   --cairn-link-on-ink:  var(--cairn-{semantic['link-on-ink']});
   --cairn-selection:    var(--cairn-{semantic['selection']});
   --cairn-focus:        var(--cairn-{semantic['focus']});
+  --cairn-focus-on-ink: var(--cairn-{semantic['focus-on-ink']});
   --cairn-focus-width:  {interaction['focus-width']}px;
   --cairn-focus-offset: {interaction['focus-offset']}px;
 
@@ -246,6 +285,11 @@ def render_css(tokens):
   --cairn-link: var(--cairn-link-on-ink);
 }}
 
+/* A ring is drawn on the ground around what it marks. What sits inside an
+   Ink surface takes the ring for Ink; the surface's own ring is drawn on
+   the page around it, so it keeps the page's. */
+.cairn-on-ink > * {{ --cairn-focus: var(--cairn-focus-on-ink); }}
+
 /* Interaction states are themed, never browser defaults. */
 :focus-visible {{ outline: var(--cairn-focus-width) solid var(--cairn-focus); outline-offset: var(--cairn-focus-offset); }}
 ::selection {{ background: var(--cairn-selection); color: var(--cairn-on-sand); }}
@@ -283,7 +327,15 @@ def render_qml(tokens):
         qml_property("color", "link", camel(semantic["link"])),
         qml_property("color", "linkOnInk", camel(semantic["link-on-ink"])),
         qml_property("color", "selection", camel(semantic["selection"])),
-        qml_property("color", "focus", camel(semantic["focus"])),
+        qml_property(
+            "color", "focus", camel(semantic["focus"]), focus_ratio_comment(tokens, "focus")
+        ),
+        qml_property(
+            "color",
+            "focusOnInk",
+            camel(semantic["focus-on-ink"]),
+            focus_ratio_comment(tokens, "focus-on-ink"),
+        ),
         qml_property("int", "focusWidth", str(interaction["focus-width"])),
         qml_property("int", "focusOffset", str(interaction["focus-offset"])),
         "",
@@ -554,6 +606,7 @@ def load_tokens():
 def validate_tokens(tokens):
     validate_recorded_contrasts(tokens)
     validate_label_contrasts(tokens)
+    validate_focus_contrasts(tokens)
 
 
 def parse_arguments(argv):

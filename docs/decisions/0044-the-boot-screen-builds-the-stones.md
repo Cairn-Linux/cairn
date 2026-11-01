@@ -78,9 +78,9 @@ again with it.**
 - **The colours are the login screen's token names.** The ground is
   `dark-ground`, Ink. The stones and the words take its label colour,
   `on.ink`, Sand, as the mark's rule asks on a dark ground. The box is a
-  `card`, Paper, wearing the `focus` ring, Sky. The dots and any typed
-  answer in it take the card's label colour, `on.paper`, Ink, because
-  Sand would all but vanish on Paper (1.09:1). Every pair measures
+  `card`, Paper, wearing the `focus-on-ink` ring, Sky. The dots and any
+  typed answer in it take the card's label colour, `on.paper`, Ink,
+  because Sand would all but vanish on Paper (1.09:1). Every pair measures
   7.45:1 or more.
 - **Each sentence fits on one line across a screen 800 px wide.**
   Plymouth's script cannot wrap a line. The longest sentence, the first,
@@ -148,10 +148,9 @@ again with it.**
   they would all but vanish.
 - On Ink the password box and its ring stand out from the ground: Paper
   is 12.37:1 against it, and the Sky ring 7.45:1. On Sand they were
-  1.09:1 and 1.52:1, which is what #216 is about. When #216 gives light
-  grounds a Fjord ring and keeps Sky for Ink in a token of its own, this
-  box must take that token, since it sits on Ink. A brand test fails
-  until it does.
+  1.09:1 and 1.52:1, which is what #216 is about. #216 gives light
+  grounds a Fjord ring and keeps Sky for Ink in a token of its own,
+  `focus-on-ink`, which this box takes, since it sits on Ink.
 - The images are drawn at one size. On a high-density screen Plymouth
   doubles them, a little soft. The text is sharp at any density.
 - A computer with a firmware logo (BGRT) no longer shows it at boot.

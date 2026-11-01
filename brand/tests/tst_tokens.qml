@@ -39,6 +39,12 @@ TestCase {
         compare(Tokens.kickerLetterSpacing, kickerSpacingAtNormalScale * 1.5);
     }
 
+    // Fjord stands out on Sand and Paper, Sky on Ink (#216).
+    function test_focusColours() {
+        compare(Tokens.focus, Tokens.fjord);
+        compare(Tokens.focusOnInk, Tokens.sky);
+    }
+
     function test_focusDimensions() {
         verify(Tokens.focusWidth > 0);
         verify(Tokens.focusOffset > 0);
