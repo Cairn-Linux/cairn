@@ -6,24 +6,21 @@
 
 namespace {
 
-QJsonObject game(const QString& appId, const QString& title, const QString& picture = {}) {
-    QJsonObject entry{{"id", "steam-" + appId},
-                      {"title", title},
-                      {"category", "games"},
-                      {"engine", "steam"},
-                      {"exec", QJsonArray{"steam", "-applaunch", appId}},
-                      {"source", QJsonObject{{"store", "steam"}, {"appid", appId}}},
-                      {"needs_steam_running", true}};
-    if (!picture.isEmpty()) {
-        entry.insert("picture", picture);
-    }
-    return entry;
+QJsonObject game(const QString& appId, const QString& title) {
+    return {{"id", "steam-" + appId},
+            {"title", title},
+            {"category", "games"},
+            {"engine", "steam"},
+            {"exec", QJsonArray{"steam", "-applaunch", appId}},
+            {"source", QJsonObject{{"store", "steam"}, {"appid", appId}}},
+            {"needs_steam_running", true}};
 }
 
-// The shared folder: Portal, Celeste and Zoo Tycoon.
+// The shared folder: Portal, Celeste and Zoo Tycoon. Portal's name there is
+// newer than the one on the lists below.
 GameCatalogue catalogue() {
-    const QList<QJsonObject> entries{game("620", "Portal 2", "/p/620.jpg"),
-                                     game("504230", "Celeste"), game("12", "zoo tycoon")};
+    const QList<QJsonObject> entries{game("620", "Portal 2: Remastered"), game("504230", "Celeste"),
+                                     game("12", "zoo tycoon")};
     return GameCatalogue::fromJson(GameCatalogue::toJson(entries)).value_or(GameCatalogue());
 }
 
@@ -100,7 +97,7 @@ private slots:
         }
     }
 
-    // A kept game takes the shared folder's entry, with its new picture; one
+    // A kept game takes the shared folder's entry, with its new title; one
     // the folder no longer has keeps its old entry, as the child still has
     // their copy.
     void keptEntries() {
@@ -109,7 +106,7 @@ private slots:
             ChildGameList::result(old, {"620", "400"}, {}, catalogue());
         QCOMPARE(list.entries.size(), 2);
         QCOMPARE(list.entries.at(0), game("400", "Portal"));
-        QCOMPARE(list.entries.at(1), game("620", "Portal 2", "/p/620.jpg"));
+        QCOMPARE(list.entries.at(1), game("620", "Portal 2: Remastered"));
     }
 };
 

@@ -45,6 +45,14 @@ class GamesSaving : public QObject {
     Q_PROPERTY(bool allGiven READ allGiven NOTIFY changed)
     // The full games list stays as it was before the Save.
     Q_PROPERTY(bool catalogueKept READ catalogueKept NOTIFY changed)
+    // The picture step did not go to its end, so the pictures stay as they
+    // were, after a Save or a look alike (ADR-0047).
+    Q_PROPERTY(bool picturesKept READ picturesKept NOTIFY changed)
+    // The titles, as one list in words, of the shared games whose tiles
+    // show their names because the Guardian's Steam has no picture for them
+    // yet, and of those whose picture there was left out; "" for none.
+    Q_PROPERTY(QString picturesMissing READ picturesMissing NOTIFY changed)
+    Q_PROPERTY(QString picturesRefused READ picturesRefused NOTIFY changed)
     // A Save in which some child's copy ran could not take every one of
     // Steam's tools from the Guardian's own Steam (ADR-0046).
     Q_PROPERTY(bool toolsLeftOut READ toolsLeftOut NOTIFY changed)
@@ -126,7 +134,10 @@ public:
     enum class Tools : std::uint8_t { NoToolNews, ToolsCopied, ToolsMissing, NoToolsToCopy };
     Q_ENUM(Tools)
 
-    GamesSaving(const QString& pkexec, const QString& command, QObject* parent = nullptr);
+    // `catalogue` is the full games list, which names each game a Save or a
+    // look says has no picture, one it has just found among them.
+    GamesSaving(const QString& pkexec, const QString& command, QString catalogue,
+                QObject* parent = nullptr);
 
     Step step() const;
     Kind kind() const;
@@ -137,6 +148,9 @@ public:
     QVariantList results() const;
     bool allGiven() const;
     bool catalogueKept() const;
+    bool picturesKept() const;
+    QString picturesMissing() const;
+    QString picturesRefused() const;
     bool toolsLeftOut() const;
     bool busy() const;
 
@@ -164,8 +178,10 @@ private:
     void lineRead(const QString& line);
     void finished(const QString& answer);
     QString nameOf(const QString& login) const;
+    QString titlesInWords(const QStringList& appIds) const;
 
     SaveRun* m_run;
+    QString m_catalogue;
     SaveReport m_report;
     Step m_step = Step::Ready;
     Kind m_kind = Kind::Save;

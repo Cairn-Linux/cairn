@@ -80,6 +80,11 @@ public:
     // they were. Nothing until it said either way.
     std::optional<bool> picturesKept() const;
     std::optional<bool> catalogueKept() const;
+    // The appids of the games whose tiles show their names for want of a
+    // picture, in the order the command named them (ADR-0047): the
+    // Guardian's Steam has none yet, or it has one that was left out.
+    QStringList picturesMissing() const;
+    QStringList picturesRefused() const;
     // Whether some tool of the Guardian's Steam stayed out of the tools
     // folder: the tools step did not finish, or left a tool out.
     bool toolsLeftOut() const;
@@ -101,6 +106,8 @@ private:
     QString m_current;
     std::optional<bool> m_picturesKept;
     std::optional<bool> m_catalogueKept;
+    QStringList m_picturesMissing;
+    QStringList m_picturesRefused;
     bool m_toolsKept = false;
     bool m_toolsNotShared = false;
     bool m_copiedForSomeone = false;

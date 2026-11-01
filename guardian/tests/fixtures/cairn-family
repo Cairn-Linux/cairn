@@ -19,7 +19,12 @@
 # save-tools-kept-but-held says the folder was kept and then holds every
 # child. Each child's copy gives them two of Steam's tools in save-tools,
 # one and a missing one in save-tools-missing, none in save-no-tools, and
-# save-tools-copying is still copying the tools.
+# save-tools-copying is still copying the tools. The pictures are made
+# first (ADR-0047): save-pictures-kept says they were kept, and
+# save-pictures-missing and save-pictures-refused name game 1008 without a
+# picture. save-pictures-and-catalogue-kept says the full list was kept,
+# and names game 1007 without a picture and game 1008 with one that was
+# left out. Each then goes on as save-done.
 #
 # For set-own-password, when CAIRN_TEST_INPUT names a file, what came on
 # standard input is written to it, as the real command reads the new
@@ -76,8 +81,21 @@ save_games() {
     if [ "$scenario" = save-looking ]; then
         exec sleep 30
     fi
-    echo "pictures made"
-    echo "catalogue made"
+    if [ "$scenario" = save-pictures-kept ]; then
+        echo "pictures kept"
+    else
+        echo "pictures made"
+    fi
+    if [ "$scenario" = save-pictures-and-catalogue-kept ]; then
+        echo "catalogue kept"
+    else
+        echo "catalogue made"
+    fi
+    case "$scenario" in
+        save-pictures-missing) echo "picture-missing 1008" ;;
+        save-pictures-refused) echo "picture-refused 1008" ;;
+        save-pictures-and-catalogue-kept) printf 'picture-missing 1007\npicture-refused 1008\n' ;;
+    esac
     case "$scenario" in
         save-sharing-tools) exec sleep 30 ;;
         save-tools-kept-but-held) echo "tools kept" ;;
@@ -94,7 +112,7 @@ save_games() {
             count=$((count + 1))
         done
         case "$scenario" in
-            save-done)
+            save-done | save-pictures-*)
                 if [ -n "$ids" ]; then
                     echo "copying $login"
                     for id in ${ids//,/ }; do

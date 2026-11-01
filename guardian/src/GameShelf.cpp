@@ -32,18 +32,23 @@ std::optional<GameCatalogue> readGamesFile(const QString& path) {
     return GameCatalogue::fromJson(file.readAll());
 }
 
-GameShelf::Game gameOf(const QJsonObject& entry, bool onList, bool shared) {
+// A game no longer shared keeps the picture the picture step keeps while it
+// is on a child's list, as the child's tile does (ADR-0047).
+GameShelf::Game gameOf(const QJsonObject& entry, bool onList, bool shared,
+                       const QString& pictures) {
     // Every entry fromJson keeps has an appid.
-    return {.appId = GameCatalogue::appIdOf(entry).value_or(QString()),
+    const QString appId = GameCatalogue::appIdOf(entry).value_or(QString());
+    return {.appId = appId,
             .title = entry.value(QStringLiteral("title")).toString(),
-            .picture = GamePicture::fromEntry(entry),
+            .picture = GamePicture::forAppId(pictures, appId),
             .onList = onList,
             .shared = shared};
 }
 
 } // namespace
 
-GameShelf GameShelf::read(const QString& catalogue, const QString& childList) {
+GameShelf GameShelf::read(const QString& catalogue, const QString& childList,
+                          const QString& pictures) {
     GameShelf shelf;
     QList<QJsonObject> listed;
     if (!childList.isEmpty() && QFileInfo::exists(childList)) {
@@ -61,7 +66,7 @@ GameShelf GameShelf::read(const QString& catalogue, const QString& childList) {
     QSet<QString> sharedIds;
     const std::optional<GameCatalogue> shared = readGamesFile(catalogue);
     for (const QJsonObject& entry : shared ? shared->entries() : QList<QJsonObject>()) {
-        Game game = gameOf(entry, false, true);
+        Game game = gameOf(entry, false, true, pictures);
         game.onList = listedIds.contains(game.appId);
         sharedIds.insert(game.appId);
         shelf.m_games.append(game);
@@ -69,7 +74,7 @@ GameShelf GameShelf::read(const QString& catalogue, const QString& childList) {
     // The child's launcher still gives a tile for a game on their list
     // that the shared folder no longer has, so the page shows it too.
     for (const QJsonObject& entry : listed) {
-        const Game game = gameOf(entry, true, false);
+        const Game game = gameOf(entry, true, false, pictures);
         if (!sharedIds.contains(game.appId)) {
             shelf.m_games.append(game);
         }

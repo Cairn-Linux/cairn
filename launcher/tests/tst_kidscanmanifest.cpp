@@ -3,6 +3,7 @@
 #include "Manifest.h"
 #include "TileModel.h"
 
+#include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QJsonArray>
@@ -35,7 +36,9 @@ QJsonArray entriesOf(const QString& path) {
 // ADR-0033). CTest first runs tools/kidscan/tests/roundtrip_manifest.py,
 // which scans a synthetic Steam library with a stand-in scummvm, names its
 // manifest in KIDSCAN_MANIFEST, and names in KIDSCAN_GAMES the games file it
-// makes from the same library, with a stand-in picture for each game.
+// makes from the same library as Cairn makes one, naming no picture. In
+// KIDSCAN_PICTURES it names a folder with a stand-in picture for each game,
+// as the picture step would leave them (ADR-0047).
 class KidscanManifestTest : public QObject {
     Q_OBJECT
 
@@ -43,12 +46,14 @@ class KidscanManifestTest : public QObject {
     QJsonArray m_entries;
     QString m_gamesPath;
     QJsonArray m_games;
+    QString m_pictures;
 
 private slots:
     void initTestCase() {
         m_path = qEnvironmentVariable("KIDSCAN_MANIFEST");
         m_gamesPath = qEnvironmentVariable("KIDSCAN_GAMES");
-        QVERIFY2(!m_path.isEmpty() && !m_gamesPath.isEmpty(),
+        m_pictures = qEnvironmentVariable("KIDSCAN_PICTURES");
+        QVERIFY2(!m_path.isEmpty() && !m_gamesPath.isEmpty() && !m_pictures.isEmpty(),
                  "Run this with ctest, which writes the manifest and the games file first.");
         QVERIFY2(QFileInfo::exists(m_path), qPrintable(m_path));
         QVERIFY2(QFileInfo::exists(m_gamesPath), qPrintable(m_gamesPath));
@@ -96,9 +101,10 @@ private slots:
     }
 
     // The games file passes the launcher's stricter rules whole: every entry
-    // a Steam game with its picture, nothing left out.
+    // a Steam game, nothing left out, each with its picture found by its app
+    // id, though the file names none.
     void everyGameBecomesASteamTileWithAPicture() {
-        const GamesFile::Result result = GamesFile::read(m_gamesPath, {});
+        const GamesFile::Result result = GamesFile::read(m_gamesPath, {}, m_pictures);
         QVERIFY2(result.sentences.isEmpty(), qPrintable(result.sentences.join(QLatin1Char('\n'))));
         QCOMPARE(result.tiles.size(), m_games.size());
         for (qsizetype i = 0; i < m_games.size(); ++i) {
@@ -110,8 +116,10 @@ private slots:
             QCOMPARE(tile.exec.at(0), QStringLiteral("steam"));
             QCOMPARE(tile.exec.at(1), QStringLiteral("-applaunch"));
             QCOMPARE(tile.exec, strings(entry.value(QStringLiteral("exec")).toArray()));
+            QVERIFY(!entry.contains(QStringLiteral("picture")));
             QVERIFY2(tile.picture.isLocalFile(), qPrintable(tile.title));
-            QCOMPARE(tile.picture.toLocalFile(), entry.value(QStringLiteral("picture")).toString());
+            QCOMPARE(tile.picture.toLocalFile(),
+                     QDir(m_pictures).filePath(tile.exec.at(2) + QStringLiteral(".jpg")));
         }
     }
 };

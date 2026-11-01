@@ -27,7 +27,9 @@
 // It answers in lines of fixed words, checked login names and appids, as it
 // goes, and ends with `done` or `refused WORD`. A refusal means nothing
 // changed. A child whose games cannot all be given now is a `held` word on
-// their own line, and the next child goes ahead.
+// their own line, and the next child goes ahead. After the full list it
+// names each game whose tile shows its name for want of a picture
+// (ADR-0047).
 class GamesSave {
 public:
     using Say = CopyJob::Say;
@@ -58,8 +60,12 @@ public:
         // each child's last line.
         QString asked;
         QStringList children;
-        // `tools made` or `tools kept`, then each of the tools step's own
-        // fixed lines after `tools step: `, for the journal too.
+        // For the journal too, one list for each step that makes the shared
+        // things again, in the order they ran: its `made` or `kept` line,
+        // then each of its own words after `picture step: `, `catalogue
+        // step: ` or `tools step: `.
+        QStringList pictures;
+        QStringList catalogue;
         QStringList tools;
     };
 

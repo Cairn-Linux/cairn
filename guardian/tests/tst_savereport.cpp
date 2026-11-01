@@ -23,7 +23,27 @@ private slots:
         QCOMPARE(report.current(), QString());
         QVERIFY(!report.picturesKept().has_value());
         QVERIFY(!report.catalogueKept().has_value());
+        QVERIFY(report.picturesMissing().isEmpty());
+        QVERIFY(report.picturesRefused().isEmpty());
         QVERIFY(report.children().isEmpty());
+    }
+
+    // The games whose tiles show their names for want of a picture come
+    // after the full list, in order, and move the stage on not at all
+    // (ADR-0047).
+    void gamesWithoutAPictureAreCollected() {
+        SaveReport report({QStringLiteral("ada")});
+        for (const char* line :
+             {"looking", "pictures made", "catalogue made", "picture-missing 1008",
+              "picture-refused 12", "picture-missing 7"}) {
+            report.take(QString::fromLatin1(line));
+        }
+        QCOMPARE(report.stage(), SaveReport::Stage::SharingTools);
+        QCOMPARE(report.picturesMissing(), QStringList({"1008", "7"}));
+        QCOMPARE(report.picturesRefused(), QStringList({"12"}));
+        QCOMPARE(report.picturesKept(), std::optional<bool>(false));
+        report.take(QStringLiteral("tools made"));
+        QCOMPARE(report.stage(), SaveReport::Stage::Writing);
     }
 
     // Each line moves the stage on, as the command goes.
@@ -212,6 +232,12 @@ private slots:
         QTest::newRow("a tool skipped with no word") << "tool-skipped ada 1";
         QTest::newRow("copying tools with no child") << "copying-tools";
         QTest::newRow("words after a tool") << "tool-copied ada 1 and more";
+        QTest::newRow("a picture's appid with a leading 0") << "picture-missing 0620";
+        QTest::newRow("words after a picture") << "picture-missing 620 x";
+        QTest::newRow("a picture with no appid") << "picture-missing";
+        QTest::newRow("a picture with a login") << "picture-missing ada";
+        QTest::newRow("a picture with the step's reason") << "picture-refused 620 not-a-jpeg";
+        QTest::newRow("a picture, another word") << "picture-lost 620";
         QTest::newRow("done") << "done";
         QTest::newRow("refused") << "refused busy";
         QTest::newRow("empty") << "";
@@ -224,6 +250,8 @@ private slots:
         QVERIFY(report.children().isEmpty());
         QVERIFY(report.copied().isEmpty());
         QVERIFY(!report.picturesKept().has_value());
+        QVERIFY(report.picturesMissing().isEmpty());
+        QVERIFY(report.picturesRefused().isEmpty());
     }
 };
 
