@@ -8,6 +8,7 @@
 #include <QLocale>
 #include <QVariantMap>
 
+#include <optional>
 #include <utility>
 
 GamesSaving::GamesSaving(const QString& pkexec, const QString& command, QString catalogue,
@@ -80,6 +81,14 @@ QString GamesSaving::picturesRefused() const {
     return titlesInWords(m_report.picturesRefused());
 }
 
+QString GamesSaving::newGames() const {
+    return lookMadeTheList() ? titlesInWords(m_newGames) : QString();
+}
+
+bool GamesSaving::noNewGames() const {
+    return lookMadeTheList() && m_newGames.isEmpty();
+}
+
 // Only about a Save that gave some child something: a look gives no child
 // anything, and neither does a Save whose copies were all held.
 bool GamesSaving::toolsLeftOut() const {
@@ -106,10 +115,11 @@ bool GamesSaving::start(Kind kind, const QStringList& arguments,
         m_names.insert(child.login, child.name);
     }
     m_titles = SaveResults::titlesOf(games);
+    m_shown = games;
     m_report = SaveReport(request.logins());
     if (request.refusal) {
         m_step = Step::NotSaved;
-        m_reason = reasonFor(refusalWord(*request.refusal));
+        m_reason = SaveResults::reasonFor(refusalWord(*request.refusal));
         emit changed();
         emit ended();
         return true;
@@ -141,23 +151,6 @@ void GamesSaving::close() {
     clearOutcome();
 }
 
-GamesSaving::Reason GamesSaving::reasonFor(const QString& answer) {
-    static const QHash<QString, Reason> reasons = {
-        {QStringLiteral("not-root"), Reason::NotRoot},
-        {QStringLiteral("not-a-grown-up"), Reason::NotAGrownUp},
-        {QStringLiteral("usage"), Reason::Usage},
-        {QStringLiteral("bad-name"), Reason::Usage},
-        {QStringLiteral("bad-appid"), Reason::Usage},
-        {QStringLiteral("not-a-child"), Reason::NotAChild},
-        {QStringLiteral("busy"), Reason::AnotherSave},
-        {QStringLiteral("dismissed"), Reason::Dismissed},
-        {QStringLiteral("not-authorized"), Reason::NotAuthorized},
-        // SaveRun's own word; cairn-family has no refusal of that name.
-        {QStringLiteral("not-started"), Reason::CommandNotStarted},
-    };
-    return reasons.value(answer, Reason::Unknown);
-}
-
 // The first line means the password was accepted and the command runs:
 // cairn-family says "looking" before its first slow step.
 void GamesSaving::lineRead(const QString& line) {
@@ -167,11 +160,13 @@ void GamesSaving::lineRead(const QString& line) {
 }
 
 // The full list is read again for the titles, so a game the command has
-// just found is named by its title too.
+// just found is named by its title too, and for the games a look found.
 void GamesSaving::finished(const QString& answer) {
-    m_titles.insert(SaveResults::titlesOf(GameShelf::read(m_catalogue, {}).games()));
+    const QList<GameShelf::Game> listed = GameShelf::read(m_catalogue, {}).games();
+    m_titles.insert(SaveResults::titlesOf(listed));
+    m_newGames = SaveResults::newAppIds(listed, m_shown);
     m_step = answer == QLatin1String("done") ? Step::Saved : Step::NotSaved;
-    m_reason = m_step == Step::Saved ? Reason::NoReason : reasonFor(answer);
+    m_reason = m_step == Step::Saved ? Reason::NoReason : SaveResults::reasonFor(answer);
     emit changed();
     emit ended();
 }
@@ -189,4 +184,12 @@ QString GamesSaving::titlesInWords(const QStringList& appIds) const {
         titles.append(title.isEmpty() ? tr("Game %1").arg(appId) : title);
     }
     return QLocale().createSeparatedList(titles);
+}
+
+// Only a look that went to its end, and said it made the full games list
+// again, knows which games are new. A Save is about the children's lists,
+// and a list kept from before holds nothing the look found.
+bool GamesSaving::lookMadeTheList() const {
+    const std::optional<bool> kept = m_report.catalogueKept();
+    return m_kind == Kind::Look && m_step == Step::Saved && kept.has_value() && !*kept;
 }
