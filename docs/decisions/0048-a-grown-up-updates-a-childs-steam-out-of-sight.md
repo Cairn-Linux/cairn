@@ -304,10 +304,21 @@ the card writes.
 - The job holds `systemd-inhibit --what=sleep:idle --mode=block
   --who=Cairn --why="Updating a child's Steam"`, so the sleep timer does
   not suspend the computer halfway.
-  It does not hold the copy's `handle-lid-switch`, so a closed lid still
-  suspends the computer (answer 4; while the Guardian is logged in to
-  Plasma this is inference, see Consequences).
-  Steam should carry on its downloads after the computer wakes (not
+  It does not hold the copy's `handle-lid-switch`, so that a closed lid
+  still suspends the computer (answer 4).
+- That holds where logind handles the lid itself, as at the login screen
+  and after the Guardian logs out.
+  logind then ignores the `sleep` lock for the lid, by its default
+  `LidSwitchIgnoreInhibited=yes`, which the image keeps.
+  While a Guardian is logged in to Plasma, Plasma handles the lid and
+  asks logind to suspend, and logind may refuse while the `sleep` lock is
+  held, as ADR-0041's step 6 expects for a copy (inference; the sleep
+  check).
+  If the sleep check shows that, this ADR is amended before it is
+  accepted.
+  Either the lock becomes `idle` alone, if the check shows that Plasma's
+  sleep timer still waits for it, or Mason changes answer 4.
+- Steam should carry on its downloads after the computer wakes (not
   tried).
 - The parent's own Steam stays open (answer 5).
   If the 4 GB check shows the computer swapping, this ADR is amended so
@@ -661,14 +672,13 @@ only.
   If it is, an update closes the parent's Steam first, and E11's lighter
   sessions are tried.
 - **The lid under Plasma** (inference).
-  While the Guardian is logged in, Plasma handles the lid and asks logind
-  to suspend, and logind may refuse that while the update's block lock
-  is held, as ADR-0041's step 6 expects for a copy.
-  Then a closed lid would not suspend the computer until the update
-  ends, against answer 4.
-  At the login screen, and after the Guardian logs out, logind handles
-  the lid itself and ignores the lock.
-  It is tried with the 4 GB check, or in the VM.
+  A parent presses the button from their own Plasma session, and often
+  stays logged in.
+  If logind refuses Plasma's suspend while the update's lock is held, a
+  closed lid does not suspend the computer until the update ends,
+  against answer 4.
+  The sleep check settles it before this ADR is accepted ("Power, sleep
+  and memory" says what changes).
 - **What a stale list costs.**
   A whole unit killed leaves Ada refused at login, and her hidden Steam
   running, until a restart, or until the next job of the helper clears
@@ -820,8 +830,20 @@ hers, owned by her and labelled again.
    few, and the desktop stays usable.
    Fails when it does: then this ADR is amended so that an update closes
    the parent's Steam first, and E11 runs.
-   If that computer is a laptop, the lid is tried there too, with the
-   Guardian logged in (Consequences).
+8. **The sleep check** (answer 4).
+   In cairn-iso, with the Guardian logged in to Plasma, root holds the
+   update's lock: `systemd-inhibit --what=sleep:idle --mode=block
+   --who=Cairn --why=test sleep 900`.
+   Then, as the Guardian: `systemctl suspend`, as ADR-0041's step 6 runs
+   it; Plasma's own Sleep, a stand-in for the lid, which a VM lacks
+   (inference: both ask logind the same way); and Plasma's sleep timer at
+   1 minute, with nobody at the keyboard.
+   All again with `--what=idle` alone.
+   On a laptop, if the project has one, the lid too, with each lock.
+   Passes when, with the update's lock, the sleep timer does not suspend
+   the computer, and Plasma's Sleep and the lid do.
+   Fails when they do not: then this ADR is amended as "Power, sleep and
+   memory" says, with what `--what=idle` alone did.
 
 ### Run so far, 2026-10-31
 
@@ -835,8 +857,10 @@ hers, owned by her and labelled again.
 - **E17 ran.** (a) passed. (b) passed with the main process killed and
   failed with the whole unit killed, which is the known limit above.
 - **Not run:** E16(b), since the two test accounts whose Steam never
-  signed in are kept for ADR-0046's check 1; E12 to E15 and E16(c),
-  which need a newer build from Valve; and the 4 GB check.
+  signed in are kept for ADR-0046's check 1; E12 to E14 and E16(c),
+  which need a newer build of a tool from Valve; E15, which needs an
+  update of Steam itself, Valve's next or a forced one; the 4 GB check;
+  and the sleep check.
 
 ## Alternatives considered
 
