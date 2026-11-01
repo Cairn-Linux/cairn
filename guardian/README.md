@@ -456,10 +456,9 @@ They cover turning games for two children and saving once, the exact
 arguments pkexec is given, a child held or a game left out, every
 refusal keeping the changes, every control waiting while a Save
 runs, a logged-in child's games greyed, the logout and why it did not
-finish, and the progress window, where Close shows its whole focus ring.
-`heldKey` sends the repeats of a key held down, which TestCase cannot,
-so the tests check that a game card, a button, a child, a level and a
-picture each count it once.
+finish, and the progress window. `heldKey` sends the repeats of a key
+held down, which TestCase cannot, so the tests check that a game card, a
+button, a child, a level and a picture each count it once.
 `loginsessions` checks the rule for a login, and asks the test machine's
 own logind when it has one;
 `loginwatch` sends logind's signals on a bus of its own.

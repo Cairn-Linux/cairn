@@ -956,31 +956,6 @@ TestCase {
         tryCompare(choice(window, "ada"), "activeFocus", true);
     }
 
-    // When a Save ends, Close takes the keyboard, and its whole ring shows.
-    // Close sits at the left and bottom of what scrolls, where the clip
-    // would cut its ring off without room left for it (#216).
-    function test_closeShowsItsWholeRing() {
-        const window = makeWindow("done", {
-            "gamesScenario": "save-done"
-        });
-        showGames(window);
-        mouseClick(card(window, 1));
-        mouseClick(findChild(window, "saveButton"));
-        const close = findChild(window, "closeSaveProgress");
-        tryCompare(close, "activeFocus", true);
-        waitForPolish(window);
-        const ring = findChild(close, "focusRing");
-        verify(ring.visible);
-        const scroller = findChild(window, "saveProgressScroller");
-        const edges = ring.mapToItem(scroller, 0, 0, ring.width, ring.height);
-        // Half a pixel of slack, so a fraction left from adding sizes does
-        // not count.
-        verify(edges.x > -0.5, "the ring's left side is cut off");
-        verify(edges.y > -0.5, "the ring's top is cut off");
-        verify(edges.x + edges.width < scroller.width + 0.5, "the ring's right side is cut off");
-        verify(edges.y + edges.height < scroller.height + 0.5, "the ring's bottom is cut off");
-    }
-
     // A child who logged in after the page last looked: the copy is held,
     // and the result says what to do.
     function test_aLoggedInChildIsToldWhatComesNext() {

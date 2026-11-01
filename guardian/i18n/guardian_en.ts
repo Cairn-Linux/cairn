@@ -861,22 +861,22 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveProgress.qml" line="133"/>
+        <location filename="../qml/SaveProgress.qml" line="123"/>
         <source>Looking for new games</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveProgress.qml" line="133"/>
+        <location filename="../qml/SaveProgress.qml" line="123"/>
         <source>Saving games</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveProgress.qml" line="146"/>
+        <location filename="../qml/SaveProgress.qml" line="136"/>
         <source>Do not log out or close the lid until this is finished.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SaveProgress.qml" line="171"/>
+        <location filename="../qml/SaveProgress.qml" line="161"/>
         <source>Close</source>
         <translation type="unfinished"></translation>
     </message>
