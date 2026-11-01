@@ -556,7 +556,10 @@ done, and what could sink it. Decisions that change the design get an ADR in
   the tap that met the question, nor while Steam is offline or its
   sign-in is turned down, nor for any other question (ADR-0045, "The
   cloud question, once Steam has signed in again"). The line is tested in
-  C++; it has not been seen on the test VM yet.
+  C++, and on the test VM on 2026-10-31 it came at a later tap once Steam
+  had signed in again, but not at the tap that met the question nor at a
+  later tap while Steam was offline. After the child logged out and back
+  in, the game started.
 - **Give-up spares Steam's interface again (2026-10-01, #117).** A Steam
   update moved Steam's own interface into a sandbox called `srt-bwrap`,
   which the give-up key's `bwrap` match caught. Flatpak's sandbox is now

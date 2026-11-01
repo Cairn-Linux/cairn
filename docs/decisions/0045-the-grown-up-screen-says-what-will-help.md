@@ -195,9 +195,10 @@ Consequences:
   whose cloud check failed while it stayed signed in, could get the line
   when logging out would not help. On the development laptop on
   2026-10-28, Steam wrote `LogonFailure No Connection` two seconds after
-  its network device went away. How long the test VM's Steam takes has
-  not been measured, nor how long any Steam takes when the Wi-Fi stays up
-  and the line beyond it goes down.
+  its network device went away. On the test VM on 2026-10-31 it wrote one
+  about six seconds after the VM's network link went down. How long any
+  Steam takes when the Wi-Fi stays up and the line beyond it goes down has
+  not been measured.
 - No new string and no new value of `AppLauncher.GrownUpStep`, so the
   screen and its QML are unchanged.
 
@@ -245,4 +246,26 @@ To check it on the test VM:
 6. Tap another game, such as Arthur's Birthday: it starts.
 7. Log the child out and back in, and tap Pajama Sam 2: it starts.
 
-Not yet run on the test VM.
+Run on the test VM on 2026-10-31 by these steps, with main b0b1efc and
+this change's launcher laid over `/usr`. With ada's Steam signed in since
+22:10:10, the VM's network link went down at 22:11:35. Steam saw its
+network device go and wrote `LogonFailure No Connection` at 22:11:41,
+about 6 seconds later. The tap at 22:12:02 met the cloud question: Steam
+wrote `waiting for user response to SynchronizingCloud "syncfailed"` in
+the same second. That launch ended on the grown-up screen 15 seconds after
+the tap, with no line under "… did not start.", and the journal named the
+question alone. The tap at 22:14:27, with the network still down, ended
+the same way, and its two journal lines were the same word for word.
+Steam's last sign-in line before that tap was `LogonFailure No
+Connection`, at 22:13:31. The network came back at 22:15:08, and Steam
+wrote `Waiting for compat in post-logon took:` at 22:15:10, with no new
+client. The tap at 22:15:52 ended on the grown-up screen 15 seconds after
+the tap, with "Log out and back in, then try it again." under "… did not
+start.", at the same size. The journal said "Steam is waiting for an
+answer about Pajama Sam 2: Thunder And Lightning Aren't So Frightening on
+a window the kiosk hides. Log the child out and back in, then try it
+again." A tap on Test Game Three, whose app id Steam will not launch,
+then ended with no line, and the journal said only "Nothing of Test Game
+Three came on the screen in time." Arthur's Birthday started: Steam had
+it running 5 seconds after the tap. After ada logged out and back in,
+Pajama Sam 2 started a second after the tap. There was no AVC denial.
