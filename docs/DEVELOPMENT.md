@@ -278,9 +278,43 @@ initramfs, where Plymouth draws with FreeType; to see it, give the VM a
 small LUKS disk and add `rd.luks.uuid=` with its UUID to the kernel
 arguments (`rpm-ostree kargs --append`), then restart.
 
-To boot it, switch a VM that runs stock Bazzite to it. The VM should never
-have been provisioned, because provisioning's changes to `/etc` would
-override the image's. Copy the image in as an archive and switch to it:
+To see a change to the theme before any image is built, show it in a
+container on a virtual screen. Fedora's `plymouth-devel` carries
+Plymouth's x11 renderer, Xvfb gives it a screen of any size, and nothing
+needs `sudo`. From the checkout, with `OUT` a folder for the picture:
+
+```sh
+podman run --rm --security-opt label=disable \
+    -v "$PWD/brand/image/plymouth:/theme:ro" -v "$OUT:/out" \
+    registry.fedoraproject.org/fedora:44 bash -c '
+  dnf -yq install plymouth plymouth-plugin-script plymouth-plugin-label \
+      plymouth-devel xorg-x11-server-Xvfb xwd netpbm-progs \
+      atkinson-hyperlegible-next-fonts
+  install -Dm0644 -t /usr/share/plymouth/themes/cairn /theme/*
+  plymouth-set-default-theme cairn
+  Xvfb :1 -screen 0 800x600x24 & sleep 2
+  export DISPLAY=:1
+  plymouthd --kernel-command-line="quiet splash" --graphical-boot
+  plymouth show-splash
+  plymouth ask-for-password --prompt=test & sleep 2
+  xwd -root -silent | xwdtopnm | pnmtopng > /out/boot.png'
+```
+
+`boot.png` shows the password prompt at 800 by 600, drawn with Pango, as
+after the real root is mounted. Started with
+`--debug --debug-file=/out/plymouthd.log`, Plymouth also logs the size
+of every line of text it draws, which is how to tell whether a sentence
+fits. It writes that file only when it quits, so run `plymouth quit`
+after the picture, before the container ends. To draw as the initramfs
+does, with FreeType, first move `label-pango.so` out of
+`/usr/lib64/plymouth/` and `/usr/bin/fc-match` out of the way, and link
+`/usr/share/fonts/Plymouth.ttf` to the brand's
+`AtkinsonHyperlegibleNext-Regular.otf`. Caps Lock does not show this way.
+
+To boot the image, switch a VM that runs stock Bazzite to it. The VM
+should never have been provisioned, because provisioning's changes to
+`/etc` would override the image's. Copy the image in as an archive and
+switch to it:
 
 ```sh
 podman save --format oci-archive localhost/cairn:dev \
