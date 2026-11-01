@@ -7,6 +7,8 @@ started the game (#206; "Checking it", below).
 **Date:** 2026-10-30
 **Closes:** (none) — part of issue #206; amends ADR-0030; part of ROADMAP
 P1-13
+**Amended by:** the section "The cloud question, once Steam has signed in
+again" below (2026-10-31, #211)
 
 ## Context
 
@@ -55,9 +57,12 @@ stopped part-way through getting the game ready, however the launch then
 ended, and after a later tap on a game Steam still keeps stuck that way.
 It never shows when Steam's logs gave another reason (a refused sign-in,
 no connection, a question on a hidden window, or a refusal), because
-logging out is not what helps then, and never for a window that opened on
-its own, a tile that is coming soon, or a launch that went on to start.
-The journal's own line says the same, with the reason first (ADR-0036).
+logging out is not what helps then. The one exception is a later tap on a
+game Steam holds behind its question about the game's cloud saves, once
+Steam has signed in again (the last section, #211). It never shows for a
+window that opened on its own, a tile that is coming soon, or a launch
+that went on to start. The journal's own line says the same, with the
+reason first (ADR-0036).
 
 It is an instruction on purpose. A grown-up reads it as "log the child
 out". A child can follow it alone: Log out is theirs to press (ADR-0021),
@@ -75,8 +80,11 @@ again." belongs on this screen, or in the Guardian tool.
 - A grown-up who does not read the journal is told what to do for the
   case in #206. A child who can read may do it alone.
 - ADR-0030's screen is no longer free of advice. A wrong line would send a
-  grown-up the wrong way, which is why there is one line, wired for one
-  case, and why it gives way to any other reason Steam's logs give.
+  grown-up the wrong way, which is why there is one line, wired only for
+  cases where logging out was seen to mend the launch, and why it gives
+  way to any other reason Steam's logs give. Since 2026-10-31 there are
+  two such cases: the stall, and the cloud question once Steam has signed
+  in again (the last section, #211).
 - A later tap on a game Steam keeps stuck shows the line only while
   Steam writes no step for that game. If Steam writes one, such as the
   launch failing, the line goes and the journal gives Steam's reason.
@@ -128,3 +136,104 @@ grown-up screen with the line, 1 minute 46 seconds after the tap, where it
 used to wait 10 minutes. The journal had the four lines above, in that
 order. After the child logged out and back in, the next tap fetched
 soldier in 37 seconds, and the game started 41 seconds after the tap.
+
+## The cloud question, once Steam has signed in again (2026-10-31, #211)
+
+Offline, Steam asks about a game's Steam Cloud saves on a window the kiosk
+hides, and keeps the question after it signs in again (ADR-0036, "A
+question Steam keeps"). Each later tap on that game ends on the grown-up
+screen, and the journal names the question. On the test VM on 2026-10-31,
+logging the child out and back in freed the game, and the next tap
+started it a second later, in #211's report and again in #230's check. So
+Steam's logs identify the case, and the remedy was seen to mend it, as the
+Decision above asks of a new case. Mason chose on 2026-10-31 to show the
+line for it.
+
+**Once Steam has signed in again, a later tap on a game Steam holds
+behind its cloud question shows "Log out and back in, then try it
+again."** The cloud question is the one Steam's log writes as `waiting
+for user response to SynchronizingCloud "syncfailed"`. A later tap is one
+Steam takes on the game without writing a step for it, after an earlier
+tap met the question (`SteamQuestions`, ADR-0036). Steam has signed in
+again when its log shows no failed sign-in since it last signed in, the
+reading #182 uses (`SteamSignIn`). Steam writes `Waiting for compat in
+post-logon took:` each time it signs in, also when it reconnects without
+a new client, as on the development laptop on 2026-10-28 after a run of
+`LogonFailure No Connection` lines. The journal's line says the same as
+the screen, with the reason first: "Steam is waiting for an answer about
+Pajama Sam 2 on a window the kiosk hides. Log the child out and back in,
+then try it again."
+
+There is no line, and the journal names the question alone:
+
+- at the tap that met the question, whatever the sign-in says: Steam had
+  just failed to check the game's saves, so a sign-in that reads fine is
+  least sure then, and the next tap shows the line if logging out still
+  helps;
+- while Steam cannot reach its servers: logged back in, Steam would only
+  ask the same question again;
+- while Steam's sign-in is turned down: logged back in, the next tap would
+  meet the sign-in, which needs a grown-up (#182);
+- for any other question Steam keeps: what frees its game is not known.
+
+The sign-in decides only the line. A tap on a held game still ends at its
+first look and names the question, not the sign-in (ADR-0036).
+
+Consequences:
+
+- A grown-up who reads only the screen is told what frees the game, and a
+  child who can read may do it alone, as for #206.
+- The line rests on Steam's wording. If Valve changes the words of the
+  question, or of the line Steam writes when it signs in, the line stops
+  coming: a lost feature, not a wrong one. If Valve changes how Steam
+  writes a failed sign-in (`LogonFailure`), `SteamSignIn` reads fine while
+  Steam is still offline, and the line shows when logging out would not
+  help. #182's short offline wait would stop working at the same time.
+- `SteamSignIn` counts Steam as signed in whenever nothing in its log says
+  otherwise. A Steam that has lost the internet and not noticed yet, or
+  whose cloud check failed while it stayed signed in, could get the line
+  when logging out would not help. On the development laptop on
+  2026-10-28, Steam wrote `LogonFailure No Connection` two seconds after
+  its network device went away. How long the test VM's Steam takes has
+  not been measured, nor how long any Steam takes when the Wi-Fi stays up
+  and the line beyond it goes down.
+- No new string and no new value of `AppLauncher.GrownUpStep`, so the
+  screen and its QML are unchanged.
+
+Tested in C++: Steam's launch log tells the cloud question from Steam's
+other questions, also when lines about something else follow it, and a
+new tap or a new log forgets it. `SteamQuestions` sees a later tap on a
+game the cloud question holds, at every look, and does not see the tap
+that met it, a tap Steam has not taken yet, a tap in which a new client
+asks again, another game, or a game another question holds. The line
+comes once Steam has signed in again, also when Steam could not be
+started again and still holds the game. It does not come while Steam is
+still offline, while its sign-in is turned down, at the tap that met the
+question (with Steam signed in before that tap or during it), for another
+question, for another game, for a tile that is not a Steam game, or once
+Steam has written a step for the game or a new client has started. An
+`AppLauncher` test runs the VM's case: the tap that met the question and
+a later tap while Steam is offline end on the grown-up screen without the
+line, two later taps once Steam has signed in again end at their first
+look with it, and a tile that is not a Steam game after them gets no
+line.
+
+To check it on the test VM:
+
+1. Log a child in, and wait until their Steam has signed in and a minute
+   has passed since the login.
+2. Take the VM's network down, and tap Pajama Sam 2, a game with Steam
+   Cloud saves. About 15 seconds after the tap the grown-up screen comes,
+   with no line under "… did not start.", and the journal names the
+   question.
+3. A minute later, with the network still down, tap it again: the same,
+   with no line.
+4. Bring the network back, and wait for Steam to sign in again.
+5. Tap Pajama Sam 2. The grown-up screen comes about 15 seconds after the
+   tap and adds "Log out and back in, then try it again." The journal
+   says "Steam is waiting for an answer about … on a window the kiosk
+   hides. Log the child out and back in, then try it again."
+6. Tap another game, such as Arthur's Birthday: it starts.
+7. Log the child out and back in, and tap Pajama Sam 2: it starts.
+
+Not yet run on the test VM.
