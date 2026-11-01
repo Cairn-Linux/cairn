@@ -6,7 +6,9 @@ import Cairn.Family
 // Under the password form: the sentence about the last password change,
 // and under it the offer to change KDE Wallet's password too (ADR-0043).
 // When the offer comes, the window shows both, and the sentence's top wins
-// when they do not fit; after a button, what the card says wins.
+// when they do not fit; after a button, what the card says wins. With
+// nothing to say it has no height, and the page's column leaves no gap
+// for an item with none.
 Column {
     id: answers
 

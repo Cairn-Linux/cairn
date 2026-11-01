@@ -542,62 +542,62 @@
 <context>
     <name>PasswordAnswers</name>
     <message>
-        <location filename="../qml/PasswordAnswers.qml" line="27"/>
+        <location filename="../qml/PasswordAnswers.qml" line="29"/>
         <source>Type the password you use now in the box that opened.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/PasswordAnswers.qml" line="29"/>
+        <location filename="../qml/PasswordAnswers.qml" line="31"/>
         <source>Your password is changed. Use the new one from now on: to log in, to unlock the screen and in every password box.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/PasswordAnswers.qml" line="39"/>
+        <location filename="../qml/PasswordAnswers.qml" line="41"/>
         <source>Type the new password first.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/PasswordAnswers.qml" line="41"/>
+        <location filename="../qml/PasswordAnswers.qml" line="43"/>
         <source>The two new passwords are not the same. Type the new password again in the second box.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/PasswordAnswers.qml" line="43"/>
+        <location filename="../qml/PasswordAnswers.qml" line="45"/>
         <source>A password can be at most %1 characters long. Choose a shorter one.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/PasswordAnswers.qml" line="46"/>
+        <location filename="../qml/PasswordAnswers.qml" line="48"/>
         <source>A password cannot hold a tab, a line break or another character that does not show. Type it again without them.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/PasswordAnswers.qml" line="49"/>
+        <location filename="../qml/PasswordAnswers.qml" line="51"/>
         <source>Your password did not change. It needs the password you use now: the box was closed, or the password was not accepted.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/PasswordAnswers.qml" line="51"/>
+        <location filename="../qml/PasswordAnswers.qml" line="53"/>
         <source>Your password did not change. Only a grown-up&apos;s account can change its password here.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/PasswordAnswers.qml" line="53"/>
+        <location filename="../qml/PasswordAnswers.qml" line="55"/>
         <source>Cairn&apos;s family command did not get the rights it needs, so your password did not change. Close Family and open it again. If it happens again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/PasswordAnswers.qml" line="55"/>
+        <location filename="../qml/PasswordAnswers.qml" line="57"/>
         <source>This window asked Cairn&apos;s family command for something it does not do, so your password did not change. The window and the command may come from different versions of Cairn. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/PasswordAnswers.qml" line="57"/>
+        <location filename="../qml/PasswordAnswers.qml" line="59"/>
         <source>Your password did not change. Trying again is safe. If it fails again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/PasswordAnswers.qml" line="59"/>
+        <location filename="../qml/PasswordAnswers.qml" line="61"/>
         <source>Cairn&apos;s family command did not answer as expected, so it is not known whether your password changed. Try the new one the next time a box asks; if it is not accepted, the old one still works. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
         <translation type="unfinished"></translation>
     </message>
