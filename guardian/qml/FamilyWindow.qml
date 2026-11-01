@@ -203,16 +203,10 @@ Window {
     }
 
     // Where the window is on the page, when the page is longer than it.
-    Rectangle {
+    ScrollMark {
         objectName: "scrollIndicator"
-        visible: flickable.visibleArea.heightRatio < 1
+        flickable: flickable
         x: window.width - width - Tokens.focusOffset
-        y: flickable.y + flickable.visibleArea.yPosition * flickable.height
-        width: Tokens.focusWidth * 2
-        height: flickable.visibleArea.heightRatio * flickable.height
-        radius: Tokens.radiusPill
-        color: Tokens.machine
-        Accessible.ignored: true
     }
 
     // A Save's own window, over everything else, the page switch too.
