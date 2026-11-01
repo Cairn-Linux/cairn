@@ -1554,6 +1554,17 @@ TestCase {
                 "tag": "a tool left out",
                 "scenario": "save-tools-left-out",
                 "look": false
+            },
+            {
+                "tag": "a look that found new games",
+                "scenario": "save-done",
+                "look": true,
+                "installed": ["Pajama Sam 2", "Spy Fox 2", "Freddi Fish 2", "Putt-Putt Saves the Zoo"]
+            },
+            {
+                "tag": "a look whose list was kept",
+                "scenario": "save-catalogue-kept",
+                "look": true
             }
         ];
     }
@@ -1563,6 +1574,8 @@ TestCase {
             "gamesScenario": data.scenario
         });
         showGames(window);
+        if (data.installed)
+            standIns.installSharedGames(data.installed);
         if (!data.look)
             mouseClick(card(window, 1));
         mouseClick(findChild(window, data.look ? "lookForGames" : "saveButton"));
