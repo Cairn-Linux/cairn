@@ -5,13 +5,14 @@
 overturns a bullet of the Decision.
 **Date:** 2026-10-29
 **Closes:** (none) — the Games page of issue #167 and the parent's set-up
-step in #130; part of ROADMAP P1-5. Once accepted, amends ADR-0033 and
-ADR-0041.
+step in #130; part of ROADMAP P1-5. Once accepted, amends ADR-0033,
+ADR-0038 and ADR-0041.
 **Amended by:** ADR-0046, proposed (a Save also fills the tools folder
 from the Guardian's Steam, as the Guardian, after the children's lists
 lose the games taken off and before the first copy, so after any move);
 ADR-0047, proposed (the pictures folder also keeps the picture of a game
-still on a child's list after it leaves the family folder)
+still on a child's list after it leaves the family folder); the section
+"What the move step settled" below (2026-11-01, #167)
 
 ## Context
 
@@ -146,6 +147,8 @@ closed while a game moves, and Save asks the parent first.**
   cannot reflink, as for a library on another drive, the game does not
   move: Cairn never fills the disk with a full copy, as the copy step
   never does.
+  The step also gives the group the owner's bits on each file and
+  folder ("What the move step settled", below).
 - **In an order that leaves the game in one library.**
   1. The folder is copied under a temporary name in the family folder's
      `steamapps/common/`.
@@ -166,6 +169,9 @@ closed while a game moves, and Save asks the parent first.**
   manifest, and puts the set-aside manifest back. A Steam started
   meanwhile sees the game in one library or, between steps 3 and 4, in
   none, until it starts again.
+  How a failed rename is undone, the lock that keeps two runs apart, and
+  where this recovery keeps Steam's own install are in "What the move
+  step settled", below.
 - **Which games.** A game moves only if the copy step would then copy
   it: the same rules, read once from the one manifest. Its appid is a
   number, its `installdir` is one plain folder name, its `StateFlags` is
@@ -174,6 +180,9 @@ closed while a game moves, and Save asks the parent first.**
   copy step runs as the child. The family folder must have neither a
   manifest nor a `common/<installdir>` for it. Otherwise the game stays
   where it is, with a reason.
+  Three more rules, for the family folder's `downloading/`, Steam's own
+  tools and a game in two libraries, are in "What the move step
+  settled", below.
 - **As the Guardian.** The step runs as the Guardian whose password
   opened the Save (`PKEXEC_UID`), never as root. The Guardian owns the
   game's files in their own home, and the family folder is writable by
@@ -202,10 +211,10 @@ closed while a game moves, and Save asks the parent first.**
   Guardian. This replaces ADR-0033's step in Settings › Storage;
   ADR-0033 already named it as that step's fallback.
 - It adds one entry to both `config/libraryfolders.vdf` and
-  `steamapps/libraryfolders.vdf`: the next free number, `path`
-  `/var/lib/cairn/steam-library`, `label` `""`, a `contentid`,
-  `totalsize` `"0"`, and an `"apps"` map of the games it is about to
-  move. The entry is inserted as text before the file's last closing
+  `steamapps/libraryfolders.vdf`: the number one more than the
+  highest, `path` `/var/lib/cairn/steam-library`, `label` `""`, a
+  `contentid`, `totalsize` `"0"`, and an `"apps"` map of the games it is
+  about to move. The entry is inserted as text before the file's last closing
   brace, after the file has been parsed with kidscan's parser, so none of
   Steam's own text changes. Each file is written under a temporary name
   and renamed, and a copy of each, as it was, stays beside it as
@@ -257,7 +266,8 @@ closed while a game moves, and Save asks the parent first.**
   `beta-branch`, `unreadable-files`, `exists` (the family folder has its
   folder but no manifest), `other-drive` (no reflink), `no-shared`,
   `unreadable-config` (the library list could not be read or written),
-  or `failed`.
+  or `failed`. What else some of them cover is in "What the move step
+  settled", below.
 - `cairn-family` passes these on as `moving APPID`, `moved APPID` and
   `not-moved APPID REASON`, and `library added`. A child who had a game
   ticked that did not move gets `skipped LOGIN APPID REASON` with the
@@ -308,7 +318,8 @@ closed while a game moves, and Save asks the parent first.**
   files now names this write: a game that does not show in the Guardian's Steam
   after a move is still in the family folder, and the parent can add the
   folder in Settings › Storage, as before.
-- `docs/TRY.md` loses the Storage and Move steps when the move lands.
+- `docs/TRY.md` loses the Storage and Move steps when the Games page
+  lists the Guardian's own Steam (step 3).
 - The kids' laptop keeps ADR-0033's steps: it has no Guardian tool.
 - Nothing phones home, and there is no new dependency: `cp --reflink`,
   `setpriv`, `systemd-run` and standard-library Python are in the image.
@@ -322,11 +333,17 @@ closed while a game moves, and Save asks the parent first.**
    the library-list entry and its marker, and the Steam-open guard.
    It lands alone, as the copy step did, since it writes in a Guardian's
    home.
+   Mason settled its open points on 2026-10-31: the Wine prefix stays
+   behind, a game on another drive stays put with `other-drive`, Cairn
+   writes the folder's marker when it has none, and nothing moves back.
+   Landed 2026-11-01, with no caller yet. What it settled beyond this
+   ADR is in the section "What the move step settled", below.
 2. **`cairn-family save-games` runs it,** with the new lines, as a system
    job under the inhibitor lock, with tests in `tst_gamessave`.
 3. **The Games page lists the Guardian's own Steam,** asks to close Steam,
-   says what moved, and drops the interim note; `docs/TRY.md`,
-   `guardian/README.md` and `provision/README.md` change with it.
+   says what moved, and drops the interim note; `docs/TRY.md` and
+   `guardian/README.md` change with it, and `provision/README.md` then
+   says what runs the step.
 
 ### Checks in the VM
 
@@ -339,6 +356,9 @@ different levels:
    `btrfs subvolume show` for the Guardian's home and `/var/lib/cairn`,
    and a test file moved between scratch folders in each, to confirm the
    `EXDEV`.
+   Its first half was read on 2026-10-31 (the research note's "What the
+   VM showed on 2026-10-31"), and the comparison with an entry Cairn
+   wrote ran on 2026-11-01 ("First run", below).
 2. **The first move.** On a Guardian whose list does not name the family
    folder, pick a game in `~/.local/share/Steam` for `ada` with Steam
    open. The window asks, closes Steam, moves the game and copies it to
@@ -351,8 +371,9 @@ different levels:
    maps, and whether it changed the `config/` copy.
 4. **Files.** `getfacl` on the moved game: owner the Guardian, group
    `cairn-guardian`, the group in each access ACL, each folder with the
-   default ACL and setgid, every account can read. `ada`'s Steam, signed in through a visit, starts her copy with
-   no download.
+   default ACL and setgid, every account can read, and the group's mask
+   is the owner's bits, so the group can write them. `ada`'s Steam,
+   signed in through a visit, starts her copy with no download.
 5. **An update.** A game with an update or a public beta branch in the
    Guardian's Steam, after its move: Steam updates it in the family
    folder (ADR-0033, check 13). `getfacl` on a file and a folder the
@@ -375,6 +396,70 @@ different levels:
     moves a further game with Steam closed. The Guardian's Steam shows
     it installed in the family folder and downloads nothing. Record both
     `"apps"` maps before Steam starts and after.
+
+### First run, 2026-11-01
+
+In cairn-iso, with the move step and kidscan from step 1 put over the
+`/usr` of main 8afdaf3's image, run by hand over ssh as the Guardian
+(and once as root, to see it refused), with the VM's clock in EST.
+Nothing runs the step yet, so what needs the Games page or a Save waits
+for steps 2 and 3.
+The Guardian's own library held only Steam's tools, and no Steam window
+was opened, so a real game was put there by hand with Steam closed:
+Freddi Fish 2 (294530, 249 MB, a native game), reflink-copied from the
+family folder, whose copy was then removed.
+Stand-in games with made-up appids did the rest.
+
+- Steam took the hand-placed game as installed in its own folder at the
+  next start, with no download, and moved it to entry `"0"`'s `"apps"`
+  map. With that Steam open, the step said `not-moved 294530
+  steam-open` and changed nothing.
+- With Steam closed, the step said `library had` and `moved 294530` in
+  0.09 s. The family manifest was the old one byte for byte, the 32
+  files kept their sums and times, the old library kept nothing, and the
+  disk's use did not grow.
+- Check 4 held for the files: the Guardian and `cairn-guardian`, each
+  folder setgid with the default ACL, each mask the owner's bits,
+  `other::r-x`, and `ada` and `ben` could read every file.
+  The files of the three games Steam's own Move put in the family folder
+  on 2026-10-29 are 0755 with mask `r-x`, so the group cannot write
+  them. A moved game's files are group-writable where those are not.
+- Check 12 held with the real game. At Steam's next start the family
+  entry's map lacked it and entry `"0"` still named it. Steam loaded it
+  from the family folder with no download, and wrote both maps back as
+  they were before the round trip. `steam -applaunch 294530` started it
+  from the family folder in 3 s.
+- Playing it there left Steam Cloud's `steam_autocloud.vdf`, which holds
+  the Guardian's Steam account id, in the game's `Saves` folder, where
+  every account can read it and the copy step would copy it. Steam also
+  made `shadercache/294530` and an empty `compatdata/294530` there.
+- With the family folder taken out of both lists by hand, the step moved
+  a stand-in with `library added`. Each list gained Cairn's entry before
+  its last brace, with the marker's `contentid`, and nothing else
+  changed; the backups, the lists' modes and the marker were right.
+  Steam's own entry differs in `totalsize`, the filesystem's size, in
+  the two keys Cairn leaves out, and in a map of every game (check 1).
+- Steam kept Cairn's entry at its next two starts (check 3) and wrote it
+  as its own, with the seven games it loaded from the folder in its map,
+  though Cairn's map named only the stand-in.
+- A 1 GiB stand-in in 8,193 files moved in 0.62 s. Killed at fifteen
+  points from 0.1 to 0.6 s, the step ended before any change, during
+  the copy, with the copy whole, after the temporary family manifest,
+  and after the renames with the original whole, partly removed or
+  gone. Each time Steam would have found one manifest for the game, and
+  the next run with no appids left it whole in one library, with only
+  the lock behind (check 6, by hand).
+- Check 10 held by hand, as far as the step goes: with the game in both
+  places, the step said `shared 294530` and left the Guardian's copy
+  alone. The refusals, the lock (a child gets "Permission denied"),
+  Steam's tools and six other reasons held too, each with nothing
+  changed.
+- Not run: checks 2 and 3 through the Games page and Settings › Storage,
+  check 4's copy for `ada`, checks 5, 7, 8 and 9 (no update, no Windows
+  game, one disk, no Steam window), check 10's showing the game once,
+  which needs the Games page, and check 11. Afterwards the game went
+  back to the family folder as it was, and the stand-ins and the lock
+  were removed.
 
 ## Alternatives considered
 
@@ -400,3 +485,95 @@ different levels:
 - **Asking the parent to close Steam themselves, with no button.** Kept
   as a fallback: a parent who does is fine. The button uses code the
   window already has for visits, and saves a trip to Steam's menu.
+
+## What the move step settled (2026-11-01, #167)
+
+Step 1 built the move step, `provision/cairn-share-games.py`, with its
+tests, and nothing runs it yet.
+Building it settled these points, which the Decision above leaves open.
+Mason's answers of 2026-10-31 are under Steps.
+
+**A moved game is group-writable.**
+`cp` gives each new file an access ACL whose mask comes from the
+source's group bits, so the group could only read a moved game.
+So the step gives the group the owner's bits on each file and folder of
+the copy, before anything else changes.
+A second Guardian's Steam would need that to update the game, which
+stays untested (ADR-0033).
+The folders and manifests Steam keeps in the family folder give the
+group what they give the owner too (the research note's "What the VM
+showed" on 2026-10-31 and 2026-11-01).
+The files of the games Steam's own Move put there do not: the group can
+only read them ("First run", above), so a moved game's files differ
+from theirs.
+
+**Two runs never overlap.**
+Each run holds a lock for the whole run, and a second run waits.
+Recovery takes whatever an earlier run left for its own, so a second run
+started in the middle of a first could finish or undo half of it.
+The lock is a file of its own, `.cairn-move-lock` in the family folder's
+`steamapps/`, which the first run makes so that only Guardians can open
+it.
+A lock needs only an opened file, and every account can open the family
+folder's folders, so a lock on a folder would let a child hold it and
+keep a Save waiting.
+A link under the lock's name is never followed, and anything there but
+a plain file gives `failed` for every game.
+
+**A failed rename is undone so that no later run finishes it.**
+If the copy or the family manifest cannot take its name, the copy goes
+back into the run's own folder if it can, and the temporary family
+manifest is removed.
+Only then does the set-aside manifest go back.
+If the temporary manifest cannot be removed, everything stays as a kill
+would leave it, and the next run finishes the move.
+SIGTERM and SIGHUP wait from step 3 to the end of step 4, as Ctrl-C
+does.
+
+**Recovery keeps any install Steam made meanwhile.**
+
+- An original goes only when the family folder has both the game's
+  manifest and its folder. A family manifest without the folder, as when
+  another Guardian's Steam starts an install there, keeps the original
+  and its set-aside manifest.
+- A temporary family manifest beside a family manifest goes alone, so
+  the family folder's own install of the game is never touched.
+- When this Guardian's Steam has the game installed again, Steam's copy
+  stays. A move whose copy has its full name is then undone, not
+  finished: the copy takes a name the clean-up removes, and only then
+  does its temporary manifest go, so no copy is left without a manifest
+  to block the game with `exists`. Once the family manifest has its
+  name, the original stays too, and the game is in two libraries.
+
+**Which games.**
+The family folder's `downloading/` counts as well as the game's own
+library's, since the copy step looks there.
+One of Steam's own tools never moves, since kidscan does not count it as
+a game: it is `not-found`.
+A game installed in two of the Guardian's libraries does not move, since
+it would stay installed in the other: it is `failed`.
+
+**Steam open.**
+The step asks at its start, before the lists are written, before each
+game's copy, and right before the set-aside.
+With Steam open nothing moves and no list is written, recovery included.
+A `/proc` it cannot list counts as Steam open.
+
+**What the reasons cover.**
+`not-found` is also a manifest that cannot be read, names another appid,
+or names one of Steam's tools.
+`not-installed` is also a game whose folder is missing, a link or a
+file.
+`no-shared` is also a family folder this account cannot change.
+`unreadable-config` also covers the family folder's marker.
+`failed` is also a manifest Steam changed during the copy, and a game in
+two of the Guardian's libraries.
+
+Tested in Python, in `provision/tests/test_share_games.py`: a move ended
+at each of its 72 changes to the disk, and a recovery ended at each of
+its own changes from each point a move can be ended at, each by a kill in
+a child process, and then the next run.
+Other tests hold each rule above, the lock's file and its hold through a
+whole run, SIGTERM and SIGHUP after the set-aside, and every reason.
+The step first ran in the VM on 2026-11-01 ("First run", above), and
+check 4 now also looks at the group's mask.
