@@ -533,9 +533,9 @@ writable `/usr`, and Test Guardian's wallet opened by a password login:
 - Each time Family came back to the front after one of kwalletd's boxes,
   the box after Cancel included, its page scrolled up to **Change
   password**, which has the keyboard, so the card's words were a scroll
-  below. This was fixed after the check: when Family comes back to the
-  front, on any of its pages, the page now stays where it was, and the
-  keyboard comes back to the item it was on.
+  below. This was fixed after the check: on any of Family's pages, when
+  the window comes back to the front with the keyboard on the item it
+  was on, the page now stays where it was.
 - A re-check on 2026-11-01, with a Release build of the fix, saw the
   page stay where it was each time one of kwalletd's boxes closed, the
   box after Cancel included. Between the box asking for the wallet's
