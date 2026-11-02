@@ -334,8 +334,10 @@ ssh -t cairn-min 'cd cairn && sudo ./provision/cairn-family-setup.sh --guardian 
 ssh cairn-min sudo systemctl restart sddm
 ```
 
-A VM that was provisioned by hand first needs `cairn-guardian` renumbered,
-before the switch: `provision/README.md`, "Renumbering cairn-guardian".
+A VM that was provisioned by hand needs the whole move the kids' laptop
+needs, from renumbering `cairn-guardian` before the switch to a last
+restart: `provision/README.md`, "What the kids' laptop's move will need".
+The test VM rehearsed it on 2026-11-02.
 
 To try the Guardian tool (ADR-0040), log in at the VM's own screen as the
 Guardian and open "Family" from the menu. Each change asks for the

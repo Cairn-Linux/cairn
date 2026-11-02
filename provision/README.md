@@ -349,15 +349,18 @@ working afterwards. Each deployment has its own `/etc`, and they share
 Not done yet; only the maintainer runs these, on the laptop.
 They were rehearsed on 2026-11-02 in the test VM, from a Bazzite set up
 by hand like the laptop to the image built from e005b7a, and the list
-below is the one that worked there.
+below has what that rehearsal found.
+The VM ran every step, but steps 6 and 7 found nothing to put right
+there, so step 6's copy and step 7's added rule are untried.
 The image does not record its commit, so note the commit beside the
 image.
 
 First, keep what must not be lost, and get ready:
 
 - Copy the children's saves off the computer: each game's `Saves/`
-  folder, and each Windows game's
-  `steamapps/compatdata/*/pfx/drive_c/users/steamuser`.
+  folder, each Windows game's
+  `steamapps/compatdata/*/pfx/drive_c/users/steamuser`, and Tux Paint's
+  and GCompris's folders in `~/.var/app`.
 - Take a read-only snapshot of every home, which takes a second and no
   room: `sudo btrfs subvolume snapshot -r /var/home /var/home-before-cairn`.
 - Keep a copy of `/usr/local` for the way back (below):
@@ -371,6 +374,8 @@ First, keep what must not be lost, and get ready:
   A checkout from before 2026-10-21 has neither script below.
 - Load the image into root's container storage, for example
   `podman save localhost/cairn:dev | ssh HOST 'sudo podman load'`.
+  The image takes ssh's input, so sudo there must not ask for a
+  password; the laptop's leftover sudoers file allows that until step 8.
   Reading a pipe, `podman load` keeps a second copy in `/var/tmp` while
   it runs, so leave twice the image's 12 GB free, and about 8 GB more for
   step 3.
@@ -430,7 +435,8 @@ own groups.
     On the image each child's tiles come from their own list, so after
     the move no child has a game tile, though every copy and save is
     still in their Steam.
-    The Save copies only what a child lacks.
+    The Save copies only what a child lacks, and a game left off keeps
+    its copy and its saves; it only has no tile (ADR-0041).
 
 The rehearsal took about 20 minutes from the group check to the last
 restart, besides copying the image.
