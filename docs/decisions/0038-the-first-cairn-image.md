@@ -479,10 +479,22 @@ own logo from `ID_LIKE`.
 
 **Labels.** The image's title, description, URLs, vendor and licence
 name Cairn; the revision, creation date and Artifact Hub labels are
-emptied, since they named Bazzite's commit, date and logo. The version
-label stays the base's build, which `bootc status` shows, until P1-3
-gives Cairn versions of its own. `containers.bootc` and the `ostree.*`
-labels stay, because bootc reads them.
+emptied, since they named Bazzite's commit, date and logo.
+`containers.bootc` and the `ostree.*` labels stay, because bootc reads
+them.
+The version label stayed the base's build until 2026-11-02, and is now
+emptied too.
+Since then the build names the commit and Cairn's version, which
+`bootc status` shows, with `podman build --label`, as image-template's
+Justfile names its own.
+`docs/DEVELOPMENT.md` passes the commit and `dev.<date>-<short commit>`,
+image-template's own version form with `dev` as the tag; how published
+images are numbered is P1-3's.
+Build arguments were tried first: podman reused the cached `LABEL` step
+when only an argument's value had changed, so a second build kept the
+first one's labels.
+A plain `podman build` leaves both empty, so the image never shows
+Bazzite's commit or version as its own.
 
 **Licence texts.** `LICENSE`, `LICENSE-CC-BY-SA-4.0`, `NOTICE` and
 `TRADEMARKS.md` go in `/usr/share/licenses/cairn/`, so the mark travels
@@ -798,9 +810,10 @@ pass (ADR-0031).
   keep their numbers.
 - The family's setup runs from a checkout of the commit the image was
   built from. A checkout-free way waits for the first-boot wizard.
-- The image calls itself Cairn Linux, with `ID=cairn`, and still reports
-  Fedora's release as its version. Cairn's own version numbers wait for
-  P1-3.
+- The image calls itself Cairn Linux, with `ID=cairn`, and `os-release`
+  still reports Fedora's release as its version. The image's version
+  label is Cairn's own when the build is given one (2026-11-02); how
+  published images are numbered waits for P1-3.
 - A base update that adds a Bazzite logo, menu entry, autostart or
   terminal file stops the build at the slice-5 check, until it is removed
   or named there.

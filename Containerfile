@@ -61,10 +61,15 @@ RUN --mount=type=tmpfs,dst=/tmp \
 # The image.
 FROM ${BASE_IMAGE}
 
-# The base's labels name Bazzite. bootc shows the version label, which
-# stays the base's build until Cairn has versions of its own (P1-3);
-# containers.bootc and the ostree labels stay as they are, because bootc
-# reads them.
+# The base's labels name Bazzite. Whoever builds the image names the
+# commit it was built from and Cairn's version, which `bootc status`
+# shows, with `podman build --label`, as image-template's Justfile does
+# (docs/DEVELOPMENT.md, "Building the image"). Not with build arguments:
+# podman reuses a cached LABEL step when only an argument's value has
+# changed, so the image would keep an older build's commit. A plain build
+# leaves both empty, so the image never shows Bazzite's commit or version
+# as its own. containers.bootc and the ostree labels stay as they are,
+# because bootc reads them.
 LABEL org.opencontainers.image.title="Cairn Linux" \
       org.opencontainers.image.description="A computer that grows with your child." \
       org.opencontainers.image.url="https://github.com/Cairn-Linux/cairn" \
@@ -72,6 +77,7 @@ LABEL org.opencontainers.image.title="Cairn Linux" \
       org.opencontainers.image.vendor="Cairn Linux" \
       org.opencontainers.image.licenses="Apache-2.0 AND CC-BY-SA-4.0" \
       org.opencontainers.image.revision="" \
+      org.opencontainers.image.version="" \
       org.opencontainers.image.created="" \
       io.artifacthub.package.readme-url="" \
       io.artifacthub.package.logo-url=""
