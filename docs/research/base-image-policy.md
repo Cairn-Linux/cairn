@@ -110,6 +110,9 @@ with non-Fedora or modified Fedora Materials"):
   rather than removing the package, and record that choice in the ADR.
   *Done 2026-10-21 (ADR-0038, slice 5)* with `generic-logos`, which stays
   registered in rpm. `fedora-release-notes` is not in the base.
+  *Still open, seen 2026-11-02:* a plain `fastfetch` draws its own copy
+  of Fedora's logo beside "OS: Cairn Linux", because it picks a logo from
+  `ID_LIKE=fedora` when it has none for `ID=cairn`.
 - [ ] **Display the Fedora notice** where the OS identifies itself (About
   screen, website download page, docs): not provided or supported by the
   Fedora Project; official Fedora is at https://fedoraproject.org/.

@@ -67,8 +67,8 @@ FROM ${BASE_IMAGE}
 # (docs/DEVELOPMENT.md, "Building the image"). Not with build arguments:
 # podman reuses a cached LABEL step when only an argument's value has
 # changed, so the image would keep an older build's commit. A plain build
-# leaves both empty, so the image never shows Bazzite's commit or version
-# as its own. containers.bootc and the ostree labels stay as they are,
+# leaves both empty, so the labels never give Bazzite's commit or version
+# as Cairn's. containers.bootc and the ostree labels stay as they are,
 # because bootc reads them.
 LABEL org.opencontainers.image.title="Cairn Linux" \
       org.opencontainers.image.description="A computer that grows with your child." \
