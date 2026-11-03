@@ -12,7 +12,11 @@ under "What comes later" is withdrawn: the Guardian's per-child game
 allowlist stays); ADR-0048, proposed (the helper's `--update` mode runs
 the child's Steam in a headless cage and reads its logs and manifests as
 the child, a visit is refused `updating` meanwhile, and every mode first
-clears what a killed update left)
+clears what a killed update left); ADR-0049, proposed (it is the "What
+comes later" item for what the grown-up screen tells a grown-up: a
+refused sign-in adds "Log out, then a grown-up can fix it from their own
+login.", `docs/TRY.md` gives the steps, and the in-session step-in stays
+#88)
 
 ## Context
 
