@@ -15,7 +15,12 @@ compares it with the checkout); ADR-0043, proposed (the build leaves
 only KDE's own pictures in /usr/share/plasma/avatars and removes
 Bazzite's copies of game art from /usr/share/pixmaps/faces); ADR-0042,
 proposed (the build installs the move step, cairn-share-games, in
-/usr/libexec/cairn)
+/usr/libexec/cairn); ADR-0050, proposed (slice 6: the ISO comes from an
+installer image Cairn builds on Fedora's bootc image, with Cairn's art,
+through image-builder's generic ISO type rather than anaconda-iso;
+iso.toml becomes a kickstart that lorax's mkksiso adds to the finished
+ISO, and an Anaconda profile; the kickstart queues Universal Blue's
+Secure Boot key)
 
 ## Context
 
