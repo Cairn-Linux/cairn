@@ -3,6 +3,10 @@
 **Status:** accepted
 **Date:** 2026-09-03
 **Closes:** ROADMAP D4
+**Amended by:** ADR-0050, proposed (Cairn's installer is an image of its
+own, built on Fedora's bootc image rather than on Bazzite, with Cairn's
+installer artwork and no Fedora art; the system it installs stays
+Bazzite's, and the installer queues Universal Blue's Secure Boot key)
 
 ## Context
 
