@@ -163,17 +163,37 @@ submodule present, since the build reads the checkout and not git:
 
 ```sh
 git submodule update --init
-podman build -t localhost/cairn:dev .
+podman build -t localhost/cairn:dev \
+  --label org.opencontainers.image.revision="$(git rev-parse HEAD)" \
+  --label org.opencontainers.image.version="dev.$(date +%Y%m%d)-$(git rev-parse --short HEAD)" \
+  .
+```
+
+The two labels say which Cairn the image is.
+`org.opencontainers.image.revision` is the commit it was built from.
+`org.opencontainers.image.version` is what `bootc status` shows on a
+computer that runs the image.
+`dev.20261102-e005b7a` says a development build, the day it was built and
+its commit, in image-template's own form with `dev` as the tag (P1-3).
+A label given with `--label` changes only the finished image, so every
+step of the build stays cached.
+Build an image you will give away from a checkout with no changes, where
+`git status --short` prints nothing; otherwise the labels name a commit
+the image does not quite match.
+A plain `podman build -t localhost/cairn:dev .` still works and leaves
+both labels empty.
+To read them back:
+
+```sh
+podman image inspect --format '{{index .Labels "org.opencontainers.image.version"}} {{index .Labels "org.opencontainers.image.revision"}}' localhost/cairn:dev
 ```
 
 Rootless podman is enough. A build from an already pulled Bazzite
 base takes 3 to 4 minutes on the dev PC, most of it compiling and the
 tests. Later builds reuse the layer with the build tools, and an edit to the
-docs or to `build.sh` reuses the compiled tree too. The image is the base's
-11.6 GB plus about 420 MB, most of it ScummVM; Cairn itself is about
-2 MB. The build stops if a test fails, if Fedora's Qt headers are not
-exactly the Qt the base ships, or if `bootc container lint` warns about
-anything.
+docs or to `build.sh` reuses the compiled tree too. The build stops if a
+test fails, if Fedora's Qt headers are not exactly the Qt the base ships,
+or if `bootc container lint` warns about anything.
 
 The final stage layers the packages Cairn needs (`build_files/packages.sh`),
 copies Cairn's tree in, then sets the image up to boot into Cairn
@@ -191,6 +211,17 @@ podman run --rm localhost/cairn:dev rpm -V sddm
 The first prints `enabled` then `disabled`. `rpm -V sddm` lists
 `/etc/pam.d/sddm` as changed, which is Cairn's file, and `/run/sddm` as
 missing, which systemd makes at boot.
+
+The image is the base's 11.6 GB plus about 679 MB, as measured on
+2026-11-03 (#262). The packages `packages.sh` adds are a layer of
+394 MB, most of it ScummVM. Cairn's own programs are a layer of 5.5 MB.
+The layer `build.sh` makes is 279 MB, 254 MB of it the initramfs built
+again for the boot screen (ADR-0044, "The image's size"). A layer that
+changes a file stores the whole new file, and the old one stays in the
+layer below. So the image carries the base's initramfs as well as
+Cairn's, and the base's rpm database as well as the one `packages.sh`
+leaves. P1-3 brings image-template's rechunk step, and the image and one
+update's download are measured again then.
 
 The image calls itself Cairn Linux and carries the Cairn mark (slice 5).
 `build_files/check-name-and-logos.sh` runs as its own step before the
@@ -383,6 +414,13 @@ does not reach podman's storage.
 
 ## Building the installer
 
+ADR-0050 (proposed) replaces what this section describes with an
+installer image Cairn builds, made into the ISO by image-builder's
+generic ISO type.
+lorax's `mkksiso` then adds a kickstart that queues Universal Blue's
+Secure Boot key.
+Until its third slice lands, the ISO is made as below.
+
 The installer ISO is made from `localhost/cairn:dev` by
 bootc-image-builder, with the settings in `disk_config/iso.toml`
 (ADR-0038, slice 6). The builder needs root, so build the image first
@@ -398,7 +436,8 @@ It copies the image into root's storage, unless root already has that
 exact image, runs the builder pinned in `cairn.env`, and gives the result
 back to you. It writes `output/bootiso/install.iso`, a `.sha256` beside
 it, the builder's plan as `output/manifest-anaconda-iso.json`, and its own
-log as `output/build-iso.log`. The last lines name the ISO and its size.
+log as `output/build-iso.log`. The last lines name the ISO and its size,
+and the Cairn version and commit from the image's labels.
 It needs the internet, since the builder downloads Anaconda's packages
 from the image's own repositories. Allow about 60 GB free while it runs:
 root's copy of the image is 12 GB and stays, and the builder's working

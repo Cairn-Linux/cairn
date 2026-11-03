@@ -3,6 +3,11 @@
 **Status:** accepted
 **Date:** 2026-09-03
 **Closes:** ROADMAP D4
+**Amended by:** ADR-0050, proposed (Cairn's installer is an image of its
+own, built on Fedora's bootc image rather than on Bazzite, with Cairn's
+installer artwork and no Fedora art; the system it installs stays
+Bazzite's, with Bazzite's kernel, so the installer queues Universal
+Blue's Secure Boot key)
 
 ## Context
 
@@ -33,8 +38,8 @@ encouraged path, and the only rules concern their names and marks.
   notice, ship our own installer artwork, attribute Bazzite and Universal
   Blue in `NOTICE`.
 - **Lineage is stated in prose only:** "Cairn Linux is built on Bazzite, a
-  Universal Blue image derived from Fedora." Never their names or marks in
-  Cairn's identity, never their support channels in Cairn's UI or docs.
+  Universal Blue image derived from Fedora Linux." Never their names or marks
+  in Cairn's identity, never their support channels in Cairn's UI or docs.
 - **Fallback** if Bazzite ever becomes unworkable: `kinoite-main` with Steam
   layered, which shares the Plasma base and most of the Containerfile.
 
