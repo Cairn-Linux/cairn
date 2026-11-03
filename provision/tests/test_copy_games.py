@@ -395,6 +395,32 @@ class ConditionsTest(CopyTestCase):
         for path in kept:
             self.assertEqual(path.read_bytes(), b"keep", path.name)
 
+    @needs_not_root
+    def test_a_leftover_whose_folders_its_owner_cannot_write_goes_too(self):
+        # A copy keeps the shared folder's modes, so the child is let into
+        # each of its folders first, never through a link (#250).
+        common = self.machine.library / "common"
+        leftover = common / ".cairn-copy-100"
+        (leftover / "Saves").mkdir(parents=True)
+        (leftover / "Saves" / "steam_autocloud.vdf").write_bytes(b"marker")
+        (leftover / "data").mkdir()
+        (leftover / "data" / "level1.dat").write_bytes(b"level")
+        elsewhere = self.machine.root / "elsewhere"
+        (elsewhere / "inner").mkdir(parents=True)
+        (leftover / "Saves" / "elsewhere").symlink_to(elsewhere)
+        (leftover / "data").chmod(0o000)
+        outside = [elsewhere / "inner", elsewhere]
+        for folder in [leftover / "Saves", leftover, *outside]:
+            folder.chmod(0o555)
+        try:
+            self.assertEqual(self.machine.run(), [], self.machine.stderr)
+            self.assertEqual(self.machine.code, 0)
+            self.assertEqual(list(common.iterdir()), [])
+            self.assertEqual([stat.S_IMODE(folder.stat().st_mode) for folder in outside], [0o555, 0o555])
+        finally:
+            for folder in reversed(outside):
+                folder.chmod(0o755)
+
     def test_refuses_to_run_as_root(self):
         module = self.machine.load()
         self.machine.add_game(100)
@@ -740,24 +766,12 @@ def without_markers(files):
     return {name: content for name, content in files.items() if pathlib.PurePath(name).name != "steam_autocloud.vdf"}
 
 
-def failing_for_markers(real_unlink):
-    """A stand-in for os.unlink that cannot remove a marker by its path, as
-    in a folder that cannot be written. shutil.rmtree's removals by folder
-    descriptor still work."""
-    def unlink(path, *arguments, **keywords):
-        if "dir_fd" not in keywords and pathlib.PurePath(path).name == "steam_autocloud.vdf":
-            raise OSError("read-only")
-        real_unlink(path, *arguments, **keywords)
-    return unlink
-
-
 class CloudMarkerTest(CopyTestCase):
     """Steam Cloud's marker, steam_autocloud.vdf, names the Steam account
     whose saves a folder holds. A child's copy leaves out the shared
-    folder's, at every depth, so the child's own Steam writes its own. In a
-    game the child has already, a marker goes only while it is byte for byte
-    the shared folder's in the same place, as a copy made before then left
-    it (#250)."""
+    folder's, at every depth, so that the child's own Steam can write its
+    own. In a game the child has already, a marker goes only while it is
+    byte for byte the shared folder's in the same place (#250)."""
 
     place = REFLINK_PLACE
 
@@ -780,12 +794,9 @@ class CloudMarkerTest(CopyTestCase):
         (self.machine.library / "appmanifest_100.acf").write_bytes(manifest(100))
         return copy
 
-    def copy_with_a_stand_in(self, **parts):
+    def copy_with_a_stand_in(self):
         module = self.machine.load()
-        with contextlib.ExitStack() as stack:
-            stack.enter_context(mock.patch.object(module, "reflink_copy", CopyTest.copy_tree))
-            for name, value in parts.items():
-                stack.enter_context(mock.patch.object(module.os, name, value))
+        with mock.patch.object(module, "reflink_copy", CopyTest.copy_tree):
             return self.machine.run_in_process(module)
 
     @needs_reflink
@@ -830,13 +841,25 @@ class CloudMarkerTest(CopyTestCase):
         self.assertEqual(files_of(elsewhere), {"steam_autocloud.vdf": GROWN_UPS_MARKER, "folder/kept": b"kept"})
         self.assertTrue((source / "Saves" / "steam_autocloud.vdf").is_symlink())
 
+    @needs_reflink
+    @needs_not_root
     def test_a_marker_that_cannot_be_left_out_keeps_the_game_from_the_child(self):
-        # A copy that still holds one never reaches the child.
-        self.add_game_with_markers()
-        code, lines = self.copy_with_a_stand_in(unlink=failing_for_markers(os.unlink))
-        self.assertEqual((code, lines), (0, ["skipped 100 copy-failed"]))
-        self.assertEqual(sorted(path.name for path in self.machine.library.iterdir()), ["common"])
-        self.assertEqual(list((self.machine.library / "common").iterdir()), [])
+        # A copy that still holds one never reaches the child. The copy's
+        # Saves keeps the shared folder's mode, so the child cannot write in
+        # it, and neither the marker nor the copy can go until the child is
+        # let in. Each run says so, and leaves nothing for the next.
+        source = self.add_game_with_markers()
+        shared = files_of(source)
+        (source / "Saves").chmod(0o555)
+        try:
+            for _ in range(2):
+                self.assertEqual(self.machine.run(), ["skipped 100 copy-failed"], self.machine.stderr)
+                self.assertEqual(self.machine.code, 0)
+                self.assertEqual(sorted(path.name for path in self.machine.library.iterdir()), ["common"])
+                self.assertEqual(list((self.machine.library / "common").iterdir()), [])
+        finally:
+            (source / "Saves").chmod(0o755)
+        self.assertEqual(files_of(source), shared)
 
     def test_an_earlier_copys_marker_goes_at_the_next_run(self):
         source = self.add_game_with_markers()
@@ -905,13 +928,21 @@ class CloudMarkerTest(CopyTestCase):
         self.assertEqual(self.machine.run("--only", "100"), ["have 100"])
         self.assertEqual(files_of(copy), without_markers(files_of(source)))
 
+    @needs_not_root
     def test_an_earlier_marker_that_cannot_be_removed_stays_and_the_run_goes_on(self):
+        # The child cannot write in their copy's Saves, where the marker is.
         source = self.add_game_with_markers()
         copy = self.earlier_copy(source)
         self.machine.add_game(200, "Second")
-        code, lines = self.copy_with_a_stand_in(unlink=failing_for_markers(os.unlink))
+        (copy / "Saves").chmod(0o555)
+        try:
+            code, lines = self.copy_with_a_stand_in()
+        finally:
+            (copy / "Saves").chmod(0o755)
         self.assertEqual((code, lines), (0, ["have 100", "copied 200"]))
-        self.assertEqual(files_of(copy), files_of(source))
+        # The markers in the folders the child can write in still go.
+        self.assertEqual(files_of(copy), {**without_markers(files_of(source)),
+                                          "Saves/steam_autocloud.vdf": GROWN_UPS_MARKER})
 
 
 SCOUT = {"appid": "1070560", "installdir": "SteamLinuxRuntime", "name": "Steam Linux Runtime 1.0 (scout)",

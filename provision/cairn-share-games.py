@@ -21,8 +21,8 @@ game on another drive stays where it is. Its Wine prefix, shader cache and
 workshop items stay in the old library, and nothing ever moves back. Steam
 Cloud's marker, steam_autocloud.vdf, does not move from anywhere in the
 game's folder: it names the Guardian's Steam account, and goes with the
-original folder (#250). A game already in the family folder is left as it
-is, marker and all.
+original folder (#250). A copy that keeps one is thrown away. A game
+already in the family folder is left as it is, marker and all.
 
 A move keeps ADR-0042's order. The game's folder is copied into a folder of
 this run's own in the family's steamapps/common, the copy loses Steam
@@ -80,7 +80,8 @@ REASON is one word:
     no-shared          there is no family folder this account may change
     unreadable-config  a library list, or the family folder's marker,
                        could not be read or written
-    failed             anything else: the copy failed, Steam changed the
+    failed             anything else: the copy failed or kept a Steam
+                       Cloud marker it could not lose, Steam changed the
                        manifest meanwhile, or the game is in two of the
                        Guardian's libraries
 
@@ -194,6 +195,36 @@ def remove(path):
             os.unlink(path)
         except FileNotFoundError:
             pass
+
+
+def let_the_owner_in(folder):
+    """Gives a real folder and each real folder in it the owner's read,
+    write and search bits, never through a link. A copy's folders keep the
+    modes of the game's, and a folder its owner cannot write cannot be
+    emptied."""
+    os.chmod(folder, stat.S_IMODE(os.lstat(folder).st_mode) | stat.S_IRWXU)
+    for top, folders, _ in os.walk(folder):
+        for name in folders:
+            path = os.path.join(top, name)
+            # os.walk lists a link to a folder among the folders.
+            if is_real_folder(path):
+                os.chmod(path, stat.S_IMODE(os.lstat(path).st_mode) | stat.S_IRWXU)
+
+
+def remove_own_folder(path):
+    """A real folder this program made in the family's common/, with all it
+    holds, as far as this account can remove it. When a folder its owner
+    cannot write stops the removal, the owner is let in and it is tried
+    once more. Another Guardian's own folder, which this account cannot
+    change, stays for their next run."""
+    shutil.rmtree(path, ignore_errors=True)
+    if not is_real_folder(path):
+        return
+    try:
+        let_the_owner_in(path)
+    except OSError:
+        pass
+    shutil.rmtree(path, ignore_errors=True)
 
 
 def sync_folder(path):
@@ -583,7 +614,7 @@ def move(game, family, scratch, proc):
     finally:
         # Only ever this run's own copy, still in this run's own folder.
         if is_real_folder(copy):
-            shutil.rmtree(copy, ignore_errors=True)
+            remove_own_folder(copy)
         if written and not placing:
             unlink_quietly(temporary)
 
@@ -847,7 +878,7 @@ def recover(family, found, steam):
         if entry.name.startswith(SCRATCH_PREFIX):
             if entry.is_dir(follow_symlinks=False):
                 # Another Guardian's own folder waits for their next run.
-                shutil.rmtree(entry.path, ignore_errors=True)
+                remove_own_folder(entry.path)
             else:
                 unlink_quietly(entry.path)
     for path in (steam / "config" / LIST_NEW, steam / "steamapps" / LIST_NEW, family.root / MARKER_NEW):

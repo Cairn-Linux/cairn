@@ -36,8 +36,8 @@ import tempfile
 import unittest
 from unittest import mock
 
-from test_copy_games import (GROWN_UPS_MARKER, LIKE_THE_MARKER, MARKERS, NO_REFLINK, REFLINK_PLACE,
-                             failing_for_markers, needs_not_root, needs_reflink, reflinks, without_markers)
+from test_copy_games import (GROWN_UPS_MARKER, LIKE_THE_MARKER, MARKERS, NO_REFLINK, REFLINK_PLACE, needs_not_root,
+                             needs_reflink, reflinks, without_markers)
 
 HERE = pathlib.Path(__file__).resolve().parent
 PROGRAM = HERE.parent / "cairn-share-games.py"
@@ -710,14 +710,20 @@ class CloudMarkerTest(MoveTestCase):
                          (0, ["library added", "moved 100"]))
         self.assertEqual(seen, [without_markers(contents(GAME_WITH_MARKERS))])
 
+    @needs_not_root
     def test_a_marker_that_cannot_be_left_out_moves_nothing(self):
+        # The copy's Saves keeps the game's mode, so the Guardian cannot
+        # write in it, and neither the marker nor the copy can go until the
+        # Guardian is let in. Each run says so, and leaves nothing behind.
         folder = self.machine.add_game(100, files=GAME_WITH_MARKERS)
-        self.assertEqual(self.machine.run_with_stand_in("100", calls={"unlink": failing_for_markers(os.unlink)}),
-                         (0, ["library added", "not-moved 100 failed"]))
-        self.assertEqual(files_of(folder), contents(GAME_WITH_MARKERS))
-        self.assertEqual((self.machine.library / "appmanifest_100.acf").read_bytes(), manifest(100))
-        self.assertEqual(sorted(path.name for path in self.machine.shared.iterdir()), [".cairn-move-lock", "common"])
-        self.assertEqual(list((self.machine.shared / "common").iterdir()), [])
+        (folder / "Saves").chmod(0o555)
+        for listed in ("library added", "library had"):
+            self.assertEqual(self.machine.run_with_stand_in("100"), (0, [listed, "not-moved 100 failed"]))
+            self.assertEqual(files_of(folder), contents(GAME_WITH_MARKERS))
+            self.assertEqual((self.machine.library / "appmanifest_100.acf").read_bytes(), manifest(100))
+            self.assertEqual(sorted(path.name for path in self.machine.shared.iterdir()),
+                             [".cairn-move-lock", "common"])
+            self.assertEqual(list((self.machine.shared / "common").iterdir()), [])
 
     def test_a_game_already_in_the_family_folder_keeps_its_marker(self):
         # As after the Guardian played it there, on the test VM: Steam wrote
@@ -1343,6 +1349,52 @@ class InterruptedTest(MoveTestCase):
         for path in kept:
             self.assertEqual(path.read_bytes(), b"keep", path.name)
         self.assertOnlyInOwnLibrary()
+
+    @needs_not_root
+    def test_recovery_removes_a_copy_whose_folders_its_owner_cannot_write(self):
+        # A copy keeps the game's modes, so the Guardian is let into each of
+        # its folders first, never through a link (#250).
+        self.machine.add_game(100)
+        copy = self.scratch() / "100"
+        (copy / "Saves").mkdir(parents=True)
+        (copy / "Saves" / "steam_autocloud.vdf").write_bytes(GROWN_UPS_MARKER)
+        (copy / "data").mkdir()
+        (copy / "data" / "level1.dat").write_bytes(b"level")
+        notes = self.machine.home / "notes"
+        (notes / "inner").mkdir(parents=True)
+        (copy / "Saves" / "notes").symlink_to(notes)
+        (copy / "data").chmod(0o000)
+        outside = [notes / "inner", notes]
+        for folder in [copy / "Saves", copy, *outside]:
+            folder.chmod(0o555)
+        self.assertNextRunSaysNothing()
+        self.assertEqual(list((self.machine.shared / "common").iterdir()), [])
+        self.assertEqual([stat.S_IMODE(folder.stat().st_mode) for folder in outside], [0o555, 0o555])
+        self.assertOnlyInOwnLibrary()
+
+    @needs_not_root
+    def test_another_guardians_own_folder_stays_and_the_run_goes_on(self):
+        # This account can neither enter their folder nor change its mode,
+        # and it waits for their next run.
+        self.machine.add_game(100)
+        theirs = self.machine.shared / "common" / ".cairn-move-x7k2m9p4"
+        (theirs / "100").mkdir(parents=True)
+        theirs.chmod(0o000)
+        real_chmod = os.chmod
+
+        def chmod(path, *arguments, **keywords):
+            if pathlib.Path(path) == theirs:
+                raise PermissionError("not the owner")
+            real_chmod(path, *arguments, **keywords)
+
+        try:
+            self.assertEqual(self.machine.run_with_stand_in("100", calls={"chmod": chmod}),
+                             (0, ["library added", "moved 100"]))
+        finally:
+            theirs.chmod(0o755)
+        self.assertEqual(sorted(path.name for path in (self.machine.shared / "common").iterdir()),
+                         [".cairn-move-x7k2m9p4", "A Game"])
+        self.assertTrue((theirs / "100").is_dir())
 
 
 class LibraryListTest(MoveTestCase):
