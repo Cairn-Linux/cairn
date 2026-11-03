@@ -463,10 +463,10 @@ Decision says.
   removed stays, and the step still says `have APPID`.
   Nothing else in a child's copy ever changes.
   On the kids' laptop provisioning copies every game at every run, so
-  its children's copies lose the marker at the first run with this
+  its children's copies lose such a marker at the first run with this
   change.
   On the image a Save copies only the games newly on a child's list, so
-  a copy there loses it when its game comes back onto that child's list
+  a copy there loses one when its game comes back onto that child's list
   (ADR-0041's section of this date).
 - **The shared folder keeps its own.**
   The grown-up's Steam wrote it there for its own use, and Cairn never
