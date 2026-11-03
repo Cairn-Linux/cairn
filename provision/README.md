@@ -446,7 +446,8 @@ a Guardian made on Bazzite may still see Bazzite Portal at login.
 The way back is `sudo rpm-ostree rollback`, then a restart;
 `bootc rollback` refuses a deployment with rpm-ostree packages.
 The old system's login screen then has no session to start, because
-step 4 removed it: restore the copy with
+step 4 removed it.
+From a text console (Ctrl+Alt+F3) or over ssh, restore the copy with
 `sudo tar -C /var -xpf ~/usrlocal-before-cairn.tar`, run
 `sudo restorecon -R /var/usrlocal`, then `sudo systemctl restart sddm`.
 

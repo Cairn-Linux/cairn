@@ -1,7 +1,7 @@
 # Cairn Linux — Roadmap and working plan
 
 **Status:** living document
-**Last updated:** 2026-10-21
+**Last updated:** 2026-11-02
 (D1–D8, D11–D14 closed; D15 deferred)
 
 `DESIGN.md` is the specification. This document is the plan for building it:
