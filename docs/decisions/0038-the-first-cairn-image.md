@@ -479,10 +479,24 @@ own logo from `ID_LIKE`.
 
 **Labels.** The image's title, description, URLs, vendor and licence
 name Cairn; the revision, creation date and Artifact Hub labels are
-emptied, since they named Bazzite's commit, date and logo. The version
-label stays the base's build, which `bootc status` shows, until P1-3
-gives Cairn versions of its own. `containers.bootc` and the `ostree.*`
-labels stay, because bootc reads them.
+emptied, since they named Bazzite's commit, date and logo.
+`containers.bootc` and the `ostree.*` labels stay, because bootc reads
+them.
+The version label stayed the base's build until 2026-11-02, and is now
+emptied too.
+Since then the build names the commit and Cairn's version, which
+`bootc status` shows, with `podman build --label`, as image-template's
+Justfile names its own.
+`docs/DEVELOPMENT.md` passes the commit and `dev.<date>-<short commit>`,
+image-template's own version form with `dev` as the tag; how published
+images are numbered is P1-3's.
+Build arguments were tried first: podman reused the cached `LABEL` step
+when only an argument's value had changed, so a second build kept the
+first one's labels.
+A plain `podman build` leaves both empty, so the labels never give
+Bazzite's commit or version as Cairn's.
+`os-release` still carries the base's build as `OSTREE_VERSION`, for
+the reason in the table above.
 
 **Licence texts.** `LICENSE`, `LICENSE-CC-BY-SA-4.0`, `NOTICE` and
 `TRADEMARKS.md` go in `/usr/share/licenses/cairn/`, so the mark travels
@@ -586,9 +600,12 @@ Both planned cleanly, so the image's `ID=cairn` resolves through
   osbuild/image-builder; its old repository only packages it. Its
   `anaconda-iso` type, which image-template's disk workflow names, and
   `iso`, which its Justfile names, are one type. The source marks both as
-  legacy. The newer `bootc-installer` type needs Anaconda inside the image
-  itself, which would put the installer on every Cairn computer. Cairn
-  uses `anaconda-iso` until image-template moves.
+  legacy. The newer `bootc-installer` type takes its installer from a
+  container image with Anaconda in it, and the image to install from
+  `--installer-payload-ref`, so Cairn would build and keep a second
+  image just for the ISO. (Until 2026-11-02 this said it needs Anaconda
+  in Cairn's own image; the builder's source shows it does not.)
+  Cairn uses `anaconda-iso` until image-template moves.
 - **Pinned.** `cairn.env` names the builder by digest as `BIB_IMAGE`, the
   name image-template's Justfile reads. A new builder is a change made on
   purpose.
@@ -820,9 +837,10 @@ pass (ADR-0031).
   keep their numbers.
 - The family's setup runs from a checkout of the commit the image was
   built from. A checkout-free way waits for the first-boot wizard.
-- The image calls itself Cairn Linux, with `ID=cairn`, and still reports
-  Fedora's release as its version. Cairn's own version numbers wait for
-  P1-3.
+- The image calls itself Cairn Linux, with `ID=cairn`, and `os-release`
+  still reports Fedora's release as its version. The image's version
+  label is Cairn's own when the build is given one (2026-11-02); how
+  published images are numbered waits for P1-3.
 - A base update that adds a Bazzite logo, menu entry, autostart or
   terminal file stops the build at the slice-5 check, until it is removed
   or named there.

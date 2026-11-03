@@ -163,7 +163,29 @@ submodule present, since the build reads the checkout and not git:
 
 ```sh
 git submodule update --init
-podman build -t localhost/cairn:dev .
+podman build -t localhost/cairn:dev \
+  --label org.opencontainers.image.revision="$(git rev-parse HEAD)" \
+  --label org.opencontainers.image.version="dev.$(date +%Y%m%d)-$(git rev-parse --short HEAD)" \
+  .
+```
+
+The two labels say which Cairn the image is.
+`org.opencontainers.image.revision` is the commit it was built from.
+`org.opencontainers.image.version` is what `bootc status` shows on a
+computer that runs the image.
+`dev.20261102-e005b7a` says a development build, the day it was built and
+its commit, in image-template's own form with `dev` as the tag (P1-3).
+A label given with `--label` changes only the finished image, so every
+step of the build stays cached.
+Build an image you will give away from a checkout with no changes, where
+`git status --short` prints nothing; otherwise the labels name a commit
+the image does not quite match.
+A plain `podman build -t localhost/cairn:dev .` still works and leaves
+both labels empty.
+To read them back:
+
+```sh
+podman image inspect --format '{{index .Labels "org.opencontainers.image.version"}} {{index .Labels "org.opencontainers.image.revision"}}' localhost/cairn:dev
 ```
 
 Rootless podman is enough. A build from an already pulled Bazzite
@@ -398,7 +420,8 @@ It copies the image into root's storage, unless root already has that
 exact image, runs the builder pinned in `cairn.env`, and gives the result
 back to you. It writes `output/bootiso/install.iso`, a `.sha256` beside
 it, the builder's plan as `output/manifest-anaconda-iso.json`, and its own
-log as `output/build-iso.log`. The last lines name the ISO and its size.
+log as `output/build-iso.log`. The last lines name the ISO and its size,
+and the Cairn version and commit from the image's labels.
 It needs the internet, since the builder downloads Anaconda's packages
 from the image's own repositories. Allow about 60 GB free while it runs:
 root's copy of the image is 12 GB and stays, and the builder's working
