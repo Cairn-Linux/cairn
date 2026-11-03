@@ -137,7 +137,7 @@ trademark rights in the name "Cairn Linux" or the stacked-stones mark. See the
 ## Built on Bazzite
 
 Cairn Linux is built on Bazzite, a Universal Blue image derived from
-Fedora®.
+Fedora® Linux.
 Cairn Linux is not affiliated with, endorsed by, or supported by Bazzite,
 Universal Blue, Red Hat or the Fedora Project.
 The software Cairn Linux provides is not provided or supported by the
