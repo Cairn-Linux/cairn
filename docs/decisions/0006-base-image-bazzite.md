@@ -37,8 +37,8 @@ encouraged path, and the only rules concern their names and marks.
   notice, ship our own installer artwork, attribute Bazzite and Universal
   Blue in `NOTICE`.
 - **Lineage is stated in prose only:** "Cairn Linux is built on Bazzite, a
-  Universal Blue image derived from Fedora." Never their names or marks in
-  Cairn's identity, never their support channels in Cairn's UI or docs.
+  Universal Blue image derived from Fedora Linux." Never their names or marks
+  in Cairn's identity, never their support channels in Cairn's UI or docs.
 - **Fallback** if Bazzite ever becomes unworkable: `kinoite-main` with Steam
   layered, which shares the Plasma base and most of the Containerfile.
 

@@ -59,6 +59,10 @@ semanage fcontext -a -t etc_t '/run/cairn(/.*)?'
 # Cairn's name, mark and licence texts in place of Bazzite's (slice 5).
 /ctx/name-and-logos.sh
 
+# Bazzite extras Cairn does not use. So far its first-login step, which
+# ran a root step in every account, a child's included (#261).
+/ctx/bazzite-extras.sh
+
 # The Guardian's desktop in Cairn's frame (#166): so far, the mark on the
 # start-menu button.
 /ctx/guardian-desktop.sh

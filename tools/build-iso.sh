@@ -75,6 +75,12 @@ if [[ ${root_id} != "${user_id}" ]]; then
     exit 1
 fi
 
+# Which Cairn the installer holds: the version and commit the image was
+# built with (docs/DEVELOPMENT.md, "Building the image"). A plain podman
+# build leaves both empty.
+version=$(as_user podman image inspect --format '{{index .Labels "org.opencontainers.image.version"}}' "${image}")
+revision=$(as_user podman image inspect --format '{{index .Labels "org.opencontainers.image.revision"}}' "${image}")
+
 work=$(as_user mktemp -d -p "${out}" .bib.XXXXXXXXXX)
 keys=$(as_user mktemp -d -p "${out}" .keys.XXXXXXXXXX)
 trap 'rm -rf "${work}" "${keys}"' EXIT
@@ -113,3 +119,4 @@ set +x
 echo
 echo "The installer is ${out}/bootiso/install.iso, $(du -h install.iso | cut -f1)."
 echo "Built from ${image} (${user_id:0:12}) with ${config}."
+echo "Cairn version ${version:-(none)}, commit ${revision:-(none)}."
