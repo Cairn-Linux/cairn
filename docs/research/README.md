@@ -28,7 +28,10 @@ Files:
   game and the frame. The kiosk now keeps Ctrl+F5 from every app, so
   it no longer opens ScummVM's own menu over a game (#215); whether a
   program can get past a labwc binding, and the ScummVM keys still
-  open, are written down there too.
+  open, are written down there too. The kiosk finds the programs it
+  runs by name only in the system's folders, no longer through a
+  `PATH` that began in the child's own home (#244), checked headless,
+  with the check in the VM still to do.
 - `steam-containment.md` — 2026-09-08 P0-10 spike in the VM with a
   signed-out client: which window rule hides Steam's windows and why, what
   the launcher shows, what Settings › Family offers now, and the client's

@@ -21,7 +21,11 @@ What is here:
   sight while leaving the launcher able to hear about them
   (`docs/research/steam-containment.md`). `environment`: the XKB option
   that takes the Ctrl-Alt-Fn VT-switch keysyms out of the keymap, because
-  labwc switches VTs in code and offers no other way to stop it.
+  labwc switches VTs in code and offers no other way to stop it; and the
+  kiosk's `PATH`, the system's folders only, which labwc sets before it
+  starts anything. So the commands its keys run, the launcher and all
+  they start are never found in the child's own home, where the login's
+  `PATH` begins (#244).
   Fullscreen is the compositor's decision, made per session, never a
   launcher option.
 - `bin/cairn-session`: the dispatcher (ADR-0012). Reads the account's
@@ -34,7 +38,9 @@ What is here:
   WirePlumber), because the first app of a session hung while PipeWire
   started on demand (#87); Plasma starts its own. The kiosk's output goes
   to the journal as `cairn-kiosk`, so it outlasts the next login (#122);
-  without a journal the session starts all the same.
+  without a journal the session starts all the same. It leaves `PATH` as
+  the login gave it, so Plasma keeps the login's; the kiosk's own comes
+  from labwc's `environment` file (#244).
 - `bin/cairn-give-up`: the grown-up's way out of a stuck program
   (ADR-0018, #41). Ctrl-Alt-Home in the kiosk runs it; it SIGCONTs, then
   SIGTERMs, then SIGKILLs the launcher's app scopes (`cairn-app-*.scope`,

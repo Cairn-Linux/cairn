@@ -15,7 +15,10 @@ Super+Q closes the app in front (ADR-0019), checked in the VM. On
 2026-10-31 a row for ScummVM's own menu was added after a user test
 (#215): the kiosk keeps Ctrl+F5 from every app, checked in the VM, but
 plain F5 in SCUMM games, and F5 held down before Ctrl, still reach the
-menu.
+menu. On 2026-11-03 a row for the kiosk's `PATH` was added (#244):
+labwc found the programs its keys run through a `PATH` that began in
+the child's own home, and now has the system's folders only, checked
+headless; the check in a child's session on the VM is still to do.
 
 ## How it was run
 
@@ -59,6 +62,7 @@ Where a row depends on how labwc is written, the 0.9.6 sources were read
 | The first app after login comes up (#87) | **Fail, then pass** (VM, 2026-09-30) | Tux Paint launched right after login hung before drawing a window, and the launcher, handling one app at a time, ignored every other tile. PipeWire had been started on demand by that first app. `cairn-session` now starts it before the kiosk; see "Sound at login" below. |
 | X11 windows carry no server decorations | **Fail, then pass** (new row) | An xterm got a titlebar with minimise, maximise and close buttons: `<decoration>client</decoration>` only governs Wayland clients. `serverDecoration="no"` on every window removes it. |
 | A game cannot open ScummVM's own menu (#215) | **Fail** (VM, 2026-10-31); Ctrl+F5 **passes** headless and in the VM (2026-10-31); two ways in stay open | In Pajama Sam 2, Ctrl+F5 opened ScummVM's menu, whose Return to Launcher showed ScummVM's game manager. A binding in `rc.xml` now keeps Ctrl+F5 from every app, checked headless with labwc 0.9.6 and then in the VM: Ctrl+F5 in Pajama Sam 2 showed nothing and the game went on. Plain F5 opens the same menu in SCUMM games and is not taken; in the VM it still opened the menu. F5 held down before Ctrl reaches a game through Xwayland's key repeat, seen headless. See "ScummVM's own menu" below. |
+| The kiosk finds the programs it runs by name only in the system's folders (#244) | **Fail** (VM, 2026-10-31), then **pass** headless (2026-11-03); the VM check is to do | In `ada`'s session labwc had a `PATH` that began with `/var/home/ada/.local/bin:/var/home/ada/bin`. A program called `cairn-give-up` or `wpctl` there would have run at Ctrl-Alt-Home or a volume key in place of Cairn's. Neither folder existed. The kiosk's `environment` file now sets `PATH=/usr/local/bin:/usr/bin:/bin`. See "The kiosk's PATH" below. |
 
 The launcher behaved as designed throughout: each window opened from the
 side terminal produced "Something needs a grown-up" naming the app id, and
@@ -453,11 +457,113 @@ mouse, the Ctrl+Alt picture keys, Alt+Enter and Alt+S. Ctrl+F7 and
 Ctrl+F8 open a virtual keyboard and a key editor only in builds made
 with them, and a default build is not.
 
+### The kiosk's PATH (#244)
+
+Found in the VM on 2026-10-31, while checking #215. In `ada`'s session,
+labwc had a `PATH` that began with `/var/home/ada/.local/bin` and
+`/var/home/ada/bin`, two folders in her own home. Neither existed.
+Ctrl-Alt-Home runs `cairn-give-up` and the volume keys run `wpctl`, both
+by name, and labwc finds them through its `PATH`. A program of either
+name in one of those folders would have run in place of Cairn's. The
+way out of a stuck app and the volume keys would then have been that
+program's. At L1 and L2 the Terminal cannot write files, and no other
+way for a child to put a program there is known, so this is hardening.
+
+Why the `PATH` began there:
+
+- SDDM starts every session through `/etc/sddm/wayland-session`, which
+  runs the account's shell as a login shell.
+- A child's shell is bash, the default `useradd` gives.
+- bash reads `/etc/profile`, then `~/.bash_profile`, which reads
+  `~/.bashrc`.
+- Fedora's `.bashrc`, copied into every new home from `/etc/skel`, puts
+  `~/.local/bin` and `~/bin` in front of the rest.
+- The rest is SDDM's own default,
+  `/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin`.
+- `cairn-session` never set `PATH`, so labwc kept the login's.
+
+The commands are named, not given as full paths, because the image
+installs them under `/usr` and a computer set up by hand under
+`/usr/local`.
+
+The kiosk's `environment` file, beside `rc.xml`, now sets
+`PATH=/usr/local/bin:/usr/bin:/bin`. In labwc 0.9.6, `main()` reads that
+file before it reads `rc.xml` or starts anything (`src/main.c`). It sets
+each line in labwc's own environment with `setenv()`
+(`src/config/session.c`). The session client, each `Execute` action and
+the `autostart` script are started with `fork()` and `execvp()`
+(`src/common/spawn.c`). So each name is looked up with this `PATH`, and
+the program keeps it. A reconfigure reads the file again and gets the
+same value.
+
+So every program the kiosk starts has the same `PATH`: the launcher,
+`cairn-give-up`, `wpctl`, and what the launcher starts. The launcher
+starts each tile through `systemd-run --user --scope`, which looks the
+program up with the launcher's `PATH` and runs it in its own process
+(systemd v259, `src/run/run.c`). The launcher's wrapper names
+`cairn-log-out` by its full path. `cairn-log-out` and `cairn-give-up`
+run `steam`, `pgrep`, `loginctl` and the rest by name. Footpath, the
+Terminal, starts nothing itself: `open` goes through the launcher.
+`/usr/sbin` is no longer on the `PATH`, but on Fedora 44 it is a link to
+`/usr/bin`, and nothing the kiosk runs is in `/usr/local/sbin`.
+
+On the image, the build changes provisioning's `/usr/local/bin` to
+`/usr/bin` in every file it installs (ADR-0038). So the image's copy of
+the line is `PATH=/usr/bin:/usr/bin:/bin`. In `localhost/cairn:dev`,
+built 2026-11-02, every program the kiosk names or the launcher starts
+by name is in `/usr/bin`: `cairn-give-up`, `wpctl`, `cairn-launcher`,
+`cairn-log-out`, `systemd-run`, `flatpak`, `steam`, `scummvm`, and what
+`cairn-give-up`, `cairn-log-out` and Steam's own start script run by
+name. A computer set up by hand finds Cairn's programs in
+`/usr/local/bin`.
+
+The line is in the environment file, not in `cairn-session`, which
+could set the same `PATH` before labwc starts:
+
+- Only labwc started with Cairn's kiosk folder reads the file. Plasma,
+  for L3, L4 and a Guardian, keeps the login's `PATH`, and a test checks
+  that `cairn-session` still hands it on.
+- `cairn-session` is a trust boundary, and its tests put stand-ins for
+  `labwc` and `systemd-cat` on the `PATH`. With the `PATH` set inside
+  it, the tests would start the real ones, unless the script took a
+  setting that could undo the line.
+- A nested labwc on the dev PC, started with `-C session/labwc`, gets
+  the same `PATH` as the real kiosk.
+
+What the line does not reach:
+
+- `cairn-session`'s own commands, before labwc starts: `id`, `tr`,
+  `grep`, `systemctl`, `systemd-cat` and `labwc` itself. They are found
+  through the login's `PATH`.
+- Steam's own `PATH`. The launcher starts Steam at login as a service
+  of its own (ADR-0027). `systemd-run` finds `steam` with the
+  launcher's `PATH`, but systemd gives the service the user manager's.
+  labwc hands systemd only a fixed list of variables, and `PATH` is not
+  on it (labwc(1)). The user manager's `PATH` is systemd's own default,
+  folders under `/usr/local` and `/usr` only, unless a file in the
+  child's own `~/.config/environment.d` changes it. The games Steam
+  starts get the same.
+- The login itself. bash reads `~/.bash_profile` and `~/.bashrc`, in
+  the child's home, before `cairn-session` runs. A program running as
+  the child could change those as easily as put a file in
+  `~/.local/bin`. So the line closes a way for a program to be found by
+  name. It does not stop a program the child already runs.
+
+How it was checked:
+
+| Case | Result |
+|---|---|
+| labwc 0.9.6, headless on the dev PC, with a `PATH` shaped like the login's and stand-ins called `sh`, `wpctl`, `cairn-give-up` and `cairn-launcher` in a home folder at its front | Without the line, the session client, a startup command and a keybind each ran the stand-in `sh` and got the login's `PATH`. With it, all three got `/usr/local/bin:/usr/bin:/bin`, and no stand-in ran. |
+| The same, with this repository's `session/labwc` | The session client got `/usr/local/bin:/usr/bin:/bin`, `wpctl` was `/usr/bin/wpctl`, and no stand-in ran. labwc logged no "load default" line for keys or the mouse. |
+| The image, read with `podman run` | Every program the kiosk names or the launcher starts by name is in `/usr/bin`, as above. |
+| A child's session in the VM | To do: Ctrl-Alt-Home, the volume keys, a Steam game and the Terminal. See "Remaining rows" below. |
+
 ## Remaining rows, and where
 
 | Row | Where | Check |
 |---|---|---|
 | A game cannot open ScummVM's own menu (#215) | A real computer, in a child's session, keys from its own keyboard | Ctrl+F5 in a ScummVM game shows nothing and the game goes on, as it did in the VM. The decision on #215 asked for this try on real hardware. |
+| The kiosk finds its programs only in the system's folders (#244) | The VM, in a child's session, keys from the VM's own keyboard | labwc's `PATH` is `/usr/bin:/usr/bin:/bin`. Ctrl-Alt-Home ends a stuck app and the tiles come back. The volume keys change the volume and stop at 100%. A Steam game starts from its tile. The Terminal opens and `open` starts an app. The decision on #244 asked for this check. |
 
 Screenshots and logs from the run are in the maintainer's work area, not the
 repository.
