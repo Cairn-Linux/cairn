@@ -9,6 +9,10 @@
   What the launcher needs, plus the Steam rules from the P0-10 spike
   (docs/research/steam-containment.md), the child's leave key (ADR-0019)
   and the grown-up's key for a stuck app (ADR-0018).
+
+  The commands below are named, not given as paths. labwc finds them
+  through the PATH the `environment` file beside this one sets: the
+  system's folders only, never one in the child's home (#244).
 -->
 <labwc_config>
   <core>

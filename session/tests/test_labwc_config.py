@@ -28,6 +28,19 @@ def combination(key):
     return frozenset(modifiers), name.lower()
 
 
+def environment():
+    # As labwc reads the file (session.c): one name=value a line, the spaces
+    # around each trimmed, comments and empty lines skipped, and a later line
+    # for the same name winning.
+    settings = {}
+    for line in ENVIRONMENT.read_text().splitlines():
+        line = line.strip()
+        if line and not line.startswith("#"):
+            name, _, value = line.partition("=")
+            settings[name.strip()] = value.strip()
+    return settings
+
+
 class LabwcConfigTest(unittest.TestCase):
     def setUp(self):
         self.root = ET.parse(CONFIG).getroot()
@@ -191,14 +204,25 @@ class LabwcConfigTest(unittest.TestCase):
     def test_vt_switching_keysyms_are_removed_from_the_keymap(self):
         # labwc switches VTs on XF86Switch_VT keysyms in code, with no rc.xml
         # option; the XKB option takes the keysyms out of the keymap instead.
-        settings = {}
-        for line in ENVIRONMENT.read_text().splitlines():
-            line = line.strip()
-            if line and not line.startswith("#"):
-                name, _, value = line.partition("=")
-                settings[name] = value
-        options = settings.get("XKB_DEFAULT_OPTIONS", "").split(",")
+        options = environment().get("XKB_DEFAULT_OPTIONS", "").split(",")
         self.assertIn("srvrkeys:none", options)
+
+    def test_the_kiosk_finds_its_programs_only_in_the_systems_folders(self):
+        # #244: the keys above run cairn-give-up and wpctl by name. labwc
+        # finds them and the launcher through its own PATH, and the launcher
+        # finds the programs it runs by name through the same one. The login's
+        # PATH begins with two folders in the child's own home, where a
+        # program could take the place of one of Cairn's. labwc sets this PATH
+        # before it starts anything, and the programs it starts keep it.
+        self.assertEqual(environment().get("PATH"), "/usr/local/bin:/usr/bin:/bin")
+
+    def test_no_other_file_can_replace_the_kiosks_environment(self):
+        # After the file, labwc reads each *.env file in an environment.d
+        # folder beside it (session.c). A line there would replace one in the
+        # file, the PATH and the XKB option included. Cairn installs only the
+        # file, and a nested labwc started with this folder should read only
+        # the file too.
+        self.assertFalse((LABWC_DIR / "environment.d").exists())
 
 
 if __name__ == "__main__":
