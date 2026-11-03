@@ -41,6 +41,13 @@ NOT_IN_THE_KIOSK = [
     "org.freedesktop.login1.hibernate",
     "org.freedesktop.udisks2.",
 ]
+# Moving the screen to another session, and the lock that stops the power
+# button's hold: open to anyone at the console by logind's policy, found by
+# ADR-0049's research rather than the P0-4 run.
+SCREEN_AND_POWER_KEY = [
+    "org.freedesktop.login1.chvt",
+    "org.freedesktop.login1.inhibit-handle-power-key",
+]
 
 
 def quoted_strings(text):
@@ -256,6 +263,45 @@ class FamilyActionTest(unittest.TestCase):
 
     def test_has_the_licence_line(self):
         self.assertEqual(self.text.splitlines()[1], "<!-- SPDX-License-Identifier: Apache-2.0 -->")
+
+
+class KioskScreenAndPowerKeyTest(unittest.TestCase):
+    """logind's chvt and the power key's lock (ADR-0049): refused at L1 and
+    L2 before any prompt, and left to polkit's defaults for an
+    administrator, L3, L4 and an account Cairn did not make."""
+
+    def setUp(self):
+        self.rules = RULES.read_text()
+
+    def test_both_are_in_the_kiosks_list(self):
+        # The kiosk's list, not the Guardian's, which refuses L3 and L4 too.
+        [kiosk] = re.findall(r"var notInTheKiosk = \[(.*?)\];", self.rules, re.S)
+        for action in SCREEN_AND_POWER_KEY:
+            with self.subTest(action=action):
+                self.assertIn(f'"{action}"', kiosk)
+
+    def test_the_rule_itself_answers_so(self):
+        node = shutil.which("node")
+        if node is None:
+            self.skipTest("no node here to run the rule with")
+        cases = {
+            ("ada", "cairn-l1"): "no",
+            ("ben", "cairn-l2"): "no",
+            ("ada", "cairn-l3"): "not-handled",
+            ("ben", "cairn-l4"): "not-handled",
+            ("gina", "wheel", "cairn-guardian"): "not-handled",
+            ("dad", "cairn-guardian", "cairn-l1"): "not-handled",
+            ("bazzite", "wheel"): "not-handled",
+            ("lodger",): "not-handled",
+        }
+        for action in SCREEN_AND_POWER_KEY:
+            for groups, answer in cases.items():
+                with self.subTest(action=action, groups=groups):
+                    given = json.dumps({"rules": str(RULES), "action": action,
+                                        "groups": list(groups)})
+                    result = subprocess.run([node, "-e", RULE_RUNNER, given], capture_output=True,
+                                            text=True, check=True)
+                    self.assertEqual(result.stdout, answer)
 
 
 if __name__ == "__main__":

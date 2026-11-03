@@ -114,8 +114,10 @@ What is here:
   network changes, Flatpak, PackageKit and rpm-ostree, and malcontent's own
   parental-control settings, which DESIGN §3.2 gives the Guardian; NO at
   L1 and L2 for power-off, reboot, suspend, hibernate and udisks2, which
-  nothing in the kiosk offers. L3 and L4 keep Fedora's defaults for power
-  and removable media, since Plasma's menu offers them. An administrator
+  nothing in the kiosk offers. Also NO at L1 and L2 for logind's `chvt`,
+  which moves the screen to another session, and for the lock that stops
+  the power button's five-second hold (ADR-0049). L3 and L4 keep Fedora's
+  defaults for power and removable media, since Plasma's menu offers them. An administrator
   (`cairn-guardian` or `wheel`) is checked first and always falls through,
   even from a level group (ADR-0023). Cairn's own actions
   (`com.cairnlinux.`) are refused to every other account, before any

@@ -54,6 +54,10 @@ var guardianOnly = [
 // these; there Fedora's defaults stand. The set-reboot-* actions are
 // listed because logind's policy says being allowed them implies being
 // allowed to reboot, and they default to yes for anyone at the console.
+// Nor may a program behind the kiosk move the screen to another session,
+// such as a grown-up's lock screen, or take the lock that stops the power
+// button's five-second hold, the parents' way out of a screen that looks
+// wrong (ADR-0018, ADR-0049). Both default to yes at the console too.
 var notInTheKiosk = [
     "org.freedesktop.login1.power-off",
     "org.freedesktop.login1.reboot",
@@ -61,6 +65,8 @@ var notInTheKiosk = [
     "org.freedesktop.login1.halt",
     "org.freedesktop.login1.suspend",
     "org.freedesktop.login1.hibernate",
+    "org.freedesktop.login1.chvt",
+    "org.freedesktop.login1.inhibit-handle-power-key",
     "org.freedesktop.udisks2."
 ];
 
