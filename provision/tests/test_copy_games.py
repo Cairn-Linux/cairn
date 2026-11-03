@@ -27,6 +27,7 @@ import pathlib
 import re
 import shutil
 import signal
+import stat
 import subprocess
 import sys
 import tempfile
@@ -93,6 +94,20 @@ def manifest(appid, installdir="A Game", flags="4", extra="", name="A Game"):
         f"{extra}"
         "}\n"
     ).encode()
+
+
+def files_of(folder):
+    """Each file and link under a folder, with what it holds or leads to.
+    No link is followed."""
+    found = {}
+    for top, folders, files in os.walk(folder):
+        for name in folders + files:
+            path = pathlib.Path(top, name)
+            if path.is_symlink():
+                found[str(path.relative_to(folder))] = ("link", os.readlink(path))
+            elif path.is_file():
+                found[str(path.relative_to(folder))] = path.read_bytes()
+    return found
 
 
 class Machine:
@@ -379,6 +394,32 @@ class ConditionsTest(CopyTestCase):
         self.assertFalse((self.machine.library / ".cairn-manifest-100").exists())
         for path in kept:
             self.assertEqual(path.read_bytes(), b"keep", path.name)
+
+    @needs_not_root
+    def test_a_leftover_whose_folders_its_owner_cannot_write_goes_too(self):
+        # A copy keeps the shared folder's modes, so the child is let into
+        # each of its folders first, never through a link (#250).
+        common = self.machine.library / "common"
+        leftover = common / ".cairn-copy-100"
+        (leftover / "Saves").mkdir(parents=True)
+        (leftover / "Saves" / "steam_autocloud.vdf").write_bytes(b"marker")
+        (leftover / "data").mkdir()
+        (leftover / "data" / "level1.dat").write_bytes(b"level")
+        elsewhere = self.machine.root / "elsewhere"
+        (elsewhere / "inner").mkdir(parents=True)
+        (leftover / "Saves" / "elsewhere").symlink_to(elsewhere)
+        (leftover / "data").chmod(0o000)
+        outside = [elsewhere / "inner", elsewhere]
+        for folder in [leftover / "Saves", leftover, *outside]:
+            folder.chmod(0o555)
+        try:
+            self.assertEqual(self.machine.run(), [], self.machine.stderr)
+            self.assertEqual(self.machine.code, 0)
+            self.assertEqual(list(common.iterdir()), [])
+            self.assertEqual([stat.S_IMODE(folder.stat().st_mode) for folder in outside], [0o555, 0o555])
+        finally:
+            for folder in reversed(outside):
+                folder.chmod(0o755)
 
     def test_refuses_to_run_as_root(self):
         module = self.machine.load()
@@ -706,6 +747,202 @@ class OneChildsListTest(CopyTestCase):
             code, lines = self.machine.run_in_process(module, "--only", "100")
         self.assertEqual((code, lines), (2, ["refused root"]))
         self.assertEqual(self.games(), [])
+
+
+# Steam Cloud's marker, as long as the one the grown-up's Steam wrote in the
+# test VM's shared folder, with a made-up account id, and one a child's own
+# Steam could write for another account.
+GROWN_UPS_MARKER = b'"steam_autocloud.vdf"\n{\n\t"accountid"\t\t"12345678"\n}\n'
+CHILDS_MARKER = b'"steam_autocloud.vdf"\n{\n\t"accountid"\t\t"87654321"\n}\n'
+# Names like the marker's that are not it.
+LIKE_THE_MARKER = ("steam_autocloud.vdf.bak", "Steam_AutoCloud.vdf", "steam_autocloud.VDF", "steam_autocloud.vdf~",
+                   "old_steam_autocloud.vdf", "steam_autocloud")
+# Where the shared game below has the marker: at its top, in Saves, where the
+# test VM's was, and deep down.
+MARKERS = ("steam_autocloud.vdf", "Saves/steam_autocloud.vdf", "data/a/b/c/steam_autocloud.vdf")
+
+
+def without_markers(files):
+    return {name: content for name, content in files.items() if pathlib.PurePath(name).name != "steam_autocloud.vdf"}
+
+
+class CloudMarkerTest(CopyTestCase):
+    """Steam Cloud's marker, steam_autocloud.vdf, names the Steam account
+    whose saves a folder holds. A child's copy leaves out the shared
+    folder's, at every depth, so that the child's own Steam can write its
+    own. In a game the child has already, a marker goes only while it is
+    byte for byte the shared folder's in the same place (#250)."""
+
+    place = REFLINK_PLACE
+
+    def add_game_with_markers(self):
+        """The grown-up's marker in each of MARKERS, beside a save, and the
+        names like it, which hold the same bytes."""
+        files = {
+            "start.sh": (b"#!/bin/sh\necho start\n", 0o755),
+            "Saves/puttputt-puttputt.sg1": (b"saved", 0o664),
+            **{name: (GROWN_UPS_MARKER, 0o664) for name in MARKERS},
+            **{f"Saves/{name}": (GROWN_UPS_MARKER, 0o664) for name in LIKE_THE_MARKER},
+        }
+        return self.machine.add_game(100, files=files)
+
+    def earlier_copy(self, source):
+        """The child's copy as a copy made before #250 left it: the game's
+        folder whole, markers and links as they are, and its manifest."""
+        copy = self.machine.library / "common" / source.name
+        shutil.copytree(source, copy, symlinks=True)
+        (self.machine.library / "appmanifest_100.acf").write_bytes(manifest(100))
+        return copy
+
+    def copy_with_a_stand_in(self):
+        module = self.machine.load()
+        with mock.patch.object(module, "reflink_copy", CopyTest.copy_tree):
+            return self.machine.run_in_process(module)
+
+    @needs_reflink
+    def test_a_copy_leaves_out_the_marker_at_every_depth(self):
+        source = self.add_game_with_markers()
+        shared = files_of(source)
+        self.assertEqual(self.machine.run(), ["copied 100"], self.machine.stderr)
+        copy = self.machine.library / "common" / "A Game"
+        for name in MARKERS:
+            self.assertFalse(os.path.lexists(copy / name), name)
+        # Everything else is copied, the names like it byte for byte.
+        self.assertEqual(files_of(copy), without_markers(shared))
+        for name in LIKE_THE_MARKER:
+            self.assertEqual((copy / "Saves" / name).read_bytes(), GROWN_UPS_MARKER, name)
+        # The shared folder keeps its own: it is the grown-up's Steam's.
+        self.assertEqual(files_of(source), shared)
+
+    @needs_reflink
+    def test_a_link_named_like_the_marker_is_left_out_and_never_followed(self):
+        source = self.machine.add_game(100)
+        elsewhere = self.machine.root / "elsewhere"
+        (elsewhere / "folder").mkdir(parents=True)
+        (elsewhere / "steam_autocloud.vdf").write_bytes(GROWN_UPS_MARKER)
+        (elsewhere / "folder" / "kept").write_bytes(b"kept")
+        (source / "Saves").mkdir()
+        # A link to a file, a link to a folder, and a link to nothing.
+        (source / "Saves" / "steam_autocloud.vdf").symlink_to(elsewhere / "steam_autocloud.vdf")
+        (source / "data" / "steam_autocloud.vdf").symlink_to(elsewhere / "folder")
+        (source / "steam_autocloud.vdf").symlink_to("nowhere")
+        # A folder by that name is not a marker, and stays, without the
+        # marker inside it.
+        inside = source / "Folder" / "steam_autocloud.vdf"
+        inside.mkdir(parents=True)
+        (inside / "inside.dat").write_bytes(b"kept")
+        (inside / "steam_autocloud.vdf").write_bytes(GROWN_UPS_MARKER)
+        self.assertEqual(self.machine.run(), ["copied 100"], self.machine.stderr)
+        copy = self.machine.library / "common" / "A Game"
+        for name in ("Saves/steam_autocloud.vdf", "data/steam_autocloud.vdf", "steam_autocloud.vdf",
+                     "Folder/steam_autocloud.vdf/steam_autocloud.vdf"):
+            self.assertFalse(os.path.lexists(copy / name), name)
+        self.assertEqual(files_of(copy / "Folder"), {"steam_autocloud.vdf/inside.dat": b"kept"})
+        self.assertEqual(files_of(elsewhere), {"steam_autocloud.vdf": GROWN_UPS_MARKER, "folder/kept": b"kept"})
+        self.assertTrue((source / "Saves" / "steam_autocloud.vdf").is_symlink())
+
+    @needs_reflink
+    @needs_not_root
+    def test_a_marker_that_cannot_be_left_out_keeps_the_game_from_the_child(self):
+        # A copy that still holds one never reaches the child. The copy's
+        # Saves keeps the shared folder's mode, so the child cannot write in
+        # it, and neither the marker nor the copy can go until the child is
+        # let in. Each run says so, and leaves nothing for the next.
+        source = self.add_game_with_markers()
+        shared = files_of(source)
+        (source / "Saves").chmod(0o555)
+        try:
+            for _ in range(2):
+                self.assertEqual(self.machine.run(), ["skipped 100 copy-failed"], self.machine.stderr)
+                self.assertEqual(self.machine.code, 0)
+                self.assertEqual(sorted(path.name for path in self.machine.library.iterdir()), ["common"])
+                self.assertEqual(list((self.machine.library / "common").iterdir()), [])
+        finally:
+            (source / "Saves").chmod(0o755)
+        self.assertEqual(files_of(source), shared)
+
+    def test_an_earlier_copys_marker_goes_at_the_next_run(self):
+        source = self.add_game_with_markers()
+        copy = self.earlier_copy(source)
+        shared = files_of(source)
+        self.assertEqual(self.machine.run(), ["have 100"], self.machine.stderr)
+        for name in MARKERS:
+            self.assertFalse(os.path.lexists(copy / name), name)
+        # The save and the names like the marker stay, and so does the
+        # shared folder's marker.
+        self.assertEqual(files_of(copy), without_markers(shared))
+        self.assertEqual(files_of(source), shared)
+        self.assertEqual(self.machine.run(), ["have 100"])
+        self.assertEqual(files_of(copy), without_markers(shared))
+
+    def test_a_marker_that_is_not_the_shared_folders_stays(self):
+        source = self.add_game_with_markers()
+        copy = self.earlier_copy(source)
+        # The child's own Steam wrote this one, for another account.
+        (copy / "Saves" / "steam_autocloud.vdf").write_bytes(CHILDS_MARKER)
+        # And here the shared folder has none now.
+        (source / MARKERS[2]).unlink()
+        self.assertEqual(self.machine.run(), ["have 100"], self.machine.stderr)
+        self.assertEqual((copy / "Saves" / "steam_autocloud.vdf").read_bytes(), CHILDS_MARKER)
+        self.assertEqual((copy / MARKERS[2]).read_bytes(), GROWN_UPS_MARKER)
+        # The one that is still byte for byte the shared folder's goes.
+        self.assertFalse(os.path.lexists(copy / MARKERS[0]))
+
+    def test_in_an_earlier_copy_only_a_plain_file_goes_and_nothing_is_followed(self):
+        source = self.add_game_with_markers()
+        copy = self.earlier_copy(source)
+        elsewhere = self.machine.root / "elsewhere"
+        (elsewhere / "c").mkdir(parents=True)
+        (elsewhere / "steam_autocloud.vdf").write_bytes(GROWN_UPS_MARKER)
+        (elsewhere / "c" / "steam_autocloud.vdf").write_bytes(GROWN_UPS_MARKER)
+        # A link to a file that holds the shared marker's bytes; a FIFO,
+        # which must never hold the run up; a link to nothing, where the
+        # shared folder has no marker either; and a link to a folder that
+        # holds a marker.
+        (copy / "Saves" / "steam_autocloud.vdf").unlink()
+        (copy / "Saves" / "steam_autocloud.vdf").symlink_to(elsewhere / "steam_autocloud.vdf")
+        (copy / "steam_autocloud.vdf").unlink()
+        os.mkfifo(copy / "steam_autocloud.vdf")
+        (copy / "data" / "steam_autocloud.vdf").symlink_to("nowhere")
+        shutil.rmtree(copy / "data" / "a" / "b" / "c")
+        (copy / "data" / "a" / "b" / "c").symlink_to(elsewhere / "c")
+        self.assertEqual(self.machine.run(), ["have 100"], self.machine.stderr)
+        self.assertTrue((copy / "Saves" / "steam_autocloud.vdf").is_symlink())
+        self.assertTrue(stat.S_ISFIFO((copy / "steam_autocloud.vdf").lstat().st_mode))
+        self.assertTrue((copy / "data" / "steam_autocloud.vdf").is_symlink())
+        self.assertEqual(files_of(elsewhere), {"steam_autocloud.vdf": GROWN_UPS_MARKER,
+                                               "c/steam_autocloud.vdf": GROWN_UPS_MARKER})
+        # Nor is a game folder that is a link.
+        shutil.rmtree(copy)
+        copy.symlink_to(elsewhere)
+        self.assertEqual(self.machine.run(), ["have 100"], self.machine.stderr)
+        self.assertEqual(files_of(elsewhere), {"steam_autocloud.vdf": GROWN_UPS_MARKER,
+                                               "c/steam_autocloud.vdf": GROWN_UPS_MARKER})
+
+    def test_only_a_game_the_run_looks_at_loses_an_earlier_marker(self):
+        # On the image a Save looks only at the games new on a child's list.
+        source = self.add_game_with_markers()
+        copy = self.earlier_copy(source)
+        self.assertEqual(self.machine.run("--only", "200"), ["skipped 200 not-shared"])
+        self.assertEqual(files_of(copy), files_of(source))
+        self.assertEqual(self.machine.run("--only", "100"), ["have 100"])
+        self.assertEqual(files_of(copy), without_markers(files_of(source)))
+
+    @needs_not_root
+    def test_an_earlier_marker_that_cannot_be_removed_stays_and_the_run_goes_on(self):
+        # The child cannot write in their copy's Saves, where the marker is.
+        source = self.add_game_with_markers()
+        copy = self.earlier_copy(source)
+        self.machine.add_game(200, "Second")
+        (copy / "Saves").chmod(0o555)
+        try:
+            code, lines = self.copy_with_a_stand_in()
+        finally:
+            (copy / "Saves").chmod(0o755)
+        self.assertEqual((code, lines), (0, ["have 100", "copied 200"]))
+        # The markers in the folders the child can write in still go.
+        self.assertEqual(files_of(copy), {**without_markers(files_of(source)),
+                                          "Saves/steam_autocloud.vdf": GROWN_UPS_MARKER})
 
 
 SCOUT = {"appid": "1070560", "installdir": "SteamLinuxRuntime", "name": "Steam Linux Runtime 1.0 (scout)",

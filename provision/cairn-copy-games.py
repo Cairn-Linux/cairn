@@ -16,6 +16,15 @@ Without it, it copies every game in the shared library, which provisioning
 on the kids' laptop still relies on. An appid that is not a plain number
 stops it before anything changes.
 
+A copy leaves out Steam Cloud's marker, steam_autocloud.vdf, wherever it
+is in the game's folder. The marker names the Steam account whose saves
+those are, in the shared folder the grown-up's, so that the child's own
+Steam can write its own (#250). A copy that keeps one is thrown away. In a
+game the child has already, it removes only a marker that is byte for byte
+the shared folder's in the same place, and changes nothing else there. A
+copy made before then left such a marker, and a child's Steam signed in to
+the grown-up's Steam account would write one.
+
 After the games it copies each of Steam's tools, its runtimes and Protons,
 that the child's library lacks, from the tools folder cairn-share-tools
 fills from a Guardian's Steam (ADR-0046), by a game's own rules. It never
@@ -29,6 +38,8 @@ terminal. Provisioning turns them into sentences of its own.
 
     copied APPID           the game is now in the child's library
     have APPID             the child has it already, and nothing changed
+                           but a Steam Cloud marker byte for byte the
+                           shared folder's
     skipped APPID REASON   left out; REASON is one word, such as
                            not-installed or downloading, or not-shared
                            when a listed game is not in the shared library
@@ -92,6 +103,12 @@ PROBE = ".cairn-copy-probe"
 LEFTOVER_IN_COMMON = re.compile(r"\.cairn-copy-([0-9]+|probe)")
 LEFTOVER_IN_LIBRARY = re.compile(r"\.cairn-manifest-[0-9]+")
 
+# Steam Cloud's marker. Steam writes it into a folder of saves to record
+# which Steam account they belong to, by that account's id. A child's copy
+# never takes one from the shared folder, so that the child's own Steam can
+# write its own (#250).
+CLOUD_MARKER = "steam_autocloud.vdf"
+
 # A real manifest, or library list, is a few kilobytes.
 MANIFEST_LIMIT = 1 << 20
 
@@ -138,6 +155,8 @@ def decide(appid, data, shared, library):
     if kidscan.ci_get(state, "appid") != appid:
         return ("skipped", "appid")
     # The child's copy holds their saves: never replaced, updated or deleted.
+    # Only a Steam Cloud marker byte for byte the shared folder's can go
+    # (take_out_copied_markers).
     if os.path.lexists(library / f"appmanifest_{appid}.acf"):
         return ("have",)
     installdir = kidscan.ci_get(state, "installdir", "")
@@ -209,8 +228,26 @@ def lists_shared(steam, shared_root):
     return None
 
 
+def let_the_owner_in(folder):
+    """Gives a real folder and each real folder in it the owner's read,
+    write and search bits, never through a link. A copy's folders keep the
+    shared folder's modes, and a folder its owner cannot write cannot be
+    emptied."""
+    folder.chmod(stat.S_IMODE(folder.lstat().st_mode) | stat.S_IRWXU)
+    for top, folders, _ in os.walk(folder):
+        for name in folders:
+            path = Path(top) / name
+            # os.walk lists a link to a folder among the folders.
+            if is_real_folder(path):
+                path.chmod(stat.S_IMODE(path.lstat().st_mode) | stat.S_IRWXU)
+
+
 def remove(path):
-    if path.is_dir() and not path.is_symlink():
+    """Whatever is under one of this program's own names, never followed: a
+    real folder with all it holds, once the owner is let in, and anything
+    else as the entry itself."""
+    if is_real_folder(path):
+        let_the_owner_in(path)
         shutil.rmtree(path)
     else:
         path.unlink(missing_ok=True)
@@ -295,6 +332,52 @@ def sync_folder(path):
         os.close(descriptor)
 
 
+def raise_error(error):
+    raise error
+
+
+def leave_out_cloud_markers(copy):
+    """Removes Steam Cloud's marker from a new copy, still under its
+    temporary name, at every depth. Only an entry of exactly that name goes,
+    and never a folder: a link goes as a link, and is never followed."""
+    for top, folders, files in os.walk(copy, onerror=raise_error):
+        marker = Path(top) / CLOUD_MARKER
+        if CLOUD_MARKER in folders + files and not is_real_folder(marker):
+            marker.unlink()
+            # A link to a folder is listed among the folders, and the walk
+            # must not look inside it now that it is gone.
+            if CLOUD_MARKER in folders:
+                folders.remove(CLOUD_MARKER)
+
+
+def take_out_copied_markers(data, shared, library):
+    """In a game the child has already, removes each of Steam Cloud's markers
+    that is byte for byte the shared folder's in the same place: one a copy
+    made before #250 left, or one a child's Steam signed in to the same
+    Steam account wrote. Any other stays, such as one the child's own Steam
+    wrote for another account, and so does anything that is not a plain
+    file. Nothing is followed out of the child's copy, and a marker that
+    cannot be read or removed stays as it is."""
+    installdir = kidscan.ci_get(app_state(data) or {}, "installdir", "")
+    if not kidscan.plain_folder_name(installdir):
+        return
+    copy = library / "common" / installdir
+    if not is_real_folder(copy):
+        return
+    for top, _, files in os.walk(copy):
+        if CLOUD_MARKER not in files:
+            continue
+        marker = Path(top) / CLOUD_MARKER
+        shared_marker = kidscan.read_plain_file(shared / "common" / installdir / marker.relative_to(copy))
+        # With no plain file in that place in the shared folder, there is
+        # nothing to be byte for byte the same as.
+        if shared_marker is not None and kidscan.read_plain_file(marker) == shared_marker:
+            try:
+                marker.unlink()
+            except OSError:
+                pass
+
+
 def copy_game(appid, data, manifest, installdir, shared, library):
     """The folder and the manifest under temporary names, then the folder
     into place, then the manifest: Steam never sees a manifest for half a
@@ -306,6 +389,8 @@ def copy_game(appid, data, manifest, installdir, shared, library):
         if not reflink_copy(shared / "common" / installdir, temporary):
             remove(temporary)
             return "copy-failed" if all_readable(shared / "common" / installdir) else "unreadable-files"
+        # A copy that still holds one never reaches the child.
+        leave_out_cloud_markers(temporary)
         try:
             unchanged = read_manifest(manifest) == data
         except OSError:
@@ -450,6 +535,7 @@ def copy_games(shared, library, only=None, tools=None):
             continue
         decision = decide(appid, data, shared, library)
         if decision[0] == "have":
+            take_out_copied_markers(data, shared, library)
             say("have", appid)
             continue
         if decision[0] == "skipped":

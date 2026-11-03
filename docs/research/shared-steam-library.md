@@ -477,7 +477,9 @@ changing anything.
   August 2025 they said Steam would do the same for files in the game's
   folder; whether that reached the stable client is not known. On Cairn
   that is in the starting child's home, where the first child's Steam
-  cannot reach them. Untested between Linux accounts.
+  cannot reach them. Untested between Linux accounts. Since 2026-11-03
+  Cairn's copies leave the marker out (#250; "A game moved between
+  libraries with Steam closed", below).
 - Turning Steam Cloud off does not part saves that share a folder. It only
   removes the copy kept off the machine. The switch belongs to the Steam
   account, not the computer (`sharedconfig.vdf`, which Steam syncs). In a
@@ -804,6 +806,22 @@ Valve documents none of it.
   played from the family folder left Steam Cloud's
   `steam_autocloud.vdf`, which holds the player's Steam account id, in
   the game's `Saves` folder, where every account can read it.
+- **Steam Cloud's marker** (added 2026-11-03, #250). The file of
+  2026-11-01 was 51 bytes, written the first time the Guardian started
+  the game from the family folder. It is the marker of "Where the games
+  keep their saves", above: Valve staff describe Steam moving an earlier
+  account's files aside into the starting account's `userdata/` when the
+  marker names another account, and said in August 2025 that Steam would
+  do the same in a game's own folder. Games keep their saves at different
+  depths of their own folder, so a marker can be anywhere in it. Since
+  2026-11-03 the move step leaves every file or link of exactly that
+  name out of a moved game, and the copy step out of a child's new copy.
+  A copy made before then loses one only while it is byte for byte the
+  family folder's file in the same place, and the family folder keeps
+  its own (ADR-0033 and ADR-0042, sections of that date). Not known yet:
+  what a child's Steam does with a copy whose marker names another
+  account, and whether a Steam that finds saves with no marker asks
+  anything before it writes its own.
 - **A manifest is what makes a game installed.** Steam knows a library's
   games from its `appmanifest_<appid>.acf` files, whose `installdir`
   names the folder under `common/` ("How Steam keeps its list of

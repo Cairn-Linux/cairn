@@ -18,7 +18,8 @@ own words, and the Save's window names each game without a picture); the
 section "What Look for new games says" below (2026-10-31, #220, #227);
 ADR-0048, proposed (`update-steam` and `stop-update`, each with its own
 action and lines, and the held word `updating` in the Save's and the
-logout's answers)
+logout's answers); the section "Steam Cloud's marker in a game back on a
+child's list" below (2026-11-03, #250)
 
 ## Context
 
@@ -329,6 +330,9 @@ out mid-copy lost their choice.
 - The child's copy and saves stay in their home: the copy step never
   deletes a child's copy.
   Putting the game back on their list brings back their progress.
+  Since 2026-11-03 it also takes out the grown-up's Steam Cloud marker
+  that an earlier copy left there (the section "Steam Cloud's marker in a
+  game back on a child's list", below).
 - `cairn-family create-child` removes any `games/<login>.json` before it
   makes a new account, and refuses `failed` if one stays, so a new child
   never inherits an old account's games.
@@ -572,3 +576,27 @@ be made.", said nothing about new games, and the journal had `catalogue
 kept`.
 Not tried there: a Look cut off before `done`, a game back in the shared
 folder that is on the picked child's list, and a Save that went ahead.
+
+## Steam Cloud's marker in a game back on a child's list (2026-11-03, #250)
+
+Since 2026-11-03 the copy step leaves Steam Cloud's marker,
+`steam_autocloud.vdf`, which names the grown-up's Steam account, out of
+a child's copy.
+From a game the child has already, it removes a marker only while it is
+byte for byte the shared folder's file in the same place, as a copy made
+before then left it, and as a child's Steam signed in to the grown-up's
+Steam account would most likely write it (ADR-0033's section "Steam
+Cloud's marker stays out of a child's copy").
+
+A Save gives the copy step only the games newly on a child's list.
+So on the image the copy step finds a game the child has already only
+when that game comes back onto their list, and says `have` for it.
+That is when an earlier copy loses the grown-up's marker.
+A game that stayed on a child's list keeps the marker its copy came
+with.
+So far only the test VMs run the image.
+There a test child's copy loses it when the game is taken off that
+child's list, saved, put back and saved again.
+
+Nothing else about a child's list changes: `have` still means the child
+has the game, and the copy step's lines and words are as they were.

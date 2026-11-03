@@ -15,7 +15,8 @@ a child's first copy of each of Steam's tools comes from the parent's
 Steam with their games, so no visit is needed for the first fetch);
 ADR-0048, proposed (on the image a grown-up can have a child's own Steam
 update itself out of sight, and E12 answers check 15 for Steam's tools
-in a Steam left running)
+in a Steam left running); the section "Steam Cloud's marker stays out of
+a child's copy" below (2026-11-03, #250)
 
 ## Context
 
@@ -126,14 +127,19 @@ the child's own home, which no other child can open.**
     the shared `downloading/` has something for it.
   - **Never over the child's own files.** If the child's library already
     has a manifest for the game, nothing changes. The child's copy holds
-    their saves, so Cairn never replaces, updates or deletes it. A
+    their saves, so Cairn never replaces, updates or deletes it. The one
+    exception, since 2026-11-03, is a Steam Cloud marker byte for byte
+    the shared folder's (the section "Steam Cloud's marker stays out of
+    a child's copy", below). A
     `common/<installdir>` there without a manifest is left alone too,
     with one sentence, since it may hold the child's saves. `docs/TRY.md`
     says how to set it aside. Before anything else, the step removes any
     temporary folder of its own left by an earlier run.
   - **The copy.** The step copies `common/<installdir>` under a
     temporary name in the child's `steamapps/common/`, by reflink only
-    (`cp --reflink=always`), keeping each file's mode. If the filesystem
+    (`cp --reflink=always`), keeping each file's mode. Since 2026-11-03
+    the copy then loses Steam Cloud's marker (the section "Steam Cloud's
+    marker stays out of a child's copy", below). If the filesystem
     cannot reflink, it copies nothing and says so in one sentence, rather
     than fill the disk with full copies. If the shared manifest changed
     meanwhile, the copy is thrown away with one sentence (check 13).
@@ -407,3 +413,97 @@ while.
   child, belongs with tiles per child, and changes DESIGN §3.2's "the
   Guardian runs the scanner". Desktop entries would replace the manifest
   format at a trust boundary.
+
+## Steam Cloud's marker stays out of a child's copy (2026-11-03, #250)
+
+Found in the cairn-iso VM on 2026-11-01, while checking ADR-0042's move
+step.
+A grown-up's Steam that plays a game from the shared folder can write
+Steam Cloud's `steam_autocloud.vdf` into the game's own folder there.
+For Freddi Fish 2 it was `Saves/steam_autocloud.vdf`, 51 bytes, holding
+the grown-up's Steam account id.
+It is how Steam Cloud marks a folder of saves as one account's.
+Every account can read it in the shared folder, and the copy step copied
+it into each child's copy with the rest of the game's folder.
+What a child's Steam does with a marker that names another account is
+not known.
+It might take the saves for another account's, ask about the cloud
+before the game starts, or send the grown-up's saves to the child's
+cloud.
+A question from Steam holds the game, and the child cannot answer it
+(#211).
+
+Mason chose on 2026-11-02 to leave the marker out, once a check in the
+VM has shown what a child's Steam does with one.
+A copy still starts with the saves the shared folder holds, as the
+Decision says.
+
+- **A new copy leaves it out.**
+  While the copy still has its temporary name, the step removes every
+  entry named exactly `steam_autocloud.vdf`, wherever it is in the
+  game's folder, since other games keep their saves at other depths.
+  A file with a name like it stays.
+  A link by that name goes, as a link, and is never followed, since the
+  child's Steam would read through it.
+  A folder by that name is not a marker, and stays.
+  A copy whose marker cannot be removed, as in a folder its owner cannot
+  write, never reaches the child: it is thrown away, and the game is left
+  out as `copy-failed`.
+  A copy's folders keep the shared folder's modes, so before the step
+  removes a copy, or a temporary folder an earlier run left, it gives
+  each folder in it the owner's bits, never through a link.
+  The child's own Steam can then write its own marker, for the child's
+  account.
+- **An earlier copy loses it only while it is still the shared
+  folder's.**
+  A copy made before 2026-11-03 holds the grown-up's marker wherever the
+  shared folder had one.
+  When a run finds that the child has the game already, it removes a
+  marker from the child's copy only if it is a plain file, byte for byte
+  the shared folder's file in the same place.
+  Any other stays, such as one the child's own Steam wrote for another
+  account, or one where the shared folder has none.
+  Nothing is followed out of the child's copy, a marker that cannot be
+  removed stays, and the step still says `have APPID`.
+  Nothing else in a child's copy ever changes.
+  On the kids' laptop provisioning copies every game at every run, so
+  its children's copies lose such a marker at the first run with this
+  change.
+  On the image a Save copies only the games newly on a child's list, so
+  a copy there loses one when its game comes back onto that child's list
+  (ADR-0041's section of this date).
+- **The shared folder keeps its own.**
+  The grown-up's Steam wrote it there for its own use, and nothing Cairn
+  runs changes the games in the shared folder.
+  Removed, it would most likely come back: Steam wrote it the first time
+  the grown-up played the game there.
+  Every account can read it there, as they can the saves beside it.
+
+A child's Steam signed in to the same Steam account as the one that
+wrote the shared folder's marker, such as the grown-up's own account in
+layout 1 of #130, most likely writes a marker byte for byte the same,
+since the one of 2026-11-01 held only the account id.
+A later run that finds the game removes it, and that Steam most likely
+writes it again.
+
+Tested in Python, in `provision/tests/test_copy_games.py`: a new copy
+leaves out a marker at the top, in `Saves` and deep down, and keeps the
+names like it; it leaves out a link by that name, to a file, a folder or
+nothing, without following it, and keeps a folder by that name; a marker
+in a folder its owner cannot write keeps the game from the child, run
+after run, and leaves nothing behind.
+An earlier copy loses a marker that is the shared folder's, and keeps
+one that differs, one the shared folder no longer has, a link, a FIFO,
+one behind a link to a folder and one in a game folder that is a link;
+only a game the run looks at loses one; and one in a folder its owner
+cannot write stays while the run goes on.
+A temporary folder an earlier run left goes even when its owner cannot
+write, read or enter its folders, and a link in it is never followed.
+
+Still to check in the VM, with a child's Steam signed in to an account
+other than the grown-up's: what that Steam does with a copy that holds
+the grown-up's marker, and that it starts a copy without one, with no
+question, and writes its own.
+And with a child's Steam signed in to the grown-up's own account: that
+it writes the same bytes, and writes them again, with no question, after
+a run removes them.
