@@ -598,6 +598,12 @@ The Family app's "Open Steam for Ada" is on the image only (ADR-0041).
   and the line would show while the computer is only offline.
   Then only the journal and the visit would show the grown-up that
   nothing was wrong with the sign-in.
+- A Steam with no saved sign-in at all, such as one nobody has signed in
+  yet, writes the same `No Connection` as an offline one (check 1, "Run
+  on 2026-11-02").
+  It gets no line, and the journal says "Steam could not reach the
+  internet", until a later change reads Steam's connection log too.
+  `docs/TRY.md` says so.
 - If a sign-in made in a visit does not reach the kiosk (check 1), this
   route fails for Steam, and P1-17's other branch applies: no Steam in
   that run.
