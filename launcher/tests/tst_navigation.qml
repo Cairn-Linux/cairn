@@ -941,21 +941,31 @@ TestCase {
     }
 
     // When the launcher knows what will help, the grown-up screen says it in
-    // one line under the sentence, at a size a child can read, and a screen
-    // reader hears it with the screen (ADR-0045). Otherwise there is no line.
+    // one line under the sentence, at the sentence's size, and a screen
+    // reader hears it with the screen (ADR-0045, ADR-0049). Otherwise there
+    // is no line.
     function test_theGrownUpScreenSaysWhatWillHelp_data() {
         return [
             {
                 tag: "nothing to add",
                 step: AppLauncher.None,
                 shown: false,
+                text: "",
                 description: "Pajama Sam 2 did not start."
             },
             {
                 tag: "log out and back in",
                 step: AppLauncher.LogOutAndBackIn,
                 shown: true,
+                text: "Log out and back in, then try it again.",
                 description: "Pajama Sam 2 did not start. Log out and back in, then try it again."
+            },
+            {
+                tag: "log out for a grown-up",
+                step: AppLauncher.LogOutForAGrownUp,
+                shown: true,
+                text: "Log out, then a grown-up can fix it from their own login.",
+                description: "Pajama Sam 2 did not start. Log out, then a grown-up can fix it from their own login."
             }
         ];
     }
@@ -978,10 +988,45 @@ TestCase {
         compare(screen.Accessible.description, data.description);
         if (!data.shown)
             return;
-        compare(step.text, "Log out and back in, then try it again.");
+        compare(step.text, data.text);
         compare(step.Accessible.name, step.text);
         verify(step.font.pixelSize >= Tokens.minChild);
+        compare(step.font.pixelSize, findChild(screen, "grownUpSentence").font.pixelSize);
         verify(step.y > findChild(screen, "grownUpSentence").y);
         verify(step.y < findChild(screen, "backTile").y);
+    }
+
+    // In the launcher's smallest window, with a game's title long enough to
+    // take two lines, the screen still fits with either line: nothing above
+    // the top, and Back whole at the bottom.
+    function test_theGrownUpScreenFitsTheSmallestWindow_data() {
+        return [
+            {
+                tag: "log out and back in",
+                step: AppLauncher.LogOutAndBackIn
+            },
+            {
+                tag: "log out for a grown-up",
+                step: AppLauncher.LogOutForAGrownUp
+            }
+        ];
+    }
+
+    function test_theGrownUpScreenFitsTheSmallestWindow(data) {
+        const screen = createTemporaryObject(grownUpComponent, launcher.contentItem, {
+            "appTitle": "Pajama Sam 2: Thunder And Lightning Aren't So Frightening",
+            "openedOnItsOwn": false,
+            "comingSoon": false,
+            "grownUpStep": data.step,
+            "width": launcher.minimumWidth,
+            "height": launcher.minimumHeight
+        });
+        verify(screen !== null);
+        const heading = findChild(screen, "grownUpHeading");
+        const backTile = findChild(screen, "backTile");
+        waitForRendering(screen);
+        verify(findChild(screen, "grownUpSentence").lineCount >= 2);
+        verify(heading.mapToItem(screen, 0, 0).y >= 0);
+        verify(backTile.mapToItem(screen, 0, backTile.height).y <= screen.height);
     }
 }

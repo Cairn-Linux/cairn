@@ -45,42 +45,47 @@
 <context>
     <name>GrownUpScreen</name>
     <message>
-        <location filename="../qml/GrownUpScreen.qml" line="49"/>
+        <location filename="../qml/GrownUpScreen.qml" line="50"/>
         <source>Something needs a grown-up.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GrownUpScreen.qml" line="49"/>
+        <location filename="../qml/GrownUpScreen.qml" line="50"/>
         <source>%1 is coming soon.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GrownUpScreen.qml" line="64"/>
+        <location filename="../qml/GrownUpScreen.qml" line="65"/>
         <source>%1 did not start.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GrownUpScreen.qml" line="64"/>
+        <location filename="../qml/GrownUpScreen.qml" line="65"/>
         <source>%1 opened on its own.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GrownUpScreen.qml" line="64"/>
+        <location filename="../qml/GrownUpScreen.qml" line="65"/>
         <source>It is not ready yet. Try something else.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GrownUpScreen.qml" line="81"/>
+        <location filename="../qml/GrownUpScreen.qml" line="83"/>
         <source>Log out and back in, then try it again.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GrownUpScreen.qml" line="97"/>
-        <source>Back</source>
+        <location filename="../qml/GrownUpScreen.qml" line="83"/>
+        <source>Log out, then a grown-up can fix it from their own login.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/GrownUpScreen.qml" line="99"/>
+        <source>Back</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/GrownUpScreen.qml" line="101"/>
         <source>Back to the tiles</source>
         <translation type="unfinished"></translation>
     </message>

@@ -40,7 +40,8 @@
 // log says nothing about the game, a refused sign-in ends the wait when the
 // grace it is seen in ends, and a Steam that cannot reach its servers gets a
 // short wait to come back first. Neither counts as work, so neither shows
-// "Getting it ready".
+// "Getting it ready". A refused sign-in is kept whatever else Steam's logs
+// say, for the journal and the grown-up screen (ADR-0049).
 //
 // A new child's first Linux game can stop part-way (#206): Steam takes the
 // game off its download schedule while its launch still says it is
@@ -121,9 +122,12 @@ public:
     // journal. Fine whenever Steam's log says something about the game,
     // unless Steam stopped getting it ready.
     SteamSignIn::Now signIn() const;
+    // Steam's sign-in was turned down at the last stillComing(), whatever
+    // else its logs said, such as a question it holds (ADR-0049).
+    bool signInRefused() const;
     // The journal's sentence for a Steam game called `title` that put
-    // nothing on the screen, from what Steam said at the last stillComing(),
-    // or empty when Steam said nothing that explains it.
+    // nothing on the screen, from what Steam said at the last stillComing()
+    // (SteamJournalNote), or empty when Steam said nothing that explains it.
     QString journalNote(const QString& title) const;
 
     // Tests set these short.
@@ -151,6 +155,7 @@ private:
     SteamLaunchLog::Step m_lastStep = SteamLaunchLog::Step::Nothing;
     SteamStartup::Now m_steamNow = SteamStartup::Now::Ready;
     SteamSignIn::Now m_signInNow = SteamSignIn::Now::Fine;
+    bool m_signInRefused = false;
     SteamStall::Now m_stallNow = SteamStall::Now::Fine;
     // At the last stillComing(), Steam held the game behind its cloud
     // question from an earlier tap and had signed in again (#211).

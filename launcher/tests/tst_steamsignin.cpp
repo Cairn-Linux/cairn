@@ -132,6 +132,27 @@ private slots:
         QCOMPARE(logs.now(), Now::Fine);
     }
 
+    // A look can come while Steam is still writing a line. The start of a
+    // No Connection line is not a refusal: the line counts once it is whole.
+    void aLineStillBeingWrittenCountsOnceWhole_data() {
+        QTest::addColumn<QByteArray>("begun");
+        QTest::addColumn<QByteArray>("rest");
+        QTest::newRow("part of the reason")
+            << QByteArray("LogonFailure No Conn") << QByteArray("ection\n");
+        QTest::newRow("no reason yet")
+            << QByteArray("LogonFailure ") << QByteArray("No Connection\n");
+    }
+
+    void aLineStillBeingWrittenCountsOnceWhole() {
+        QFETCH(const QByteArray, begun);
+        QFETCH(const QByteArray, rest);
+        const Logs logs;
+        append(logs.console, clientStarts("23:11:40") + "[2026-10-27 23:12:03] " + begun);
+        QCOMPARE(logs.now(), Now::Fine);
+        append(logs.console, rest);
+        QCOMPARE(logs.now(), Now::NoConnection);
+    }
+
     // Which reasons Steam tries again by itself. The ones it does not try
     // again come from Steam's EResult names, as the client writes them.
     void whichReasonsSteamTriesAgain_data() {

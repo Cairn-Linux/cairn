@@ -52,8 +52,8 @@ public:
 
     // `bootstrap_log.txt` in the child's own Steam folder.
     static QString defaultPath();
-    // The whole lines in the last part of one of Steam's logs, oldest first;
-    // none when it cannot be read.
+    // The whole lines in the last part of one of Steam's logs, oldest first,
+    // but not one still being written; none when it cannot be read.
     static QList<QByteArray> lastLines(const QString& path);
     // When the updater last started the client, by its last `Startup -`
     // line read at `now`, or nothing.

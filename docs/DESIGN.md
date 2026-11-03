@@ -182,7 +182,7 @@ locked icon, nothing to probe.
 | Permissions | Per-child app allowlist, game allowlist, browser access |
 | Time | Schedules and daily limits |
 | System | OS updates and rollback (§10), Wi-Fi, printers |
-| Games | Run the scanner, choose each child's own games from the Guardian's own Steam (ADR-0041, ADR-0042), update a child's Steam while they are logged out (§8.3; ADR-0048, proposed), assign categories, manage tiles (§8.7) |
+| Games | Run the scanner, choose each child's own games from the Guardian's own Steam (ADR-0041, ADR-0042), update a child's Steam while they are logged out (§8.3; ADR-0048, proposed), open a child's own Steam to sign it in or answer it (ADR-0032, proposed), assign categories, manage tiles (§8.7) |
 | Data | Reset a child account; export creations (§11) |
 
 #### Two access paths
@@ -193,6 +193,11 @@ data export live. Its tool is Cairn's own app, "Family" in the Guardian's
 menu, not pages added to System Settings (ADR-0040). System Settings lists
 "Family" too, in place of Plasma's Users page, which Cairn hides; a
 Guardian changes their own password and picture in Family (ADR-0043).
+Fixing what a child's Steam waits for, such as a sign-in Steam turned
+down, is done there too, once the child has logged out (ADR-0032,
+ADR-0049, both proposed). Cairn does not ask for a Guardian's password
+inside a child's session, and a way to step in there is not chosen yet
+(#88).
 
 **Quick actions — PIN-gated overlay inside a child session.** Because the common
 case is a parent standing at the child's shoulder wanting to grant fifteen more
@@ -630,7 +635,10 @@ Mechanism:
   (ADR-0045). It adds the same line for a later tap on a game Steam holds
   behind the question it asked about the game's cloud saves while
   offline, once Steam has signed in again: Steam keeps that question
-  until the child logs out (ADR-0045, #211).
+  until the child logs out (ADR-0045, #211). When Steam's sign-in was
+  turned down, the grown-up screen says "Log out, then a grown-up can fix
+  it from their own login.", and a Guardian signs the child's Steam in
+  again from their own login (ADR-0032; ADR-0049, proposed).
 - A child's Steam gets Steam's own tools, the Steam Linux Runtimes and
   Proton, from the parent's Steam: a Guardian's Save copies them into the
   child's own library with the child's new games, by reflink, so a first
@@ -663,11 +671,14 @@ updates, login expiry, Steam Guard prompts, and cloud save conflicts. Mitigation
    adds one short line saying it, never a reason (ADR-0045).
 3. The kiosk compositor enforces containment. Window rules keep Steam's own
    windows (main client, login, update progress, Steam Guard) minimised or off
-   the screen, and the compositor's foreign-toplevel protocol tells the launcher
-   when one has appeared so it can show the grown-up screen instead. This is
-   why L1/L2 use `labwc` rather than a single-app kiosk compositor (§4.5,
-   ADR-0017). Proven in Phase 0 against a signed-out and a signed-in client
-   (`docs/research/steam-containment.md`).
+   the screen. The compositor's foreign-toplevel protocol tells the launcher
+   when one has appeared, but a hidden one never counts (ADR-0026). Window
+   rules and that protocol are why L1/L2 use `labwc` rather than a single-app
+   kiosk compositor (§4.5, ADR-0017), and both were proven in Phase 0 against
+   a signed-out and a signed-in client (`docs/research/steam-containment.md`).
+   A launch held behind one of Steam's windows ends on the grown-up screen
+   (mitigation 2, ADR-0030). No Steam window is shown in a child's session,
+   even for a grown-up (ADR-0049, proposed).
 
 Combined with a child Steam account in a Steam Family with an explicit game
 allowlist, the exposed surface is small.

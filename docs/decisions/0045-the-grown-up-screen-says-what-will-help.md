@@ -8,7 +8,11 @@ started the game (#206; "Checking it", below).
 **Closes:** (none) — part of issue #206; amends ADR-0030; part of ROADMAP
 P1-13
 **Amended by:** the section "The cloud question, once Steam has signed in
-again" below (2026-10-31, #211)
+again" below (2026-10-31, #211); ADR-0049, proposed (a second line, "Log
+out, then a grown-up can fix it from their own login.", when Steam's
+sign-in was turned down, whatever else its logs say, which answers
+#182's question; while the sign-in is turned down, the journal names it
+before a question Steam holds)
 
 ## Context
 
