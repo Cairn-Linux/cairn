@@ -250,6 +250,10 @@ ADR-0006 after a licence and trademark review; one Intel/AMD image in v1.
 - Package layering is more constrained than `apt install`. Most software must
   come via Flatpak (§4.2), which is fine and arguably better here.
 - Smaller precedent for this specific use case.
+- One more image to keep: the installer. Cairn builds it itself, on Fedora's
+  bootc image, so that it shows Cairn's art in place of the Fedora art the
+  installer from `bootc-image-builder` shows, and can still start on a
+  computer with Secure Boot on (ADR-0050, proposed).
 
 **Rejected: Ubuntu.** Snap packaging is the disqualifier. Firefox and
 increasingly Steam ship as snaps, and snap first-launch latency on 2015-era
@@ -323,6 +327,12 @@ first impression. A wizard that:
 
 Nothing here may require editing a config file. If a step can't be done in the
 wizard, it isn't ready to ship.
+
+One step comes before the wizard and cannot move into it. On a computer started
+with EFI, the boot loader's blue screen asks the grown-up, once, to enroll
+Universal Blue's Secure Boot key, with the password the install notes give. It
+is in English only and reads a US keyboard, so the notes show each screen
+(ADR-0050, proposed).
 
 A mode toggle within a single account was rejected: no file separation, controls
 can't differ per child, and any child can flip any other child's mode.
@@ -759,7 +769,10 @@ documented as such.
 - `Containerfile` + GitHub Actions, following the Universal Blue image-template
   pattern.
 - Images signed with cosign; published to a container registry.
-- ISOs generated via `bootc-image-builder`.
+- ISOs made by `image-builder`, which `bootc-image-builder` is now a build of,
+  from an installer image Cairn builds on Fedora's bootc image, with Cairn's
+  art; lorax's `mkksiso` then adds a kickstart that queues Universal Blue's
+  Secure Boot key (ADR-0050, proposed).
 - Update cadence inherited from the base image. `bootc upgrade` on a schedule,
   applied at reboot.
 - **Rollback is a documented, supported, one-command parent operation**, not an
