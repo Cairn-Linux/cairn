@@ -365,6 +365,12 @@ does not reach podman's storage.
 
 ## Building the installer
 
+ADR-0050 (proposed) replaces what this section describes with an
+installer image Cairn builds, made into the ISO by image-builder's
+generic ISO type, with a kickstart that queues Universal Blue's Secure
+Boot key.
+Until its third slice lands, the ISO is made as below.
+
 The installer ISO is made from `localhost/cairn:dev` by
 bootc-image-builder, with the settings in `disk_config/iso.toml`
 (ADR-0038, slice 6). The builder needs root, so build the image first
