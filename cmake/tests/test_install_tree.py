@@ -242,6 +242,13 @@ class InstallTree(unittest.TestCase):
         self.assertIn("CAGE=/usr/libexec/cairn/cage-visit\n", helper)
         self.assertIn("COPY_GAMES=/usr/libexec/cairn/cairn-copy-games\n", helper)
 
+    def test_kiosk_path_names_only_the_systems_folders(self):
+        # #244. The build turns provisioning's /usr/local/bin into /usr/bin,
+        # as in every file here, so on the image the kiosk looks in /usr/bin,
+        # where everything it runs by name is, and in /bin.
+        settings = self.text("usr/share/cairn/labwc/environment").splitlines()
+        self.assertIn("PATH=/usr/bin:/usr/bin:/bin", settings)
+
     def test_repository_files_change_only_in_their_paths(self):
         # The theme's mark is a link in the repository; the image gets the file.
         pairs = {

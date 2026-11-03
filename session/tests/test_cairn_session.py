@@ -6,7 +6,7 @@ picks for each level group (ADR-0012).
 Standard library only. The stand-ins are tiny shell scripts: `id` prints
 the groups a test asks for, and `labwc`, `startplasma-wayland`, `systemctl`
 and `systemd-cat` print their name and arguments instead of starting
-anything.
+anything. One test has `startplasma-wayland` print the PATH it was given.
 """
 
 import os
@@ -18,6 +18,13 @@ import unittest
 DISPATCHER = pathlib.Path(__file__).resolve().parent.parent / "bin" / "cairn-session"
 
 
+def write_stubs(bin_dir, stubs):
+    for name, body in stubs.items():
+        stub = pathlib.Path(bin_dir, name)
+        stub.write_text(body)
+        stub.chmod(0o755)
+
+
 def run_dispatcher(groups, systemctl_fails=False, journal_missing=False):
     with tempfile.TemporaryDirectory() as bin_dir:
         stubs = {
@@ -27,10 +34,7 @@ def run_dispatcher(groups, systemctl_fails=False, journal_missing=False):
             "systemctl": f'#!/bin/sh\necho "systemctl $*"\nexit {1 if systemctl_fails else 0}\n',
             "systemd-cat": f'#!/bin/sh\necho "systemd-cat $*"\nexit {1 if journal_missing else 0}\n',
         }
-        for name, body in stubs.items():
-            stub = pathlib.Path(bin_dir, name)
-            stub.write_text(body)
-            stub.chmod(0o755)
+        write_stubs(bin_dir, stubs)
         env = {"PATH": f"{bin_dir}:/usr/bin:/bin", "CAIRN_LABWC_CONFIG": "/kiosk"}
         result = subprocess.run(
             [str(DISPATCHER)], env=env, capture_output=True, text=True, check=False
@@ -39,6 +43,23 @@ def run_dispatcher(groups, systemctl_fails=False, journal_missing=False):
         # The session itself is the last thing started; anything before it
         # is returned apart.
         return result.returncode, lines[-1] if lines else "", lines[:-1]
+
+
+def path_given_to_plasma(groups):
+    # The login's PATH as Fedora's .bashrc leaves it: two folders in the
+    # account's own home first, then the stand-ins and the system's folders.
+    login = groups.split()[0]
+    with tempfile.TemporaryDirectory() as bin_dir:
+        stubs = {
+            "id": f'#!/bin/sh\necho "{groups}"\n',
+            "startplasma-wayland": '#!/bin/sh\necho "$PATH"\n',
+        }
+        write_stubs(bin_dir, stubs)
+        given = f"/var/home/{login}/.local/bin:/var/home/{login}/bin:{bin_dir}:/usr/bin:/bin"
+        result = subprocess.run(
+            [str(DISPATCHER)], env={"PATH": given}, capture_output=True, text=True, check=False
+        )
+        return result.stdout.strip(), given
 
 
 # Everything the kiosk prints goes to the journal (#122).
@@ -93,6 +114,15 @@ class CairnSessionTest(unittest.TestCase):
                 code, out, _ = run_dispatcher(groups)
                 self.assertEqual(code, 0)
                 self.assertEqual(out, "startplasma-wayland")
+
+    def test_plasma_keeps_the_path_the_login_gave(self):
+        # The kiosk's PATH is set in labwc's own environment file (#244),
+        # which Plasma never reads, so an L3 or L4 child and a grown-up keep
+        # the login's, the folders in their own home included.
+        for groups in ("cat cairn-l3", "dan cairn-l4", "guardian wheel cairn-guardian"):
+            with self.subTest(groups=groups):
+                seen, given = path_given_to_plasma(groups)
+                self.assertEqual(seen, given)
 
     def test_an_administrator_gets_plasma_whatever_else_they_are_in(self):
         # PAM asked them for a password, so they are never a child (#101).
