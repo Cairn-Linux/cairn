@@ -406,8 +406,8 @@ own groups.
    `desktop-backgrounds-compat`.
    Go straight on to step 3: a restart now would start Bazzite without
    SDDM.
-   In both rehearsals step 3 replaced the system the reset queued, so
-   this step may not be needed.
+   Both rehearsals ran it, and step 3 then replaced the system it queued.
+   Neither tried step 3 without it, so keep it.
 3. `sudo bootc switch --transport containers-storage localhost/cairn:dev`,
    then restart.
    The login screen is still provisioning's, from `/usr/local`, until
