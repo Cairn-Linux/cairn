@@ -995,4 +995,38 @@ TestCase {
         verify(step.y > findChild(screen, "grownUpSentence").y);
         verify(step.y < findChild(screen, "backTile").y);
     }
+
+    // In the launcher's smallest window, with a game's title long enough to
+    // take two lines, the screen still fits with either line: nothing above
+    // the top, and Back whole at the bottom.
+    function test_theGrownUpScreenFitsTheSmallestWindow_data() {
+        return [
+            {
+                tag: "log out and back in",
+                step: AppLauncher.LogOutAndBackIn
+            },
+            {
+                tag: "log out for a grown-up",
+                step: AppLauncher.LogOutForAGrownUp
+            }
+        ];
+    }
+
+    function test_theGrownUpScreenFitsTheSmallestWindow(data) {
+        const screen = createTemporaryObject(grownUpComponent, launcher.contentItem, {
+            "appTitle": "Pajama Sam 2: Thunder And Lightning Aren't So Frightening",
+            "openedOnItsOwn": false,
+            "comingSoon": false,
+            "grownUpStep": data.step,
+            "width": launcher.minimumWidth,
+            "height": launcher.minimumHeight
+        });
+        verify(screen !== null);
+        const heading = findChild(screen, "grownUpHeading");
+        const backTile = findChild(screen, "backTile");
+        waitForRendering(screen);
+        verify(findChild(screen, "grownUpSentence").lineCount >= 2);
+        verify(heading.mapToItem(screen, 0, 0).y >= 0);
+        verify(backTile.mapToItem(screen, 0, backTile.height).y <= screen.height);
+    }
 }
