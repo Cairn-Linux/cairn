@@ -494,18 +494,22 @@ each line in labwc's own environment with `setenv()`
 the `autostart` script are started with `fork()` and `execvp()`
 (`src/common/spawn.c`). So each name is looked up with this `PATH`, and
 the program keeps it. A reconfigure reads the file again and gets the
-same value.
+same value. labwc then reads any `*.env` file in an `environment.d`
+folder beside the file, and a `PATH` there replaces this one. The kiosk
+has no such folder, and a test checks that it stays so.
 
-So every program the kiosk starts has the same `PATH`: the launcher,
-`cairn-give-up`, `wpctl`, and what the launcher starts. The launcher
-starts each tile through `systemd-run --user --scope`, which looks the
-program up with the launcher's `PATH` and runs it in its own process
-(systemd v259, `src/run/run.c`). The launcher's wrapper names
-`cairn-log-out` by its full path. `cairn-log-out` and `cairn-give-up`
-run `steam`, `pgrep`, `loginctl` and the rest by name. Footpath, the
-Terminal, starts nothing itself: `open` goes through the launcher.
-`/usr/sbin` is no longer on the `PATH`, but on Fedora 44 it is a link to
-`/usr/bin`, and nothing the kiosk runs is in `/usr/local/sbin`.
+So the programs labwc starts have the same `PATH`: the launcher,
+`cairn-give-up` and `wpctl`. The launcher starts each tile through
+`systemd-run --user --scope`, which looks the program up with the
+launcher's `PATH` and then becomes that program, so the app keeps the
+same `PATH` (systemd v259, `src/run/run.c`). Steam at login is started
+another way, as a service, and gets another `PATH`; see "What the line
+does not reach" below. The launcher's wrapper names `cairn-log-out` by
+its full path. `cairn-log-out` and `cairn-give-up` run `steam`, `pgrep`,
+`loginctl` and the rest by name. Footpath, the Terminal, starts nothing
+itself: `open` goes through the launcher. `/usr/sbin` is no longer on
+the `PATH`, but on Fedora 44 it is a link to `/usr/bin`, and nothing the
+kiosk runs is in `/usr/local/sbin`.
 
 On the image, the build changes provisioning's `/usr/local/bin` to
 `/usr/bin` in every file it installs (ADR-0038). So the image's copy of
@@ -514,8 +518,9 @@ built 2026-11-02, every program the kiosk names or the launcher starts
 by name is in `/usr/bin`: `cairn-give-up`, `wpctl`, `cairn-launcher`,
 `cairn-log-out`, `systemd-run`, `flatpak`, `steam`, `scummvm`, and what
 `cairn-give-up`, `cairn-log-out` and Steam's own start script run by
-name. A computer set up by hand finds Cairn's programs in
-`/usr/local/bin`.
+name. The one exception is `xterm`, which that script tries only when
+`zenity` cannot show an error, and which the image does not have. A
+computer set up by hand finds Cairn's programs in `/usr/local/bin`.
 
 The line is in the environment file, not in `cairn-session`, which
 could set the same `PATH` before labwc starts:
@@ -542,7 +547,21 @@ What the line does not reach:
   on it (labwc(1)). The user manager's `PATH` is systemd's own default,
   folders under `/usr/local` and `/usr` only, unless something running
   as the child changes it, such as a file in her own
-  `~/.config/environment.d`. The games Steam starts get the same.
+  `~/.config/environment.d`. Steam's `steam.sh` then puts three folders
+  of Steam's runtime in front of that `PATH` before it starts the
+  client. They are in the child's home, under
+  `~/.local/share/Steam/ubuntu12_32/steam-runtime`. That was read in the
+  `steam.sh` the image's Steam package (1.0.0.87) unpacks; a Steam
+  update may bring a newer one. Which `PATH` the games get was not
+  checked. `steam.sh` also keeps the `PATH` it was given, to put back
+  when it needs to.
+- Steam's own programs, which are in the child's home and which Steam
+  runs by full path, not by name. At every start, `/usr/bin/steam` runs
+  a logging script from Steam's runtime, then `steam.sh`, which runs the
+  client. While Steam runs, each Steam tile, Log out and the launcher's
+  restart of a stuck Steam (#206) hand their request to it through
+  `steam-runtime-steam-remote`, from the same runtime. The kiosk's
+  `PATH` plays no part in finding them.
 - The login itself. bash reads `~/.bash_profile` and `~/.bashrc`, in
   the child's home, before `cairn-session` runs. A program running as
   the child could change those as easily as put a file in
@@ -555,7 +574,8 @@ How it was checked:
 |---|---|
 | labwc 0.9.6, headless on the dev PC, with a `PATH` shaped like the login's and stand-ins called `sh`, `wpctl`, `cairn-give-up` and `cairn-launcher` in a home folder at its front | Without the line, the session client, a startup command and a keybind each ran the stand-in `sh` and got the login's `PATH`. With it, all three got `/usr/local/bin:/usr/bin:/bin`, and no stand-in ran. |
 | The same, with this repository's `session/labwc` | The session client got `/usr/local/bin:/usr/bin:/bin`, `wpctl` was `/usr/bin/wpctl`, and no stand-in ran. labwc logged no "load default" line for keys or the mouse. |
-| The image, read with `podman run` | Every program the kiosk names or the launcher starts by name is in `/usr/bin`, as above. |
+| The first case's folder with the line, plus an `environment.d/zz.env` whose `PATH` begins in the home folder | The session client, the startup command and the keybind all got the `PATH` from `zz.env`, and the stand-in `sh` ran each time. |
+| The image, read with `podman run` | Every program the kiosk names or the launcher starts by name is in `/usr/bin`, as above. Steam's `steam.sh` puts three folders of its runtime, in the child's home, in front of the `PATH` it was given. |
 | A child's session in the VM | To do: Ctrl-Alt-Home, the volume keys, a Steam game and the Terminal. See "Remaining rows" below. |
 
 ## Remaining rows, and where

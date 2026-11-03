@@ -23,9 +23,11 @@ What is here:
   that takes the Ctrl-Alt-Fn VT-switch keysyms out of the keymap, because
   labwc switches VTs in code and offers no other way to stop it; and the
   kiosk's `PATH`, the system's folders only, which labwc sets before it
-  starts anything. So the commands its keys run, the launcher and all
-  they start are never found in the child's own home, where the login's
-  `PATH` begins (#244).
+  starts anything. So the commands its keys run, the launcher and what
+  the launcher runs by name are never looked up in the child's own home,
+  where the login's `PATH` begins (#244). Steam, which the launcher
+  starts as a service, gets the user manager's `PATH` instead. labwc
+  would also read an `environment.d` folder here, so there is none.
   Fullscreen is the compositor's decision, made per session, never a
   launcher option.
 - `bin/cairn-session`: the dispatcher (ADR-0012). Reads the account's
