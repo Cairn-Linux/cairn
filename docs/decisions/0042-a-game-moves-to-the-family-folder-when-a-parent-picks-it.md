@@ -12,7 +12,8 @@ from the Guardian's Steam, as the Guardian, after the children's lists
 lose the games taken off and before the first copy, so after any move);
 ADR-0047, proposed (the pictures folder also keeps the picture of a game
 still on a child's list after it leaves the family folder); the section
-"What the move step settled" below (2026-11-01, #167)
+"What the move step settled" below (2026-11-01, #167); the section
+"Steam Cloud's marker does not move" below (2026-11-03, #250)
 
 ## Context
 
@@ -130,7 +131,9 @@ closed while a game moves, and Save asks the parent first.**
 
 - **What moves.** A game's manifest and its `common/<installdir>`. Not
   its Wine prefix (`compatdata/<appid>`), its shader cache, or its
-  workshop items, which stay where they are (see Consequences).
+  workshop items, which stay where they are (see Consequences). Since
+  2026-11-03, not Steam Cloud's marker inside the game's folder either
+  (the section "Steam Cloud's marker does not move", below).
 - **A move, not a copy.** After the move the game is in the family
   folder only. Two installed copies of one game in one Steam would leave
   Steam to pick one to update, and the family copy, which every child's
@@ -431,7 +434,8 @@ Stand-in games with made-up appids did the rest.
   from the family folder in 3 s.
 - Playing it there left Steam Cloud's `steam_autocloud.vdf`, which holds
   the Guardian's Steam account id, in the game's `Saves` folder, where
-  every account can read it and the copy step would copy it. Steam also
+  every account can read it and the copy step would copy it (#250, and
+  the section "Steam Cloud's marker does not move", below). Steam also
   made `shadercache/294530` and an empty `compatdata/294530` there.
 - With the family folder taken out of both lists by hand, the step moved
   a stand-in with `library added`. Each list gained Cairn's entry before
@@ -577,3 +581,52 @@ Other tests hold each rule above, the lock's file and its hold through a
 whole run, SIGTERM and SIGHUP after the set-aside, and every reason.
 The step first ran in the VM on 2026-11-01 ("First run", above), and
 check 4 now also looks at the group's mask.
+
+## Steam Cloud's marker does not move (2026-11-03, #250)
+
+The first run found Steam Cloud's `steam_autocloud.vdf`, which holds the
+Guardian's Steam account id, in `Saves/` of a game the Guardian played
+from the family folder ("First run", above).
+A game the Guardian has played in their own Steam can carry one too, and
+the step moved the game's folder as it was.
+In the family folder every account can read it, and each child's copy
+is made from there.
+Mason chose on 2026-11-02 to leave the marker out of a moved game and
+out of each child's copy, once a check in the VM has shown what a
+child's Steam does with one that names another account (#250).
+
+- **The copy loses it.**
+  While the copy is still in the run's own folder, before the group gets
+  its bits, the step removes every entry named exactly
+  `steam_autocloud.vdf`, wherever it is in the game's folder.
+  A file with a name like it moves.
+  A link by that name goes, as a link, and is never followed.
+  A folder by that name moves.
+  A copy whose marker cannot be removed is thrown away, and the game
+  stays where it is, as `failed`.
+- **The Guardian's marker goes with the original folder.**
+  Their Steam most likely writes a new one the first time they play the
+  game from the family folder, as it did on 2026-11-01.
+- **A game already in the family folder keeps its own,** as the step
+  leaves every game already there (`shared`).
+  Removed, it would most likely come back at the Guardian's next play
+  there, and the copy step leaves it out of each child's copy (ADR-0033's
+  section "Steam Cloud's marker stays out of a child's copy").
+  Every account can read it there, as ADR-0033 accepts for the saves
+  beside it.
+
+Tested in Python, in `provision/tests/test_share_games.py`: a real move
+leaves the marker behind at the top, in `Saves` and deep down, and moves
+the names like it; a link by that name, to a file, a folder or nothing,
+stays behind and is never followed, and a folder by that name moves; the
+copy has no marker when it takes the game's name; a marker that cannot
+be removed moves nothing; and a game already in the family folder keeps
+its marker.
+The test that ends a move at each of its changes to the disk now moves a
+game with a marker, and the family folder's game never holds it at any
+point.
+
+Still to check in the VM, by hand, since nothing runs the step yet: a
+game whose `Saves/` holds the Guardian's marker moves without it, and the
+Guardian's Steam then starts it from the family folder with no question
+about its cloud saves.
