@@ -540,9 +540,9 @@ What the line does not reach:
   launcher's `PATH`, but systemd gives the service the user manager's.
   labwc hands systemd only a fixed list of variables, and `PATH` is not
   on it (labwc(1)). The user manager's `PATH` is systemd's own default,
-  folders under `/usr/local` and `/usr` only, unless a file in the
-  child's own `~/.config/environment.d` changes it. The games Steam
-  starts get the same.
+  folders under `/usr/local` and `/usr` only, unless something running
+  as the child changes it, such as a file in her own
+  `~/.config/environment.d`. The games Steam starts get the same.
 - The login itself. bash reads `~/.bash_profile` and `~/.bashrc`, in
   the child's home, before `cairn-session` runs. A program running as
   the child could change those as easily as put a file in
