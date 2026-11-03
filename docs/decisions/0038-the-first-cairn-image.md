@@ -765,10 +765,29 @@ Updates on the installed computer still wait for P1-3.
   first boot, once the groups exist.
 - **Bazzite's extras.** The first-boot portal's menu entry, the updater,
   Game Mode and Waydroid stay until P1-1.
-  So does Bazzite's first-login step for every account, a child's included.
-  It runs as root through `pkexec`, turns on network time, and makes the
-  account a Tailscale operator. Tailscale is not signed in, so that does
-  nothing yet, but it is on the P1-1 list.
+  Bazzite's first-login step went before them, on 2026-11-03 (#261);
+  Mason chose that on 2026-11-02.
+  Every account's own systemd started it at login, a child's included.
+  Through `pkexec` it ran a root step that polkit let any account run at
+  any time, without a password.
+  That step turned on network time, which `chronyd` already keeps on,
+  and made the account Tailscale's operator.
+  With Tailscale signed out that did nothing.
+  Once a grown-up signed it in, the next account to run the step, perhaps
+  a child's, would have controlled it.
+  The rest of the script is for Bazzite's other images, a Framework
+  laptop's start-menu icon and the speakers of two handhelds.
+  `build_files/bazzite-extras.sh` removes the link that started it in
+  every account, the unit, both scripts, the polkit action and Bazzite's
+  rule for that action.
+  `build_files/check-bazzite-extras.sh` stops the build if any of them
+  comes back.
+  A computer that never changed the link loses it at its next update,
+  through bootc's merge of `/etc`; that is not yet seen in a VM.
+  Accounts that already ran the step keep its three small files in
+  `~/.local/share/bazzite/`, which nothing reads now.
+  A grown-up who wants Tailscale sets the operator once, with
+  `sudo tailscale set --operator=<name>`.
 
 The image stays private and inside the family until P1-14, #86 and P1-17
 pass (ADR-0031).

@@ -212,6 +212,22 @@ and the 23 pictures in them as missing, because the build removes them
 (below). Leave out `--nomtime` and `rpm -V` lists hundreds of files whose
 times the base changed.
 
+Bazzite's first-login step is out of the image (#261). Every account's
+own systemd started it at login, and it ran a root step that polkit let
+any account run without a password. `build_files/bazzite-extras.sh`
+removes the link, the unit, both scripts, the polkit action and Bazzite's
+rule for it, and `build_files/check-bazzite-extras.sh` stops the build if
+any of them comes back. To look yourself:
+
+```sh
+podman run --rm localhost/cairn:dev ls /etc/systemd/user/default.target.wants
+podman run --rm localhost/cairn:dev systemctl --global is-enabled bazzite-user-setup.service
+```
+
+The first lists `mpris-proxy.service` and `bazzite-dynamic-fixes.service`,
+Bazzite's fix for GTK programs on Intel graphics, which runs as the
+account and stays. The second says `not-found`.
+
 The grown-up's start-menu button shows the Cairn mark (#166, first
 step). Valve's look names `distributor-logo-steamdeck`, which slice 5
 leads to the mark. `build_files/guardian-desktop.sh` adds the mark under
