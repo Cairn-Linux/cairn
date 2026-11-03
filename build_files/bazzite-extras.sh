@@ -6,13 +6,14 @@
 # still P1-1's.
 #
 # First, Bazzite's first-login step (#261). Every account's own systemd
-# started it at login, a child's included, and again whenever Bazzite
-# raised its version. Through pkexec it ran a root step that polkit let
-# any account run at any time, without a password: it turned network time
-# on, which chronyd already does, and made the account Tailscale's
-# operator. The rest of the script is for Bazzite's other images, a
-# Framework laptop's start-menu icon and the speakers of two handhelds, so
-# the unit and its script go with the link.
+# started it at login, a child's included. It did its work at the first
+# login and again after an update that changed its version or Fedora's
+# release. Through pkexec it ran a root step that polkit let any account
+# run at any time, without a password: it turned network time on, which
+# chronyd already does, and made the account Tailscale's operator. The
+# rest of the script is for Bazzite's other images, a Framework laptop's
+# start-menu icon and the speakers of two handhelds, so the unit and its
+# script go with the link.
 #
 # No package owns these files. Each goes with a plain rm, so a base update
 # that drops or moves one stops the build here until it is looked at.
