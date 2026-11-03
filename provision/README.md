@@ -475,6 +475,12 @@ step 4 removed it.
 From a text console (Ctrl+Alt+F3) or over ssh, restore the copy with
 `sudo tar -C /var -xpf ~/usrlocal-before-cairn.tar`, run
 `sudo restorecon -R /var/usrlocal`, then `sudo systemctl restart sddm`.
+On the image the login screen's own account can get a new number, and
+`/var/lib/sddm` goes with it: in the second rehearsal 955 became 956.
+The way back was not tried again since.
+If the old login screen does not come back,
+`sudo chown -R sddm:sddm /var/lib/sddm` gives the folder back to the old
+system's account; then restart sddm again.
 
 ## What it must do
 
