@@ -567,8 +567,9 @@ class MoveTest(MoveTestCase):
     @needs_reflink
     def test_every_account_can_read_the_moved_game_and_the_group_can_write_it(self):
         # The family folder is set up like the image's: setgid, with a
-        # default ACL that takes the umask's place. Steam's own installs
-        # there give the group what they give the owner, and so does a move.
+        # default ACL that takes the umask's place. The folders and
+        # manifests Steam keeps there give the group what they give the
+        # owner, and a move gives it that on every file too (ADR-0042).
         for folder in (self.machine.shared, self.machine.shared / "common"):
             folder.chmod(0o2775)
             if shutil.which("setfacl"):

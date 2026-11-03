@@ -71,6 +71,10 @@ with non-Fedora or modified Fedora Materials"):
   not required; Universal Blue does not use it and neither will Cairn.
 - Fedora's own footer requirement applies wherever the Fedora word mark is
   used: the ® symbol on first mention and the attribution statement.
+  The guidelines' "Proper Trademark Use" gives the statement as "[List of
+  marks] is/are [a] trademark[s] or registered trademark[s] of Red Hat,
+  Inc., or its subsidiaries in the United States and other countries."
+  (checked again on 2026-11-02, `fedora-legal-docs` at a7507b7).
 
 ## Compliance checklist for Cairn (Phase 1, before any image is published)
 
@@ -84,6 +88,9 @@ with non-Fedora or modified Fedora Materials"):
 - [ ] **Say plainly that Cairn is not affiliated with or supported by**
   Bazzite, Universal Blue, Red Hat or the Fedora Project. Put it in the
   README, the website footer, the About screen, and `NOTICE`.
+  *In `NOTICE` since 2026-09-03 and the README since 2026-11-02.* The
+  website footer (`cairn-site`) and the About screen (#167) are still to
+  do.
 - [ ] **Own support channels only.** Cairn's docs and UI never point users at
   Bazzite's or Universal Blue's Discord, forums or issue trackers. This was
   the substance of the GPD complaint.
@@ -103,11 +110,17 @@ with non-Fedora or modified Fedora Materials"):
   rather than removing the package, and record that choice in the ADR.
   *Done 2026-10-21 (ADR-0038, slice 5)* with `generic-logos`, which stays
   registered in rpm. `fedora-release-notes` is not in the base.
+  *Still open, seen 2026-11-02:* a plain `fastfetch` draws its own copy
+  of Fedora's logo beside "OS: Cairn Linux", because it picks a logo from
+  `ID_LIKE=fedora` when it has none for `ID=cairn`.
 - [ ] **Display the Fedora notice** where the OS identifies itself (About
   screen, website download page, docs): not provided or supported by the
   Fedora Project; official Fedora is at https://fedoraproject.org/.
   *Still open:* the About screen's notice goes on the Guardian tool's
   About page (#167, ADR-0038 slice 5).
+  *In the README since 2026-11-02,* in the guidelines' own words, with the
+  attribution statement in its footer; `NOTICE` uses the same words. The
+  website's download page (`cairn-site`) is still to do.
 - [ ] **Installer branding.** Bazzite issue #1104 shows the installer can
   carry Fedora imagery unless replaced. Cairn's ISO (P1-4) must ship its own
   installer artwork.

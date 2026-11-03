@@ -373,6 +373,9 @@ Also seen:
   (`pkexec bazzite-privileged-user-setup ada`, which failed on a missing
   `steam-web-debug-portforward` unit), PipeWire, AT-SPI and gvfs for her.
   `xdg-desktop-portal` failed to start for her.
+  *Not in the image since 2026-11-03 (#261):* the image takes out
+  Bazzite's per-user setup and its root step, so a visit no longer runs
+  them.
 - In Route A, from its start, ada's Steam wrote only under
   `/var/home/ada` (Steam, `.cache/mesa_shader_cache`, `.config/pulse`,
   `.local/state/wireplumber`), `/run/user/1002` and `/dev/shm/u1002-*`.

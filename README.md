@@ -134,8 +134,22 @@ brand assets, including the stacked-stones artwork, are licensed under
 trademark rights in the name "Cairn Linux" or the stacked-stones mark. See the
 [trademark policy](TRADEMARKS.md) and [visual brand rules](brand/README.md).
 
+## Built on Bazzite
+
+Cairn Linux is built on Bazzite, a Universal Blue image derived from
+Fedora® Linux.
+Cairn Linux is not affiliated with, endorsed by, or supported by Bazzite,
+Universal Blue, Red Hat or the Fedora Project.
+The software Cairn Linux provides is not provided or supported by the
+Fedora Project.
+Official Fedora Materials are available through the Fedora Project website
+at <https://fedoraproject.org/>.
+[`NOTICE`](NOTICE) has the attributions.
+
 ---
 
 Cairn Linux · cairnlinux.com · © 2026 Cairn Linux contributors.
 "Linux" is a registered trademark of Linus Torvalds. The project has not yet
 applied to the Linux Mark Institute for a sublicence (issue #21).
+Fedora is a trademark or registered trademark of Red Hat, Inc., or its
+subsidiaries in the United States and other countries.
