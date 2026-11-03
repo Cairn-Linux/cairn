@@ -18,22 +18,27 @@ it, on no beta branch, with nothing downloading, every account can read its
 files, and the family folder has neither its manifest nor its folder.
 Nothing moves while the Guardian's Steam is open, and only by reflink, so a
 game on another drive stays where it is. Its Wine prefix, shader cache and
-workshop items stay in the old library, and nothing ever moves back.
+workshop items stay in the old library, and nothing ever moves back. Steam
+Cloud's marker, steam_autocloud.vdf, does not move from anywhere in the
+game's folder: it names the Guardian's Steam account, and goes with the
+original folder (#250). A game already in the family folder is left as it
+is, marker and all.
 
 A move keeps ADR-0042's order. The game's folder is copied into a folder of
-this run's own in the family's steamapps/common, and each file and folder
-of the copy gives its group the owner's bits, as Steam's own installs there
-do. The manifest is written in the family's steamapps under a temporary
-name. Then the original manifest is set aside, the copy and the family
-manifest take their names, and the original folder and the set-aside
-manifest go. Ctrl-C and the other ending signals wait from the set-aside
-until both names are taken. The order keeps a game out of two libraries at
-every point. A run ended anywhere, by a kill or a power cut, is finished or
-undone by the next one before it looks at any game; one ended between the
-set-aside and the renames leaves the game in no library until then. Two
-runs never overlap: each holds a lock for the whole run, and a second run
-waits. The lock is a file in the family's steamapps that only Guardians can
-open, so no child can hold it and keep a Save waiting.
+this run's own in the family's steamapps/common, the copy loses Steam
+Cloud's marker, and each file and folder of the copy gives its group the
+owner's bits, as Steam's own installs there do. The manifest is written in
+the family's steamapps under a temporary name. Then the original manifest
+is set aside, the copy and the family manifest take their names, and the
+original folder and the set-aside manifest go. Ctrl-C and the other ending
+signals wait from the set-aside until both names are taken. The order
+keeps a game out of two libraries at every point. A run ended anywhere, by
+a kill or a power cut, is finished or undone by the next one before it
+looks at any game; one ended between the set-aside and the renames leaves
+the game in no library until then. Two runs never overlap: each holds a
+lock for the whole run, and a second run waits. The lock is a file in the
+family's steamapps that only Guardians can open, so no child can hold it
+and keep a Save waiting.
 
 Before its first move it adds the family folder to both of the Guardian's
 library lists, config/ and steamapps/libraryfolders.vdf, laid out as
@@ -129,6 +134,11 @@ LIST_NEW = ".cairn-list-new"
 MARKER_NEW = ".cairn-marker-new"
 TEMPORARY_NAME = re.compile(rf"\.cairn-move-manifest-({kidscan.APPID.pattern})")
 ASIDE_NAME = re.compile(rf"\.cairn-move-aside-({kidscan.APPID.pattern})")
+
+# Steam Cloud's marker, which names the Steam account whose saves a folder
+# holds. It never moves into the family folder, which every account can
+# read and each child's copy is made from (#250).
+CLOUD_MARKER = "steam_autocloud.vdf"
 
 # A process's folder in /proc.
 PROCESS = re.compile(r"[0-9]+")
@@ -446,6 +456,22 @@ def raise_error(error):
     raise error
 
 
+def leave_out_cloud_markers(copy):
+    """Removes Steam Cloud's marker from a copy in this run's own folder, at
+    every depth, before anything else changes. Only an entry of exactly that
+    name goes, and never a folder: a link goes as a link, and is never
+    followed. No other account can enter the run's own folder, so nothing
+    changes between the look and the removal."""
+    for top, folders, files in os.walk(copy, onerror=raise_error):
+        marker = os.path.join(top, CLOUD_MARKER)
+        if CLOUD_MARKER in folders + files and not is_real_folder(marker):
+            os.unlink(marker)
+            # A link to a folder is listed among the folders, and the walk
+            # must not look inside it now that it is gone.
+            if CLOUD_MARKER in folders:
+                folders.remove(CLOUD_MARKER)
+
+
 def let_the_group_write(copy):
     """Gives the group the owner's bits on each file and folder of a copy, as
     Steam's own installs in the family folder have them, so the group can
@@ -532,6 +558,8 @@ def move(game, family, scratch, proc):
     try:
         if not reflink_copy(game.folder, copy):
             return "failed"
+        # A copy that still holds one never takes the game's name.
+        leave_out_cloud_markers(copy)
         let_the_group_write(copy)
         # A manifest Steam changed during the copy means the copy may hold
         # parts of two versions.

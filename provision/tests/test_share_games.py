@@ -36,7 +36,8 @@ import tempfile
 import unittest
 from unittest import mock
 
-from test_copy_games import NO_REFLINK, REFLINK_PLACE, needs_not_root, needs_reflink, reflinks
+from test_copy_games import (GROWN_UPS_MARKER, LIKE_THE_MARKER, MARKERS, NO_REFLINK, REFLINK_PLACE,
+                             failing_for_markers, needs_not_root, needs_reflink, reflinks, without_markers)
 
 HERE = pathlib.Path(__file__).resolve().parent
 PROGRAM = HERE.parent / "cairn-share-games.py"
@@ -636,6 +637,100 @@ class MoveTest(MoveTestCase):
                 self.assertNotIn(word, line)
 
 
+# A game whose folder holds the Guardian's Steam Cloud marker in each of
+# MARKERS, beside its save and files named like the marker.
+GAME_WITH_MARKERS = {
+    **GAME_FILES,
+    **{name: (GROWN_UPS_MARKER, 0o644) for name in MARKERS},
+    **{f"Saves/{name}": (GROWN_UPS_MARKER, 0o644) for name in LIKE_THE_MARKER},
+}
+
+
+def contents(files):
+    return {name: content for name, (content, _) in files.items()}
+
+
+class CloudMarkerTest(MoveTestCase):
+    """Steam Cloud's marker, steam_autocloud.vdf, names the Steam account
+    whose saves a folder holds. A game moves without the Guardian's, at
+    every depth, and a game already in the family folder keeps its own
+    (#250). Copies use a stand-in for cp, but for the one real move."""
+
+    place = REFLINK_PLACE
+
+    @needs_reflink
+    def test_the_marker_stays_behind_at_every_depth(self):
+        self.machine.add_game(100, files=GAME_WITH_MARKERS)
+        self.assertEqual(self.machine.run("100"), ["library added", "moved 100"], self.machine.stderr)
+        moved = self.machine.shared / "common" / "A Game"
+        for name in MARKERS:
+            self.assertFalse(os.path.lexists(moved / name), name)
+        # Everything else moves, the names like it byte for byte.
+        self.assertEqual(files_of(moved), without_markers(contents(GAME_WITH_MARKERS)))
+        for name in LIKE_THE_MARKER:
+            self.assertEqual((moved / "Saves" / name).read_bytes(), GROWN_UPS_MARKER, name)
+        # The original goes whole, as it always does.
+        self.assertFalse(os.path.lexists(self.machine.library / "common" / "A Game"))
+        self.assertNoLeftovers()
+
+    def test_a_link_named_like_the_marker_stays_behind_and_is_never_followed(self):
+        folder = self.machine.add_game(100)
+        bashrc = self.machine.home / ".bashrc"
+        bashrc.write_bytes(b"the Guardian's own\n")
+        notes = self.machine.home / "notes"
+        notes.mkdir()
+        (notes / "keep").write_bytes(b"mine")
+        # A link to a file, a link to a folder, and a link to nothing.
+        (folder / "Saves" / "steam_autocloud.vdf").symlink_to(bashrc)
+        (folder / "data" / "steam_autocloud.vdf").symlink_to(notes)
+        (folder / "steam_autocloud.vdf").symlink_to("nowhere")
+        # A folder by that name is not a marker, and moves, without the
+        # marker inside it.
+        inside = folder / "Folder" / "steam_autocloud.vdf"
+        inside.mkdir(parents=True)
+        (inside / "inside.dat").write_bytes(b"kept")
+        (inside / "steam_autocloud.vdf").write_bytes(GROWN_UPS_MARKER)
+        self.assertEqual(self.machine.run_with_stand_in("100"), (0, ["library added", "moved 100"]))
+        moved = self.machine.shared / "common" / "A Game"
+        self.assertEqual(files_of(moved), {**files_of_game(), "Folder/steam_autocloud.vdf/inside.dat": b"kept"})
+        self.assertEqual(bashrc.read_bytes(), b"the Guardian's own\n")
+        self.assertEqual(files_of(notes), {"keep": b"mine"})
+
+    def test_the_marker_is_gone_before_the_copy_takes_its_name(self):
+        self.machine.add_game(100, files=GAME_WITH_MARKERS)
+        real_rename = os.rename
+        seen = []
+
+        def rename(source, target):
+            if pathlib.Path(target) == self.machine.shared / "common" / "A Game":
+                seen.append(files_of(source))
+            real_rename(source, target)
+
+        self.assertEqual(self.machine.run_with_stand_in("100", calls={"rename": rename}),
+                         (0, ["library added", "moved 100"]))
+        self.assertEqual(seen, [without_markers(contents(GAME_WITH_MARKERS))])
+
+    def test_a_marker_that_cannot_be_left_out_moves_nothing(self):
+        folder = self.machine.add_game(100, files=GAME_WITH_MARKERS)
+        self.assertEqual(self.machine.run_with_stand_in("100", calls={"unlink": failing_for_markers(os.unlink)}),
+                         (0, ["library added", "not-moved 100 failed"]))
+        self.assertEqual(files_of(folder), contents(GAME_WITH_MARKERS))
+        self.assertEqual((self.machine.library / "appmanifest_100.acf").read_bytes(), manifest(100))
+        self.assertEqual(sorted(path.name for path in self.machine.shared.iterdir()), [".cairn-move-lock", "common"])
+        self.assertEqual(list((self.machine.shared / "common").iterdir()), [])
+
+    def test_a_game_already_in_the_family_folder_keeps_its_marker(self):
+        # As after the Guardian played it there, on the test VM: Steam wrote
+        # the marker, and will again at the next play there.
+        (self.machine.shared / "appmanifest_100.acf").write_bytes(manifest(100))
+        family_saves = self.machine.shared / "common" / "A Game" / "Saves"
+        family_saves.mkdir(parents=True)
+        (family_saves / "steam_autocloud.vdf").write_bytes(GROWN_UPS_MARKER)
+        before = self.everything()
+        self.assertEqual(self.machine.run_with_stand_in("100"), (0, ["shared 100"]))
+        self.assertEqual(self.everything(), before)
+
+
 class OrderTest(MoveTestCase):
     """ADR-0042's order, with a stand-in for cp."""
 
@@ -887,12 +982,19 @@ class InterruptedTest(MoveTestCase):
         if os.path.lexists(machine.shared / ".cairn-move-manifest-100") and os.path.lexists(copy):
             self.assertEqual(files_of(copy), files_of_game())
 
+    def assertNoMarkerInTheFamilysGame(self, machine):
+        """Only this run's own folder ever holds Steam Cloud's marker, until
+        the marker goes or the next run removes that folder."""
+        self.assertFalse(os.path.lexists(machine.shared / "common" / "A Game" / "Saves" / "steam_autocloud.vdf"))
+
     def test_a_move_ended_at_any_point_leaves_the_game_in_one_library(self):
         # Every change a whole move makes, list writes included; the run is
-        # ended just before each, and just after.
+        # ended just before each, and just after. The game holds Steam
+        # Cloud's marker, which never reaches the family folder (#250).
+        game = {**GAME_FILES, "Saves/steam_autocloud.vdf": (GROWN_UPS_MARKER, 0o644)}
         with tempfile.TemporaryDirectory(dir=self.place) as root:
             whole = Machine(root)
-            whole.add_game(100)
+            whole.add_game(100, files=game)
             code, sent = in_child(lambda: run_until(whole, Ender(), "100"))
             self.assertEqual(code, 0)
             self.assertEqual(whole.lists()["config/libraryfolders.vdf"].count(str(whole.family).encode()), 1)
@@ -902,12 +1004,13 @@ class InterruptedTest(MoveTestCase):
             for after in (False, True):
                 with self.subTest(at=at, after=after), tempfile.TemporaryDirectory(dir=self.place) as root:
                     machine = Machine(root)
-                    machine.add_game(100)
+                    machine.add_game(100, files=game)
                     code, _ = in_child(lambda: run_until(machine, Ender(at, after), "100"))
                     self.assertEqual(code, KILLED)
                     self.assertInAtMostOneLibrary(machine)
                     self.assertEveryChangedListKeptItsBackup(machine)
                     self.assertNoCopyAnotherRunCouldFinishIsHalf(machine)
+                    self.assertNoMarkerInTheFamilysGame(machine)
                     code, lines = machine.run_with_stand_in("100")
                     self.assertEqual(code, 0)
                     self.assertIn(lines, (["library added", "moved 100"], ["library had", "moved 100"],
