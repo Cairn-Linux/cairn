@@ -95,8 +95,8 @@ The launcher has thirty-one CTest tests, run offscreen: the wrapper the
 kiosk session starts, run with stand-ins, the tile model, the
 manifest reader, the manifest and the games file read together (the tile
 files), kidscan's manifest and games file written and read back (two
-tests), the app launcher, the windows of a launch, the wait for a Steam
-game, Steam's reapers, the lines a log gains, Steam's launch log, the
+tests), the app launcher, the grown-up screen's line, the windows of a
+launch, the wait for a Steam game, Steam's reapers, the lines a log gains, Steam's launch log, the
 times in Steam's logs when the clocks change (in Mountain time, set for
 that test alone), Steam's content log, a launch
 Steam stopped part-way, the games Steam holds behind a question, Steam
@@ -277,6 +277,11 @@ Steam's `LogonFailure` lines: while Steam's log says nothing about the
 game, a refused sign-in such as `Access Denied` ends the wait at the next
 grace, and a Steam that cannot reach its servers gets a minute. Neither says "Getting
 it ready", and the journal says which it was (ADR-0036, #182).
+When the sign-in was turned down, whatever else Steam's logs say, the
+grown-up screen adds "Log out, then a grown-up can fix it from their own
+login.", and the journal says to log the child out and open Steam for them
+from a grown-up's own login (ADR-0049).
+A Steam that cannot reach its servers gets no line.
 A new child's first Linux game can stop part-way (#206): Steam fetches one
 of the two tools the game runs in, takes the game off its download
 schedule, and its launch stays at `DownloadingDepots`.
@@ -296,17 +301,19 @@ game, is waited for as work, and Steam is started again at a later look
 once it can be.
 A stall seen while Steam's sign-in is turned down, or while it cannot
 reach its servers, ends the wait at that look by #182's rules: the journal
-names the sign-in or the connection, and the grown-up screen adds no line.
+names the sign-in or the connection, and the grown-up screen adds the
+sign-in's line, or none for the connection.
 If Steam could not be started again, the stall comes back, or the new
 client does not take the tap, the wait ends at the next look, and the
 journal says to log the child out and back in.
 A later tap on a game Steam keeps stuck ends at its first look (ADR-0036).
 Either way the grown-up screen adds "Log out and back in, then try it
 again." under the sentence that names the tile, unless Steam's logs gave
-another reason, such as a refused sign-in or a question (ADR-0045).
+another reason, such as a question, or its sign-in was turned down, which
+has a line of its own (ADR-0045, ADR-0049).
 The cloud question, below, is the one exception.
-`AppLauncher.grownUpStep` says which line, if any; `GrownUpScreen.qml`
-draws it.
+`GrownUpLine` decides which line, if any, `AppLauncher.grownUpStep` passes
+it on, and `GrownUpScreen.qml` draws it.
 A question Steam asks on a window the kiosk hides, such as about a game's
 cloud saves while it is offline, ends the tap at the grace, and the
 journal says Steam is waiting for an answer (ADR-0036).
@@ -321,7 +328,9 @@ out and back in, then try it again." to the grown-up screen, and the
 journal line ends "Log the child out and back in, then try it again."
 (ADR-0045).
 The tap that met the question adds no line, nor do taps while Steam is
-offline or its sign-in is turned down, nor any other question.
+offline, nor any other question.
+While its sign-in is turned down, those taps get the sign-in's line, and
+the journal names the sign-in first (ADR-0049).
 Steam writes the times in its logs as local time, with no zone.
 In the hour that comes twice when the clocks go back, each of those
 times means two moments an hour apart.

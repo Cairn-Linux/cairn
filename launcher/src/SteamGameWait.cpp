@@ -26,6 +26,7 @@ void SteamGameWait::startLaunch(const QStringList& exec) {
     m_lastStep = SteamLaunchLog::Step::Nothing;
     m_steamNow = SteamStartup::Now::Ready;
     m_signInNow = SteamSignIn::Now::Fine;
+    m_signInRefused = false;
     m_stallNow = SteamStall::Now::Fine;
     m_logOutFreesHeldGame = false;
     m_sentAgain = false;
@@ -53,11 +54,15 @@ bool SteamGameWait::stillComing() {
     // stopped getting the game ready: what it still needs must come from them.
     const bool needsServers =
         m_lastStep == SteamLaunchLog::Step::Nothing || m_stallNow == SteamStall::Now::Stalled;
-    m_signInNow = needsServers ? m_signIn.read(now) : SteamSignIn::Now::Fine;
+    const SteamSignIn::Now signIn = m_signIn.read(now);
+    m_signInNow = needsServers ? signIn : SteamSignIn::Now::Fine;
+    // A refused sign-in needs a grown-up before anything else helps, so the
+    // grown-up screen and the journal take it whatever else the logs say
+    // (ADR-0049).
+    m_signInRefused = signIn == SteamSignIn::Now::Refused;
     // Logging the child out frees a game the cloud question holds, but only
     // once Steam has signed in again (#211, ADR-0045).
-    m_logOutFreesHeldGame =
-        m_questions.heldByCloudQuestion() && m_signIn.read(now) == SteamSignIn::Now::Fine;
+    m_logOutFreesHeldGame = m_questions.heldByCloudQuestion() && signIn == SteamSignIn::Now::Fine;
     if (m_signInNow == SteamSignIn::Now::Refused ||
         (m_stallNow == SteamStall::Now::Stuck && !newReaper())) {
         return false;
@@ -145,10 +150,14 @@ SteamSignIn::Now SteamGameWait::signIn() const {
     return m_signInNow;
 }
 
+bool SteamGameWait::signInRefused() const {
+    return m_signInRefused;
+}
+
 QString SteamGameWait::journalNote(const QString& title) const {
-    if (m_signInNow == SteamSignIn::Now::Refused) {
-        return QStringLiteral("Steam could not sign in, so %1 did not start. "
-                              "Steam needs to be signed in again.")
+    if (m_signInRefused) {
+        return QStringLiteral("Steam could not sign in, so %1 did not start. Log the child out, "
+                              "then open Steam for them from your own login and sign in again.")
             .arg(title);
     }
     if (m_signInNow == SteamSignIn::Now::NoConnection) {

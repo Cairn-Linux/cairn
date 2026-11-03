@@ -2,6 +2,7 @@
 #include "AppLauncher.h"
 
 #include "AppScope.h"
+#include "GrownUpLine.h"
 
 #include <QDateTime>
 #include <QDebug>
@@ -71,8 +72,7 @@ QString AppLauncher::title() const {
 }
 
 AppLauncher::GrownUpStep AppLauncher::grownUpStep() const {
-    const bool logOut = m_state == State::Failed && m_steamGame.logOutWouldHelp();
-    return logOut ? GrownUpStep::LogOutAndBackIn : GrownUpStep::None;
+    return GrownUpLine::step(m_state, m_steamGame);
 }
 
 bool AppLauncher::gettingReady() const {

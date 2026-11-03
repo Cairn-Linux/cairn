@@ -1374,6 +1374,8 @@ private slots:
     // #182: Steam, starting at login, had its saved sign-in turned down. The
     // starting screen said the game was getting ready while Steam started;
     // the refusal ends the wait at the next grace, and the journal says why.
+    // The grown-up screen says a grown-up can fix it from their own login,
+    // until Back (ADR-0049).
     void aSteamThatCannotSignInNeedsAGrownUpAndSaysSo() {
         const QTemporaryDir dir;
         QVERIFY(dir.isValid());
@@ -1396,15 +1398,20 @@ private slots:
             QStringLiteral("Putt-Putt Travels Through Time"),
             {QStringLiteral("steam"), QStringLiteral("-applaunch"), QStringLiteral("294670")});
         QTRY_VERIFY(launcher.gettingReady());
+        QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::None);
         QTest::ignoreMessage(QtWarningMsg,
                              "Steam could not sign in, so Putt-Putt Travels Through Time did not "
-                             "start. Steam needs to be signed in again.");
+                             "start. Log the child out, then open Steam for them from your own "
+                             "login and sign in again.");
         QTest::ignoreMessage(
             QtWarningMsg, "Nothing of Putt-Putt Travels Through Time came on the screen in time.");
         steamLogs(QStringLiteral("console_log.txt"), 0, "LogonFailure Access Denied");
         QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
         QVERIFY(!launcher.gettingReady());
         QCOMPARE(launcher.title(), QStringLiteral("Putt-Putt Travels Through Time"));
+        QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::LogOutForAGrownUp);
+        launcher.dismiss();
+        QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::None);
         QVERIFY(QFile::remove(dataHome().filePath(QStringLiteral("Steam/logs/bootstrap_log.txt"))));
         QVERIFY(QFile::remove(dataHome().filePath(QStringLiteral("Steam/logs/console_log.txt"))));
         qputenv("PATH", path);
@@ -1412,7 +1419,8 @@ private slots:
 
     // #182: Steam, starting at login, cannot reach its servers. The starting
     // screen never says the game is getting ready; after the short wait the
-    // grown-up screen comes, and the journal says why.
+    // grown-up screen comes, and the journal says why. The screen adds no
+    // line: logging out does not bring the network back (ADR-0049).
     void aSteamWithNoConnectionNeedsAGrownUpAndSaysSo() {
         const QTemporaryDir dir;
         QVERIFY(dir.isValid());
@@ -1446,6 +1454,7 @@ private slots:
         QVERIFY(!launcher.gettingReady());
         QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
         QVERIFY(!launcher.gettingReady());
+        QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::None);
         QVERIFY(QFile::remove(dataHome().filePath(QStringLiteral("Steam/logs/bootstrap_log.txt"))));
         QVERIFY(QFile::remove(dataHome().filePath(QStringLiteral("Steam/logs/console_log.txt"))));
         qputenv("PATH", path);
@@ -1717,7 +1726,8 @@ private slots:
     }
 
     // Started again, Steam's saved sign-in is turned down: the journal says
-    // that, not the stall's advice.
+    // that, not the stall's advice, and so does the grown-up screen
+    // (ADR-0049).
     void aSignInRefusedAfterTheRestartSaysSo() {
         const QTemporaryDir dir;
         QVERIFY(dir.isValid());
@@ -1733,15 +1743,17 @@ private slots:
                                         "again.");
         QTest::ignoreMessage(QtInfoMsg, "Steam is getting Pajama Sam 2 ready before it starts.");
         QTest::ignoreMessage(QtInfoMsg, "Steam stopped and was started again.");
-        QTest::ignoreMessage(QtWarningMsg, "Steam could not sign in, so Pajama Sam 2 did not "
-                                           "start. Steam needs to be signed in again.");
+        QTest::ignoreMessage(QtWarningMsg,
+                             "Steam could not sign in, so Pajama Sam 2 did not start. Log the "
+                             "child out, then open Steam for them from your own login and sign "
+                             "in again.");
         QTest::ignoreMessage(QtWarningMsg, "Nothing of Pajama Sam 2 came on the screen in time.");
         launcher.launch(QStringLiteral("Pajama Sam 2"), pajamaSam2());
         steamStopsPartWay(70);
         QTRY_COMPARE(restarted.count(), 1);
         steamLogs(QStringLiteral("console_log.txt"), 0, "LogonFailure Access Denied");
         QTRY_COMPARE(launcher.state(), AppLauncher::State::Failed);
-        QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::None);
+        QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::LogOutForAGrownUp);
         launcher.dismiss();
         forgetSteamsLogs();
         qputenv("PATH", path);

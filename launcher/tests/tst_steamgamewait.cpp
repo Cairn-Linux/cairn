@@ -465,15 +465,21 @@ private slots:
         wait.startLaunch(steamGame());
         QVERIFY(wait.stillComing());
         QVERIFY(wait.steamWorking());
+        QVERIFY(!wait.signInRefused());
         steamLine(log, 0, "LogonFailure Access Denied");
         QVERIFY(!wait.stillComing());
         QVERIFY(!wait.steamWorking());
         QCOMPARE(wait.signIn(), SteamSignIn::Now::Refused);
+        QVERIFY(wait.signInRefused());
         // The tries after it fail with No Connection; still refused.
         steamLine(log, 0, "LogonFailure No Connection");
         QVERIFY(!wait.stillComing());
         QCOMPARE(wait.signIn(), SteamSignIn::Now::Refused);
+        QVERIFY(wait.signInRefused());
         QVERIFY(!wait.sendAgain());
+        // A new tap forgets it until its first look.
+        wait.startLaunch(steamGame());
+        QVERIFY(!wait.signInRefused());
     }
 
     // A Steam that cannot reach its servers gets a short wait to come back,
@@ -493,6 +499,7 @@ private slots:
         QCOMPARE(wait.signIn(), SteamSignIn::Now::NoConnection);
         QTRY_VERIFY(!wait.stillComing());
         QCOMPARE(wait.signIn(), SteamSignIn::Now::NoConnection);
+        QVERIFY(!wait.signInRefused());
     }
 
     // Steam back online in the short wait: starting is work again.
@@ -536,8 +543,9 @@ private slots:
         QTest::addColumn<QString>("note");
         QTest::newRow("refused sign-in")
             << QByteArray("LogonFailure Access Denied") << QByteArray()
-            << QStringLiteral("Steam could not sign in, so Ada's game did not start. Steam needs "
-                              "to be signed in again.");
+            << QStringLiteral("Steam could not sign in, so Ada's game did not start. Log the "
+                              "child out, then open Steam for them from your own login and sign "
+                              "in again.");
         QTest::newRow("no connection")
             << QByteArray("LogonFailure No Connection") << QByteArray()
             << QStringLiteral("Steam could not reach the internet, so Ada's game did not start.");
@@ -824,10 +832,12 @@ private slots:
         QVERIFY(!wait.restartSteam());
         QVERIFY(!wait.sendAgain());
         QCOMPARE(wait.signIn(), SteamSignIn::Now::Refused);
+        QVERIFY(wait.signInRefused());
         QVERIFY(!wait.logOutWouldHelp());
         QCOMPARE(wait.journalNote(QStringLiteral("Pajama Sam 2")),
-                 QStringLiteral("Steam could not sign in, so Pajama Sam 2 did not start. Steam "
-                                "needs to be signed in again."));
+                 QStringLiteral("Steam could not sign in, so Pajama Sam 2 did not start. Log the "
+                                "child out, then open Steam for them from your own login and "
+                                "sign in again."));
     }
 
     // After a stall, the restarted Steam asked a question on a window the
@@ -935,24 +945,30 @@ private slots:
     // its first look, as the first one did, and the journal names the
     // question. Once Steam has signed in again, logging the child out frees
     // the game, so the journal and the grown-up screen say that too; not
-    // while Steam is still offline, nor while its sign-in is turned down
-    // (ADR-0045).
+    // while Steam is still offline (ADR-0045). While its sign-in is turned
+    // down, the journal names the sign-in instead: a grown-up must mend that
+    // first (ADR-0049).
     void aGameHeldByAQuestionSaysSoAtEveryTap_data() {
         QTest::addColumn<QByteArray>("signIn");
         QTest::addColumn<bool>("logOut");
+        QTest::addColumn<bool>("refused");
         QTest::addColumn<QString>("note");
         QTest::newRow("signed in again")
-            << QByteArray("Waiting for compat in post-logon took: 0.098334s") << true
+            << QByteArray("Waiting for compat in post-logon took: 0.098334s") << true << false
             << pajamaSam2QuestionAndLogOut();
         QTest::newRow("still offline")
-            << QByteArray("LogonFailure No Connection") << false << pajamaSam2Question();
+            << QByteArray("LogonFailure No Connection") << false << false << pajamaSam2Question();
         QTest::newRow("sign-in turned down")
-            << QByteArray("LogonFailure Access Denied") << false << pajamaSam2Question();
+            << QByteArray("LogonFailure Access Denied") << false << true
+            << QStringLiteral("Steam could not sign in, so Pajama Sam 2 did not start. Log the "
+                              "child out, then open Steam for them from your own login and sign "
+                              "in again.");
     }
 
     void aGameHeldByAQuestionSaysSoAtEveryTap() {
         QFETCH(const QByteArray, signIn);
         QFETCH(const bool, logOut);
+        QFETCH(const bool, refused);
         QFETCH(const QString, note);
         const QTemporaryDir root;
         const QString log = root.filePath(QStringLiteral("console_log.txt"));
@@ -968,6 +984,7 @@ private slots:
             QVERIFY(!wait.steamWorking());
             QVERIFY(!wait.sendAgain());
             QCOMPARE(wait.logOutWouldHelp(), logOut);
+            QCOMPARE(wait.signInRefused(), refused);
             QCOMPARE(wait.journalNote(QStringLiteral("Pajama Sam 2")), note);
         }
     }

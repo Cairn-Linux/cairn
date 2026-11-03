@@ -29,6 +29,7 @@ set(launcher_model_sources
     src/TileFiles.h src/TileFiles.cpp
     src/TilePicture.h src/TilePicture.cpp
     src/AppLauncher.h src/AppLauncher.cpp
+    src/GrownUpLine.h src/GrownUpLine.cpp
     src/AppScope.h src/AppScope.cpp
     src/LaunchWindows.h src/LaunchWindows.cpp
     src/GiveUpWatch.h src/GiveUpWatch.cpp
@@ -118,6 +119,11 @@ qt_add_executable(tst_applauncher tests/tst_applauncher.cpp ${launcher_model_sou
 target_include_directories(tst_applauncher PRIVATE src)
 target_link_libraries(tst_applauncher PRIVATE Qt6::Qml Qt6::Test)
 add_test(NAME applauncher COMMAND tst_applauncher)
+
+qt_add_executable(tst_grownupline tests/tst_grownupline.cpp ${launcher_model_sources})
+target_include_directories(tst_grownupline PRIVATE src)
+target_link_libraries(tst_grownupline PRIVATE Qt6::Qml Qt6::Test)
+add_test(NAME grownupline COMMAND tst_grownupline)
 
 qt_add_executable(tst_launchwindows tests/tst_launchwindows.cpp src/LaunchWindows.h src/LaunchWindows.cpp)
 target_include_directories(tst_launchwindows PRIVATE src)
@@ -324,12 +330,12 @@ target_compile_definitions(tst_navigation PRIVATE
 )
 add_test(NAME navigation COMMAND tst_navigation)
 
-set_tests_properties(tilemodel manifest tilefiles applauncher appscope launchwindows giveupwatch steamatlogin steamrestart gridscroller closerequest logout batterylook upowerdevice foreignwindowlist tokens_loaded doorsfromtiles navigation PROPERTIES
+set_tests_properties(tilemodel manifest tilefiles applauncher grownupline appscope launchwindows giveupwatch steamatlogin steamrestart gridscroller closerequest logout batterylook upowerdevice foreignwindowlist tokens_loaded doorsfromtiles navigation PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QML_IMPORT_PATH=${QT_QML_OUTPUT_DIRECTORY}"
 )
 
-# These two write Steam's log lines from the clock, and the code they test
+# These three write Steam's log lines from the clock, and the code they test
 # reads the clock itself. In UTC no hour comes twice or is skipped, so they
 # pass at any hour of the year; the hours the clocks change in have a test
 # of their own (steamlogtime, #248). APPEND keeps the settings above.
-set_property(TEST applauncher steamgamewait APPEND PROPERTY ENVIRONMENT "TZ=UTC")
+set_property(TEST applauncher grownupline steamgamewait APPEND PROPERTY ENVIRONMENT "TZ=UTC")

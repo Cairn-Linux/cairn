@@ -6,7 +6,8 @@ import Cairn.Launcher
 // Shown instead of whatever the app printed when a launch went wrong, or when
 // a window opened that nobody asked for; and, with other words, when a tile
 // has nothing set up yet. Calm, short, and at most one thing to do: go back;
-// and, when the launcher knows, one line saying what will help (ADR-0045).
+// and, when the launcher knows, one line saying what will help (ADR-0045,
+// ADR-0049).
 Rectangle {
     id: screen
 
@@ -69,7 +70,8 @@ Rectangle {
         }
 
         // One line, never a reason, only when the launcher knows what will
-        // help (ADR-0045).
+        // help (ADR-0045). A refused Steam sign-in is mended from a grown-up's
+        // own login, never in the child's session (ADR-0049).
         Text {
             id: step
 
@@ -78,7 +80,7 @@ Rectangle {
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
             visible: screen.grownUpStep !== AppLauncher.None
-            text: screen.grownUpStep === AppLauncher.LogOutAndBackIn ? qsTr("Log out and back in, then try it again.") : ""
+            text: screen.grownUpStep === AppLauncher.LogOutAndBackIn ? qsTr("Log out and back in, then try it again.") : screen.grownUpStep === AppLauncher.LogOutForAGrownUp ? qsTr("Log out, then a grown-up can fix it from their own login.") : ""
             textFormat: Text.PlainText
             font.family: Tokens.fontFamily
             font.pixelSize: Tokens.headingSize
