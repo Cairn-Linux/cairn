@@ -50,8 +50,14 @@ SCREEN_AND_POWER_KEY = [
 ]
 
 
+def without_comments(text):
+    """The rule's text with its // comments taken out, so that a name
+    commented out, or quoted in a comment, does not count."""
+    return re.sub(r"//[^\n]*", "", text)
+
+
 def quoted_strings(text):
-    return set(re.findall(r'"([^"]*)"', text))
+    return set(re.findall(r'"([^"]*)"', without_comments(text)))
 
 
 class PolkitRulesTest(unittest.TestCase):
@@ -276,9 +282,10 @@ class KioskScreenAndPowerKeyTest(unittest.TestCase):
     def test_both_are_in_the_kiosks_list(self):
         # The kiosk's list, not the Guardian's, which refuses L3 and L4 too.
         [kiosk] = re.findall(r"var notInTheKiosk = \[(.*?)\];", self.rules, re.S)
+        entries = quoted_strings(kiosk)
         for action in SCREEN_AND_POWER_KEY:
             with self.subTest(action=action):
-                self.assertIn(f'"{action}"', kiosk)
+                self.assertIn(action, entries)
 
     def test_the_rule_itself_answers_so(self):
         node = shutil.which("node")
