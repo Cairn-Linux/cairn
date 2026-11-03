@@ -463,9 +463,10 @@ done, and what could sink it. Decisions that change the design get an ADR in
   made the account Tailscale's operator. The image now removes the link,
   the unit, both scripts, the polkit action and its rule
   (`build_files/bazzite-extras.sh`), and a check stops the build if any
-  of them comes back. A grown-up who wants Tailscale sets the operator
-  once with `sudo tailscale set --operator=<name>`. Built and checked in
-  a container on 2026-11-03; not yet seen in a VM.
+  of them comes back. A grown-up who wants Tailscale turns it on with
+  `sudo systemctl enable --now tailscaled`, then sets the operator once
+  with `sudo tailscale set --operator=<name>`. Built and checked in a
+  container on 2026-11-03; not yet seen in a VM.
 - **Draw's Print button is off (2026-10-31, #221, amends ADR-0019).** In
   the user test on the VM, the tester tapped Print in Draw as `ada`, and
   Tux Paint said "Sorry! Your picture could not be printed!". Its Flatpak

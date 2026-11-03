@@ -787,7 +787,9 @@ Updates on the installed computer still wait for P1-3.
   through bootc's merge of `/etc`; that is not yet seen in a VM.
   Accounts that already ran the step keep its three small files in
   `~/.local/share/bazzite/`, which nothing reads now.
-  A grown-up who wants Tailscale sets the operator once, with
+  A grown-up who wants Tailscale turns it on first, with
+  `sudo systemctl enable --now tailscaled`.
+  Then they set the operator once, with
   `sudo tailscale set --operator=<name>`.
 
 The image stays private and inside the family until P1-14, #86 and P1-17
