@@ -191,11 +191,9 @@ podman image inspect --format '{{index .Labels "org.opencontainers.image.version
 Rootless podman is enough. A build from an already pulled Bazzite
 base takes 3 to 4 minutes on the dev PC, most of it compiling and the
 tests. Later builds reuse the layer with the build tools, and an edit to the
-docs or to `build.sh` reuses the compiled tree too. The image is the base's
-11.6 GB plus about 420 MB, most of it ScummVM; Cairn itself is about
-2 MB. The build stops if a test fails, if Fedora's Qt headers are not
-exactly the Qt the base ships, or if `bootc container lint` warns about
-anything.
+docs or to `build.sh` reuses the compiled tree too. The build stops if a
+test fails, if Fedora's Qt headers are not exactly the Qt the base ships,
+or if `bootc container lint` warns about anything.
 
 The final stage layers the packages Cairn needs (`build_files/packages.sh`),
 copies Cairn's tree in, then sets the image up to boot into Cairn
@@ -213,6 +211,17 @@ podman run --rm localhost/cairn:dev rpm -V sddm
 The first prints `enabled` then `disabled`. `rpm -V sddm` lists
 `/etc/pam.d/sddm` as changed, which is Cairn's file, and `/run/sddm` as
 missing, which systemd makes at boot.
+
+The image is the base's 11.6 GB plus about 679 MB, as measured on
+2026-11-03 (#262). The packages `packages.sh` adds are a layer of
+394 MB, most of it ScummVM. Cairn's own programs are a layer of 5.5 MB.
+The layer `build.sh` makes is 279 MB, 254 MB of it the initramfs built
+again for the boot screen (ADR-0044, "The image's size"). A layer that
+changes a file stores the whole new file, and the old one stays in the
+layer below. So the image carries the base's initramfs as well as
+Cairn's, and the base's rpm database as well as the one `packages.sh`
+leaves. P1-3 brings image-template's rechunk step, and the image and one
+update's download are measured again then.
 
 The image calls itself Cairn Linux and carries the Cairn mark (slice 5).
 `build_files/check-name-and-logos.sh` runs as its own step before the
