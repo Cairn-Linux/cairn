@@ -354,17 +354,57 @@ working afterwards. Each deployment has its own `/etc`, and they share
 
 ### What the kids' laptop's move will need
 
-Not done yet; only the maintainer runs these, on the laptop. Before anything,
-check that no group has the image's numbers:
+Not done yet; only the maintainer runs these, on the laptop.
+They were rehearsed on 2026-11-02 in the test VM, from a Bazzite set up
+by hand like the laptop to the image built from e005b7a, and the list
+below has what that rehearsal found.
+The VM ran every step, but steps 6 and 7 found nothing to put right
+there, so step 6's copy and step 7's added rule are untried.
+The image does not record its commit, so note the commit beside the
+image.
+
+First, keep what must not be lost, and get ready:
+
+- Copy the children's saves off the computer: each game's `Saves/`
+  folder, each Windows game's
+  `steamapps/compatdata/*/pfx/drive_c/users/steamuser`, and Tux Paint's
+  and GCompris's folders in `~/.var/app`.
+- Take a read-only snapshot of every home, which takes a second and no
+  room: `sudo btrfs subvolume snapshot -r /var/home /var/home-before-cairn`.
+- Keep a copy of `/usr/local` for the way back (below):
+  `sudo tar -C /var -cpf ~/usrlocal-before-cairn.tar usrlocal`.
+- Stop Bazzite's updater for this boot:
+  `sudo systemctl stop uupd.timer uupd.service`, then
+  `sudo rpm-ostree cancel` if `rpm-ostree status` says busy.
+  Its timer also runs a few minutes after any start that missed 04:00,
+  and its upgrade makes step 2 fail.
+- Check out the image's commit before step 1.
+  A checkout from before 2026-10-21 has neither script below.
+- Load the image into root's container storage, for example
+  `podman save localhost/cairn:dev | ssh HOST 'sudo podman load'`.
+  The image takes ssh's input, so sudo there must not ask for a
+  password; the laptop's leftover sudoers file allows that until step 8.
+  Reading a pipe, `podman load` keeps a second copy in `/var/tmp` while
+  it runs, so leave twice the image's 12 GB free, and about 8 GB more for
+  step 3.
+
+Then check that no group has the image's numbers:
 `getent group 461 462 463 464 465` should print nothing, or only Cairn's
 own groups.
 
 1. `sudo ./provision/cairn-renumber-guardians.sh`, over ssh as the
    Guardian, with every Guardian logged out of the desktop and Steam
    closed. The ssh login itself is fine.
-2. `rpm-ostree reset` of the layered packages, including the forced
+2. `sudo rpm-ostree reset` of the layered packages, including the forced
    `desktop-backgrounds-compat`.
-3. `bootc switch` to the image, then reboot.
+   Go straight on to step 3: a restart now would start Bazzite without
+   SDDM.
+   In the rehearsal step 3 replaced the system the reset queued, so this
+   step may not be needed.
+3. `sudo bootc switch --transport containers-storage localhost/cairn:dev`,
+   then restart.
+   The login screen is still provisioning's, from `/usr/local`, until
+   step 10; nobody logs in before then.
 4. Remove `/usr/local/{bin,libexec,lib64,share}/cairn*`. The copies in
    `/usr/local/bin` come before `/usr/bin` in `PATH`, so they would
    shadow the image's. Keep `/usr/local/share/applications`.
@@ -373,16 +413,51 @@ own groups.
    `/etc/polkit-1/rules.d/10-cairn-levels.rules`,
    `/etc/polkit-1/actions/com.cairnlinux.steam-visit.policy`, which names
    `/var/usrlocal`, and `/etc/systemd/logind.conf.d/10-cairn-power.conf`.
+   Use `rm -f`: a computer that never had the visit has no polkit action.
 6. Compare `/etc/pam.d/sddm`, `/etc/pam.d/login`,
    `/etc/pam.d/cairn-steam-visit`, `/etc/security/faillock.conf` and
-   `/etc/sddm.conf.d/zz-cairn-no-autologin.conf` with the image's.
+   `/etc/sddm.conf.d/zz-cairn-no-autologin.conf` with the image's copies
+   in `/usr/etc`, for example `sudo cmp /usr/etc/pam.d/sddm /etc/pam.d/sddm`,
+   and copy the image's over any that differs.
    bootc keeps an `/etc` file that was changed on the computer.
-7. Delete the local `semanage fcontext` rules for `/var/lib/faillock` and
-   `/run/cairn`, which the image now carries.
-8. Remove the leftover sudoers file.
+   A `pam.d/sddm` provisioned before 2026-10-12 lacks the line that
+   refuses a child during a visit.
+   `sudo ostree admin config-diff` lists every `/etc` file that differs
+   from the image.
+7. Keep the `semanage fcontext` rules for `/var/lib/faillock` and
+   `/run/cairn`.
+   On the image they are in the one SELinux store, in `/etc`, so deleting
+   them would delete the image's own labels.
+   Check that `sudo semanage fcontext -l -C` lists both, and add a
+   missing one as the image's build does, for example
+   `sudo semanage fcontext -a -t etc_t '/run/cairn(/.*)?'`.
+   A computer that never had the visit has only the faillock rule, and
+   bootc keeps that file over the image's.
+8. Remove the leftover sudoers file, then check with `sudo visudo -c`.
 9. Run `cairn-family-setup.sh` from a checkout of the image's commit.
    Its entries replace provisioning's, which named `/usr/local/bin`,
    for every child, named on that run or not.
+10. Restart, so the login screen reads the image's settings, not the
+    copies step 4 removed.
+11. Give each child their games again on Family's Games page, then Save.
+    On the image each child's tiles come from their own list, so after
+    the move no child has a game tile, though every copy and save is
+    still in their Steam.
+    The Save copies only what a child lacks, and a game left off keeps
+    its copy and its saves; it only has no tile (ADR-0041).
+
+The rehearsal took about 20 minutes from the group check to the last
+restart, besides copying the image.
+The computer then calls itself `cairn` if it had no name of its own, and
+a Guardian made on Bazzite may still see Bazzite Portal at login.
+
+The way back is `sudo rpm-ostree rollback`, then a restart;
+`bootc rollback` refuses a deployment with rpm-ostree packages.
+The old system's login screen then has no session to start, because
+step 4 removed it.
+From a text console (Ctrl+Alt+F3) or over ssh, restore the copy with
+`sudo tar -C /var -xpf ~/usrlocal-before-cairn.tar`, run
+`sudo restorecon -R /var/usrlocal`, then `sudo systemctl restart sddm`.
 
 ## What it must do
 
