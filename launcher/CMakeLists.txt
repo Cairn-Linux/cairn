@@ -37,6 +37,7 @@ set(launcher_model_sources
     src/SteamAtLogin.h src/SteamAtLogin.cpp
     src/SteamContentLog.h src/SteamContentLog.cpp
     src/SteamGameWait.h src/SteamGameWait.cpp
+    src/SteamJournalNote.h src/SteamJournalNote.cpp
     src/SteamLaunchLog.h src/SteamLaunchLog.cpp
     src/SteamQuestions.h src/SteamQuestions.cpp
     src/SteamReapers.h src/SteamReapers.cpp
@@ -131,6 +132,7 @@ target_link_libraries(tst_launchwindows PRIVATE Qt6::Core Qt6::Test)
 add_test(NAME launchwindows COMMAND tst_launchwindows)
 
 qt_add_executable(tst_steamgamewait tests/tst_steamgamewait.cpp src/SteamGameWait.h src/SteamGameWait.cpp
+    src/SteamJournalNote.h src/SteamJournalNote.cpp
     src/SteamLaunchLog.h src/SteamLaunchLog.cpp src/SteamSignIn.h src/SteamSignIn.cpp
     src/SteamStartup.h src/SteamStartup.cpp src/SteamContentLog.h src/SteamContentLog.cpp
     src/SteamStall.h src/SteamStall.cpp src/SteamReapers.h src/SteamReapers.cpp
@@ -138,6 +140,12 @@ qt_add_executable(tst_steamgamewait tests/tst_steamgamewait.cpp src/SteamGameWai
 target_include_directories(tst_steamgamewait PRIVATE src)
 target_link_libraries(tst_steamgamewait PRIVATE Qt6::Core Qt6::Test)
 add_test(NAME steamgamewait COMMAND tst_steamgamewait)
+
+qt_add_executable(tst_steamjournalnote tests/tst_steamjournalnote.cpp src/SteamJournalNote.h
+    src/SteamJournalNote.cpp)
+target_include_directories(tst_steamjournalnote PRIVATE src)
+target_link_libraries(tst_steamjournalnote PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME steamjournalnote COMMAND tst_steamjournalnote)
 
 qt_add_executable(tst_steamreapers tests/tst_steamreapers.cpp src/SteamReapers.h src/SteamReapers.cpp)
 target_include_directories(tst_steamreapers PRIVATE src)

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "SteamGameWait.h"
 
+#include "SteamJournalNote.h"
+
 #include <QDateTime>
 
 #include <algorithm>
@@ -155,29 +157,11 @@ bool SteamGameWait::signInRefused() const {
 }
 
 QString SteamGameWait::journalNote(const QString& title) const {
-    if (m_signInRefused) {
-        return QStringLiteral("Steam could not sign in, so %1 did not start. Log the child out, "
-                              "then open Steam for them from your own login and sign in again.")
-            .arg(title);
-    }
-    if (m_signInNow == SteamSignIn::Now::NoConnection) {
-        return QStringLiteral("Steam could not reach the internet, so %1 did not start.")
-            .arg(title);
-    }
-    if (m_lastStep == SteamLaunchLog::Step::WaitingForAnswer) {
-        if (m_logOutFreesHeldGame) {
-            return QStringLiteral("Steam is waiting for an answer about %1 on a window the kiosk "
-                                  "hides. Log the child out and back in, then try it again.")
-                .arg(title);
-        }
-        return QStringLiteral(
-                   "Steam is waiting for an answer about %1 on a window the kiosk hides.")
-            .arg(title);
-    }
-    if (m_lastStep == SteamLaunchLog::Step::Refused) {
-        return QStringLiteral("Steam refused to start %1.").arg(title);
-    }
-    return m_stall.journalNote(title);
+    return SteamJournalNote::of(title, {.signInRefused = m_signInRefused,
+                                        .signIn = m_signInNow,
+                                        .lastStep = m_lastStep,
+                                        .logOutFreesHeldGame = m_logOutFreesHeldGame,
+                                        .stallNote = m_stall.journalNote(title)});
 }
 
 bool SteamGameWait::steamGaveAReason() const {
