@@ -22,18 +22,19 @@ workshop items stay in the old library, and nothing ever moves back.
 
 A move keeps ADR-0042's order. The game's folder is copied into a folder of
 this run's own in the family's steamapps/common, and each file and folder
-of the copy gives its group the owner's bits, as Steam's own installs there
-do. The manifest is written in the family's steamapps under a temporary
-name. Then the original manifest is set aside, the copy and the family
-manifest take their names, and the original folder and the set-aside
-manifest go. Ctrl-C and the other ending signals wait from the set-aside
-until both names are taken. The order keeps a game out of two libraries at
-every point. A run ended anywhere, by a kill or a power cut, is finished or
-undone by the next one before it looks at any game; one ended between the
-set-aside and the renames leaves the game in no library until then. Two
-runs never overlap: each holds a lock for the whole run, and a second run
-waits. The lock is a file in the family's steamapps that only Guardians can
-open, so no child can hold it and keep a Save waiting.
+of the copy gives its group the owner's bits, as the folders and manifests
+Steam keeps there do; the files of games Steam's own Move put there let the
+group only read (ADR-0042). The manifest is written in the family's
+steamapps under a temporary name. Then the original manifest is set aside,
+the copy and the family manifest take their names, and the original folder
+and the set-aside manifest go. Ctrl-C and the other ending signals wait
+from the set-aside until both names are taken. The order keeps a game out
+of two libraries at every point. A run ended anywhere, by a kill or a power
+cut, is finished or undone by the next one before it looks at any game; one
+ended between the set-aside and the renames leaves the game in no library
+until then. Two runs never overlap: each holds a lock for the whole run,
+and a second run waits. The lock is a file in the family's steamapps that
+only Guardians can open, so no child can hold it and keep a Save waiting.
 
 Before its first move it adds the family folder to both of the Guardian's
 library lists, config/ and steamapps/libraryfolders.vdf, laid out as
@@ -447,10 +448,12 @@ def raise_error(error):
 
 
 def let_the_group_write(copy):
-    """Gives the group the owner's bits on each file and folder of a copy, as
-    Steam's own installs in the family folder have them, so the group can
-    write them. The copy is in this run's own folder, so nothing changes
-    between the lstat and the chmod."""
+    """Gives the group the owner's bits on each file and folder of a copy, so
+    the group can write them, as it can the folders and manifests Steam
+    keeps in the family folder. The files of games Steam's own Move put
+    there let the group only read, so a moved game's files differ from
+    theirs (ADR-0042). The copy is in this run's own folder, so nothing
+    changes between the lstat and the chmod."""
     paths = [copy]
     for top, folders, files in os.walk(copy, onerror=raise_error):
         paths += [os.path.join(top, name) for name in folders + files]
