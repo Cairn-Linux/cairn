@@ -173,9 +173,9 @@ What decides this ADR:
   Bazzite gives the active user the raw HID nodes (hidraw) of every
   Logitech device and of many keyboards (the Solaar, OpenRGB, Wooting
   and VIA rules), and a program that opened one keeps it.
-  Three wrong passwords in 15 minutes keep every Guardian out for 10
-  minutes (ADR-0020), so a child who can reach a prompt can lock the
-  Guardians out.
+  Three wrong passwords in 15 minutes keep that Guardian out of every
+  prompt for 10 minutes (ADR-0020, `session/security/faillock.conf`), so
+  a child who can reach a prompt can lock a Guardian out.
   The image has no fingerprint in its PAM stack (no `with-fingerprint`,
   no `pam_fprintd`), although ADR-0032 says it has.
 
@@ -259,16 +259,22 @@ window and no text console appear in their session.
   else the log says.
   It wins over ADR-0045's line: nothing else helps until Steam is
   signed in again.
-  It never shows while Steam cannot reach its servers, for a window
+  It never shows when Steam only cannot reach its servers, for a window
   that opened on its own, for a coming-soon tile, or for a tile that is
   not a Steam game.
+- **It waits for its remedy to be seen.**
+  ADR-0045 adds a line only with a remedy that was seen to mend the
+  case.
+  Nobody has yet seen a sign-in made in a visit reach the kiosk (check
+  1), or a refused sign-in mended this way (check 2).
+  So this change merges only after checks 1 and 2 have passed ("Slices").
 - **Steam's questions do not get it yet.**
   For a question Steam keeps, such as a cloud conflict, the grown-up
   would press Play inside the visit so that Steam asks again, answer,
   and quit the game.
   That runs the game in cage without the GPU, which nobody has tried.
-  ADR-0045 adds a line only for a remedy seen to mend the case.
-  So questions get this line only after check 7, by an amendment here.
+  So, by the same rule, questions get this line only after check 7, by
+  an amendment here.
   Until then they keep the journal's line, and ADR-0045's "Log out and
   back in" for the cloud question once Steam has signed in again.
 - **C++ decides, QML draws.**
@@ -285,6 +291,8 @@ window and no text console appear in their session.
   logs say.
   That includes a later tap on a game Steam holds behind a question,
   where ADR-0045 named the question alone.
+  The journal's sentences move to a small class of their own,
+  `SteamJournalNote`, so that `SteamGameWait.cpp` stays under 200 lines.
 
 ### What the grown-up does
 
@@ -294,7 +302,7 @@ Every step is built already:
    That is SDDM's greeter, run as the system account `sddm`, with PAM's
    `password-auth` and faillock (ADR-0016, ADR-0020).
 2. In Plasma, open "Steam for Ada" from the menu, or the Family app's
-   Games page and "Open Steam for Ada".
+   Games page and "Open Steam for Ada", and press Open in the window.
    The window closes the grown-up's own Steam first, and says so.
    Plasma's own polkit box asks for the password again: "A grown-up's
    password is needed to open a child's Steam." (`auth_admin`, never
@@ -312,6 +320,7 @@ The kiosk does not change: `rc.xml`, its keys, the window rules and the
 launcher's window decisions stay as they are.
 Nothing new runs as root.
 No PAM service, polkit action, package or library is added.
+One logind setting changes, for the power button (below).
 
 ### The levels rule and the power button
 
@@ -378,15 +387,18 @@ It also gets two habits:
   Hold the power button until the computer turns off: five seconds turns
   it off in order, and if that does not, keep holding.
   Then start it again, and log in at the login screen.
+  A program in a child's session can draw a copy of the login screen
+  too, so if you are not sure the login screen is real, do the same
+  before you type your password.
 - Steam's window wants the child's Steam account, never your computer
   password.
-  A password typed into a child's Steam is only as private as the
-  child's account (ADR-0032).
+  A password typed into a child's Steam can be read by programs that run
+  in the child's account on this computer (ADR-0032).
 
-It also says plainly what this costs: two passwords, about five
-minutes, and the grown-up's own Steam closed for the visit.
-"A way to answer it without logging the child out is planned" becomes
-"Cairn has no way yet to do this without logging the child out (#88)."
+It also says plainly what this costs (see "Consequences").
+"A way to answer it without logging the child out is planned" goes, and
+the steps end with "Cairn has no way yet to do this without logging the
+child out (#88)."
 
 ### How the six criteria are met
 
@@ -397,7 +409,7 @@ minutes, and the grown-up's own Steam closed for the visit.
 | 3. Only allowlisted windows or actions | Yes | Nothing is shown in the child's session. The one recovery action is the visit, on the Guardian's own desktop. |
 | 4. The child kept apart | Yes | The child has no session while the Guardian acts, and PAM refuses them at the login screen and the consoles during a visit. The visit's processes run in a session of their own, with no seat, on cage's own display. |
 | 5. Containment back by itself | Yes | The kiosk's containment never changes, so there is nothing to restore. Every end of a visit runs one close (ADR-0032), and the child's next login is a fresh kiosk. |
-| 6. Audit tests | Partly | Failed and abandoned prompts: yes (checks 5 and 6). Imitation: once the child has logged out, no program of theirs runs outside the run-only cage, so none can copy the Guardian's prompts. Before that, a program in a child's kiosk can still draw a copy of the login screen, as ADR-0020 already records. The defence is the habit above, and the audit row says so. It becomes a real defence when SDDM acts on Ctrl+Alt+Shift+Esc and `ptrace_scope` is 1 ("What stays open in #88"). |
+| 6. Audit tests | Partly | Failed and abandoned prompts: yes (checks 5 and 6). Imitation: once the child has logged out, no program of theirs can draw on the Guardian's desktop outside the visit's own window. Only the run-only cage holds a connection to KWin, and the child's programs cannot read it or trace it (ADR-0032). What is drawn inside that window is the child's, which the second habit covers. Before the child logs out, a program in their kiosk can still draw a copy of the login screen ("What the research found"). The first habit catches a prompt that looks out of place, but nothing tells a faithful copy of the login screen from the real one, except restarting the computer before typing the password, as the habit says. That stays so until SDDM acts on Ctrl+Alt+Shift+Esc and `ptrace_scope` is 1 ("What stays open in #88"), and the audit row says so. |
 
 ### What stays open in #88
 
@@ -413,12 +425,9 @@ Whoever takes it up starts from what this research found it needs:
   On this image that is logind's Secure Attention Key, which can be
   trusted only with `ptrace_scope` 1 and launched apps in a session of
   their own.
-- A prompt in Cairn's voice.
-  polkit's own text agent prints red, English-only banners and the
-  action id.
-  With two Guardians it reads the choice of Guardian with the echo on,
-  and prints back what was typed.
-  So the prompt is Cairn's, through either its own PAM conversation (a
+- A prompt in Cairn's voice, since polkit's own text agent cannot be
+  one ("Alternatives considered").
+  The prompt is Cairn's, through either its own PAM conversation (a
   libpam dependency ADR) or polkit-qt6-1's agent classes, which are in
   the image (a dependency ADR, as ADR-0032 foresaw).
   Which one is decided then.
@@ -426,8 +435,7 @@ Whoever takes it up starts from what this research found it needs:
   Showing a Steam window stops the child's hands, not a program of the
   child.
   labwc shows a dialog with its parent.
-  A Steam password typed there is only as private as the child's
-  account.
+  A Steam password typed there can be read by the child's programs.
 
 SDDM's own handler for the Secure Attention Key is merged upstream
 (SDDM pull request #1922, 2024) but not yet in a release.
@@ -441,20 +449,24 @@ With `ptrace_scope` 1, criterion 6 becomes a yes for this route too.
 ### Slices
 
 1. **The line, the journal's sentence, the levels rule's two entries,
-   the parent docs, and the edits below**, in one change.
-   Checks 1 to 4 need none of it, and run first; checks 5, 6 and 8 run
-   on it.
+   the power button's setting, the parent docs, and the edits below**,
+   in one change.
+   Checks 1, 2 and 4, and the first half of check 3, need nothing of
+   this change and run first.
+   The second half of check 3, and checks 5, 6 and 8, run on it.
+   The change merges only after checks 1 and 2 have passed, since
+   ADR-0045 adds a line only with a remedy that was seen to mend the
+   case ("The line").
 2. **A time limit on a visit,** 60 minutes, in the visit helper's own
-   close (ADR-0032), in a change of its own.
+   close (ADR-0032), in a change of its own, if Mason wants one.
    Plasma's idle lock is the only limit today, and a family can turn it
    off.
 
 ### Before any friend gets the ISO
 
 The research found these on the way.
-They come after child test 2 and before any friend gets the ISO, each
-in a change of its own, as #85 and #86 work; none is part of slice 1 or
-2.
+They are #85 and #86 work, each in a change of its own, and none is
+part of slice 1 or 2.
 Each narrows this route's residue, and an in-session step-in would need
 all of them.
 Whatever is not built before the first friend's ISO is stated in the
@@ -492,8 +504,8 @@ parent docs as a known gap, as Mason chose for #86 on 2026-11-02.
 
 The image, and a computer set up by provisioning, such as the kids'
 laptop today (`docs/TRY.md` step 7).
-The visit, its menu entry or the Family app, and the login screen's
-sentence are on both.
+The visit, its menu entry and the login screen's sentence are on both.
+The Family app's "Open Steam for Ada" is on the image only (ADR-0041).
 
 ## Consequences
 
@@ -502,8 +514,9 @@ sentence are on both.
   now tells the grown-up on the screen what to do, without the journal.
 - #88's narrow version is smaller than the one Mason first described:
   the child logs out instead of a grown-up stepping in beside them.
-  The cost is the child's session, about five minutes, two passwords,
-  and the grown-up's own Steam closed for the visit.
+  The cost is the child's session, a few minutes (check 2 times them),
+  the grown-up's password twice and the child's Steam password, and the
+  grown-up's own Steam closed for the visit.
   The child loses no play in progress, because the game never started.
 - A grown-up who reads only the screen still needs `docs/TRY.md` for the
   steps.
@@ -513,34 +526,46 @@ sentence are on both.
   as the child.
 - Steam's questions still mean logging out and reading the journal,
   until check 7.
-- Nothing new sits at a trust boundary.
-  The new code is a few dozen lines of C++ and QML and two entries in
-  the levels rule, with their tests.
+- The only changes at a trust boundary are two more refusals in the
+  levels rule, and a power button's hold that no program's lock stops.
+  Nothing a child's session could use is loosened.
+  The new code is a few dozen lines of C++ and QML, two entries in the
+  levels rule and one logind setting, with their tests.
   - Tested in C++: the line comes after a refused sign-in, also through
     the `No Connection` tries after it, with a stall seen at the same
     look, after Steam was started again for a stall, with a question
     held, and in place of ADR-0045's line when both apply.
-    It does not come while Steam cannot reach its servers, at a plain
-    tap, at the tap that meets the cloud question or at a later tap on
-    the game it holds.
+    It does not come when Steam only cannot reach its servers, at a
+    plain tap, at the tap that meets the cloud question or at a later
+    tap on the game it holds.
     Nor for a window that opened on its own, for a coming-soon tile,
     while a launch is starting or open, for a tile that is not a Steam
     game, once Steam has signed in again, or before a new tap's first
     look.
+    A line Steam is still writing in its log counts only once it is
+    whole, so the start of a `No Connection` line is not a refusal.
     ADR-0045's line still comes in its own cases.
     An `AppLauncher` test runs a refused sign-in at login to the
     grown-up screen with the line, which Back takes away, and no
     connection to the grown-up screen with no line.
-    The journal's new sentence is tested too, also for a question held.
+    The journal's new sentence is tested too, also for a question held,
+    and `SteamJournalNote` has a test of its own.
   - In QML: the line is hidden without a step, and with this one it is
     shown, named for a screen reader, at the sentence's size and at
     least 18 px.
+    At the launcher's smallest window, with a two-line title, the screen
+    fits with either line.
   - In Python: the levels rule refuses both new actions at L1 and L2,
     and leaves administrators, L3, L4 and an account Cairn did not make
     to polkit's defaults.
-- ADR-0032's own remaining checks, above all a sign-in made in a visit
-  reaching the kiosk, run here, so ADR-0032 can be accepted with this
-  ADR.
+    The power button's setting is checked with the rest of its file.
+- Check 1 runs ADR-0032's main open check, a sign-in made in a visit
+  reaching the kiosk, and Exit in Steam's menu.
+  ADR-0032's other signed-in checks still stand before it is accepted:
+  a game installed in a visit, the overlay and Steam Cloud turned off
+  inside cage, and a saved account removed during a visit.
+  So does its text on the fingerprint, which the image does not bear
+  out ("What the research found").
 - The grown-up screen now tells a child that grown-ups have logins of
   their own.
   The login screen already shows grown-ups' tiles, and DESIGN §3.2's
@@ -565,6 +590,11 @@ sentence are on both.
   typed in the kiosk is readable by the child's programs too.
 - If Valve changes how Steam writes a refused sign-in, the line stops
   coming: a lost feature, not a wrong one (ADR-0045).
+  A change in how it writes a reason it tries again by itself, such as
+  `No Connection`, is different: that reason would read as a refusal,
+  and the line would show while the computer is only offline.
+  Then only the journal and the visit would show the grown-up that
+  nothing was wrong with the sign-in.
 - If a sign-in made in a visit does not reach the kiosk (check 1), this
   route fails for Steam, and P1-17's other branch applies: no Steam in
   that run.
@@ -582,6 +612,10 @@ sentence are on both.
     question its section on #182 left open.
   - **ADR-0032:** its "What comes later" item for the grown-up screen's
     words is this ADR.
+    That item said it would amend ADR-0030; ADR-0030 needs no line of
+    its own, since ADR-0045 already amends it.
+    The parent docs no longer say a way to step in is planned: they say
+    Cairn has no way yet to do it without logging the child out (#88).
     "Until a Guardian can step in inside the child's session (#88),
     fixing what Steam is waiting for means logging the child out" stays
     true.
@@ -603,12 +637,14 @@ sentence are on both.
   ADR-0030).
   No Steam window is shown in a child's session, even for a grown-up
   (ADR-0049, proposed).
+  The sentences on why L1 and L2 use `labwc`, and that Phase 0 proved
+  it, stay with the window rules and the protocol they are about.
 - **DESIGN §3.2, "Two access paths":** "Full administration" gains a
   sentence: fixing what a child's Steam waits for is done there, once
   the child has logged out (ADR-0032, ADR-0049).
   It also says that Cairn does not ask for a Guardian's password inside
-  a child's session, and that a way to step in there is not designed
-  yet (#88).
+  a child's session, and that a way to step in there is not chosen yet
+  (#88).
   The Games row of "What Guardians own" gains "open a child's own Steam
   to sign it in or answer it (ADR-0032)".
   ADR-0032 planned both edits for its acceptance; they are marked
@@ -616,38 +652,65 @@ sentence are on both.
 - **DESIGN §4.5 and §14:** no edit.
   No grown-up's button is added, so §4.5's "never appears to the child
   as a button to find" still holds.
+  Its "a grown-up never has to pull the plug" now also holds while a
+  program holds a shutdown lock.
   §4.5 changes later, with launched apps' own sessions.
 - **ADR-0018, ADR-0032, ADR-0036 and ADR-0045** get "Amended by"
   lines; ADR-0018's is in its status line.
 - **`docs/TRY.md`:** the steps, the habits and the sentence above.
+  Its closing note says the steps for a refused sign-in have not been
+  run as written yet.
 - **ROADMAP:** P1-13 gains the line.
   P1-17's "a Guardian's way to step in (#88)" becomes "a Guardian's way
   to fix Steam from their own login (ADR-0049; the in-session step-in
   stays #88)".
   The row for the Guardian boundary audits, #85 and #86, gains the
-  audit rows from checks 4 to 6, and the list under "Before any friend
+  audit rows from checks 3 to 6, and the list under "Before any friend
   gets the ISO".
+  §0 gains an entry for this ADR, and its two sentences that left a
+  line for a Steam that cannot sign in open (under #182 and ADR-0045)
+  now point here.
+  The risk "Kiosk escape via VT switch" gains logind's `chvt` refused at
+  L1 and L2, and the switch through a controlling terminal that stays
+  open until launched apps get a session of their own.
 
 ## Checks in the VM
 
-In cairn-iso, from a snapshot, with the test child `ada` (L1) and her
-Steam signed in, unless a check says otherwise.
-Checks 1 to 4 need nothing of this change, and run first.
-If check 1 or 2 fails, this ADR is amended before anything more is
-built.
+In the test VM `cairn-min`, from its snapshot `laptop-twin-2026-11-02`:
+the image built from main e005b7a, set up as the kids' laptop will be,
+with the test child `ada` (L1) and nobody's Steam signed in.
+`cairn-iso` boots an older image and is not used.
+Wherever a check signs `ada`'s Steam in (checks 1, 2 and 8), Mason types
+the test Steam account's password himself, and any Steam Guard code.
+The snapshot's games are stand-ins, so before check 1 a game the test
+account can play goes into the shared folder and is saved for `ada`.
 
-### Before the line is built
+Checks 1, 2 and 4, and the first half of check 3, need nothing of this
+change, and run first.
+The second half of check 3, and checks 5, 6 and 8, run with this
+change's build laid over `/usr`, as ADR-0047's run did.
+A restart or a power-off loses that, so it is laid over again after
+each one, and the power-button steps come last.
+Check 3's levels rule and logind drop-in can go in `/etc` instead,
+where polkit and logind read them first and a power-off keeps them;
+`systemctl reload systemd-logind` makes logind read the drop-in.
+If check 1 or 2 fails, this ADR is amended, and the line with it,
+before this change merges.
+
+### Checks 1 to 4
 
 1. **A sign-in made in a visit reaches the kiosk** (ADR-0032's open
    check).
-   In a visit, sign `ada`'s Steam out in Steam's own account menu, sign
-   in again with "Remember me", and press Done.
+   Log `ada` in once, and record what Steam writes at a kiosk login with
+   no saved sign-in at all, for a later line.
+   Then, in a visit, Mason signs her Steam in with "Remember me" and
+   presses Done.
+   Try Exit in Steam's menu in a second visit.
    Log `ada` in.
    Passes when her Steam stays silent, its `console_log.txt` has
    `Waiting for compat in post-logon took:` after the login and no
    `LogonFailure`, and a tile starts a game.
-   Also record what Steam writes at a kiosk login with no saved sign-in
-   at all, for a later line, and try Exit in Steam's menu in a visit.
+   A snapshot taken then keeps her signed in, for checks 2 and 8.
 2. **A real refused sign-in, mended from the grown-up's login.**
    Make `ada`'s saved sign-in fail.
    First spoil it in a snapshot: with her Steam stopped, change the
@@ -657,15 +720,16 @@ built.
    revoke the test account's saved sign-ins once, if Mason agrees.
    Tap a game: the grown-up screen comes within about 15 s, and the
    journal says "Steam could not sign in".
-   Then Back, Log out, the Guardian's login, "Steam for ada", sign in,
-   Done, Plasma's logout, `ada`'s tile, and the game.
+   Then Back, Log out, the Guardian's login, "Steam for ada" and Open,
+   Mason's sign-in, Done, Plasma's logout, `ada`'s tile, and the game.
    Passes when the game starts.
    Record how long each step took.
 3. **The levels rule's two entries, and the power button.**
-   First without them: does a `systemd-inhibit --what=handle-power-key
-   sleep 60` run by `ada`'s program stop the power button's hold?
+   First, on main's image, without them: does a `systemd-inhibit
+   --what=handle-power-key sleep 60` run by `ada`'s program stop the
+   power button's hold?
    Does a `systemd-inhibit --what=shutdown --mode=block sleep 60`?
-   Then with them and `PowerKeyIgnoreInhibited=yes` installed:
+   Then, on this change, with them and `PowerKeyIgnoreInhibited=yes`:
    - `pkcheck --action-id org.freedesktop.login1.chvt --process
      <launcher pid>` says no for `ada`, with her session active and
      inactive, and so does a `busctl` call of `Seat.SwitchTo` from her
@@ -692,7 +756,7 @@ built.
    Passes when it ends within 60 s; what it could do goes into #85's
    row.
 
-### Once the line is built
+### Checks 5 to 8
 
 5. **Failed passwords.**
    A wrong password at the login screen, once, then three times:

@@ -16,7 +16,8 @@ clears what a killed update left); ADR-0049, proposed (it is the "What
 comes later" item for what the grown-up screen tells a grown-up: a
 refused sign-in adds "Log out, then a grown-up can fix it from their own
 login.", `docs/TRY.md` gives the steps, and the in-session step-in stays
-#88)
+#88; the parent docs now say Cairn has no way yet to do it without
+logging the child out, where they said a way was planned)
 
 ## Context
 
