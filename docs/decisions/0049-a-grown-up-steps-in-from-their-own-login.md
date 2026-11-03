@@ -12,8 +12,8 @@ Decision.
 **Closes:** (none) — the narrow version of issue #88, for child test 2
 (ROADMAP P1-17); the in-session step-in stays open in #88. It answers
 the question ADR-0045 left open for #182, so #182 can close with this
-change. Part of ROADMAP P1-13. Once accepted, amends ADR-0032, ADR-0036
-and ADR-0045.
+change. Part of ROADMAP P1-13. Once accepted, amends ADR-0018, ADR-0032,
+ADR-0036 and ADR-0045.
 
 ## Context
 
@@ -313,7 +313,7 @@ launcher's window decisions stay as they are.
 Nothing new runs as root.
 No PAM service, polkit action, package or library is added.
 
-### The levels rule
+### The levels rule and the power button
 
 `session/polkit/rules.d/10-cairn-levels.rules` adds two actions to the
 kiosk's list (`notInTheKiosk`).
@@ -323,19 +323,44 @@ Administrators, L3 and L4 fall through as before (ADR-0023).
 - **`org.freedesktop.login1.chvt`,** so that a program of the child
   cannot move the screen to another session through logind, such as a
   grown-up's lock screen after Switch User.
+  That includes a VT key pressed on a virtual keyboard of the program's
+  own.
+  The kiosk's keymap has no VT keys (`srvrkeys:none`), but a virtual
+  keyboard brings its own keymap, and labwc 0.9.6 acts on a VT key from
+  any keyboard by asking logind to switch (from labwc's source; not
+  tried).
   It is a second layer only: a process whose controlling terminal is
   the kiosk's VT can still switch VTs (above).
   "Before any friend gets the ISO" narrows that.
 - **`org.freedesktop.login1.inhibit-handle-power-key`,** so that a
-  program of the child cannot take the lock that stops the power
-  button's five-second hold (ADR-0018; inference, check 3).
+  program of the child cannot take logind's lock on the power key, which
+  stops the power button's five-second hold (ADR-0018).
+  Plasma's own lock of that kind stopped the hold in the VM
+  (`docs/research/steam-visit.md`), and logind's source refuses the key
+  while a program in the active session holds one; check 3 confirms it
+  for a child's program.
   The parent docs give that hold as the way out of a screen that looks
   wrong (below).
-  If check 3 shows that the lock does not stop the hold, this entry is
-  dropped.
+
+A program can stop the hold another way: with a "shutdown" lock, in
+either of its blocking modes.
+polkit gives that lock to any local session, active or not.
+logind counts it whoever holds it, and by default
+(`PowerKeyIgnoreInhibited=no`) it then refuses the hold's power-off.
+So `session/logind.conf.d/10-cairn-power.conf` sets
+`PowerKeyIgnoreInhibited=yes`: no program's shutdown lock stops the hold,
+at any level, and the power-off is still in order.
+Refusing that lock in the kiosk instead would also refuse it to Steam and
+the games, and would leave the hold to any lock a grown-up's program
+takes.
+logind always honours a lock on the power key itself, whatever the
+setting, so Plasma's at L3, L4 and in a Guardian's session still stands.
+A program's delay lock still holds the power-off back, for at most 5 s
+(`InhibitDelayMaxSec`): a residue for #85.
 
 labwc's seat library, libseat 0.9.3, never calls `Session.Activate`.
-It calls `Seat.SwitchTo` only for a VT key, which the kiosk removes.
+It calls `Seat.SwitchTo` only for a VT key, which the kiosk's own keymap
+does not have.
 SDDM switches the screen as root.
 So labwc's start, Log out, and the login screen's return to a running
 kiosk should need neither action (inference; check 3).
@@ -521,12 +546,20 @@ sentence are on both.
   The login screen already shows grown-ups' tiles, and DESIGN §3.2's
   "nothing to probe" is about controls, not words.
   Mason confirms the words with this change.
-- With the two new entries, a child's program can no longer switch the
-  screen through logind, or stop the power button's hold with a lock.
+- With the two new entries and `PowerKeyIgnoreInhibited=yes`, a child's
+  program can no longer switch the screen through logind, or stop the
+  power button's hold with a lock.
+  A delay lock still holds the power-off back for up to 5 s.
   Until `ptrace_scope` is 1, a program that takes over labwc can still
   switch VTs through the controlling terminal, and grab the power
   button's device.
   The computer's own firmware hold still turns it off.
+- The hold also no longer waits for a shutdown lock that a grown-up's
+  program or a system service holds.
+  A grown-up who holds the button for five seconds wants the computer
+  off, and the power-off is still in order.
+  Until now such a lock meant holding on until the firmware cut the
+  power.
 - P1-7's PIN overlay is unaffected.
   DESIGN §3.2 already assumes the PIN is known, and on this image a PIN
   typed in the kiosk is readable by the child's programs too.
@@ -536,6 +569,10 @@ sentence are on both.
   route fails for Steam, and P1-17's other branch applies: no Steam in
   that run.
 - Once accepted, it amends:
+  - **ADR-0018:** no program's lock stops the power button's hold.
+    L1 and L2 are refused logind's lock on the power key, and
+    `PowerKeyIgnoreInhibited=yes` makes the hold ignore every program's
+    shutdown lock, at any level.
   - **ADR-0045:** a second line, for a refused sign-in.
     It answers #182's question: the grown-up screen says what will help,
     never the reason.
@@ -580,7 +617,8 @@ sentence are on both.
   No grown-up's button is added, so §4.5's "never appears to the child
   as a button to find" still holds.
   §4.5 changes later, with launched apps' own sessions.
-- **ADR-0032, ADR-0036 and ADR-0045** get "Amended by" lines.
+- **ADR-0018, ADR-0032, ADR-0036 and ADR-0045** get "Amended by"
+  lines; ADR-0018's is in its status line.
 - **`docs/TRY.md`:** the steps, the habits and the sentence above.
 - **ROADMAP:** P1-13 gains the line.
   P1-17's "a Guardian's way to step in (#88)" becomes "a Guardian's way
@@ -623,15 +661,24 @@ built.
    Done, Plasma's logout, `ada`'s tile, and the game.
    Passes when the game starts.
    Record how long each step took.
-3. **The levels rule's two entries.**
+3. **The levels rule's two entries, and the power button.**
    First without them: does a `systemd-inhibit --what=handle-power-key
    sleep 60` run by `ada`'s program stop the power button's hold?
-   Then with them installed:
+   Does a `systemd-inhibit --what=shutdown --mode=block sleep 60`?
+   Then with them and `PowerKeyIgnoreInhibited=yes` installed:
    - `pkcheck --action-id org.freedesktop.login1.chvt --process
      <launcher pid>` says no for `ada`, with her session active and
      inactive, and so does a `busctl` call of `Seat.SwitchTo` from her
      program.
-   - The same `systemd-inhibit` is refused.
+   - A VT key (`XF86Switch_VT_3`) pressed on a virtual keyboard of her
+     program's own is refused, and labwc keeps running.
+   - The same `systemd-inhibit --what=handle-power-key` is refused.
+   - A `systemd-inhibit --what=shutdown` run by her program, with
+     `--mode=block` and then `--mode=block-weak`, does not stop the hold,
+     with her session active and then inactive behind the login screen
+     (SDDM's `SwitchToGreeter`).
+     With `--mode=delay`, record how long the power-off waits (at most
+     5 s), for #85.
    - Passes when labwc starts, Steam starts and signs in, Log out reaches
      the login screen, and the login screen returns `ada` to her running
      kiosk after a grown-up's Switch User.

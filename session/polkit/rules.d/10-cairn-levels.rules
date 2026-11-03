@@ -55,9 +55,11 @@ var guardianOnly = [
 // listed because logind's policy says being allowed them implies being
 // allowed to reboot, and they default to yes for anyone at the console.
 // Nor may a program behind the kiosk move the screen to another session,
-// such as a grown-up's lock screen, or take the lock that stops the power
-// button's five-second hold, the parents' way out of a screen that looks
-// wrong (ADR-0018, ADR-0049). Both default to yes at the console too.
+// such as a grown-up's lock screen, or take logind's lock on the power key
+// itself, which stops the button's five-second hold, the parents' way out
+// of a screen that looks wrong (ADR-0018, ADR-0049). Both default to yes
+// at the console too. A shutdown lock would stop the hold as well, so
+// logind ignores those for the hold (logind.conf.d/10-cairn-power.conf).
 var notInTheKiosk = [
     "org.freedesktop.login1.power-off",
     "org.freedesktop.login1.reboot",

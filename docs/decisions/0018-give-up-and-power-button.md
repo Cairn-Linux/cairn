@@ -1,6 +1,9 @@
 # ADR-0018: A grown-up's way out of a stuck program, and the power button
 
-**Status:** amended by ADR-0019, ADR-0025, ADR-0026
+**Status:** amended by ADR-0019, ADR-0025, ADR-0026; ADR-0049, proposed
+(no program's lock stops the hold: L1 and L2 are refused logind's lock on
+the power key, and `PowerKeyIgnoreInhibited=yes` makes the hold ignore
+every program's shutdown lock, at any level)
 **Date:** 2026-09-08
 **Closes:** (none) — addresses issue #41
 

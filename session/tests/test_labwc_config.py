@@ -184,6 +184,9 @@ class LabwcConfigTest(unittest.TestCase):
                 settings[name] = value
         self.assertEqual(settings.get("HandlePowerKey"), "ignore")
         self.assertEqual(settings.get("HandlePowerKeyLongPress"), "poweroff")
+        # No program's shutdown lock stops the hold (ADR-0049); logind's
+        # default would let any session's program refuse it.
+        self.assertEqual(settings.get("PowerKeyIgnoreInhibited"), "yes")
         # No power-button binding in the kiosk either, so a tap is nothing.
         keys = [k.get("key") for k in self.root.findall("./keyboard/keybind")]
         self.assertNotIn("XF86PowerOff", keys)
