@@ -607,12 +607,18 @@ done, and what could sink it. Decisions that change the design get an ADR in
   now also refuses L1 and L2 logind's `chvt` and its lock on the power
   key, and the power button's hold ignores every program's shutdown lock
   (amending ADR-0018). `docs/TRY.md` has the steps and two habits.
-  This answers #182's open question; the in-session step-in stays open
-  in #88. Tested in C++, QML and Python; nothing run in the VM yet.
-  Next: the ADR's checks 1, 2 and 4 and the first half of check 3, which
-  need nothing of it, and the change merges once checks 1 and 2 have
-  passed; then the second half of check 3 and checks 5, 6 and 8, and, if
-  Mason wants one, a 60-minute limit on a visit, its second slice.
+  This answers #182's open question, and the change closes #182; the
+  in-session step-in stays open in #88. Tested in C++, QML and Python.
+  On 2026-11-02 the test VM ran checks 3 to 6, and the half of check 1
+  that needs no sign-in. On main's image a child's program stopped the
+  power button's hold with a lock on the power key or a shutdown lock;
+  with this change neither does, and `chvt` is refused. Plasma's idle
+  lock hides a waiting password box rather than closing it, and nothing
+  opens. A Steam with no saved sign-in writes the same `No Connection` as
+  one that is offline, so it gets no line. Next: checks 1, 2 and 8, which
+  need the test Steam account's password, and the change merges once
+  checks 1 and 2 have passed; then, if Mason wants one, a 60-minute limit
+  on a visit, its second slice.
 - **A Steam that cannot sign in needs a grown-up soon (2026-10-29, #182,
   amends ADR-0036).** On the kids' laptop a tap came while the tester
   account's Steam had its saved sign-in turned down. The starting screen
@@ -863,7 +869,7 @@ first-boot wizard, quick-actions overlay, signed image, CI, ISO.
 | **Trademark reviews** | Legal | Universal Blue / Fedora / Bazzite derivative policies; Scratch Foundation branding; "Cairn" search in software classes. |
 | **Website** `cairnlinux.com` | Separate repo, later | Hold until Phase 1 has something a parent can install. |
 | **Brand v0.2** | `docs/brand-guide/` | Iconography, motion (the rule is ADR-0028), avatars, spacing, sound policy, high-contrast and large-text variants. See the review notes in issue tracker. |
-| **Guardian boundary audits** | Issues #85 and #86, then `docs/research/` | Can an older child get into a Guardian account or around their level (ADR-0020)? Twice: #85 early, against what Phase 0 built; #86 before the first public image, against the installed image, and it blocks publishing like P1-14. From ADR-0049 (proposed), the audits gain four rows: what a program of a child can still do in the seconds after Log out, through `/dev/uinput` and some keyboards' raw HID nodes (its check 4); three wrong passwords keeping a Guardian out of every prompt for 10 minutes, and the words shown (check 5); a copy of the login screen drawn in a child's kiosk, which nothing tells from the real one today except restarting the computer before typing a password, as `docs/TRY.md` says (check 6); and a child's delay lock, which holds the power button's power-off back for up to 5 s (check 3). Before any friend gets the ISO, each in a change of its own: launched apps in a session of their own, `kernel.yama.ptrace_scope` 1, Ctrl+Alt+Del doing nothing on a text console, a shorter stop for a child's user manager, and keyboards' raw HID nodes kept from children; what is not built by then is stated in the parent docs as a known gap. Two findings to file: `uupd.rules` lets any account, a child's included, start the system updater (#85), and the image has no fingerprint in its PAM stack, against ADR-0032. |
+| **Guardian boundary audits** | Issues #85 and #86, then `docs/research/` | Can an older child get into a Guardian account or around their level (ADR-0020)? Twice: #85 early, against what Phase 0 built; #86 before the first public image, against the installed image, and it blocks publishing like P1-14. From ADR-0049 (proposed), the audits gain four rows: what a program of a child can still do in the seconds after Log out, through `/dev/uinput` and some keyboards' raw HID nodes (its check 4); three wrong passwords keeping a Guardian out of every prompt for 10 minutes, and the words shown (check 5); a copy of the login screen drawn in a child's kiosk, which nothing tells from the real one today except restarting the computer before typing a password, as `docs/TRY.md` says (check 6); and a child's delay lock, which holds the power button's power-off back for up to 5 s (check 3). Before any friend gets the ISO, each in a change of its own: launched apps in a session of their own, `kernel.yama.ptrace_scope` 1, Ctrl+Alt+Del doing nothing on a text console, a shorter stop for a child's user manager, and keyboards' raw HID nodes kept from children; what is not built by then is stated in the parent docs as a known gap. Two findings filed on 2026-11-02: `uupd.rules` lets any account, a child's included, start or stop the system updater (#265, for #85), and the image has no fingerprint in its PAM stack, against ADR-0032 (#264). |
 | **Software catalogue survey** | Issue tracker, then DESIGN §5.2 | Find existing, maintained, kid-oriented apps for music composing, writing/story, camera and coding so the project does not build or maintain its own (ADR-0009). Criteria: actively maintained; Flatpak or Fedora package; offline; no accounts, ads or telemetry; free licence; Wayland/XWayland; age fit with mouse and keyboard; fits the Minimum tier. |
 
 ---

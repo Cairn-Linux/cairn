@@ -263,7 +263,9 @@ themselves.
     programs that run in the child's account on this computer.
 - If the journal says "Steam could not reach the internet", check the
   Wi-Fi; games Steam has already set up may still start without it. The
-  screen adds no line then.
+  screen adds no line then. The journal says the same for a child's Steam
+  with no saved sign-in at all, such as one nobody has signed in yet: if
+  the Wi-Fi works, sign it in with the steps above.
 - The first time a child taps a Linux game, the child's Steam sometimes
   stops part-way while it fetches the tools the game runs in (#206). The
   launcher starts the child's Steam again by itself and taps the game

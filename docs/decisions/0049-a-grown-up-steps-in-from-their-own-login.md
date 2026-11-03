@@ -11,9 +11,9 @@ Decision.
 **Date:** 2026-11-02
 **Closes:** (none) — the narrow version of issue #88, for child test 2
 (ROADMAP P1-17); the in-session step-in stays open in #88. It answers
-the question ADR-0045 left open for #182, so #182 can close with this
-change. Part of ROADMAP P1-13. Once accepted, amends ADR-0018, ADR-0032,
-ADR-0036 and ADR-0045.
+the question ADR-0045 left open for #182, and the change that brings it
+closes #182, as Mason chose on 2026-11-02. Part of ROADMAP P1-13. Once
+accepted, amends ADR-0018, ADR-0032, ADR-0036 and ADR-0045.
 
 ## Context
 
@@ -346,8 +346,9 @@ Administrators, L3 and L4 fall through as before (ADR-0023).
   stops the power button's five-second hold (ADR-0018).
   Plasma's own lock of that kind stopped the hold in the VM
   (`docs/research/steam-visit.md`), and logind's source refuses the key
-  while a program in the active session holds one; check 3 confirms it
-  for a child's program.
+  while a program in the active session holds one.
+  Check 3 saw a child's program's lock stop it on main's image
+  ("Run on 2026-11-02").
   The parent docs give that hold as the way out of a screen that looks
   wrong (below).
 
@@ -372,7 +373,7 @@ It calls `Seat.SwitchTo` only for a VT key, which the kiosk's own keymap
 does not have.
 SDDM switches the screen as root.
 So labwc's start, Log out, and the login screen's return to a running
-kiosk should need neither action (inference; check 3).
+kiosk need neither action, as check 3 saw ("Run on 2026-11-02").
 
 ### What the parent docs say
 
@@ -399,13 +400,16 @@ It also says plainly what this costs (see "Consequences").
 "A way to answer it without logging the child out is planned" goes, and
 the steps end with "Cairn has no way yet to do this without logging the
 child out (#88)."
+Its line on "Steam could not reach the internet" adds that the journal
+says the same for a child's Steam with no saved sign-in, as check 1
+found ("Run on 2026-11-02").
 
 ### How the six criteria are met
 
 | Criterion | Met | How |
 |---|---|---|
 | 1. A trusted agent | Yes | Only two upstream prompts take the Guardian's password: SDDM's greeter, and Plasma's polkit agent in the Guardian's own session, through polkitd, the setuid `polkit-agent-helper-1` and PAM's `system-auth` with faillock. Cairn writes none of it. |
-| 2. Never readable by the child's processes | Partly | The password is typed after Log out has ended the child's session, and in the Guardian's own session. A visit opens only when no process of the child is left (ADR-0032). What remains is not new. After Log out, a program of the child that ignores the request to end lives up to 15 s, or 60 s if it stalls the child's user manager. Meanwhile it could type into the login screen through `/dev/uinput`, and on a listed keyboard it might read keys through hidraw. "Before any friend gets the ISO" closes most of that. |
+| 2. Never readable by the child's processes | Partly | The password is typed after Log out has ended the child's session, and in the Guardian's own session. A visit opens only when no process of the child is left (ADR-0032). What remains is not new. After Log out, a program of the child that ignores the requests to end (SIGTERM and SIGHUP) lives up to 15 s, or 60 s if it stalls the child's user manager. Meanwhile it could type into the login screen through `/dev/uinput`, and on a listed keyboard it might read keys through hidraw. "Before any friend gets the ISO" closes most of that. |
 | 3. Only allowlisted windows or actions | Yes | Nothing is shown in the child's session. The one recovery action is the visit, on the Guardian's own desktop. |
 | 4. The child kept apart | Yes | The child has no session while the Guardian acts, and PAM refuses them at the login screen and the consoles during a visit. The visit's processes run in a session of their own, with no seat, on cage's own display. |
 | 5. Containment back by itself | Yes | The kiosk's containment never changes, so there is nothing to restore. Every end of a visit runs one close (ADR-0032), and the child's next login is a fresh kiosk. |
@@ -491,14 +495,13 @@ parent docs as a known gap, as Mason chose for #86 on 2026-11-02.
   /dev/hidraw*` on the kids' laptop during a child's session, then a
   udev override that drops `uaccess` from the keyboard nodes the
   Solaar, OpenRGB, Wooting and VIA rules cover.
-- **Two side findings.**
-  `uupd.rules` lets any account, a child's included, start the system
-  updater (`manage-units` on `uupd.service`, with no check of who asks).
-  It goes to #85's audit.
+- **Two side findings, filed on 2026-11-02.**
+  `uupd.rules` lets any account, a child's included, start or stop the
+  system updater (`manage-units` on `uupd.service`, with no check of who
+  asks): #265, for #85's audit.
   And the fingerprint is missing from the image, against ADR-0032 and
-  the "or your fingerprint" in the Guardian tool's words.
-  It needs an issue of its own; nothing in this ADR relies on a
-  fingerprint.
+  the "or your fingerprint" in the Guardian tool's words: #264.
+  Nothing in this ADR relies on a fingerprint.
 
 ### Where it applies
 
@@ -565,7 +568,7 @@ The Family app's "Open Steam for Ada" is on the image only (ADR-0041).
   a game installed in a visit, the overlay and Steam Cloud turned off
   inside cage, and a saved account removed during a visit.
   So does its text on the fingerprint, which the image does not bear
-  out ("What the research found").
+  out ("What the research found", #264).
 - The grown-up screen now tells a child that grown-ups have logins of
   their own.
   The login screen already shows grown-ups' tiles, and DESIGN §3.2's
@@ -657,7 +660,7 @@ The Family app's "Open Steam for Ada" is on the image only (ADR-0041).
   §4.5 changes later, with launched apps' own sessions.
 - **ADR-0018, ADR-0032, ADR-0036 and ADR-0045** get "Amended by"
   lines; ADR-0018's is in its status line.
-- **`docs/TRY.md`:** the steps, the habits and the sentence above.
+- **`docs/TRY.md`:** the steps, the habits and the sentences above.
   Its closing note says the steps for a refused sign-in have not been
   run as written yet.
 - **ROADMAP:** P1-13 gains the line.
@@ -712,12 +715,13 @@ before this change merges.
    `LogonFailure`, and a tile starts a game.
    A snapshot taken then keeps her signed in, for checks 2 and 8.
 2. **A real refused sign-in, mended from the grown-up's login.**
-   Make `ada`'s saved sign-in fail.
-   First spoil it in a snapshot: with her Steam stopped, change the
-   saved token (Steam keeps it under `ConnectCache` in
-   `config/config.vdf`; inference).
-   Only if that gives no `LogonFailure` other than `No Connection`,
-   revoke the test account's saved sign-ins once, if Mason agrees.
+   Make `ada`'s saved sign-in fail by spoiling it in a snapshot: with
+   her Steam stopped, change the saved token (Steam keeps it under
+   `ConnectCache` in `config/config.vdf`; inference).
+   Nothing else is done to the account.
+   If that gives no `LogonFailure` other than `No Connection`, the check
+   stops there and is reported, and the test account's saved sign-ins
+   are not revoked (Mason, 2026-11-02).
    Tap a game: the grown-up screen comes within about 15 s, and the
    journal says "Steam could not sign in".
    Then Back, Log out, the Guardian's login, "Steam for ada" and Open,
@@ -765,8 +769,11 @@ before this change merges.
    A wrong password, and Cancel, in the visit's polkit box: the window's
    sentence, nothing opens, and `ada` is not listed and can log in.
 6. **Abandoned prompts and imitation.**
-   - The visit's polkit box left open until Plasma's idle lock: the
-     request closes, nothing opens later, and `ada` can log in.
+   - The visit's polkit box left open until Plasma's idle lock: nothing
+     opens, and a child who comes to the computer meets the lock screen.
+     The lock does not close the box: it hides it, and the box comes
+     back on unlock, still waiting for the password ("Run on
+     2026-11-02").
    - The login screen left half-typed: nothing changes.
    - `pidfd_getfd` and `ptrace` on `cage-visit` from `ada`'s programs,
      inside and outside cage's tree: "Operation not permitted".
@@ -787,6 +794,104 @@ before this change merges.
    screen.
    Back and Log out work as before.
    With the network down and her sign-in fine, tap a game: no line.
+
+### Run on 2026-11-02
+
+In `cairn-min`, from its snapshot `laptop-twin-2026-11-02`, with nobody's
+Steam signed in.
+Check 3's first half and check 4 ran on main's image.
+Check 3's second half and checks 5 and 6 ran with this change's
+launcher, levels rule and logind drop-in laid over `/usr` (`bootc
+usr-overlay`), laid over again after every restart and checked by
+checksum each time.
+The record and its pictures are in the maintainer's work area.
+
+- **Check 3, first half, on main's image.**
+  A lock on the power key taken by `ada`'s program stopped the power
+  button's hold: logind logged "Power key pressed long." and did
+  nothing.
+  Without it, the same hold turned the computer off.
+  A shutdown lock of hers stopped the hold too, in `block` and
+  `block-weak` mode, with her session active and with it inactive
+  behind the login screen: "Refusing poweroff operation, shutdown is
+  inhibited by UID 1002/ada".
+  `Seat.SwitchTo` from her program moved the screen to VT 1 and left her
+  session inactive.
+- **Check 3, second half, on this change.**
+  `pkcheck` said no to `chvt` and to the power key's lock for her
+  launcher, with her session active and inactive.
+  `Seat.SwitchTo` from her program got "Access denied", and the screen
+  did not move.
+  Her lock on the power key got "Access denied".
+  None of her shutdown locks stopped the hold, in either mode, active or
+  inactive.
+  A delay lock held the power-off back 5.0 s, then it went on.
+  The hold still turned the computer off.
+  labwc started, Steam started signed out, Log out reached the login
+  screen in 2.9 s, and the login screen took `ada` back to her running
+  kiosk.
+  Not run: the VT key on a virtual keyboard, which needs a test client
+  the VM does not have; Plasma's own Switch User, stood in for by SDDM's
+  `SwitchToGreeter` as root; and Steam's sign-in.
+- **Check 4, on main's image.**
+  A program of `ada`'s that ignored SIGTERM and held `/dev/uinput`, with
+  a virtual keyboard that worked, ended 0.1 s after Log out's SIGTERM,
+  before the login screen came, in both runs.
+  No SIGKILL was logged.
+  The session's scope also sends SIGHUP with SIGTERM (`SendSIGHUP=yes`),
+  and the program did not ignore SIGHUP.
+  A program that ignores both lives until the scope's 15 s stop timeout,
+  by when the login screen is up, so criterion 2's row stands.
+  Not tried: a program that ignores SIGHUP too, or one that stalls her
+  user manager.
+- **Check 5.**
+  A wrong password at the login screen gives "That password did not
+  work. After a few wrong tries, the account waits a few minutes before
+  it lets anyone try again.", and so does a locked account.
+  Three wrong tries locked the Guardian.
+  While locked, the right password was refused at the login screen and
+  by `su`, whose PAM stack, `system-auth`, the visit's polkit box uses
+  too.
+  The 10 minutes are faillock's default, not timed here.
+  The visit's polkit box says "A grown-up's password is needed to open a
+  child's Steam."
+  A wrong password there gives "Authentication failure, please try
+  again.", and Cancel ends `pkexec` with "Not authorized".
+  Neither opened the visit, and `ada` stayed off the visit list and
+  logged in later.
+- **Check 6.**
+  With Plasma's idle lock set to one minute, the waiting box went behind
+  the lock screen.
+  Nothing opened, and `ada` stayed off the visit list.
+  On unlock the box came back, still waiting for the password.
+  The login screen left half-typed changed nothing, and PAM was asked
+  nothing.
+  `ada` cannot read `cage-visit`'s program, so the kernel marks it not
+  dumpable.
+  From a program of hers outside cage's tree, `pidfd_getfd` and `ptrace`
+  got "Operation not permitted" and its `environ` "Permission denied",
+  with `ptrace_scope` 0.
+  Inside cage's tree was not tried; the kernel's check is the same.
+  A program of hers drew the login screen's own greeter, in its test
+  mode, full-screen over her kiosk.
+  It looked exactly like the login screen.
+  The launcher's journal noted it as a window that opened on its own.
+  The session-lock copy was not drawn: the kiosk has no locker of its
+  own, and `loginctl lock-session` did nothing.
+  Holding the power button turned the computer off, and it started at
+  the real login screen with nothing of `ada`'s left.
+- **Check 1, the half with no saved sign-in.**
+  `ada`'s Steam wrote `LogonFailure No Connection` about once a minute.
+  In the minutes read, each came about a minute after its
+  `connection_log.txt` said it had connected to Steam's servers
+  (`ConnectionCompleted`).
+  So the launcher reads a Steam with no saved sign-in as one that only
+  cannot reach its servers: no line, and the journal says "Steam could
+  not reach the internet".
+  A later change could tell the two apart from that log, which ADR-0048's
+  watcher is to read too.
+- **Not run yet:** checks 1 and 2, which need the test account's
+  password, and checks 7 and 8.
 
 ### Research only, after child test 2
 
