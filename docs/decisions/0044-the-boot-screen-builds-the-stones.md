@@ -6,6 +6,7 @@ whose disk was encrypted at install is a later check, listed under
 Consequences, not a condition of acceptance.
 **Date:** 2026-10-29
 **Closes:** (none) — issue #165; part of ROADMAP P1-14
+**Amended by:** the section "The image's size" below (2026-11-03, #262)
 
 ## Context
 
@@ -154,8 +155,10 @@ again with it.**
 - The images are drawn at one size. On a high-density screen Plymouth
   doubles them, a little soft. The text is sharp at any density.
 - A computer with a firmware logo (BGRT) no longer shows it at boot.
-- The image is about 2 MB larger for the rebuilt initramfs's font, and
-  the image build takes about a minute longer for dracut.
+- The image is about 254 MB larger for the rebuilt initramfs, not the
+  2 MB this ADR first said, because the base's own copy stays in its
+  layer underneath ("The image's size", below, #262). The image build
+  takes about a minute longer for dracut.
 - Checked in the cairn-min VM on 2026-10-29, on the first version's Sand
   and with its first sentence, after one update from a slice 5 image:
   the stones building at boot, from the initramfs, and at restart, from
@@ -192,3 +195,62 @@ again with it.**
 - A later check, not a condition of acceptance: the prompt on a computer
   whose disk was encrypted at install, where the root itself waits for
   the password.
+
+## The image's size (2026-11-03, #262)
+
+This ADR first said the image is about 2 MB larger for the rebuilt
+initramfs's font. It is about 254 MB larger. `boot-screen.sh` writes the
+new initramfs at the base's own path,
+`/usr/lib/modules/7.2.11-ogc4.1.fc44.x86_64/initramfs.img`. A layer
+cannot change part of a file in a layer below it, so the layer `build.sh`
+makes stores the whole new file. The base's copy stays in its own layer
+underneath, and the image carries both.
+
+Measured on the dev PC on 2026-11-03 with `podman image inspect`,
+`podman history` and `stat`, on the Bazzite base the `Containerfile`
+names (version 44.20261026) and on `localhost/cairn:dev`, built from
+main on 2026-11-02:
+
+- The base is 11,580,650,157 bytes. Its initramfs is 254,688,986 bytes,
+  in a layer of 458 MB that `podman history` calls "initramfs (kernel
+  7.2.11-ogc4.1.fc44.x86_64) and rpmostree-unpackaged-content".
+- The image is 12,259,571,619 bytes, the base plus about 679 MB.
+- The layer `build.sh` makes is 278,930,944 bytes. Cairn's initramfs is
+  254,078,644 bytes of it, a little smaller than the base's, and the
+  rest is about 25 MB. In an image built without the boot screen on
+  2026-10-30, on the same base, that layer was 23,938,560 bytes.
+- The initramfs is compressed already. gzip, the compression a layer
+  usually gets in a registry, makes either copy 0.2 percent smaller.
+
+Today a computer updates from an archive of the whole image (ADR-0038),
+where the second copy is a small part of 12 GB. Once P1-3 puts the image
+in a registry, a computer downloads only the layers that changed. The
+step that runs `build.sh` runs again after any change to `build_files/`,
+`system_files/`, `brand/image/`, the licence texts or Cairn's own
+programs, and on every new Bazzite base. So nearly every update would
+download the 254 MB initramfs again inside that layer, even when the
+file is the same. How much a computer keeps on its disk is not measured
+yet.
+
+**The docs say the true size now. image-template's rechunk step comes
+with P1-3, and then the image and one update's download are measured
+again.** Mason chose this on 2026-11-02, from the ways #262 set out.
+
+- In image-template's `build.yml`, as read on 2026-11-03, a step after
+  the build runs `just ostree-rechunk`. Its comment calls the step
+  optional and says it "provides smaller delta updates". The recipe runs
+  `rpm-ostree compose build-chunked-oci` on the finished image's files,
+  so the rechunked image should carry one initramfs, not two.
+- dracut runs with `--reproducible`. Two images built 55 minutes apart
+  on 2026-11-02 have the same initramfs, byte for byte, so the file
+  itself need not change at every build.
+- In the base, the initramfs shares its layer with files no package
+  owns, such as Bazzite's wallpapers. Cairn's own files are such files
+  until P1-2 packages them. Which layer Cairn's initramfs lands in after
+  rechunking, and how often that layer changes, is part of what P1-3
+  measures.
+- The initramfs could instead have a layer of its own, built in an
+  earlier step that changes rarely. That would save downloads before
+  P1-3, but not the second copy, and the initramfs must still get
+  Cairn's `os-release` and whatever else dracut copies from `/etc`. It
+  was not chosen.
