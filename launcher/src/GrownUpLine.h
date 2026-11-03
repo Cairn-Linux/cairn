@@ -14,8 +14,8 @@
 // that from their own login once the child has logged out, in a visit
 // (ADR-0032). That line wins over the others, whatever else Steam's logs
 // said, such as a question it holds or a launch it stopped part-way. A Steam
-// that cannot reach its servers gets no line: it tries again by itself, and
-// logging out does not bring the Wi-Fi back.
+// that only cannot reach its servers gets no line: it tries again by itself,
+// and logging out does not bring the Wi-Fi back.
 class GrownUpLine {
 public:
     // The line for a launch that is in `state`, from what `steam` read in

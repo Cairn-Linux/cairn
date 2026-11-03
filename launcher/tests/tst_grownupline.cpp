@@ -230,8 +230,9 @@ private slots:
         QCOMPARE(GrownUpLine::step(State::Failed, wait), Step::None);
     }
 
-    // A tile that is not a Steam game gets no line, even while Steam's
-    // sign-in is turned down and right after a Steam tap that got one.
+    // A tile that is not a Steam game gets no line, even right after a
+    // Steam tap whose sign-in was turned down: its tap makes the wait
+    // forget what Steam's logs said.
     void noLineForATileThatIsNotASteamGame() {
         const QTemporaryDir root;
         SteamGameWait wait = waitIn(root);

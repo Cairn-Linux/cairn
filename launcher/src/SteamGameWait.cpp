@@ -56,15 +56,16 @@ bool SteamGameWait::stillComing() {
     // stopped getting the game ready: what it still needs must come from them.
     const bool needsServers =
         m_lastStep == SteamLaunchLog::Step::Nothing || m_stallNow == SteamStall::Now::Stalled;
-    const SteamSignIn::Now signIn = m_signIn.read(now);
-    m_signInNow = needsServers ? signIn : SteamSignIn::Now::Fine;
+    const SteamSignIn::Now steamSaid = m_signIn.read(now);
+    m_signInNow = needsServers ? steamSaid : SteamSignIn::Now::Fine;
     // A refused sign-in needs a grown-up before anything else helps, so the
     // grown-up screen and the journal take it whatever else the logs say
     // (ADR-0049).
-    m_signInRefused = signIn == SteamSignIn::Now::Refused;
+    m_signInRefused = steamSaid == SteamSignIn::Now::Refused;
     // Logging the child out frees a game the cloud question holds, but only
     // once Steam has signed in again (#211, ADR-0045).
-    m_logOutFreesHeldGame = m_questions.heldByCloudQuestion() && signIn == SteamSignIn::Now::Fine;
+    m_logOutFreesHeldGame =
+        m_questions.heldByCloudQuestion() && steamSaid == SteamSignIn::Now::Fine;
     if (m_signInNow == SteamSignIn::Now::Refused ||
         (m_stallNow == SteamStall::Now::Stuck && !newReaper())) {
         return false;
