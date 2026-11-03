@@ -7,3 +7,11 @@
 # XF86Switch_VT keysyms, and this XKB option takes them out of the keymap,
 # leaving plain F keys. See docs/research/kiosk-containment.md.
 XKB_DEFAULT_OPTIONS=srvrkeys:none
+
+# The kiosk looks for the programs it runs by name in the system's folders
+# only (#244): the ones rc.xml's keys run, the launcher, and everything they
+# start. The login hands labwc a PATH that begins with two folders in the
+# child's own home, where a program could take the place of one of Cairn's.
+# labwc sets this before it starts anything. A computer set up by hand keeps
+# Cairn's programs in the first folder; the image's build puts its own there.
+PATH=/usr/local/bin:/usr/bin:/bin
