@@ -196,7 +196,7 @@ Guardian changes their own password and picture in Family (ADR-0043).
 Fixing what a child's Steam waits for, such as a sign-in Steam turned
 down, is done there too, once the child has logged out (ADR-0032,
 ADR-0049, both proposed). Cairn does not ask for a Guardian's password
-inside a child's session, and a way to step in there is not designed yet
+inside a child's session, and a way to step in there is not chosen yet
 (#88).
 
 **Quick actions — PIN-gated overlay inside a child session.** Because the common
@@ -662,12 +662,13 @@ updates, login expiry, Steam Guard prompts, and cloud save conflicts. Mitigation
 3. The kiosk compositor enforces containment. Window rules keep Steam's own
    windows (main client, login, update progress, Steam Guard) minimised or off
    the screen. The compositor's foreign-toplevel protocol tells the launcher
-   when one has appeared, but a hidden one never counts (ADR-0026). A launch
-   held behind one ends on the grown-up screen (mitigation 2, ADR-0030). No
-   Steam window is shown in a child's session, even for a grown-up (ADR-0049,
-   proposed). This is why L1/L2 use `labwc` rather than a single-app kiosk
-   compositor (§4.5, ADR-0017). Proven in Phase 0 against a signed-out and a
-   signed-in client (`docs/research/steam-containment.md`).
+   when one has appeared, but a hidden one never counts (ADR-0026). Window
+   rules and that protocol are why L1/L2 use `labwc` rather than a single-app
+   kiosk compositor (§4.5, ADR-0017), and both were proven in Phase 0 against
+   a signed-out and a signed-in client (`docs/research/steam-containment.md`).
+   A launch held behind one of Steam's windows ends on the grown-up screen
+   (mitigation 2, ADR-0030). No Steam window is shown in a child's session,
+   even for a grown-up (ADR-0049, proposed).
 
 Combined with a child Steam account in a Steam Family with an explicit game
 allowlist, the exposed surface is small.

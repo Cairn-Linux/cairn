@@ -217,8 +217,8 @@ themselves.
   internet that is usually Steam Cloud, which checks a game's saves before
   starting it; Steam's settings can turn Steam Cloud off, and saves then
   stay on this computer only. To answer Steam, log the child out and open
-  Steam for the child from your own account. Cairn has no way yet to do
-  this without logging the child out (#88).
+  Steam for the child from your own account, as in the steps below for a
+  sign-in.
   The journal command above also says it for each such launch: "Steam is
   waiting for an answer about …" or "Steam refused to start …".
   Steam keeps the question for that game. The game stays held after the
@@ -233,31 +233,34 @@ themselves.
   longer accepts its saved sign-in. The journal says "Steam could not sign
   in". To fix it:
 
-  1. The child presses **Back**, then **Log out**. Nothing is lost: the
+  1. The child presses **Back**, then **Log out** above the tiles, and
+     **Log out** again when it asks "Log out now?". Nothing is lost: the
      game never started.
   2. At the login screen, tap your own tile and type your password.
-  3. Open **Steam for** and the child's name from your menu, or press
-     **Open Steam for** the child on the Family app's Games page. It
-     closes your own Steam first, and asks for your password again.
+  3. Open **Steam for** and the child's name from your menu, and press
+     **Open**. It closes your own Steam first, and asks for your password
+     again.
   4. Sign in with the child's Steam account and tick **Remember me**. If
      Steam asks for a Steam Guard code, type it.
   5. Press **Done**, then log out. Log out rather than Switch User, so
      that no grown-up's session stays open behind the child's.
   6. The child taps their tile at the login screen, then the game.
 
-  That takes two passwords and about five minutes, and your own Steam is
-  closed while the child's is open. Cairn has no way yet to do this
-  without logging the child out (#88).
+  That takes your password twice and the child's Steam password, and a
+  few minutes, and your own Steam is closed while the child's is open.
+  Cairn has no way yet to do this without logging the child out (#88).
 - Two habits keep your password yours:
   - Cairn asks for your computer password only at the login screen and in
     your own login, never on a child's screen. If anything on a child's
     screen asks for it, do not type it. Hold the power button until the
     computer turns off: five seconds turns it off in order, and if that
     does not, keep holding. Then start it again, and log in at the login
-    screen.
+    screen. A program in a child's session can draw a copy of the login
+    screen too, so if you are not sure the login screen is real, do the
+    same before you type your password.
   - Steam's window wants the child's Steam account, never your computer
-    password. A password typed into a child's Steam is only as private as
-    the child's account.
+    password. A password typed into a child's Steam can be read by
+    programs that run in the child's account on this computer.
 - If the journal says "Steam could not reach the internet", check the
   Wi-Fi; games Steam has already set up may still start without it. The
   screen adds no line then.

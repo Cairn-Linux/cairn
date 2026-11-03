@@ -91,12 +91,13 @@ its rpath, and a wrapper made from `bin/cairn-launcher.in` in `/usr/bin/`
 (ADR-0038). The session runs the wrapper, which names the logged-in
 child's own games list (ADR-0041) and the games' pictures folder
 (ADR-0047).
-The launcher has thirty-one CTest tests, run offscreen: the wrapper the
+The launcher has thirty-three CTest tests, run offscreen: the wrapper the
 kiosk session starts, run with stand-ins, the tile model, the
 manifest reader, the manifest and the games file read together (the tile
 files), kidscan's manifest and games file written and read back (two
 tests), the app launcher, the grown-up screen's line, the windows of a
-launch, the wait for a Steam game, Steam's reapers, the lines a log gains, Steam's launch log, the
+launch, the wait for a Steam game, the journal's sentence for a Steam
+game, Steam's reapers, the lines a log gains, Steam's launch log, the
 times in Steam's logs when the clocks change (in Mountain time, set for
 that test alone), Steam's content log, a launch
 Steam stopped part-way, the games Steam holds behind a question, Steam
@@ -281,7 +282,10 @@ When the sign-in was turned down, whatever else Steam's logs say, the
 grown-up screen adds "Log out, then a grown-up can fix it from their own
 login.", and the journal says to log the child out and open Steam for them
 from a grown-up's own login (ADR-0049).
-A Steam that cannot reach its servers gets no line.
+`SteamJournalNote` chooses the journal's sentence.
+A Steam that only cannot reach its servers gets no line.
+A line Steam is still writing counts once it is whole, so the start of a
+`No Connection` line is never read as a refusal.
 A new child's first Linux game can stop part-way (#206): Steam fetches one
 of the two tools the game runs in, takes the game off its download
 schedule, and its launch stays at `DownloadingDepots`.
@@ -312,8 +316,8 @@ again." under the sentence that names the tile, unless Steam's logs gave
 another reason, such as a question, or its sign-in was turned down, which
 has a line of its own (ADR-0045, ADR-0049).
 The cloud question, below, is the one exception.
-`GrownUpLine` decides which line, if any, `AppLauncher.grownUpStep` passes
-it on, and `GrownUpScreen.qml` draws it.
+`GrownUpLine` decides which line, if any; `AppLauncher.grownUpStep`
+passes it on, and `GrownUpScreen.qml` draws it.
 A question Steam asks on a window the kiosk hides, such as about a game's
 cloud saves while it is offline, ends the tap at the grace, and the
 journal says Steam is waiting for an answer (ADR-0036).
