@@ -98,12 +98,14 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     /ctx/build.sh
 
 # The image must say Cairn, not Bazzite or Fedora (slice 5), from the
-# boot screen on (#165) to the Guardian's start-menu button (#166).
+# boot screen on (#165) to the Guardian's start-menu button (#166), and
+# the Bazzite extras the build takes out must stay out (#261).
 RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=tmpfs,dst=/tmp \
     /ctx/check-name-and-logos.sh && \
     /ctx/check-boot-screen.sh && \
-    /ctx/check-guardian-desktop.sh
+    /ctx/check-guardian-desktop.sh && \
+    /ctx/check-bazzite-extras.sh
 
 # Any lint warning stops the build.
 RUN bootc container lint --fatal-warnings
