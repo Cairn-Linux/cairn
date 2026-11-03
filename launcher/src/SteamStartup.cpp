@@ -96,6 +96,10 @@ QList<QByteArray> SteamStartup::lastLines(const QString& path) {
         return {};
     }
     QList<QByteArray> lines = log.readAll().split('\n');
+    // split() gives one piece more than there are line ends. The last is
+    // empty when the log ends with a whole line, and otherwise a line Steam
+    // is still writing, which is read once it is whole, as LogTail does.
+    lines.removeLast();
     // The first is cut part-way unless the log was read from its start.
     if (from > 0 && !lines.isEmpty()) {
         lines.removeFirst();

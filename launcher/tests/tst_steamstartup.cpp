@@ -234,6 +234,19 @@ private slots:
         QCOMPARE(logs.now(), Now::Restarting);
     }
 
+    // The client's own start command, caught part-way through being
+    // written, says the client has started only once it is whole.
+    void aLineStillBeingWrittenIsReadOnceWhole() {
+        const Logs logs;
+        append(logs.bootstrap, line(5, "Startup - updater built Oct 13 2026 18:44:25"));
+        const QByteArray start = line(0, ownStart());
+        const qsizetype cut = start.size() - 4;
+        append(logs.console, start.first(cut));
+        QCOMPARE(logs.now(), Now::Starting);
+        append(logs.console, start.sliced(cut));
+        QCOMPARE(logs.now(), Now::Ready);
+    }
+
     void theLogIsInTheChildsSteamFolder() {
         QVERIFY(
             SteamStartup::defaultPath().endsWith(QStringLiteral("/Steam/logs/bootstrap_log.txt")));
