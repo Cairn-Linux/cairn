@@ -3,10 +3,11 @@
 **Status:** proposed. Mason decided on 2026-11-02 that Cairn builds its
 own installer image, as Bazzite does (PR #259, choice 7), and that the
 installer queues Universal Blue's Secure Boot key at install (#260).
-The nine choices under "Choices for Mason" are still open; the Decision
-is written with the recommended answer to each. It becomes accepted when
-they are answered and the checks under "Checks in the VM" have run on an
-ISO from slices 1 to 4 without overturning a bullet of the Decision.
+The thirteen choices under "Choices for Mason" are still open; the
+Decision is written with the recommended answer to each. It becomes
+accepted when they are answered and the checks under "Checks in the VM"
+have run on an ISO from slices 1 to 4 without overturning a bullet of the
+Decision.
 **Date:** 2026-11-03
 **Closes:** (none) — the plan for issue #260 and the answer to PR #259's
 choice 7; part of ROADMAP P1-4 and P1-14. Once accepted, amends ADR-0006
@@ -16,8 +17,8 @@ and ADR-0038 (slice 6).
 
 ### What the installer shows today
 
-A grown-up writes Cairn's ISO to a USB stick, the stick, and starts the
-computer from it to install Cairn.
+A grown-up writes Cairn's ISO to a USB stick and starts the computer from
+the stick to install Cairn.
 ADR-0038's slice 6 makes the ISO with bootc-image-builder's `anaconda-iso`
 type and `disk_config/iso.toml`.
 That type builds the installer itself, from a list of Fedora packages
@@ -67,10 +68,13 @@ On 2026-11-02 Mason chose the second: a second Containerfile with
 Anaconda and a Cairn profile, no Fedora art and no experimental switch,
 in a change of its own with an ADR that changes ADR-0038's slice 6.
 There is no generic-art step before it.
+ADR-0038 already names the cost, a second image kept just for the ISO
+(corrected on 2026-11-02, #259).
 
 ### Secure Boot (#260)
 
-The installer starts on a computer with Secure Boot on.
+The installer is expected to start on a computer with Secure Boot on
+(check 1).
 Its shim is signed by Microsoft, and its boot loader and kernel by Fedora
 (the test ISO's `BOOTX64.EFI`, `grubx64.efi` and `vmlinuz`, read on
 2026-11-03).
@@ -82,7 +86,8 @@ to stop at "bad shim signature" (ADR-0038, slice 6).
 Most laptops sold with Windows 8 or later have Secure Boot on.
 A friend would watch the install finish, and then the computer would not
 start.
-Nobody has tried it: both VMs run with Secure Boot off.
+Nobody has seen either the start or the stop: both VMs run with Secure
+Boot off.
 
 Issue #260 offered three ways: queue the key at install, as Bazzite's
 installer does; ask friends to turn Secure Boot off; or run a kernel the
@@ -98,8 +103,9 @@ friend.
 
 Read on 2026-11-03 in image-builder at v85.0.0, the pinned builder's, and
 at v89.0.0, the newest; Anaconda 44.30, the test ISO's; Bazzite's
-installer at 59f518b; lorax; mokutil 0.7.2; Fedora 44's spec files; the
-test ISO's boot files; and the images themselves.
+installer at 59f518b; lorax at 30890c3; mokutil 0.7.2; shim 16.1's
+MokManager; Fedora 44's spec files; the test ISO's boot files; and the
+images themselves.
 Paths below are in those repositories at those versions.
 
 - Three tools turn an installer image into an ISO: image-builder's
@@ -147,8 +153,8 @@ Where a part rests on one of the open choices, it names it.
 
 - `installer/Containerfile` starts from `quay.io/fedora/fedora-bootc:44`,
   pinned by digest (choice 3).
-  The digest sits beside `BIB_IMAGE` in `cairn.env`, because the builder,
-  this base and the image's Fedora release move together, and
+  The digest sits beside the builder's pin in `cairn.env`, because the
+  builder, this base and the image's Fedora release move together, and
   `build-iso.sh` passes it to the build.
 - It is built without root, after the image, as
   `localhost/cairn-installer:dev`.
@@ -185,10 +191,13 @@ Where a part rests on one of the open choices, it names it.
   title.
   The generic type does not write one, and without it Anaconda calls the
   product "anaconda" (`pyanaconda/core/product.py:83-85`).
-- `lorax`, which carries `mkksiso`, stays off the stick.
-  It goes in a build-only stage of the same Containerfile, used only
-  while the ISO is made.
-  The dry run behind the size estimate below did not include it.
+- `lorax`, which carries `mkksiso`, and `sbsigntools`, which checks the
+  kernel's signature, stay off the stick.
+  They go in a build-only stage of the same Containerfile, which
+  `build-iso.sh` tags as an image of its own,
+  `localhost/cairn-installer-tools:dev`, and uses only while the ISO is
+  made.
+  The dry run behind the size estimate below did not include them.
 
 ### Cairn's art
 
@@ -237,11 +246,14 @@ Where a part rests on one of the open choices, it names it.
   `/usr/lib/image-builder/bootc/iso.yaml` in the installer image holds
   the volume label and every menu entry
   (`pkg/bib/osinfo/osinfo.go:254-296` at v85).
-  Cairn's entries replace the builder's own
-  (`pkg/manifest/iso_tree.go:225-237`), so Cairn writes three: install;
-  check this stick, then install (`rd.live.check`); and install with
-  basic graphics (`nomodeset`).
-  Each carries `rhgb quiet`, so Plymouth draws.
+  Cairn's entries replace the builder's own, in the BIOS menu and in the
+  EFI menu (`pkg/manifest/iso_tree.go:225-237` and
+  `pkg/manifest/efi_boot_tree.go:107-117` at v85), so Cairn writes three:
+  install; check this stick, then install (`rd.live.check`); and install
+  with basic graphics (`nomodeset`).
+  Plymouth draws only with `rhgb quiet` on the boot line.
+  v89 adds both to its own kernel options, and the plan slice 2 reads
+  must show them on every entry.
   The label is what a computer shows when the stick is plugged in, such
   as `Cairn-Linux-44-x86_64`, within ISO 9660's 32 characters (choice 8).
   The menu is text only, and English only, since it comes before anyone
@@ -255,9 +267,12 @@ Where a part rests on one of the open choices, it names it.
 `tools/build-iso.sh` still runs once under `sudo`, since the builder
 still needs root:
 
-1. It builds the installer image as the person who ran `sudo`.
-2. It copies the image and the installer image into root's storage, each
-   with today's check that root's copy has the same ID.
+1. It builds both targets of `installer/Containerfile` as the person who
+   ran `sudo`: the installer image, and the build-only stage as
+   `localhost/cairn-installer-tools:dev`.
+2. It copies three images into root's storage, the image, the installer
+   image and the build-only stage, each with today's check that root's
+   copy has the same ID.
 3. It runs the pinned container's `image-builder` with the generic type
    (choice 1), the installer image as `--bootc-ref` and the image as
    `--bootc-installer-payload-ref`.
@@ -276,10 +291,13 @@ still needs root:
    `mkksiso` puts the file on the ISO's root, adds
    `inst.ks=hd:LABEL=<label>:/cairn.ks` to every boot entry, rebuilds the
    EFI boot image, and implants the media check's checksum again
-   (`src/pylorax/cmdline/mkksiso.py:434-548` in lorax).
+   (`src/pylorax/cmdline/mkksiso.py:434-548` in lorax at 30890c3).
    Upstream's own boot test adds its kickstart to this ISO type the same
    way (`test/scripts/imgtestlib/boot.py:299-308` at v85).
 5. It checks the family's ISO (below) and writes the `.sha256`, as now.
+   Its last lines name the ISO, the Cairn version and commit from the
+   image's labels, as now (#259), and the key's two fingerprints
+   (below).
 
 - The ISO step downloads nothing: the installer's packages come with its
   image.
@@ -288,11 +306,21 @@ still needs root:
 - `disk_config/iso.toml` becomes `disk_config/cairn.ks`, a plain
   kickstart, since nothing reads a blueprint any more.
   Its module lists move into the profile.
-- The builder pin moves to the newest image-builder release in slice 3,
-  after reading its notes (choice 7).
-  The generic type's contract moved between v85 and v89, mostly in how
-  `iso.yaml` writes its menu lines, so the installer is written once,
-  against the contract upstream now documents.
+- The builder pin moves to the newest image-builder release, after
+  reading its notes (choice 7).
+  Slice 2 pins it and plans an ISO with it, and slice 3 builds with it.
+  The generic type's contract moved between v85 and v89.
+  v89 puts `root=live:CDLABEL=<label> rd.live.image quiet rhgb
+  enforcing=0` in the kernel options itself
+  (`pkg/image/container_based_iso.go:72-80` at v89).
+  It needs dracut's `dmsquash-live` module in the installer's initramfs
+  (`10-isos.md:8` at v89), from `dracut-live`, which the dry run already
+  pulled in.
+  Its menu lines name the kernel, the root and the initramfs as
+  `${kernelpath}`, `${root}` and `${initrdpath}` (`10-isos.md:111-119`
+  at v89), where v85's are written whole (`10-isos.md:55-62` at v85).
+  So the installer is written once, against the contract upstream now
+  documents.
 - No kickstart is ever inside an image.
   That is so today too: the builder puts its kickstart on the ISO's root.
 
@@ -313,8 +341,15 @@ builder's own say together today, and #260's step:
   `bootc switch --mutate-in-place --transport registry localhost/cairn:dev`,
   which the builder writes today (ADR-0038, "Updates on an installed
   computer"), until P1-3 puts the image in a registry.
-- The key step, in `%post --nochroot`, after Bazzite's
-  (`installer/titanoboa_hook_postrootfs.sh:126-153`):
+- The key step, after Bazzite's
+  (`installer/titanoboa_hook_postrootfs.sh:126-153`), is a plain
+  `%post --nochroot`, with no `--erroronfail` and no `set -e` or
+  `set -u`, so it never stops an install.
+  Anaconda stops only for a script marked `--erroronfail` that fails
+  (`pyanaconda/kickstart.py:79`).
+  Bazzite's step carries `--erroronfail` and `set -oue pipefail`
+  (`installer/titanoboa_hook_postrootfs.sh:128-129`); Cairn's leaves both
+  out.
   - It does nothing on a computer not started with EFI, where
     `/sys/firmware/efi` is missing.
     ADR-0003 supports only UEFI, but such an install must still finish.
@@ -322,8 +357,7 @@ builder's own say together today, and #260's step:
     instead of going on by itself after a few seconds.
   - The password goes twice to `mokutil --import`, on its standard input,
     with the key.
-  - Every command ends with `|| true`, so the step never stops an
-    install.
+  - Every command also ends with `|| true`, a second guard.
     A second install on the same computer is told the key "is already
     enrolled" or "is already in the enrollment request"
     (`src/mokutil.c:815-824` in mokutil 0.7.2).
@@ -340,18 +374,27 @@ password of their own, so publishing Cairn's weakens nothing against
 them.
 It could help someone who hopes a grown-up types the familiar password at
 a blue screen that comes at some other time.
-So the notes say the screen comes once, after installing, name the key
-it must show, and say to choose "Continue boot" at any other time.
+So the notes say the screen comes once, after installing, and say to
+choose "Continue boot" at any other time.
+They also give what "View key" must show.
+Anyone who makes a certificate can give it any name, so the name is only
+a second cue.
+The check is the fingerprint: MokManager shows the certificate's SHA-1
+under "[Fingerprint]", in two lines of ten pairs
+(`MokManager.c:373-376, 440-446, 571` in shim 16.1), and the notes give
+the same pairs.
 The password is in the kickstart and in the notes, both public
 (choice 4).
 
 ### Universal Blue's key
 
 - **Where it comes from.**
-  The installer image's last build step copies
-  `/etc/pki/akmods/certs/akmods-ublue.der` from the image being installed
-  into `/usr/share/cairn/installer/` (choice 5).
-  The image has it from `ublue-os-akmods-addons` (MIT).
+  The build-only stage copies `/etc/pki/akmods/certs/akmods-ublue.der`
+  and the kernel from the image being installed, and checks them (below).
+  The installer image's last build step takes the key from that stage
+  into `/usr/share/cairn/installer/`, so the installer cannot be built
+  without the checks (choice 5).
+  The image has the key from `ublue-os-akmods-addons` (MIT).
   On 2026-11-03 it is the same certificate as ublue-os/akmods'
   `certs/public_key.der` at 6d6d70c, which Bazzite's installer downloads
   from `main`, unpinned, at every build
@@ -362,14 +405,24 @@ The password is in the kickstart and in the notes, both public
   subject "O=Universal Blue, OU=kernel signing, CN=ublue kernel", valid
   from 2024-07-11 to 2124-06-17.
   The build stops if the copied key differs, or if no pin is given.
+  Its SHA-1 fingerprint is
+  `2B:E9:91:E3:B1:B5:40:70:F4:3D:80:BB:13:EB:C6:57:E5:A3:78:0D`, which
+  the blue screen shows as `2b e9 91 e3 b1 b5 40 70 f4 3d` and
+  `80 bb 13 eb c6 57 e5 a3 78 0d`.
+  `build-iso.sh` prints both fingerprints after every build, and the
+  install notes give the SHA-1 in the blue screen's form.
 - **The kernel's signature.**
-  The build also stops unless the image's kernel carries a signature made
-  with that certificate.
-  On 2026-11-03 the kernel, `7.2.11-ogc4.1.fc44`, carries two: one by
-  this key, and one by the older "ublue akmods" key, valid to 2033.
-  A few lines of standard-library Python read a kernel's signatures, and
-  `openssl pkcs7 -print_certs` names their signers; that is how these
-  facts were read.
+  The build also stops unless the image's kernel carries a valid
+  signature by that certificate.
+  `sbverify --cert`, from Fedora's `sbsigntools`, checks it in the
+  build-only stage.
+  On 2026-11-03 the kernel, `7.2.11-ogc4.1.fc44`, carries two
+  signatures, which `sbverify --list` names: one by this key, and one by
+  the older "ublue akmods" key, valid to 2033.
+  `sbverify` from `sbsigntools-0.9.5-14.fc44`, run in Fedora's `fedora:44`
+  container, passed with each of the two certificates.
+  It failed with Fedora's kernel signer, and on a copy of the kernel with
+  one byte changed.
 - So the key on the stick always belongs to the kernel on the stick.
   If Universal Blue changes its key, the build stops instead of making a
   stick that queues the wrong one, and moving the pin is a decision, like
@@ -399,7 +452,7 @@ The password is in the kickstart and in the notes, both public
   when `podman build` makes it, as the image's do.
 - The key comes from the image being installed, never from the internet.
 - Anaconda's geolocation asks `geoip.fedoraproject.org` for the
-  computer's time zone and language (`data/anaconda.conf:330-349`).
+  computer's time zone and language (`data/anaconda.conf:333-349`).
   An install with `inst.ks` never starts it
   (`pyanaconda/startup_utils.py:717-728`), and `mkksiso` puts `inst.ks`
   on every entry.
@@ -420,9 +473,12 @@ The password is in the kickstart and in the notes, both public
 
 Only the ISO.
 Computers already installed, the VMs and the kids' laptop do not change.
-A computer installed without the step can still enroll the key with the
-image's own `ujust enroll-secure-boot-key`, Bazzite's recipe, whose
-password is `universalblue`.
+A computer installed without the step is expected not to start with
+Secure Boot on, so a grown-up first turns Secure Boot off in the
+firmware.
+Then the image's own `ujust enroll-secure-boot-key`, Bazzite's recipe,
+queues the key with the password `universalblue`, and Secure Boot goes
+back on after the blue screen, as Bazzite's guide says.
 
 ## Slices
 
@@ -439,36 +495,52 @@ once P1-14, the Guardian audit (#86) and child test 2 (P1-17) have passed
    no image.
 2. **The installer image.**
    `installer/Containerfile` with the profile, `os-release`,
-   `/.buildstamp`, `iso.yaml` (written for the release the pin moves to
-   in slice 3) and the splash, and the build's checks: `generic-logos` in,
-   `fedora-logos` out, the profile and the stylesheet where Anaconda reads
-   them, the stone theme the default, and Anaconda's and the live-boot
-   modules in the initramfs.
+   `/.buildstamp`, `iso.yaml` and the splash, and the build's checks:
+   `generic-logos` in, `fedora-logos` out, the profile and the stylesheet
+   where Anaconda reads them, the stone theme the default, and Anaconda's
+   and the live-boot modules in the initramfs.
    Built without root and read with `podman run`; its size measured.
+   The builder release of choice 7 is pinned in `cairn.env` beside
+   `BIB_IMAGE`, which today's ISO keeps until slice 3.
+   Its `manifest` step, which plans a build without making it, runs
+   without root against the installer image, as ADR-0038's did for
+   `iso.toml` (not yet tried for this type).
+   The plan must hold Cairn's label, Cairn's three menu entries and no
+   others, and `rhgb quiet` on each, so `iso.yaml` is checked against the
+   release it is written for.
    Why alone: it changes no ISO, and a mistake here costs no root build.
 3. **The ISO.**
-   `tools/build-iso.sh` builds the installer image, copies both images
-   into root's storage, runs the generic type and adds
-   `disk_config/cairn.ks` with `mkksiso`.
-   Whether `mkksiso` runs in a privileged container as it does on a host
-   is the first thing to see.
+   `tools/build-iso.sh` builds both targets, copies three images into
+   root's storage, runs the generic type with slice 2's pin in place of
+   `BIB_IMAGE`, and adds `disk_config/cairn.ks` with `mkksiso`.
    `iso.toml` goes, and so does the signing-key loan.
-   The builder pin moves (choice 7).
    A test ISO comes from the private kickstart.
-   Checked in a VM with Secure Boot off, as today: checks 2 to 4, 11 and
-   14, and check 7's list but for Secure Boot.
+   Checked in a VM with Secure Boot off, as today, in an order that ties
+   a failure to one change.
+   First the builder's own ISO, before `mkksiso` touches it, started with
+   the VM's network off: it must reach Anaconda with Cairn's label, menu
+   and art (check 2), or the fault is the builder's or the installer
+   image's.
+   Then `mkksiso`: whether it runs in a privileged container as it does
+   on a host is the first thing to see.
+   Then its ISO: checks 3, 4, 11 and 14, and check 7's list but for
+   Secure Boot.
    Why before the key: the new way of making the ISO is the larger risk,
    and it can be seen working without Secure Boot.
 4. **The key.**
    The kickstart's step, the key copied from the image, the pinned
-   SHA-256, the check of the kernel's signature, and the password
-   (choice 4).
+   SHA-256, the check of the kernel's signature, the two fingerprints
+   `build-iso.sh` prints, and the password (choice 4).
    Checked in a VM with Secure Boot on: every check below.
    Each blue screen is captured for the notes.
-5. **The install notes** (choice 9): how to start from the stick, the
-   password, the blue screen step by step with slice 4's captures, the
-   key's name the screen must show, and what to do if it comes at any
+5. **The install notes** (choice 9): the Minimum and Recommended panel
+   (choice 13), how to start from the stick, the password, the blue
+   screen step by step with slice 4's captures, the key's name and
+   fingerprint the screen must show, and what to do if it comes at any
    other time.
+   Checked when a grown-up who did not write them, such as Mason, follows
+   them on the Secure Boot VM, from the stick's first start to Cairn's
+   login screen, with nothing else to go on.
    A friend's ISO goes with them.
 
 ## Checks in the VM
@@ -521,8 +593,10 @@ Check 4's path with no account, and check 14, run on the family's ISO.
    `4e5c…70d1`.
 6. **The blue screen, once.**
    At the first start the blue screen waits.
-   "Enroll MOK", "View key" (it must name Universal Blue's "ublue
-   kernel"), "Continue", "Yes", the password, "Reboot".
+   "Enroll MOK", "View key", "Continue", "Yes", the password, "Reboot".
+   "View key" must show the fingerprint `2b e9 91 e3 b1 b5 40 70 f4 3d`
+   and `80 bb 13 eb c6 57 e5 a3 78 0d`, the one `build-iso.sh` printed,
+   and name Universal Blue's "ublue kernel".
    Each screen is captured with `virsh screenshot` for the notes.
    At the next start it does not come back.
 7. **The installed computer starts with Secure Boot on.**
@@ -557,7 +631,7 @@ Check 4's path with no account, and check 14, run on the family's ISO.
     Enrolling does no harm, and "Continue boot" works too.
     With the key enrolled, then Secure Boot turned on in the firmware,
     the computer still starts, as after a firmware update that turns it
-    back on.
+    back on and keeps the firmware's variables.
 13. **A legacy BIOS VM.**
     Not supported in v1 (ADR-0003), but the step skips itself and the
     install finishes.
@@ -590,13 +664,17 @@ P1-4's installs on both hardware tiers are where real computers show it.
   installing.
   DESIGN §4.3.1 says a step the wizard cannot do is not ready to ship;
   this one cannot move into the wizard, Mason accepted it for #260, and
-  §4.3.1 now names it as the one exception.
+  this change names it in §4.3.1 as the one exception (choice 11).
   The install notes carry it.
   Bazzite's installer also shows a window with a link to its guide at the
   end of the install; that installer runs in a live desktop, which
   Cairn's does not have, so Cairn's notes do that job.
-- A firmware update that turns Secure Boot back on later finds the key
-  enrolled, so the computer keeps starting.
+- A firmware update that turns Secure Boot back on later keeps the
+  computer starting, as long as it keeps the firmware's variables.
+  The enrolled key is one of them, kept under shim's own name
+  (`MokListRT`, `src/mokutil.c:819-821` in mokutil 0.7.2).
+  An update or a reset that clears them brings back "bad shim
+  signature", and "Where it applies" has the way back.
 - **Building.**
   The installer image's first build downloads about 1 GB of base and
   0.5 GB of packages, and podman keeps them.
@@ -604,12 +682,17 @@ P1-4's installs on both hardware tiers are where real computers show it.
   which a rerun mends, rather than the ISO step after hours of downloads.
   The ISO step downloads nothing; it should take a few minutes, plus a
   minute or two for `mkksiso` (estimates, measured in slice 3).
-  Root keeps both images: 12 GB for the image and an estimated 4 GB for
-  the installer.
+  Root keeps three images: 12 GB for the image, an estimated 4 GB for the
+  installer, and the build-only stage, which shares the installer's base.
 - **Size.**
-  An estimated 6.2 to 6.8 GiB, against 6.0 GiB today: 1.3 to 1.6 GiB of
-  installer and 4.5 to 5 GiB of payload.
-  It fits an 8 GB stick (7.45 GiB), with less room as the image grows.
+  An estimated 6.4 to 7.1 GiB: 1.3 to 1.6 GiB of installer and 4.75 to
+  5.25 GiB of payload.
+  The test ISO of 2026-10-22 was 6.0 GiB, but its payload came before the
+  boot screen's initramfs, which has added about 254 MB to the image since
+  2026-10-29 (#262, ADR-0044).
+  It fits an 8 GB stick (7.45 GiB), with little room left at the top of
+  the estimate.
+  P1-3's rechunk step may win some of it back; slice 3 measures the ISO.
 - **More to keep.**
   A second Containerfile, its profile, `iso.yaml`, the kickstart and the
   art.
@@ -625,7 +708,9 @@ P1-4's installs on both hardware tiers are where real computers show it.
   goes.
   P1-3 still adopts image-template's `Justfile` and `build.yml`, but
   Cairn keeps its own ISO step, and `disk_config/` holds a kickstart, not
-  image-template's ISO settings.
+  image-template's ISO settings (choice 10).
+  Where a friend's ISO is built, on the dev PC or by a workflow, is
+  choice 12.
 - **The installer's kernel is Fedora's**, while the system runs
   Bazzite's.
   A computer that only Bazzite's kernel supports may not show the
@@ -656,15 +741,18 @@ P1-4's installs on both hardware tiers are where real computers show it.
   and which has no licence.
 - No new dependency for Cairn's code.
   The build's new tools come in containers: `image-builder` in the pinned
-  container, and `mkksiso` in the installer's build-only stage.
+  container, and `mkksiso` and `sbverify` in the installer's build-only
+  stage.
 - ADR-0003 has the Minimum and Recommended panel appear in the installer
   too (brand v0.2, #20).
-  An installer image of Cairn's own is where it can go, in a change of
-  its own.
+  These slices put it in the install notes (slice 5), and the panel
+  inside Anaconda waits for a change of its own (choice 13); ROADMAP
+  P1-4 lists it as left.
 - Once accepted, it amends:
   - **ADR-0006:** the installer is built on Fedora's bootc image, not on
-    Bazzite, and shows Cairn's art; the system it installs stays
-    Bazzite's.
+    Bazzite, and shows Cairn's installer art and no Fedora art; the
+    system it installs stays Bazzite's, with Bazzite's kernel, so the
+    installer queues Universal Blue's Secure Boot key.
   - **ADR-0038, slice 6:** the ISO comes from Cairn's installer image
     through image-builder's generic type, not from `anaconda-iso`.
     `iso.toml` becomes `disk_config/cairn.ks` and an Anaconda profile, and
@@ -696,14 +784,16 @@ P1-4's installs on both hardware tiers are where real computers show it.
   would no longer be the Bazzite ADR-0006 chose.
   ADR-0006's fallback, `kinoite-main`, is that larger change.
 - **titanoboa, the script Bazzite runs.**
-  95 lines on a personal fork's branch, which make UEFI-only ISOs with no
+  94 lines on a personal fork's branch, which make UEFI-only ISOs with no
   media checksum (`build_iso.sh:31-35, 83-94` at 7737f47).
   The pinned builder does the same job.
 - **CentOS Stream's bootc image as the base.**
   Its Anaconda would read kickstarts as RHEL's, and the templates it runs
   are RHEL's, for a Fedora 44 system.
 - **A smaller base built with `bootc-base-imagectl`.**
-  Fedora's page says the tool "is subject to change", and Anaconda's own
+  Fedora's page says that "the implementation of this command (especially
+  the configuration files that it reads) are subject to change"
+  (`bootc-base-imagectl.md:56-57` at 4ca40d0), and Anaconda's own
   packages outweigh what it would save.
 - **A change upstream to `anaconda-iso`,** so that the installer takes
   the image's own logos package.
@@ -721,10 +811,15 @@ In this change:
   Nothing else in them changes until this ADR is accepted.
 - DESIGN §4.1 lists the installer image among the costs accepted, §10
   says how ISOs are made, and §4.3.1 names the blue screen as the one
-  step before the wizard.
+  step before the wizard (choice 11).
   Each is marked ADR-0050, proposed.
-- ROADMAP P1-4 and P1-14 name this ADR, and P1-14 names PR #259's
-  choice 7 as answered by it.
+- ROADMAP §0 gets a bullet for this ADR, beside the other image work.
+- ROADMAP P1-4 names this ADR and says, marked proposed, that Cairn keeps
+  its own ISO step rather than image-template's `build-disk.yml`.
+  Its list of what is left keeps an ISO workflow in CI (choice 12) and
+  adds the slices, the install notes and the Minimum and Recommended
+  panel in the installer (choice 13).
+- ROADMAP P1-14 names this ADR, and PR #259's choice 7 as answered by it.
 - `docs/DEVELOPMENT.md`'s "Building the installer" says that this ADR
   replaces the steps it describes, which stay true until slice 3.
 
@@ -737,8 +832,8 @@ With the slices:
 - Slice 3: `docs/DEVELOPMENT.md`'s "Building the installer" and
   `disk_config/README.md` describe the new steps, ADR-0038's slice 6
   points here, and ROADMAP P1-3 says Cairn keeps its own ISO step.
-  CLAUDE.md says the image's files follow image-template exactly; whether
-  it should name `installer/` and the ISO step is Mason's to decide.
+  CLAUDE.md's "Layout" names `installer/` and Cairn's kickstart in
+  `disk_config/`, if Mason says yes to choice 10.
 - Slice 4: `docs/DEVELOPMENT.md` gains the Secure Boot VM, and ROADMAP
   P1-4 records the checks.
 - Slice 5: the install notes; `docs/research/base-image-policy.md` ticks
@@ -753,17 +848,18 @@ The Decision above is written with each recommendation.
 1. **Which builder type.**
    Recommended: `bootc-generic-iso` (`generic-iso` from v89).
    Why: upstream says to prefer it, it is the contract Bazzite's installer
-   follows, only it lets Cairn name the stick and word every menu entry,
-   and it can never write the builder's disk-wiping kickstart.
+   follows, only it lets Cairn word every menu entry, and it can never
+   write the builder's disk-wiping kickstart.
    The other: `bootc-installer`, the smaller step from today.
    `iso.toml` and the private test config stay as they are, and the
    builder runs lorax's templates and dracut itself.
    But upstream files it under "Historical", it starts Anaconda in text
    mode unless `inst.graphical` is added to the boot line
    (`pkg/image/anaconda_container_installer.go:110-121` at v85; read, not
-   tried), its label is fixed at `Container-Installer-x86_64` unless
-   `mkksiso` renames the stick afterwards, and upstream skips its install
-   test.
+   tried), and upstream skips its install test.
+   The builder names its stick `Container-Installer-x86_64`, but the same
+   `mkksiso` step could rename it with `--volid`, which also changes the
+   name in every boot entry (`mkksiso.py:464-503` at 30890c3; not tried).
 2. **Where the kickstart lives.**
    Recommended: added to the finished ISO with `mkksiso`.
    Why: no kickstart is ever inside an image, and a test ISO is the same
@@ -778,8 +874,9 @@ The Decision above is written with each recommendation.
    would then stop.
 3. **What the installer is built from.**
    Recommended: `quay.io/fedora/fedora-bootc:44`, pinned by digest.
-   Why: it starts with Secure Boot on, has no logos package, and the
-   system is not on the stick twice.
+   Why: its boot chain is signed by Microsoft and Fedora, so the
+   installer is expected to start with Secure Boot on (check 1), it has
+   no logos package, and the system is not on the stick twice.
    The other: Cairn's own image, as Bazzite builds its installer on
    Bazzite.
    Mason's "as Bazzite does" was about building an installer image; this
@@ -811,15 +908,15 @@ The Decision above is written with each recommendation.
    turns the Users module on, chosen with `inst.profile=cairn-test` on the
    test ISO's boot line.
 7. **Which builder version.**
-   Recommended: move the pin to the newest image-builder release (v89 on
-   2026-11-03) in slice 3, after reading its notes, in the container they
-   name.
+   Recommended: the newest image-builder release (v89 on 2026-11-03),
+   after reading its notes, in the container they name.
+   Slice 2 pins it and plans an ISO with it; slice 3 builds with it.
    Why: the generic type changed between v85 and v89, and upstream's docs
    and example now describe v89, so the installer is written once against
    the contract upstream keeps.
    v89's notes name `ghcr.io/osbuild/image-builder-cli` as the container
    for the `image-builder` command
-   (`doc/20-advanced/20-bootc/50-migration.md:7-13`).
+   (`doc/20-advanced/20-bootc/50-migration.md:11-13`).
    The other: stay on v85, where the type is `bootc-generic-iso` and each
    menu line is written whole, and rewrite `iso.yaml` at the next move.
 8. **What the installer shows.**
@@ -844,3 +941,48 @@ The Decision above is written with each recommendation.
    documentation can take the page from there.
    The other: the website alone, or a printed sheet that goes with each
    stick.
+10. **What CLAUDE.md says about the image's files.**
+    Recommended: with slice 3, CLAUDE.md's "Layout" names `installer/`,
+    and says that `disk_config/` holds Cairn's kickstart rather than
+    image-template's ISO settings.
+    The rest of the image's files keep image-template's layout.
+    Why: CLAUDE.md says the image's files follow image-template exactly,
+    and from slice 3 that is no longer true of `disk_config/`.
+    A later session that read only CLAUDE.md would put `iso.toml` back.
+    The other: CLAUDE.md stays as it is, and this ADR alone records the
+    difference.
+11. **When DESIGN §4.3.1 names the blue screen.**
+    Recommended: now, in this change, marked proposed, as it stands.
+    Why: §4.3.1 says a step the wizard cannot do is not ready to ship.
+    The blue screen is such a step, and Mason accepted it for #260, so
+    the exception sits beside the rule while the slices are built.
+    The other: leave that paragraph out of this change and add it when
+    this ADR is accepted, so that DESIGN holds only what is accepted.
+12. **Where a friend's ISO is built.**
+    Recommended: on the dev PC, with `tools/build-iso.sh` under `sudo`,
+    until ADR-0031's gates have passed.
+    A CI workflow that runs the same steps can follow once P1-3 puts the
+    image in a registry, and ROADMAP P1-4 keeps it on its list.
+    Why: the private test kickstart never leaves the dev PC, no ISO
+    leaves the family before the gates, and the repository is public, so
+    a workflow would first need a private place for its ISO.
+    DESIGN §10 still holds: GitHub Actions build and sign the image
+    (P1-3), and the ISO comes from upstream's tools, not tooling of
+    Cairn's own (§4.1).
+    The other: a workflow from slice 3 on, as Bazzite builds its ISOs
+    (`.github/workflows/build_iso.yml:130-156` at 59f518b), with its ISO
+    kept private; or the dev PC only, with no workflow for the ISO.
+13. **The Minimum and Recommended panel.**
+    ADR-0003 says it appears on the website, in the installer and in the
+    docs, in the same form (#20).
+    Recommended: the install notes show it in slice 5, before a friend's
+    ISO, and the panel inside Anaconda waits for a change of its own,
+    listed as left in ROADMAP P1-4.
+    Why: a grown-up needs it before writing the stick, not once the
+    installer runs.
+    Anaconda 44.30 shows no slides, so inside Anaconda the panel needs an
+    add-on, which is Python and GTK, outside ADR-0002, and so needs an
+    ADR of its own.
+    The other: in these slices, as a picture in Anaconda's side panel,
+    whose words could not be translated or read aloud; or later in both
+    places, with the website.

@@ -251,9 +251,9 @@ ADR-0006 after a licence and trademark review; one Intel/AMD image in v1.
   come via Flatpak (§4.2), which is fine and arguably better here.
 - Smaller precedent for this specific use case.
 - One more image to keep: the installer. Cairn builds it itself, on Fedora's
-  bootc image, so that it shows Cairn's art and starts on a computer with
-  Secure Boot on, rather than use the installer `bootc-image-builder` makes
-  from Fedora's packages (ADR-0050, proposed).
+  bootc image, so that it shows Cairn's art in place of the Fedora art the
+  installer from `bootc-image-builder` shows, and can still start on a
+  computer with Secure Boot on (ADR-0050, proposed).
 
 **Rejected: Ubuntu.** Snap packaging is the disqualifier. Firefox and
 increasingly Steam ship as snaps, and snap first-launch latency on 2015-era
@@ -771,8 +771,8 @@ documented as such.
 - Images signed with cosign; published to a container registry.
 - ISOs made by `image-builder`, which `bootc-image-builder` is now a build of,
   from an installer image Cairn builds on Fedora's bootc image, with Cairn's
-  art and a kickstart that queues Universal Blue's Secure Boot key (ADR-0050,
-  proposed).
+  art; lorax's `mkksiso` then adds a kickstart that queues Universal Blue's
+  Secure Boot key (ADR-0050, proposed).
 - Update cadence inherited from the base image. `bootc upgrade` on a schedule,
   applied at reboot.
 - **Rollback is a documented, supported, one-command parent operation**, not an
