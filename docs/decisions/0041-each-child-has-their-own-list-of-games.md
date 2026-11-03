@@ -584,8 +584,9 @@ Since 2026-11-03 the copy step leaves Steam Cloud's marker,
 a child's copy.
 From a game the child has already, it removes a marker only while it is
 byte for byte the shared folder's file in the same place, as a copy made
-before then left it (ADR-0033's section "Steam Cloud's marker stays out
-of a child's copy").
+before then left it, and as a child's Steam signed in to the grown-up's
+Steam account would most likely write it (ADR-0033's section "Steam
+Cloud's marker stays out of a child's copy").
 
 A Save gives the copy step only the games newly on a child's list.
 So on the image the copy step finds a game the child has already only

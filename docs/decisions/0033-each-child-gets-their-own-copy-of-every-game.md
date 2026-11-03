@@ -128,9 +128,9 @@ the child's own home, which no other child can open.**
   - **Never over the child's own files.** If the child's library already
     has a manifest for the game, nothing changes. The child's copy holds
     their saves, so Cairn never replaces, updates or deletes it. The one
-    exception, since 2026-11-03, is Steam Cloud's marker as an earlier
-    copy left it (the section "Steam Cloud's marker stays out of a
-    child's copy", below). A
+    exception, since 2026-11-03, is a Steam Cloud marker byte for byte
+    the shared folder's (the section "Steam Cloud's marker stays out of
+    a child's copy", below). A
     `common/<installdir>` there without a manifest is left alone too,
     with one sentence, since it may hold the child's saves. `docs/TRY.md`
     says how to set it aside. Before anything else, the step removes any
@@ -446,9 +446,13 @@ Decision says.
   A link by that name goes, as a link, and is never followed, since the
   child's Steam would read through it.
   A folder by that name is not a marker, and stays.
-  A copy whose marker cannot be removed never reaches the child: it is
-  thrown away, and the game is left out as `copy-failed`.
-  The child's own Steam then writes its own marker, for the child's
+  A copy whose marker cannot be removed, as in a folder its owner cannot
+  write, never reaches the child: it is thrown away, and the game is left
+  out as `copy-failed`.
+  A copy's folders keep the shared folder's modes, so before the step
+  removes a copy, or a temporary folder an earlier run left, it gives
+  each folder in it the owner's bits, never through a link.
+  The child's own Steam can then write its own marker, for the child's
   account.
 - **An earlier copy loses it only while it is still the shared
   folder's.**
@@ -469,30 +473,37 @@ Decision says.
   a copy there loses one when its game comes back onto that child's list
   (ADR-0041's section of this date).
 - **The shared folder keeps its own.**
-  The grown-up's Steam wrote it there for its own use, and Cairn never
-  walks the games in the shared folder.
+  The grown-up's Steam wrote it there for its own use, and nothing Cairn
+  runs changes the games in the shared folder.
   Removed, it would most likely come back: Steam wrote it the first time
   the grown-up played the game there.
   Every account can read it there, as they can the saves beside it.
 
 A child's Steam signed in to the same Steam account as the one that
 wrote the shared folder's marker, such as the grown-up's own account in
-layout 1 of #130, writes a marker byte for byte the same.
-A later run that finds the game removes it, and that Steam writes it
-again.
+layout 1 of #130, most likely writes a marker byte for byte the same,
+since the one of 2026-11-01 held only the account id.
+A later run that finds the game removes it, and that Steam most likely
+writes it again.
 
 Tested in Python, in `provision/tests/test_copy_games.py`: a new copy
 leaves out a marker at the top, in `Saves` and deep down, and keeps the
 names like it; it leaves out a link by that name, to a file, a folder or
 nothing, without following it, and keeps a folder by that name; a marker
-that cannot be removed keeps the game from the child.
+in a folder its owner cannot write keeps the game from the child, run
+after run, and leaves nothing behind.
 An earlier copy loses a marker that is the shared folder's, and keeps
 one that differs, one the shared folder no longer has, a link, a FIFO,
 one behind a link to a folder and one in a game folder that is a link;
-only a game the run looks at loses one; and one that cannot be removed
-stays while the run goes on.
+only a game the run looks at loses one; and one in a folder its owner
+cannot write stays while the run goes on.
+A temporary folder an earlier run left goes even when its owner cannot
+write, read or enter its folders, and a link in it is never followed.
 
 Still to check in the VM, with a child's Steam signed in to an account
 other than the grown-up's: what that Steam does with a copy that holds
 the grown-up's marker, and that it starts a copy without one, with no
 question, and writes its own.
+And with a child's Steam signed in to the grown-up's own account: that
+it writes the same bytes, and writes them again, with no question, after
+a run removes them.

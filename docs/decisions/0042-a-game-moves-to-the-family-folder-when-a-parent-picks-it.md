@@ -602,8 +602,14 @@ child's Steam does with one that names another account (#250).
   A file with a name like it moves.
   A link by that name goes, as a link, and is never followed.
   A folder by that name moves.
-  A copy whose marker cannot be removed is thrown away, and the game
-  stays where it is, as `failed`.
+  A copy whose marker cannot be removed, as in a folder its owner cannot
+  write, is thrown away, and the game stays where it is, as `failed`.
+  A copy's folders keep the game's modes, so when such a folder stops
+  the removal of a copy, or of an earlier run's own folder, the step
+  gives each folder in it the owner's bits, never through a link, and
+  tries once more.
+  Another Guardian's own folder, which this account cannot change, stays
+  for their next run, as before.
 - **The Guardian's marker goes with the original folder.**
   Their Steam most likely writes a new one the first time they play the
   game from the family folder, as it did on 2026-11-01.
@@ -619,9 +625,13 @@ Tested in Python, in `provision/tests/test_share_games.py`: a real move
 leaves the marker behind at the top, in `Saves` and deep down, and moves
 the names like it; a link by that name, to a file, a folder or nothing,
 stays behind and is never followed, and a folder by that name moves; the
-copy has no marker when it takes the game's name; a marker that cannot
-be removed moves nothing; and a game already in the family folder keeps
-its marker.
+copy has no marker when it takes the game's name; a marker in a folder
+its owner cannot write moves nothing, run after run, and leaves nothing
+in the family folder; and a game already in the family folder keeps its
+marker.
+A recovery removes an earlier run's own folder whose folders its owner
+cannot write, without following a link in it, and another Guardian's own
+folder stays while the run goes on.
 The test that ends a move at each of its changes to the disk now moves a
 game with a marker, and the family folder's game never holds it at any
 point.
