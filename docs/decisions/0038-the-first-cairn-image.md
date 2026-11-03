@@ -772,9 +772,10 @@ Updates on the installed computer still wait for P1-3.
   any time, without a password.
   That step turned on network time, which `chronyd` already keeps on,
   and made the account Tailscale's operator.
-  With Tailscale signed out that did nothing.
-  Once a grown-up signed it in, the next account to run the step, perhaps
-  a child's, would have controlled it.
+  With Tailscale off, as the image ships it, the operator line failed and
+  did nothing.
+  Once a grown-up turned Tailscale on and signed it in, the next account
+  to run the step, perhaps a child's, would have controlled it.
   The rest of the script is for Bazzite's other images, a Framework
   laptop's start-menu icon and the speakers of two handhelds.
   `build_files/bazzite-extras.sh` removes the link that started it in
