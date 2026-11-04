@@ -13,7 +13,7 @@ On 2026-11-03 checks 1, 2 and 8 ran with real Steam sign-ins ("Run on
 parts: Exit in Steam's menu (check 1) and the screen reader (check 8).
 It stays proposed until Mason decides three things.
 One is whether Steam's updater window, seen for about a second at a
-child's login (ISSUE_FLASH), goes against "What the child sees".
+child's login (#275), goes against "What the child sees".
 The second is whether Exit in Steam's menu must be tried first.
 The third is whether the screen-reader part of check 8 must be heard
 first.
@@ -975,7 +975,7 @@ The record is in the maintainer's work area.
   not start offline (inference: the kiosk hid the window, so nobody saw
   it).
   So this game, which uses Steam Cloud, did not start offline
-  (ISSUE_OFFLINE).
+  (#274).
   ADR-0036 saw a game start offline on 2026-10-28.
   The screen held: no line.
   With the network back up, Steam signed in at 21:23:53.
@@ -1008,7 +1008,7 @@ The record is in the maintainer's work area.
   At 21:34:50 the launcher logged "Steam opened a window on its own." and
   the kiosk hid it.
   That is a Steam window in a child's session, which "What the child
-  sees" says does not appear (ISSUE_FLASH).
+  sees" says does not appear (#275).
   It was seen at this one login only, the first after a visit.
   The launcher logged no such window at `ada`'s other four logins that
   day, so whether it follows a visit or comes at random is not known.
