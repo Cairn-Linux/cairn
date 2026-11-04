@@ -288,10 +288,17 @@ administrator.
   administrator, a Guardian, a system account, or one in no level group.
 - Both write the child's "Steam for <child>" entry in
   `/usr/local/share/applications`, as provisioning does, and relabel it.
+- Both take `/run/lock/cairn-family-accounts` before they read the
+  account and keep it until the change is made, so two grown-ups'
+  changes at once go one after the other, and the second reads the
+  groups the first left (#255). Without that, two level changes could
+  each drop the group the other had just added, and leave the child in
+  none. A change waits up to 15 minutes for one already under way, then
+  answers `busy` and changes nothing.
 
 It answers in one line: `done`, or `refused` and one of `not-root`,
 `not-a-grown-up`, `usage`, `bad-name`, `bad-full-name`, `bad-level`,
-`taken`, `not-a-child` or `failed`.
+`taken`, `not-a-child`, `busy` or `failed`.
 
 `save-games` gives children their games, and `log-out` logs a child out
 first (ADR-0041); the Games page runs both. Each argument is one

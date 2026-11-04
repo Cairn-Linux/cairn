@@ -6,6 +6,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QHash>
+#include <QLockFile>
 #include <QRegularExpression>
 #include <QTemporaryDir>
 #include <QTest>
@@ -67,6 +68,8 @@ public:
         setup.gamesOwner = getuid();
         setup.euid = 0;
         setup.pkexecUid = std::nullopt;
+        setup.lock = m_folder.filePath("lock");
+        setup.lockWaitMilliseconds = 0;
         const QHash<QString, Account> accounts = m_accounts;
         setup.lookUp = [accounts](const QString& name) -> std::optional<Account> {
             const auto found = accounts.constFind(name);
@@ -157,6 +160,38 @@ QHash<QString, Account> familyWith(const QString& login, const QStringList& grou
     QHash<QString, Account> accounts = family();
     accounts.insert(login, {.uid = 1002, .groups = groups, .login = login, .fullName = {}});
     return accounts;
+}
+
+// The level groups an account is in, in order.
+QStringList levelGroups(const Account& account) {
+    return account.groups.filter(QRegularExpression("^cairn-l[0-9]$"));
+}
+
+// Accounts as the system has them after every gpasswd call so far, read
+// from the stand-ins' log: one machine's groups, which two commands share.
+FamilyCommand::LookUp liveLookUp(const QHash<QString, Account>& accounts, const QString& calls) {
+    return [accounts, calls](const QString& name) -> std::optional<Account> {
+        const auto found = accounts.constFind(name);
+        if (found == accounts.constEnd()) {
+            return std::nullopt;
+        }
+        Account account = *found;
+        QFile file(calls);
+        if (!file.open(QIODevice::ReadOnly)) {
+            return account;
+        }
+        for (const QString& line : QString::fromUtf8(file.readAll()).split('\n')) {
+            const QStringList words = line.split(' ');
+            if (words.size() != 4 || words.at(0) != "gpasswd" || words.at(2) != name) {
+                continue;
+            }
+            account.groups.removeAll(words.at(3));
+            if (words.at(1) == "--add") {
+                account.groups.append(words.at(3));
+            }
+        }
+        return account;
+    };
 }
 
 class FamilyCommandTest : public QObject {
@@ -429,6 +464,83 @@ private slots:
         QCOMPARE(standIns.run({"set-level", "ben", "2"}), std::nullopt);
         QCOMPARE(standIns.calls(),
                  QStringList({"gpasswd --add ben cairn-l2", "gpasswd --delete ben cairn-l3"}));
+    }
+
+    // Two grown-ups change one child at once (#255). The second change
+    // comes while the first is under way, after it has read the child's
+    // groups: the child must still end in exactly one level.
+    void twoChangesAtOnceLeaveTheChildInOneLevel() {
+        StandIns standIns;
+        const QHash<QString, Account> accounts = familyWith("ada", {"ada", "cairn-l1", "cairn-l2"});
+        standIns.setAccounts(accounts);
+        standIns.writeEntry("ada", SteamEntry::text("ada", "ada", steamFor));
+        const FamilyCommand::LookUp live = liveLookUp(accounts, standIns.path("calls"));
+
+        FamilyCommand::Setup second = standIns.setup();
+        second.lookUp = live;
+        std::optional<Refusal> secondAnswer = Refusal::Usage;
+        bool secondRan = false;
+
+        FamilyCommand::Setup first = standIns.setup();
+        first.lookUp = live;
+        first.passwordLocked = [&](const QString&) -> std::optional<bool> {
+            if (!secondRan) {
+                secondRan = true;
+                secondAnswer = FamilyCommand(second).run({"set-level", "ada", "2"}).refusal;
+            }
+            return true;
+        };
+        QCOMPARE(FamilyCommand(first).run({"set-level", "ada", "1"}).refusal, std::nullopt);
+
+        QVERIFY(secondRan);
+        QCOMPARE(levelGroups(*live("ada")).size(), 1);
+        QCOMPARE(secondAnswer, std::optional(Refusal::Busy));
+        QCOMPARE(levelGroups(*live("ada")), QStringList({"cairn-l1"}));
+    }
+
+    // While another change holds the lock, nothing is read or changed.
+    void aChangeUnderWayHoldsTheNextOne_data() {
+        QTest::addColumn<QStringList>("arguments");
+        QTest::newRow("set-level") << QStringList{"set-level", "ada", "2"};
+        QTest::newRow("create-child again") << QStringList{"create-child", "ada", "2"};
+        QTest::newRow("a new child") << QStringList{"create-child", "cy", "1"};
+    }
+
+    void aChangeUnderWayHoldsTheNextOne() {
+        QFETCH(const QStringList, arguments);
+        const StandIns standIns;
+        QLockFile other(standIns.path("lock"));
+        QVERIFY(other.tryLock(0));
+        FamilyCommand::Setup setup = standIns.setup();
+        bool read = false;
+        setup.lookUp = [&read](const QString&) -> std::optional<Account> {
+            read = true;
+            return std::nullopt;
+        };
+        const FamilyCommand::Outcome outcome = FamilyCommand(setup).run(arguments);
+        QCOMPARE(outcome.refusal, std::optional(Refusal::Busy));
+        QVERIFY(outcome.asked.startsWith(arguments.at(0) + " " + arguments.at(1)));
+        QVERIFY(!read);
+        QCOMPARE(standIns.calls(), QStringList());
+        QVERIFY(!QDir(standIns.applications()).exists());
+    }
+
+    // The child is read with the lock held, and the lock goes when the
+    // change is made, so the next change can start.
+    void theChildIsReadUnderTheLock() {
+        const StandIns standIns;
+        FamilyCommand::Setup setup = standIns.setup();
+        const FamilyCommand::LookUp lookUp = setup.lookUp;
+        const QString lockPath = standIns.path("lock");
+        std::optional<bool> heldWhileRead;
+        setup.lookUp = [&](const QString& name) {
+            heldWhileRead = !QLockFile(lockPath).tryLock(0);
+            return lookUp(name);
+        };
+        QCOMPARE(FamilyCommand(setup).run({"set-level", "ada", "2"}).refusal, std::nullopt);
+        QCOMPARE(heldWhileRead, std::optional(true));
+        QLockFile after(lockPath);
+        QVERIFY(after.tryLock(0));
     }
 
     void accountsCairnDidNotMakeAreRefused_data() {

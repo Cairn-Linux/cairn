@@ -7,6 +7,7 @@
 #include "SystemTool.h"
 
 #include <QFileInfo>
+#include <QLockFile>
 
 #include <utility>
 
@@ -36,6 +37,14 @@ FamilyCommand::Outcome FamilyCommand::run(const QStringList& arguments) const {
     }
 
     const QString asked = askedFor(request);
+    // Another grown-up's change to the same child goes first, and this one
+    // then reads the groups that change left. A lock left by a command
+    // that was killed is taken back, because its process is gone.
+    QLockFile lock(m_setup.lock);
+    lock.setStaleLockTime(0);
+    if (!lock.tryLock(m_setup.lockWaitMilliseconds)) {
+        return {.refusal = Refusal::Busy, .asked = asked};
+    }
     const std::optional<Account> account = m_setup.lookUp(request.login);
     if (request.action == FamilyRequest::Action::SetLevel) {
         if (!account || !account->isCairnChild()) {
@@ -104,6 +113,8 @@ std::optional<Refusal> FamilyCommand::changeChild(const Account& child,
 // off in between leaves the child in two groups, which every reader takes as
 // the more restricted, and never in none, which the session would read as an
 // account Cairn did not make (#100, ADR-0023).
+// `child` was read under the lock run() holds, so no other change has moved
+// the child since (#255).
 std::optional<Refusal> FamilyCommand::setLevel(const Account& child, int level) const {
     const QString wanted = FamilyRole::levelGroup(level);
     if (!child.groups.contains(wanted) &&
