@@ -9,7 +9,7 @@ taken over from it.
 its restart is sent again); the section "A Steam that cannot sign in"
 below (2026-10-29, #182); the section "Steam stops part-way on a new
 child's first Linux game" below (2026-10-30, #206); the section "A
-question Steam keeps" below (2026-10-31, #211); ADR-0049, proposed (the
+question Steam keeps" below (2026-10-31, #211); ADR-0049 (the
 journal's sentence for a refused sign-in says to log the child out and
 open Steam for them from your own login, and comes before any other
 reason; the grown-up screen adds a line for it)

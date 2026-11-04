@@ -1,28 +1,25 @@
 # ADR-0049: A grown-up steps in from their own login, not inside the child's session
 
-**Status:** proposed. On 2026-11-02 Mason decided that child test 2
-includes Steam games. After the research below, he decided the same day
-that for that test a grown-up steps in by logging the child out and
-fixing Steam from their own login, with one new line on the grown-up
-screen ("What Mason decided then", below). The in-session step-in stays
-open in #88. This ADR becomes accepted when checks 1 to 6 and 8 under
-"Checks in the VM" have run without overturning a bullet of the
-Decision.
+**Status:** accepted (2026-11-03). On 2026-11-02 Mason decided that
+child test 2 includes Steam games. After the research below, he decided
+the same day that for that test a grown-up steps in by logging the child
+out and fixing Steam from their own login, with one new line on the
+grown-up screen ("What Mason decided then", below). The in-session
+step-in stays open in #88. The ADR was to be accepted when checks 1 to 6
+and 8 under "Checks in the VM" had run without overturning a bullet of
+the Decision.
 On 2026-11-03 checks 1, 2 and 8 ran with real Steam sign-ins ("Run on
-2026-11-03"), so each check the rule names has now run, apart from two
-parts: Exit in Steam's menu (check 1) and the screen reader (check 8).
-It stays proposed until Mason decides three things.
-One is whether Steam's updater window, seen for about a second at a
-child's login (#275), goes against "What the child sees".
-The second is whether Exit in Steam's menu must be tried first.
-The third is whether the screen-reader part of check 8 must be heard
-first.
+2026-11-03"), apart from Exit in Steam's menu (check 1) and the screen
+reader (check 8).
+The same day Mason decided that neither holds acceptance back, nor does
+Steam's updater window at a child's login ("What Mason decided on
+2026-11-03", below).
 **Date:** 2026-11-02
 **Closes:** (none) — the narrow version of issue #88, for child test 2
 (ROADMAP P1-17); the in-session step-in stays open in #88. It answers
 the question ADR-0045 left open for #182, and the change that brings it
-closes #182, as Mason chose on 2026-11-02. Part of ROADMAP P1-13. Once
-accepted, amends ADR-0018, ADR-0032, ADR-0036 and ADR-0045.
+closes #182, as Mason chose on 2026-11-02. Part of ROADMAP P1-13.
+Amends ADR-0018, ADR-0032, ADR-0036 and ADR-0045.
 
 ## Context
 
@@ -621,7 +618,7 @@ The Family app's "Open Steam for Ada" is on the image only (ADR-0041).
 - If a sign-in made in a visit does not reach the kiosk (check 1), this
   route fails for Steam, and P1-17's other branch applies: no Steam in
   that run.
-- Once accepted, it amends:
+- It amends:
   - **ADR-0018:** no program's lock stops the power button's hold.
     L1 and L2 are refused logind's lock on the power key, and
     `PowerKeyIgnoreInhibited=yes` makes the hold ignore every program's
@@ -649,7 +646,7 @@ The Family app's "Open Steam for Ada" is on the image only (ADR-0041).
   lines gains: "When Steam's sign-in was turned down, the grown-up
   screen says 'Log out, then a grown-up can fix it from their own
   login.', and a Guardian signs the child's Steam in again from their
-  own login (ADR-0032; ADR-0049, proposed)."
+  own login (ADR-0032; ADR-0049)."
 - **DESIGN §8.3, mitigation 3,** said the foreign-toplevel protocol tells
   the launcher a Steam window appeared "so it can show the grown-up
   screen instead".
@@ -659,7 +656,7 @@ The Family app's "Open Steam for Ada" is on the image only (ADR-0041).
   A launch held behind one ends on the grown-up screen (mitigation 2,
   ADR-0030).
   No Steam window is shown in a child's session, even for a grown-up
-  (ADR-0049, proposed).
+  (ADR-0049).
   The sentences on why L1 and L2 use `labwc`, and that Phase 0 proved
   it, stay with the window rules and the protocol they are about.
 - **DESIGN §3.2, "Two access paths":** "Full administration" gains a
@@ -680,6 +677,8 @@ The Family app's "Open Steam for Ada" is on the image only (ADR-0041).
   §4.5 changes later, with launched apps' own sessions.
 - **ADR-0018, ADR-0032, ADR-0036 and ADR-0045** get "Amended by"
   lines; ADR-0018's is in its status line.
+- Until this ADR was accepted on 2026-11-03, these edits, the "Amended
+  by" lines and the ROADMAP called it "ADR-0049, proposed".
 - **`docs/TRY.md`:** the steps, the habits and the sentences above.
   Its closing note says the steps for a refused sign-in have not been
   run as written yet.
@@ -1018,6 +1017,22 @@ The record is in the maintainer's work area.
 
 The VM was powered off into the snapshot
 `after-steam-session-2026-11-03`.
+
+### What Mason decided on 2026-11-03
+
+After the run, Mason decided three things, and this ADR was accepted.
+
+- **Steam's updater window at a child's login does not go against "What
+  the child sees".**
+  It is a bug of its own, in #275, not a fault of stepping in from the
+  grown-up's login.
+- **Exit in Steam's menu need not be tried first.**
+  Done ends a visit, and works.
+  Exit can be tried on the kids' laptop.
+- **The screen reader need not be heard first.**
+  The QML test `test_theGrownUpScreenSaysWhatWillHelp` checks that the
+  line is read with the screen.
+  No screen reader runs in the kiosk yet.
 
 ### Research only, after child test 2
 

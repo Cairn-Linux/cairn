@@ -195,7 +195,7 @@ menu, not pages added to System Settings (ADR-0040). System Settings lists
 Guardian changes their own password and picture in Family (ADR-0043).
 Fixing what a child's Steam waits for, such as a sign-in Steam turned
 down, is done there too, once the child has logged out (ADR-0032,
-ADR-0049, both proposed). Cairn does not ask for a Guardian's password
+proposed; ADR-0049). Cairn does not ask for a Guardian's password
 inside a child's session, and a way to step in there is not chosen yet
 (#88).
 
@@ -638,7 +638,7 @@ Mechanism:
   until the child logs out (ADR-0045, #211). When Steam's sign-in was
   turned down, the grown-up screen says "Log out, then a grown-up can fix
   it from their own login.", and a Guardian signs the child's Steam in
-  again from their own login (ADR-0032; ADR-0049, proposed).
+  again from their own login (ADR-0032; ADR-0049).
 - A child's Steam gets Steam's own tools, the Steam Linux Runtimes and
   Proton, from the parent's Steam: a Guardian's Save copies them into the
   child's own library with the child's new games, by reflink, so a first
@@ -678,7 +678,7 @@ updates, login expiry, Steam Guard prompts, and cloud save conflicts. Mitigation
    a signed-out and a signed-in client (`docs/research/steam-containment.md`).
    A launch held behind one of Steam's windows ends on the grown-up screen
    (mitigation 2, ADR-0030). No Steam window is shown in a child's session,
-   even for a grown-up (ADR-0049, proposed).
+   even for a grown-up (ADR-0049).
 
 Combined with a child Steam account in a Steam Family with an explicit game
 allowlist, the exposed surface is small.
