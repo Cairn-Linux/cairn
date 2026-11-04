@@ -640,3 +640,20 @@ Still to check in the VM, by hand, since nothing runs the step yet: a
 game whose `Saves/` holds the Guardian's marker moves without it, and the
 Guardian's Steam then starts it from the family folder with no question
 about its cloud saves.
+
+On 2026-11-03 the VM showed the children's side, with a child's Steam
+signed in to an account other than the Guardian's (ADR-0033's section
+"What the VM showed on 2026-11-03").
+The Guardian's Steam installed Freddi Fish 2 straight into the family
+folder, so the move step did not run, and the check above still stands.
+That game gained the Guardian's marker when the Guardian played it
+there, as on 2026-11-01.
+The child's new copy left it out, 32 files against the family folder's
+33.
+The child's Steam then wrote its own marker at the first play and asked
+nothing.
+With the family folder's marker put back in the child's copy by hand, as
+a copy made before this date has it, the child's Steam put its own in
+its place and asked nothing.
+Steam's cloud log named no conflict, and nothing was moved or set aside.
+The game had no saves yet, so what happens with real saves is not known.

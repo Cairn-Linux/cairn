@@ -507,3 +507,38 @@ question, and writes its own.
 And with a child's Steam signed in to the grown-up's own account: that
 it writes the same bytes, and writes them again, with no question, after
 a run removes them.
+
+### What the VM showed on 2026-11-03
+
+In `cairn-min`, on the image built from main 2d37676, with `ada`'s Steam
+signed in to a test account other than the grown-up's (ADR-0049's "Run
+on 2026-11-03").
+The game was Freddi Fish 2, which the grown-up's Steam installed into
+the shared folder and played once there.
+
+- **A new copy left the marker out.**
+  The shared folder's game had 33 files, among them
+  `Saves/steam_autocloud.vdf`, naming the grown-up's account.
+  After Look for new games and Save, `ada`'s copy had 32, with no
+  marker, and an empty `Saves`.
+- **Her Steam wrote its own marker and asked nothing.**
+  After her first play, her copy had 33 files again, and the marker
+  named her own account.
+  No Steam window showed, and `Saves` still held no file.
+- **A copy holding the grown-up's marker, as a copy made before
+  2026-11-03 does, got her own marker in its place.**
+  Her own marker was set aside, and the shared folder's was put in her
+  copy by hand.
+  She tapped the game, it started 2 s later, and it was quit at once.
+  No grown-up screen and no question came.
+  Afterwards the marker named her own account.
+  Steam's cloud log named no conflict, nothing moved or set aside, and
+  no error.
+  `Saves` was unchanged, still with no file, and nothing appeared in her
+  own `userdata/` folder for the game.
+- **The limit:** the game had no saves yet, so what her Steam does with
+  real saves beside another account's marker is not known.
+  Nor is it known whether it asks anything when it finds saves with no
+  marker.
+  The case of a child's Steam signed in to the grown-up's own account
+  did not run.
