@@ -181,7 +181,7 @@ def split_exec(value):
                 args.append("".join(current))
             current, started = [], False
         else:
-            assert char not in '\t\n\'\\><~|&;$*?#()`', value
+            assert char not in '\t\n\'\\><~|&;$*?#()`{}[]', value
             current.append(char)
             started = True
         i += 1
@@ -369,7 +369,12 @@ class KidscanTests(unittest.TestCase):
             "A\x00B": "AB",
             "A\x1bB": "AB",
             "A\x7fB": "AB",
-            "A\x85B": "AB",
+            "A\x0bB": "A B",
+            "A\x0cB": "A B",
+            "A\x85B": "A B",
+            "A\u2028B": "A B",
+            "A\u2029B": "A B",
+            "A\x1cB": "AB",
         }
         for title, name in cases.items():
             with self.subTest(title=title):
@@ -405,7 +410,7 @@ class KidscanTests(unittest.TestCase):
             "/opt/Scumm VM/scummvm", "--fullscreen",
             '--path=/games/A "quoted" game', "--path=/games/Back\\slash",
             "--path=/games/100% & more; $HOME `id` *?#()<>|~'", "--path=/games/%f", "",
-            "scumm:freddi",
+            "--path=/games/Pack{1,2} [EN]", "--path=/games/F[1]", "scumm:freddi",
         ]
         groups = self.write_one(self.desktop_entry(engine="scummvm", exec=argv))
         self.assertEqual(split_exec(groups["Desktop Entry"]["Exec"]), argv)
@@ -428,6 +433,25 @@ class KidscanTests(unittest.TestCase):
                 self.assertEqual(written, [])
                 self.assertEqual(list(outdir.glob("*.desktop")), [])
                 self.assertIn("steam-100", err.getvalue())
+
+    def test_a_skipped_command_removes_the_games_old_desktop_file(self):
+        outdir = self.base / "apps"
+        outdir.mkdir()
+        old = outdir / "kid-steam-100.desktop"
+        old.write_text("[Desktop Entry]\nExec=/usr/bin/false\n", encoding="utf-8")
+        other = outdir / "kid-steam-200.desktop"
+        other.write_text("[Desktop Entry]\n", encoding="utf-8")
+        with redirect_stderr(io.StringIO()):
+            written = kidscan.write_desktop_files(
+                [self.desktop_entry(exec=["/usr/bin/scummvm", "--path=/games/A\nB"])],
+                outdir)
+        self.assertEqual(written, [])
+        self.assertFalse(old.exists())
+        self.assertTrue(other.exists())
+
+    def test_a_title_of_only_other_whitespace_is_kept(self):
+        groups = self.write_one(self.desktop_entry(title="\u3000"))
+        self.assertEqual(groups["Desktop Entry"]["Name"], "\u3000")
 
     def test_main_with_the_issues_title_writes_one_group(self):
         library = self.base / "hostile"

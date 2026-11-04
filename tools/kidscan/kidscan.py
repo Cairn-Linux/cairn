@@ -487,9 +487,12 @@ def write_atomically(text, out_path):
 # that holds a line break would start a new key or group (#257). Steam's
 # manifests, and so titles, can hold any character.
 _CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f]")
-_LINE_BREAKS = re.compile(r"[\t\n\r]+")
-# Characters the spec says an Exec argument must be quoted to hold.
-_EXEC_RESERVED = re.compile(r"""[ \t\n"'\\><~|&;$*?#()`]""")
+_LINE_BREAKS = re.compile(r"[\t\n\r\x0b\x0c\x85\u2028\u2029]+")
+# Characters the spec says an Exec argument must be quoted to hold, plus
+# { } [ ]: KDE's KShell reads those as shell syntax and then runs the whole
+# line through /bin/sh -c, which would expand a brace or a glob. The spec
+# allows quoting any argument, so quoting these is always safe.
+_EXEC_RESERVED = re.compile(r"""[ \t\n"'\\><~|&;$*?#()`{}\[\]]""")
 
 
 def desktop_string(text):
@@ -525,9 +528,11 @@ def write_desktop_files(entries, outdir):
         if None in arguments:
             print(f"warning: {entry['id']}: its command holds a control character, "
                   "so it gets no .desktop file", file=sys.stderr)
+            # An older file for this game may hold a stale or hostile Exec.
+            (outdir / f"kid-{entry['id']}.desktop").unlink(missing_ok=True)
             continue
         title = entry["title"]
-        if not _CONTROL.sub("", title).strip():
+        if not _CONTROL.sub("", _LINE_BREAKS.sub(" ", title)).strip(" "):
             title = entry["id"]
         target = outdir / f"kid-{entry['id']}.desktop"
         target.write_text(
