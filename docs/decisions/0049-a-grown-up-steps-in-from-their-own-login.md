@@ -979,6 +979,11 @@ The record is in the maintainer's work area.
   it).
   So this game, which uses Steam Cloud, did not start offline
   (#274).
+  Since #274's change the journal names both: when Steam's sign-in says
+  `No Connection` and the launch stands at a question, it says Steam
+  could not reach the internet, then that Steam is waiting for an answer
+  on a window the kiosk hides (ADR-0036, "A question asked offline").
+  The screen is unchanged.
   ADR-0036 saw a game start offline on 2026-10-28.
   The screen held: no line.
   With the network back up, Steam signed in at 21:23:53.

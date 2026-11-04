@@ -220,7 +220,8 @@ themselves.
   Steam for the child from your own account, as in the steps below for a
   sign-in.
   The journal command above also says it for each such launch: "Steam is
-  waiting for an answer about …" or "Steam refused to start …".
+  waiting for an answer about …" or "Steam refused to start …". Without
+  internet it starts with "Steam could not reach the internet" instead.
   Steam keeps the question for that game. The game stays held after the
   internet comes back, until the child logs out and back in. Each tap on
   it says "did not start" again, and the journal names the question again.
@@ -262,11 +263,13 @@ themselves.
     password. A password typed into a child's Steam can be read by
     programs that run in the child's account on this computer.
 - If the journal says "Steam could not reach the internet", check the
-  Wi-Fi; games Steam has already set up may still start without it, but a
-  game with Steam Cloud saves may wait on a question the kiosk hides
-  (#274). The screen adds no line then. The journal says the same
-  for a child's Steam with no saved sign-in at all, such as one nobody has
-  signed in yet: if the Wi-Fi works, sign it in with the steps above.
+  Wi-Fi. Without it, a game with Steam Cloud saves did not start in our
+  tests, even one Steam had set up and the child had played: Steam waits
+  on a question the kiosk hides, and the journal says that too (#274).
+  Other games Steam has set up may still start. The screen adds no line
+  then. The journal says the same for a child's Steam with no saved
+  sign-in at all, such as one nobody has signed in yet: if the Wi-Fi
+  works, sign it in with the steps above.
 - The first time a child taps a Linux game, the child's Steam sometimes
   stops part-way while it fetches the tools the game runs in (#206). The
   launcher starts the child's Steam again by itself and taps the game

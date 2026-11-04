@@ -321,6 +321,8 @@ passes it on, and `GrownUpScreen.qml` draws it.
 A question Steam asks on a window the kiosk hides, such as about a game's
 cloud saves while it is offline, ends the tap at the grace, and the
 journal says Steam is waiting for an answer (ADR-0036).
+While Steam's sign-in says it cannot reach its servers, the journal names
+the internet too, first (#274); the grown-up screen adds no line.
 Steam keeps the question, and for later taps on that game writes only the
 tap's own line, even once it is back online.
 `SteamQuestions` remembers the question for its game until Steam writes

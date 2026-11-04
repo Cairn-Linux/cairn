@@ -84,6 +84,14 @@ QString pajamaSam2Question() {
         "Steam is waiting for an answer about Pajama Sam 2 on a window the kiosk hides.");
 }
 
+// The cloud question met, or held, while Steam cannot reach its servers
+// (#274).
+QString pajamaSam2OfflineCloudQuestion() {
+    return QStringLiteral("Steam could not reach the internet to check the cloud saves for "
+                          "Pajama Sam 2, so it did not start. Steam is waiting for an answer "
+                          "about it on a window the kiosk hides.");
+}
+
 QString pajamaSam2QuestionAndLogOut() {
     return QStringLiteral("Steam is waiting for an answer about Pajama Sam 2 on a window the "
                           "kiosk hides. Log the child out and back in, then try it again.");
@@ -100,7 +108,7 @@ void askedAboutPajamaSam2(SteamGameWait& wait, const QString& console) {
     QVERIFY(!wait.stillComing());
     QCOMPARE(wait.lastStep(), SteamLaunchLog::Step::WaitingForAnswer);
     QVERIFY(!wait.logOutWouldHelp());
-    QCOMPARE(wait.journalNote(QStringLiteral("Pajama Sam 2")), pajamaSam2Question());
+    QCOMPARE(wait.journalNote(QStringLiteral("Pajama Sam 2")), pajamaSam2OfflineCloudQuestion());
 }
 
 // The test VM's stuck run (#206): Steam took the tap, fetched scout, and
@@ -554,6 +562,17 @@ private slots:
             << QByteArray("waiting for user response to SynchronizingCloud \"syncfailed\"")
             << QStringLiteral(
                    "Steam is waiting for an answer about Ada's game on a window the kiosk hides.");
+        QTest::newRow("no connection, cloud question")
+            << QByteArray("LogonFailure No Connection")
+            << QByteArray("waiting for user response to SynchronizingCloud \"syncfailed\"")
+            << QStringLiteral("Steam could not reach the internet to check the cloud saves for "
+                              "Ada's game, so it did not start. Steam is waiting for an answer "
+                              "about it on a window the kiosk hides.");
+        QTest::newRow("no connection, another question")
+            << QByteArray("LogonFailure No Connection")
+            << QByteArray("waiting for user response to ShowInterstitials \"\"")
+            << QStringLiteral("Steam could not reach the internet, and is waiting for an answer "
+                              "about Ada's game on a window the kiosk hides.");
         QTest::newRow("refusal") << QByteArray() << QByteArray("failed with AppError_33 with \"\"")
                                  << QStringLiteral("Steam refused to start Ada's game.");
         QTest::newRow("nothing said") << QByteArray() << QByteArray() << QString();
@@ -578,6 +597,33 @@ private slots:
         }
         wait.stillComing();
         QCOMPARE(wait.journalNote(QStringLiteral("Ada's game")), note);
+    }
+
+    // #274 on the test VM: the child logged in offline and tapped a game
+    // with Steam Cloud saves in the second Steam was started. Steam could
+    // not sign in, took the tap and asked about the game's cloud saves on a
+    // window the kiosk hides. Steam's sign-in does not decide the wait once
+    // it has a step for the game, so it ended when Steam's startup time ran
+    // out, with no line on the grown-up screen. The journal names the
+    // internet first, then the question.
+    void anOfflineCloudQuestionNamesTheInternet() {
+        const QTemporaryDir root;
+        const QString log = root.filePath(QStringLiteral("console_log.txt"));
+        SteamGameWait wait(root.path(), log, root.filePath(QStringLiteral("bootstrap_log.txt")));
+        wait.setStartupMilliseconds(300);
+        wait.steamStartedAtLogin();
+        wait.startLaunch(pajamaSam2());
+        cloudQuestionForPajamaSam2(log);
+        steamLine(log, 0, "LogonFailure No Connection");
+        QVERIFY(wait.stillComing());
+        QCOMPARE(wait.signIn(), SteamSignIn::Now::Fine);
+        QVERIFY(!wait.steamWorking());
+        QTRY_VERIFY(!wait.stillComing());
+        QCOMPARE(wait.lastStep(), SteamLaunchLog::Step::WaitingForAnswer);
+        QVERIFY(!wait.signInRefused());
+        QVERIFY(!wait.logOutWouldHelp());
+        QCOMPARE(wait.journalNote(QStringLiteral("Pajama Sam 2")),
+                 pajamaSam2OfflineCloudQuestion());
     }
 
     // #206 on the test VM: Steam took the game off its schedule a minute
@@ -956,8 +1002,8 @@ private slots:
         QTest::newRow("signed in again")
             << QByteArray("Waiting for compat in post-logon took: 0.098334s") << true << false
             << pajamaSam2QuestionAndLogOut();
-        QTest::newRow("still offline")
-            << QByteArray("LogonFailure No Connection") << false << false << pajamaSam2Question();
+        QTest::newRow("still offline") << QByteArray("LogonFailure No Connection") << false << false
+                                       << pajamaSam2OfflineCloudQuestion();
         QTest::newRow("sign-in turned down")
             << QByteArray("LogonFailure Access Denied") << false << true
             << QStringLiteral("Steam could not sign in, so Pajama Sam 2 did not start. Log the "
