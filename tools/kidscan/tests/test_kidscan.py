@@ -8,6 +8,7 @@ Run:  python3 tools/kidscan/tests/test_kidscan.py
 import io
 import json
 import os
+import re
 import stat
 import sys
 import tempfile
@@ -119,6 +120,79 @@ class FakeLibrary:
     def add(lib, appid, name, installdir):
         (lib / "steamapps" / f"appmanifest_{appid}.acf").write_text(acf(appid, name, installdir))
         (lib / "steamapps" / "common" / installdir).mkdir(parents=True, exist_ok=True)
+
+
+# A reader of .desktop files that follows the Desktop Entry Specification
+# 1.5 strictly, so the tests check the file a desktop would read, not the
+# text kidscan meant to write.
+DESKTOP_KEYS = ("Type", "Name", "Exec", "Categories", "X-Kid-Category",
+                "X-Kid-Engine", "Terminal")
+_STRING_ESCAPES = {"s": " ", "n": "\n", "t": "\t", "r": "\r", "\\": "\\"}
+
+
+def read_desktop(path):
+    """{group: {key: raw value}}; a repeated key or group fails the test."""
+    groups, current = {}, None
+    for line in path.read_text(encoding="utf-8").split("\n"):
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("["):
+            assert line.endswith("]") and line[1:-1] not in groups, line
+            current = groups.setdefault(line[1:-1], {})
+            continue
+        key, separator, value = line.partition("=")
+        assert separator and current is not None, line
+        key = key.rstrip()
+        assert key not in current, f"{key} twice"
+        current[key] = unescape_string(value.strip(" "))
+    return groups
+
+
+def unescape_string(value):
+    out, i = [], 0
+    while i < len(value):
+        if value[i] == "\\" and i + 1 < len(value) and value[i + 1] in _STRING_ESCAPES:
+            out.append(_STRING_ESCAPES[value[i + 1]])
+            i += 2
+        else:
+            out.append(value[i])
+            i += 1
+    return "".join(out)
+
+
+def split_exec(value):
+    """An Exec value (already unescaped as a string) as its arguments."""
+    args, current, quoted, started, i = [], [], False, False, 0
+    while i < len(value):
+        char = value[i]
+        if quoted:
+            if char == "\\" and i + 1 < len(value) and value[i + 1] in '"`$\\':
+                current.append(value[i + 1])
+                i += 1
+            elif char == '"':
+                quoted = False
+            else:
+                assert char not in "`$", value
+                current.append(char)
+        elif char == '"':
+            quoted, started = True, True
+        elif char == " ":
+            if started:
+                args.append("".join(current))
+            current, started = [], False
+        else:
+            assert char not in '\t\n\'\\><~|&;$*?#()`{}[]', value
+            current.append(char)
+            started = True
+        i += 1
+    assert not quoted, value
+    if started:
+        args.append("".join(current))
+    unpercent = []
+    for arg in args:
+        assert re.fullmatch(r"(?:[^%]|%%)*", arg), f"field code in {arg!r}"
+        unpercent.append(arg.replace("%%", "%"))
+    return unpercent
 
 
 class KidscanTests(unittest.TestCase):
@@ -260,6 +334,139 @@ class KidscanTests(unittest.TestCase):
         text = written[0].read_text()
         self.assertIn('Exec=/usr/bin/scummvm "--path=/games/Freddi Fish 1" scumm:freddi', text)
         self.assertIn("X-Kid-Engine=scummvm", text)
+
+    # --- .desktop values (#257) -------------------------------------------
+
+    def desktop_entry(self, **changes):
+        entry = {
+            "id": "steam-100", "title": "A title", "category": "games",
+            "engine": "steam", "exec": ["steam", "-applaunch", "100"],
+        }
+        entry.update(changes)
+        return entry
+
+    def write_one(self, entry):
+        outdir = self.base / "apps"
+        with redirect_stderr(io.StringIO()):
+            written = kidscan.write_desktop_files([entry], outdir)
+        self.assertEqual(len(written), 1)
+        return read_desktop(written[0])
+
+    def test_a_title_with_newlines_cannot_add_a_key_or_a_group(self):
+        groups = self.write_one(self.desktop_entry(
+            title="A title\nExec=/usr/bin/false\n[Injected]"))
+        self.assertEqual(list(groups), ["Desktop Entry"])
+        entry = groups["Desktop Entry"]
+        self.assertEqual(sorted(entry), sorted(DESKTOP_KEYS))
+        self.assertEqual(split_exec(entry["Exec"]), ["steam", "-applaunch", "100"])
+        self.assertEqual(entry["Name"], "A title Exec=/usr/bin/false [Injected]")
+
+    def test_a_title_with_other_line_breaks_and_control_characters(self):
+        cases = {
+            "A\rB": "A B",
+            "A\tB": "A B",
+            "A\r\n[Injected]": "A [Injected]",
+            "A\x00B": "AB",
+            "A\x1bB": "AB",
+            "A\x7fB": "AB",
+            "A\x0bB": "A B",
+            "A\x0cB": "A B",
+            "A\x85B": "A B",
+            "A\u2028B": "A B",
+            "A\u2029B": "A B",
+            "A\x1cB": "AB",
+        }
+        for title, name in cases.items():
+            with self.subTest(title=title):
+                groups = self.write_one(self.desktop_entry(title=title))
+                self.assertEqual(list(groups), ["Desktop Entry"])
+                self.assertEqual(groups["Desktop Entry"]["Name"], name)
+
+    def test_a_backslash_in_a_title_stays_a_backslash(self):
+        groups = self.write_one(self.desktop_entry(title="Back\\nslash \\"))
+        self.assertEqual(groups["Desktop Entry"]["Name"], "Back\\nslash \\")
+
+    def test_a_title_that_starts_like_a_group_header_stays_the_name(self):
+        groups = self.write_one(self.desktop_entry(title="[Injected]"))
+        self.assertEqual(list(groups), ["Desktop Entry"])
+        self.assertEqual(groups["Desktop Entry"]["Name"], "[Injected]")
+
+    def test_spaces_at_either_end_of_a_title_are_kept(self):
+        groups = self.write_one(self.desktop_entry(title="  Two sides  "))
+        self.assertEqual(groups["Desktop Entry"]["Name"], "  Two sides  ")
+
+    def test_a_title_left_empty_falls_back_to_the_id(self):
+        groups = self.write_one(self.desktop_entry(title="\n\x00"))
+        self.assertEqual(groups["Desktop Entry"]["Name"], "steam-100")
+
+    def test_a_category_with_a_newline_cannot_add_a_key(self):
+        groups = self.write_one(self.desktop_entry(category="games\nExec=/usr/bin/false"))
+        entry = groups["Desktop Entry"]
+        self.assertEqual(sorted(entry), sorted(DESKTOP_KEYS))
+        self.assertEqual(entry["X-Kid-Category"], "games Exec=/usr/bin/false")
+
+    def test_exec_arguments_keep_their_meaning(self):
+        argv = [
+            "/opt/Scumm VM/scummvm", "--fullscreen",
+            '--path=/games/A "quoted" game', "--path=/games/Back\\slash",
+            "--path=/games/100% & more; $HOME `id` *?#()<>|~'", "--path=/games/%f", "",
+            "--path=/games/Pack{1,2} [EN]", "--path=/games/F[1]", "scumm:freddi",
+        ]
+        groups = self.write_one(self.desktop_entry(engine="scummvm", exec=argv))
+        self.assertEqual(split_exec(groups["Desktop Entry"]["Exec"]), argv)
+
+    def test_a_percent_in_a_command_is_never_a_field_code(self):
+        groups = self.write_one(self.desktop_entry(exec=["/games/%f", "%u"]))
+        exec_value = groups["Desktop Entry"]["Exec"]
+        self.assertNotRegex(exec_value.replace("%%", ""), "%")
+
+    def test_a_command_with_a_control_character_gets_no_desktop_file(self):
+        outdir = self.base / "apps"
+        for argument in ("/games/A\nB", "/games/A\rB", "/games/A\tB", "/games/A\x00B",
+                         "/games/A\x1bB"):
+            with self.subTest(argument=argument):
+                err = io.StringIO()
+                with redirect_stderr(err):
+                    written = kidscan.write_desktop_files(
+                        [self.desktop_entry(exec=["/usr/bin/scummvm", f"--path={argument}"])],
+                        outdir)
+                self.assertEqual(written, [])
+                self.assertEqual(list(outdir.glob("*.desktop")), [])
+                self.assertIn("steam-100", err.getvalue())
+
+    def test_a_skipped_command_removes_the_games_old_desktop_file(self):
+        outdir = self.base / "apps"
+        outdir.mkdir()
+        old = outdir / "kid-steam-100.desktop"
+        old.write_text("[Desktop Entry]\nExec=/usr/bin/false\n", encoding="utf-8")
+        other = outdir / "kid-steam-200.desktop"
+        other.write_text("[Desktop Entry]\n", encoding="utf-8")
+        with redirect_stderr(io.StringIO()):
+            written = kidscan.write_desktop_files(
+                [self.desktop_entry(exec=["/usr/bin/scummvm", "--path=/games/A\nB"])],
+                outdir)
+        self.assertEqual(written, [])
+        self.assertFalse(old.exists())
+        self.assertTrue(other.exists())
+
+    def test_a_title_of_only_other_whitespace_is_kept(self):
+        groups = self.write_one(self.desktop_entry(title="\u3000"))
+        self.assertEqual(groups["Desktop Entry"]["Name"], "\u3000")
+
+    def test_main_with_the_issues_title_writes_one_group(self):
+        library = self.base / "hostile"
+        (library / "steamapps" / "common").mkdir(parents=True)
+        FakeLibrary.add(library, "100", "A title\nExec=/usr/bin/false\n[Injected]", "Game")
+        desktop = self.base / "desktop"
+        with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+            rc = kidscan.main(["--library", str(library), "--no-scummvm",
+                               "--desktop-dir", str(desktop)])
+        self.assertEqual(rc, 0)
+        groups = read_desktop(desktop / "kid-steam-100.desktop")
+        self.assertEqual(list(groups), ["Desktop Entry"])
+        self.assertEqual(sorted(groups["Desktop Entry"]), sorted(DESKTOP_KEYS))
+        self.assertEqual(split_exec(groups["Desktop Entry"]["Exec"]),
+                         ["steam", "-applaunch", "100"])
 
     # --- CLI ---------------------------------------------------------------
 

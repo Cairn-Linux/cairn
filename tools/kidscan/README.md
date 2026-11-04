@@ -147,6 +147,20 @@ an entry with any other value and keeps the rest.
 
 `.desktop` files are named `kid-<id>.desktop` and carry `X-Kid-Category` and
 `X-Kid-Engine` keys.
+Anyone who can write the library can put any character in a game's name, so
+every value is written by the Desktop Entry Specification's rules (#257).
+In a name or category, tabs, line breaks, form feeds and Unicode line and
+paragraph separators become one space, other control characters are dropped,
+and backslashes are escaped.
+So a name cannot start a new key or group.
+Each `Exec` argument is quoted and escaped as that key's own rules say, with
+`%` written as `%%`, so it reaches the game as it was.
+An argument with `{ } [ ]` is quoted too, because KDE would otherwise hand
+the line to `/bin/sh`, which expands braces and globs.
+A game whose command holds a control character gets no `.desktop` file and
+a warning, since a reader could not be trusted to keep it, and any older
+file for that game is removed.
+The JSON manifest is unchanged by this: it keeps every name as it was.
 
 ## Contract
 
