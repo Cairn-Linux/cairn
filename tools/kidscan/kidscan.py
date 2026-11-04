@@ -522,6 +522,10 @@ def load_category_map(path):
     except (OSError, ValueError) as exc:
         print(f"warning: could not read category map: {exc}", file=sys.stderr)
         return {}
+    if not isinstance(data, dict):
+        print("warning: category map is not a JSON object of appid to category; "
+              "every game keeps its usual category", file=sys.stderr)
+        return {}
     return {str(k): str(v) for k, v in data.items()}
 
 

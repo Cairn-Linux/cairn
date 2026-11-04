@@ -337,6 +337,22 @@ class KidscanTests(unittest.TestCase):
         self.assertEqual(len(list(desktop.glob("kid-*.desktop"))), 3)
         self.assertIn("3 tiles (0 native ScummVM, 3 via Steam)", stderr.getvalue())
 
+    def test_a_category_map_that_is_not_an_object_is_passed_over(self):
+        categories = self.base / "categories.json"
+        for text in ('["294660", "games"]', '"games"', '7', 'null'):
+            with self.subTest(text=text):
+                categories.write_text(text)
+                stderr = io.StringIO()
+                with redirect_stderr(stderr):
+                    self.assertEqual(kidscan.load_category_map(str(categories)), {})
+                self.assertIn("category map", stderr.getvalue())
+
+    def test_a_category_map_object_still_maps(self):
+        categories = self.base / "categories.json"
+        categories.write_text('{"294660": "games", "400": "puzzle"}')
+        self.assertEqual(kidscan.load_category_map(str(categories)),
+                         {"294660": "games", "400": "puzzle"})
+
     def test_main_returns_2_when_no_steam(self):
         with redirect_stderr(io.StringIO()):
             self.assertEqual(kidscan.main(["--steam-root", str(self.base / "nothing")]), 2)
