@@ -162,9 +162,9 @@ QHash<QString, Account> familyWith(const QString& login, const QStringList& grou
     return accounts;
 }
 
-// The level groups an account is in, in order.
-QStringList levelGroups(const Account& account) {
-    return account.groups.filter(QRegularExpression("^cairn-l[0-9]$"));
+// The level groups an account is in, in order; none for no account.
+QStringList levelGroups(const std::optional<Account>& account) {
+    return account ? account->groups.filter(QRegularExpression("^cairn-l[0-9]$")) : QStringList();
 }
 
 // Accounts as the system has them after every gpasswd call so far, read
@@ -493,9 +493,9 @@ private slots:
         QCOMPARE(FamilyCommand(first).run({"set-level", "ada", "1"}).refusal, std::nullopt);
 
         QVERIFY(secondRan);
-        QCOMPARE(levelGroups(*live("ada")).size(), 1);
+        QCOMPARE(levelGroups(live("ada")).size(), 1);
         QCOMPARE(secondAnswer, std::optional(Refusal::Busy));
-        QCOMPARE(levelGroups(*live("ada")), QStringList({"cairn-l1"}));
+        QCOMPARE(levelGroups(live("ada")), QStringList({"cairn-l1"}));
     }
 
     // While another change holds the lock, nothing is read or changed.
