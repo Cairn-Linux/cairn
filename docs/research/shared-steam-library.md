@@ -824,8 +824,9 @@ Valve documents none of it.
   signed in to an account other than the Guardian's, wrote its own
   marker in a copy that had none, and asked nothing. With the Guardian's
   marker put in the child's copy by hand, it replaced it with its own,
-  again with no question. Its cloud log named no conflict, nothing moved
-  or set aside, and the empty `Saves` stayed empty. Still not known:
+  again with no question. Its cloud log named no conflict (ADR-0033
+  gives its counts), nothing moved or set aside, and `Saves` held no file but
+  the marker. Still not known:
   what it does with real saves beside another account's marker, and
   whether it asks anything when it finds saves with no marker.
 - **A manifest is what makes a game installed.** Steam knows a library's

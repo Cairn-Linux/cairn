@@ -510,9 +510,9 @@ a run removes them.
 
 ### What the VM showed on 2026-11-03
 
-In `cairn-min`, on the image built from main 2d37676, with `ada`'s Steam
-signed in to a test account other than the grown-up's (ADR-0049's "Run
-on 2026-11-03").
+This ran in `cairn-min`, on the image built from main 2d37676, with
+`ada`'s Steam signed in to a test account other than the grown-up's
+(ADR-0049's "Run on 2026-11-03").
 The game was Freddi Fish 2, which the grown-up's Steam installed into
 the shared folder and played once there.
 
@@ -524,7 +524,7 @@ the shared folder and played once there.
 - **Her Steam wrote its own marker and asked nothing.**
   After her first play, her copy had 33 files again, and the marker
   named her own account.
-  No Steam window showed, and `Saves` still held no file.
+  No Steam window showed, and `Saves` held no file but the marker.
 - **A copy holding the grown-up's marker, as a copy made before
   2026-11-03 does, got her own marker in its place.**
   Her own marker was set aside, and the shared folder's was put in her
@@ -532,9 +532,10 @@ the shared folder and played once there.
   She tapped the game, it started 2 s later, and it was quit at once.
   No grown-up screen and no question came.
   Afterwards the marker named her own account.
-  Steam's cloud log named no conflict, nothing moved or set aside, and
-  no error.
-  `Saves` was unchanged, still with no file, and nothing appeared in her
+  Of the 30 lines in Steam's cloud log that name the game, one was an
+  upload, one a download and four named a deletion.
+  None named a conflict, a move, a file set aside or an error.
+  `Saves` held no save file, as before, and nothing appeared in her
   own `userdata/` folder for the game.
 - **The limit:** the game had no saves yet, so what her Steam does with
   real saves beside another account's marker is not known.

@@ -655,5 +655,6 @@ nothing.
 With the family folder's marker put back in the child's copy by hand, as
 a copy made before this date has it, the child's Steam put its own in
 its place and asked nothing.
-Steam's cloud log named no conflict, and nothing was moved or set aside.
+Steam's cloud log named no conflict (ADR-0033 gives its counts), and
+nothing was moved or set aside.
 The game had no saves yet, so what happens with real saves is not known.
