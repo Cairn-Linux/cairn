@@ -565,15 +565,18 @@ The copy step now keeps a record of which folder its copy is.
 - **Before the renames.**
   After the copy's temporary manifest, the step writes a record,
   `.cairn-publish-APPID` in the child's `steamapps/`, holding the
-  copy's device and inode numbers.
-  A rename keeps both.
+  copy's inode number.
+  A rename keeps it.
+  The record holds no device number: btrfs gives a subvolume a new one
+  at each boot, so after a power cut such a record would never fit.
   The record and the manifest are on the disk before the folder moves.
   Once both renames are done, the record goes.
 - **At the next run, before anything else.**
   For each record, the step reads the temporary manifest beside it.
   If that manifest names the record's appid and one plain folder name,
   the folder of that name in `common/` is a real folder with the
-  record's device and inode, and the child has no manifest for the game,
+  record's inode, on the same device as `common/` at that moment, and
+  the child has no manifest for the game,
   the folder is the run's own copy.
   Then the manifest takes its name, and the game is said as `copied`.
   Otherwise the record and the temporary manifest are leftovers and go,
@@ -582,7 +585,9 @@ The copy step now keeps a record of which folder its copy is.
   given a manifest, even when it has the copy's name.
 - **When the manifest cannot take its name.**
   The record and the temporary manifest stay, the game is left out as
-  `folder-without-manifest` for that run, and the next run tries again.
+  `copy-failed` for that run, and no new copy of it is made, even when
+  the shared folder now names another folder for it.
+  The next run tries again.
   A copy whose manifest cannot take its name in the first run, and that
   cannot go back to its temporary name either, also keeps both.
 - **A tool** is settled the same way, and said as `tool-copied`.
@@ -602,6 +607,14 @@ A folder of the child's own, beside a record a run left, and a record
 that names another appid, another folder, another inode or nothing, are
 never finished, and the folder keeps its files.
 A link in the copy's place is never followed or finished.
+
+A run after a reboot that gave the subvolume a new device number
+finishes the game too.
+
+A known limit: a record names a folder by its inode alone.
+Another folder could only fit it by taking the same inode number in the
+same subvolume, which btrfs does not hand out again once it is on the
+disk.
 
 Still to see on the target's btrfs, not in a test: a power cut, rather
 than a kill, at each of these points.

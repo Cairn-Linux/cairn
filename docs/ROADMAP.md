@@ -555,7 +555,7 @@ done, and what could sink it. Decisions that change the design get an ADR in
   after a child's copy took its full name, and before its manifest
   took its own, left the game out at every later run, as a folder
   without a manifest. The copy step now writes a record of which folder
-  the copy is, by device and inode, before the renames, and the next run
+  the copy is, by its inode, before the renames, and the next run
   gives the manifest its name only when the folder in place is that
   very folder. A folder of the child's own is never taken for a copy.
   Tested in Python with a run killed at each step; a power cut on the

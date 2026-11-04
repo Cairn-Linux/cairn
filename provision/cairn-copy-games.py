@@ -26,7 +26,7 @@ copy made before then left such a marker, and a child's Steam signed in to
 the grown-up's Steam account would write one.
 
 A copy takes its full name, and then its manifest takes its own. A record
-of which folder the copy is, by device and inode, comes first, so that a
+of which folder the copy is, by its inode, comes first, so that a
 run a kill or a power cut ends between the two is finished by the next
 run, and a folder of the child's own is never taken for a copy (#256).
 
@@ -105,7 +105,7 @@ TOOLS = Path("/var/lib/cairn/steam-tools")
 # finished; nothing else in the child's library is.
 COPY_PREFIX = ".cairn-copy-"
 MANIFEST_PREFIX = ".cairn-manifest-"
-# Which folder a copy is, by its device and inode, which a rename keeps:
+# Which folder a copy is, by its inode, which a rename keeps:
 # written before the copy takes its full name, so that the next run can
 # tell its own copy from a folder of the child's own (#256).
 RECORD_PREFIX = ".cairn-publish-"
@@ -275,15 +275,19 @@ def remove_leftovers(library, waiting=frozenset()):
 
 
 def identity(path):
-    """A real folder's device and inode, as a record holds them, or None for
-    anything else. Nothing is followed."""
+    """A real folder's inode, as a record holds it, or None for anything
+    else, or for a folder on another device than the one it is in. Nothing
+    is followed. The device number is never kept: btrfs gives a subvolume a
+    new one at each boot, so a record that held it would not fit after a
+    power cut."""
     try:
         details = os.lstat(path)
+        parent = os.lstat(path.parent)
     except OSError:
         return None
-    if not stat.S_ISDIR(details.st_mode):
+    if not stat.S_ISDIR(details.st_mode) or details.st_dev != parent.st_dev:
         return None
-    return f"{details.st_dev} {details.st_ino}\n".encode()
+    return f"{details.st_ino}\n".encode()
 
 
 def finish_publication(appid, library):
@@ -375,11 +379,6 @@ def all_readable(folder):
             if not can_read(os.path.join(top, name), os.R_OK):
                 return False
     return not problems
-
-
-def write_manifest(data, path):
-    """The manifest exactly as read, whole, under a name Steam ignores."""
-    write_whole(data, path)
 
 
 def write_whole(data, path):
@@ -487,7 +486,8 @@ def copy_game(appid, data, manifest, installdir, shared, library):
         if os.path.lexists(target) or os.path.lexists(library / f"appmanifest_{appid}.acf"):
             remove(temporary)
             return "folder-without-manifest"
-        write_manifest(data, temporary_manifest)
+        # The manifest exactly as read, under a name Steam ignores.
+        write_whole(data, temporary_manifest)
         copy = identity(temporary)
         if copy is None:
             raise OSError("the copy is not a folder")
@@ -567,12 +567,14 @@ def runs_in(build, installdir):
     return needed if isinstance(needed, str) and kidscan.APPID.fullmatch(needed) else None
 
 
-def copy_tools(tools, library, reflink, finished=frozenset()):
+def copy_tools(tools, library, reflink, finished=frozenset(), waiting=frozenset()):
     """Each tool the child's library lacks, from its newest build in the
     tools folder, by a game's own rules: decide() and copy_game(). Each tool
     stands alone, and none changes what was said about a game. `reflink` is
     what the games found out, or None when no game was copied. A tool in
-    `finished`, one this run finished copying, is said as copied."""
+    `finished`, one this run finished copying, is said as copied; one in
+    `waiting`, whose copy still waits for its manifest, is left for the
+    next run."""
     builds = newest_builds(tools)
     if not builds:
         say("no-tools")
@@ -585,6 +587,9 @@ def copy_tools(tools, library, reflink, finished=frozenset()):
             data = read_manifest(manifest)
         except OSError:
             say("tool-skipped", appid, "unreadable")
+            continue
+        if appid in waiting:
+            say("tool-skipped", appid, "copy-failed")
             continue
         installdir = tool_folder(appid, data, build)
         if installdir is None:
@@ -635,6 +640,11 @@ def copy_games(shared, library, only=None, tools=None):
         except OSError:
             say("skipped", appid, "unreadable")
             continue
+        # Its copy is in place and its manifest and record wait for the
+        # next run, which a copy made now would throw away.
+        if appid in waiting:
+            say("skipped", appid, "copy-failed")
+            continue
         decision = decide(appid, data, shared, library)
         if decision[0] == "have":
             take_out_copied_markers(data, shared, library)
@@ -658,7 +668,7 @@ def copy_games(shared, library, only=None, tools=None):
     # wrong there ends the tools, never the games already said.
     try:
         if tools is not None and is_real_folder(tools):
-            copy_tools(tools, library, reflink, finished)
+            copy_tools(tools, library, reflink, finished, waiting)
     except (OSError, ValueError):
         say("tools-unreadable")
 

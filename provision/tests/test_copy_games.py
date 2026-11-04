@@ -555,7 +555,7 @@ class CopyTest(CopyTestCase):
         self.machine.add_game(100)
         module = self.machine.load()
         with (mock.patch.object(module, "reflink_copy", self.copy_tree),
-              mock.patch.object(module, "write_manifest", side_effect=OSError("disk full"))):
+              mock.patch.object(module, "write_whole", side_effect=OSError("disk full"))):
             code, lines = self.machine.run_in_process(module)
         self.assertEqual((code, lines), (0, ["skipped 100 copy-failed"]))
         self.assertNothingLeft()
@@ -1312,13 +1312,85 @@ class InterruptedPublicationTest(CopyTestCase):
                 raise OSError("disk full")
             real_rename(source, target)
 
+        # module.os is this process's os, so this patches os.rename here
+        # too until the block ends.
         with (mock.patch.object(module, "reflink_copy", CopyTest.copy_tree),
               mock.patch.object(module.os, "rename", rename)):
-            self.assertEqual(self.machine.run_in_process(module),
-                             (0, ["skipped 100 folder-without-manifest"]))
+            self.assertEqual(self.machine.run_in_process(module), (0, ["skipped 100 copy-failed"]))
         self.assertTrue((self.machine.library / ".cairn-manifest-100").exists())
+        self.assertTrue((self.machine.library / ".cairn-publish-100").exists())
         self.assertEqual(self.retry(), (0, ["copied 100"]))
         self.assertCopiedAndSettled()
+
+    def test_a_waiting_copy_is_kept_when_the_shared_folder_moves(self):
+        # A copy made now, to the shared manifest's new folder, would throw
+        # away what the waiting one needs.
+        self.machine.add_game(100)
+        self.assertTrue(self.end_run_at(("after", "A Game")))
+        module = self.machine.load()
+        real_rename = os.rename
+
+        def rename(source, target):
+            if pathlib.Path(target).name == "appmanifest_100.acf":
+                raise OSError("disk full")
+            real_rename(source, target)
+
+        (self.machine.shared / "appmanifest_100.acf").write_bytes(manifest(100, "Moved"))
+        (self.machine.shared / "common" / "A Game").rename(self.machine.shared / "common" / "Moved")
+        with (mock.patch.object(module, "reflink_copy", CopyTest.copy_tree),
+              mock.patch.object(module.os, "rename", rename)):
+            self.assertEqual(self.machine.run_in_process(module), (0, ["skipped 100 copy-failed"]))
+        self.assertTrue((self.machine.library / ".cairn-manifest-100").exists())
+        self.assertTrue((self.machine.library / ".cairn-publish-100").exists())
+        self.assertFalse((self.machine.library / "common" / "Moved").exists())
+        self.assertEqual(self.retry()[1][0], "copied 100")
+        self.assertEqual((self.machine.library / "appmanifest_100.acf").read_bytes(), manifest(100))
+
+    def test_a_copy_that_cannot_go_back_out_keeps_its_manifest(self):
+        # The manifest could not take its name, and the folder could not
+        # take its temporary one back: the next run finishes it.
+        self.machine.add_game(100)
+        module = self.machine.load()
+        real_rename = os.rename
+
+        def rename(source, target):
+            if pathlib.Path(target).name in ("appmanifest_100.acf", ".cairn-copy-100"):
+                raise OSError("disk full")
+            real_rename(source, target)
+
+        with (mock.patch.object(module, "reflink_copy", CopyTest.copy_tree),
+              mock.patch.object(module.os, "rename", rename)):
+            self.assertEqual(self.machine.run_in_process(module), (0, ["skipped 100 copy-failed"]))
+        self.assertTrue((self.machine.library / ".cairn-manifest-100").exists())
+        self.assertTrue((self.machine.library / ".cairn-publish-100").exists())
+        self.assertEqual(self.retry(), (0, ["copied 100"]))
+        self.assertCopiedAndSettled()
+
+    def test_a_new_device_number_after_a_reboot_still_finishes_it(self):
+        # btrfs gives a subvolume a new device number at each boot.
+        self.machine.add_game(100)
+        self.assertTrue(self.end_run_at(("after", "A Game")))
+        module = self.machine.load()
+        real_lstat = os.lstat
+
+        def lstat(path):
+            details = real_lstat(path)
+            fields = list(details)
+            fields[stat.ST_DEV] += 1000
+            return os.stat_result(fields)
+
+        with (mock.patch.object(module, "reflink_copy", CopyTest.copy_tree),
+              mock.patch.object(module.os, "lstat", lstat)):
+            self.assertEqual(self.machine.run_in_process(module), (0, ["copied 100"]))
+        self.assertCopiedAndSettled()
+
+    def test_a_manifest_of_the_childs_own_is_never_replaced(self):
+        self.machine.add_game(100)
+        self.assertTrue(self.end_run_at(("after", "A Game")))
+        mine = self.machine.library / "appmanifest_100.acf"
+        mine.write_bytes(b"mine")
+        self.retry()
+        self.assertEqual(mine.read_bytes(), b"mine")
 
     def test_a_childs_own_folder_is_never_finished_or_removed(self):
         # What a run left beside a folder of the child's own, with no
@@ -1342,12 +1414,13 @@ class InterruptedPublicationTest(CopyTestCase):
         own.mkdir()
         (own / "slot1.sav").write_bytes(b"mine")
         details = own.lstat()
-        identity = f"{details.st_dev} {details.st_ino}\n".encode()
+        identity = f"{details.st_ino}\n".encode()
         cases = {
             "another appid": (manifest(200), identity),
             "another folder": (manifest(100, "Other"), identity),
+            "a path for a folder": (manifest(100, "../common/A Game"), identity),
             "unreadable": (b"half", identity),
-            "another identity": (manifest(100), b"1 2\n"),
+            "another identity": (manifest(100), f"{details.st_ino + 1}\n".encode()),
             "no identity": (manifest(100), b""),
         }
         for case, (data, record) in cases.items():
