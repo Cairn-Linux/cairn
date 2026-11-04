@@ -148,6 +148,10 @@ the child's own home, which no other child can open.**
     it, with Ctrl-C held off between the two. So the child's Steam never
     sees a manifest for a half-copied game, or half a manifest, and an
     interruption does not leave Cairn's own copy looking like the child's.
+    Since 2026-11-03 a record of which folder the copy is comes before
+    the two renames, so that the next run finishes a copy a kill left
+    between them (the section "A copy ended between its two renames",
+    below).
   - **As the child.** The step runs as the child, never as root, so a
     link planted in the home cannot send a write anywhere the child could
     not write already. Provisioning installs it, with the part of kidscan
@@ -543,3 +547,61 @@ the shared folder and played once there.
   marker.
   The case of a child's Steam signed in to the grown-up's own account
   did not run.
+
+## A copy ended between its two renames (2026-11-03, #256)
+
+An audit found that a kill or a power cut between the folder's rename
+and the manifest's left the game stuck.
+The copy had its full name, and its manifest was still under its
+temporary one.
+The next run removed that manifest as a leftover, then found a folder
+with no manifest and left the game out as `folder-without-manifest`,
+at that run and every run after.
+Ctrl-C, SIGTERM and SIGHUP already waited for both renames, so only a
+kill or a power cut could leave this.
+
+The copy step now keeps a record of which folder its copy is.
+
+- **Before the renames.**
+  After the copy's temporary manifest, the step writes a record,
+  `.cairn-publish-APPID` in the child's `steamapps/`, holding the
+  copy's device and inode numbers.
+  A rename keeps both.
+  The record and the manifest are on the disk before the folder moves.
+  Once both renames are done, the record goes.
+- **At the next run, before anything else.**
+  For each record, the step reads the temporary manifest beside it.
+  If that manifest names the record's appid and one plain folder name,
+  the folder of that name in `common/` is a real folder with the
+  record's device and inode, and the child has no manifest for the game,
+  the folder is the run's own copy.
+  Then the manifest takes its name, and the game is said as `copied`.
+  Otherwise the record and the temporary manifest are leftovers and go,
+  as before, and the folder stays.
+  So a folder of the child's own is never taken for a copy, removed or
+  given a manifest, even when it has the copy's name.
+- **When the manifest cannot take its name.**
+  The record and the temporary manifest stay, the game is left out as
+  `folder-without-manifest` for that run, and the next run tries again.
+  A copy whose manifest cannot take its name in the first run, and that
+  cannot go back to its temporary name either, also keeps both.
+- **A tool** is settled the same way, and said as `tool-copied`.
+
+A copy is finished, not undone: its folder was whole, and without its
+markers, before it took its full name, and with no manifest the child's
+Steam could not have run it meanwhile.
+The game is finished whichever games the next run looks at, and is said
+only when that run looks at it.
+
+Tested in Python, in `provision/tests/test_copy_games.py`, with a forked
+run that ends at once, with no clean-up of its own, before the folder's
+rename, after it, after the manifest's rename, and while the folder goes
+back out; each time the next run settles the game.
+A finish that fails keeps what the run after needs.
+A folder of the child's own, beside a record a run left, and a record
+that names another appid, another folder, another inode or nothing, are
+never finished, and the folder keeps its files.
+A link in the copy's place is never followed or finished.
+
+Still to see on the target's btrfs, not in a test: a power cut, rather
+than a kill, at each of these points.

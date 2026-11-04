@@ -550,6 +550,16 @@ done, and what could sink it. Decisions that change the design get an ADR in
   child's copy by hand, the child's Steam replaced it with its own, again
   asking nothing, and its cloud log named no conflict. The game had no
   saves yet, so what happens with real saves is still to be seen.
+- **A copy ended between its two renames is finished (2026-11-03, #256,
+  a section in ADR-0033).** An audit found that a kill or a power cut
+  after a child's copy took its full name, and before its manifest
+  took its own, left the game out at every later run, as a folder
+  without a manifest. The copy step now writes a record of which folder
+  the copy is, by device and inode, before the renames, and the next run
+  gives the manifest its name only when the folder in place is that
+  very folder. A folder of the child's own is never taken for a copy.
+  Tested in Python with a run killed at each step; a power cut on the
+  target's btrfs is still to be tried.
 - **ADR-0046 (2026-10-30, #206, #181, proposed): Steam's tools come with
   a child's games.** A new child's Steam first met Steam's own tools, the
   Steam Linux Runtimes and Proton, at their first tap: it fetched scout
