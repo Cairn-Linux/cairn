@@ -12,7 +12,8 @@ child's first Linux game" below (2026-10-30, #206); the section "A
 question Steam keeps" below (2026-10-31, #211); ADR-0049 (the
 journal's sentence for a refused sign-in says to log the child out and
 open Steam for them from your own login, and comes before any other
-reason; the grown-up screen adds a line for it)
+reason; the grown-up screen adds a line for it); the section "A question
+asked offline" below (2026-11-03, #274)
 
 ## Context
 
@@ -463,3 +464,41 @@ Pajama Sam 2: Thunder And Lightning Aren't So Frightening on a window the
 kiosk hides." Arthur's Birthday then started 5 seconds after its tap.
 Once ada had logged out and back in, Pajama Sam 2 started a second after
 the tap. There was no AVC denial.
+
+## A question asked offline (2026-11-03, #274)
+
+On the test VM on 2026-11-03 (ADR-0049, "Run on 2026-11-03", check 8) a
+child's Steam started with the network down. A tap on Freddi Fish 2, a
+game with Steam Cloud saves, was taken, and Steam waited on a question the
+kiosk hides. Its sign-in failed with `No Connection` after it had named
+the game, so by the rule above the sign-in no longer decided the reason.
+The journal said only "Steam is waiting for an answer about … on a window
+the kiosk hides." Nothing said the internet was down. Which question it
+was is not known yet: the record does not keep Steam's own line.
+
+**The journal names the internet beside the question.** The wait does not
+change: once Steam's log names the game, its sign-in still does not decide
+it. But when the launch stands at a question and Steam's sign-in says
+`No Connection` at the last look, the journal's sentence says both. (So
+does any other reason Steam retries by itself, such as `Service
+Unavailable` or `Timeout`; the journal's existing "could not reach the
+internet" sentence already counts those the same way.) For the cloud
+question (`SynchronizingCloud "syncfailed"`) it says "Steam could not
+reach the internet to check the cloud saves for …, so the game did not
+start. Steam is waiting for an answer about it on a window the kiosk
+hides." For any other question it says "Steam could not reach the
+internet, and is waiting for an answer about … on a window the kiosk
+hides.", since nothing shows the internet caused that one. The same holds
+for a later tap on a game a question still holds while Steam is offline.
+
+The grown-up screen does not change: no line, because logging out does
+not help while the computer is offline (ADR-0045, ADR-0049 check 8). A
+refused sign-in still comes first.
+
+Whether a child can play such a game offline is not decided here (#274).
+
+Tested in C++: both sentences, and that being offline adds nothing when
+Steam refused to start the game, or is still working on it; the VM's case, ended by Steam's startup time with
+the cloud question and `No Connection`, names the internet; and a held
+cloud question while Steam is still offline does too, and so does a held
+other question, which names the question alone once Steam signs in again.

@@ -50,6 +50,40 @@ private slots:
                                       "window the kiosk hides."));
     }
 
+    // Offline, Steam took the tap and asked about the game's cloud saves on
+    // a window the kiosk hides (#274). The internet is the reason, so it
+    // comes first; the question is where the game is held.
+    void anOfflineCloudQuestionNamesTheInternetFirst() {
+        const QString note = SteamJournalNote::of(pajamaSam2(), {.offline = true,
+                                                                 .lastStep = Step::WaitingForAnswer,
+                                                                 .cloudQuestion = true,
+                                                                 .stallNote = {}});
+        QCOMPARE(note, QStringLiteral("Steam could not reach the internet to check the cloud saves "
+                                      "for Pajama Sam 2, so the game did not start. Steam is "
+                                      "waiting for an answer about it on a window the kiosk "
+                                      "hides."));
+    }
+
+    // Another question asked while offline: both facts, and no claim that
+    // the internet caused it (#274).
+    void anOfflineQuestionSaysBoth() {
+        const QString note = SteamJournalNote::of(
+            pajamaSam2(), {.offline = true, .lastStep = Step::WaitingForAnswer, .stallNote = {}});
+        QCOMPARE(note, QStringLiteral("Steam could not reach the internet, and is waiting for an "
+                                      "answer about Pajama Sam 2 on a window the kiosk hides."));
+    }
+
+    // Being offline adds nothing when Steam refused to start the game, or
+    // is still working on it.
+    void beingOfflineAloneAddsNothing() {
+        QCOMPARE(SteamJournalNote::of(
+                     pajamaSam2(), {.offline = true, .lastStep = Step::Refused, .stallNote = {}}),
+                 QStringLiteral("Steam refused to start Pajama Sam 2."));
+        QCOMPARE(SteamJournalNote::of(
+                     pajamaSam2(), {.offline = true, .lastStep = Step::Working, .stallNote = {}}),
+                 QString());
+    }
+
     // The cloud question, once Steam has signed in again (#211).
     void aQuestionThatLoggingOutFreesSaysWhatToDo() {
         const QString note = SteamJournalNote::of(

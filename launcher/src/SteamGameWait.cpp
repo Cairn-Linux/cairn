@@ -29,6 +29,7 @@ void SteamGameWait::startLaunch(const QStringList& exec) {
     m_steamNow = SteamStartup::Now::Ready;
     m_signInNow = SteamSignIn::Now::Fine;
     m_signInRefused = false;
+    m_offline = false;
     m_stallNow = SteamStall::Now::Fine;
     m_logOutFreesHeldGame = false;
     m_sentAgain = false;
@@ -62,6 +63,7 @@ bool SteamGameWait::stillComing() {
     // grown-up screen and the journal take it whatever else the logs say
     // (ADR-0049).
     m_signInRefused = steamSaid == SteamSignIn::Now::Refused;
+    m_offline = steamSaid == SteamSignIn::Now::NoConnection;
     // Logging the child out frees a game the cloud question holds, but only
     // once Steam has signed in again (#211, ADR-0045).
     m_logOutFreesHeldGame =
@@ -159,8 +161,10 @@ bool SteamGameWait::signInRefused() const {
 
 QString SteamGameWait::journalNote(const QString& title) const {
     return SteamJournalNote::of(title, {.signInRefused = m_signInRefused,
+                                        .offline = m_offline,
                                         .signIn = m_signInNow,
                                         .lastStep = m_lastStep,
+                                        .cloudQuestion = m_questions.cloudQuestion(),
                                         .logOutFreesHeldGame = m_logOutFreesHeldGame,
                                         .stallNote = m_stall.journalNote(title)});
 }

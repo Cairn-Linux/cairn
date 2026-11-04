@@ -62,7 +62,7 @@
 // with the same reason (SteamQuestions). When it is the question about the
 // game's cloud saves and Steam has signed in again, logging the child out
 // frees the game, so the journal and the grown-up screen say so too
-// (ADR-0045).
+// (ADR-0045); offline, only the journal names the internet beside it (#274).
 class SteamGameWait {
 public:
     explicit SteamGameWait(QString processRoot = QStringLiteral("/proc"),
@@ -156,6 +156,8 @@ private:
     SteamStartup::Now m_steamNow = SteamStartup::Now::Ready;
     SteamSignIn::Now m_signInNow = SteamSignIn::Now::Fine;
     bool m_signInRefused = false;
+    // Steam could not reach its servers at the last look; journal only (#274).
+    bool m_offline = false;
     SteamStall::Now m_stallNow = SteamStall::Now::Fine;
     // At the last stillComing(), Steam held the game behind its cloud
     // question from an earlier tap and had signed in again (#211).

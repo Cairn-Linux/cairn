@@ -36,6 +36,9 @@ public:
     // behind the cloud question from an earlier tap, and had written no
     // step for it since. Never at the tap that met the question.
     bool heldByCloudQuestion() const;
+    // At the last read(), the launch was at the cloud question: met at this
+    // tap, or held from an earlier one.
+    bool cloudQuestion() const;
     // Steam was started again: its questions went with the client that
     // asked them.
     void steamRestarted();
@@ -56,4 +59,5 @@ private:
     // step for one, or a new client starts.
     QHash<QString, Question> m_questioned;
     bool m_heldByCloudQuestion = false;
+    bool m_cloudQuestion = false;
 };

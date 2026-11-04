@@ -1010,10 +1010,11 @@ private slots:
     // saves on a window the kiosk hides and kept the question. Each later
     // tap, even once Steam had signed in again, made it write only the tap's
     // own line. Each of those taps ends at its first look and names the
-    // question in the journal too. Once Steam has signed in again, the
-    // grown-up screen also says to log out and back in, which frees the
-    // game; not at the tap that met the question, nor while Steam is still
-    // offline, nor for the next tile that is not a Steam game (ADR-0045).
+    // question in the journal too, with the internet first while Steam is
+    // offline (#274). Once Steam has signed in again, the grown-up screen
+    // also says to log out and back in, which frees the game; not at the
+    // tap that met the question, nor while Steam is still offline, nor for
+    // the next tile that is not a Steam game (ADR-0045).
     void aGameHeldByAQuestionSaysSoAtEveryTap() {
         const QTemporaryDir dir;
         QVERIFY(dir.isValid());
@@ -1029,8 +1030,10 @@ private slots:
         AppLauncher launcher(this);
         launcher.setLaunchGraceMilliseconds(200);
         for (int tap = 0; tap < 2; ++tap) {
-            QTest::ignoreMessage(QtWarningMsg, "Steam is waiting for an answer about Pajama Sam 2 "
-                                               "on a window the kiosk hides.");
+            QTest::ignoreMessage(QtWarningMsg,
+                                 "Steam could not reach the internet to check the cloud saves for "
+                                 "Pajama Sam 2, so the game did not start. Steam is waiting for an "
+                                 "answer about it on a window the kiosk hides.");
             QTest::ignoreMessage(QtWarningMsg,
                                  "Nothing of Pajama Sam 2 came on the screen in time.");
         }

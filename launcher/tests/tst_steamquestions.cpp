@@ -291,6 +291,25 @@ private slots:
         QCOMPARE(taps.takenWithoutAStep("294650"), Step::WaitingForAnswer);
         QVERIFY(taps.questions.heldByCloudQuestion());
     }
+
+    // The cloud question is told apart at the tap that met it as well as at
+    // a later tap it holds, for the journal's offline sentence (#274).
+    void theCloudQuestionIsSeenAtEveryTapItHolds() {
+        Taps taps;
+        QVERIFY(!taps.questions.cloudQuestion());
+        taps.asked("292780");
+        QVERIFY(taps.questions.cloudQuestion());
+        QCOMPARE(taps.takenWithoutAStep("292780"), Step::WaitingForAnswer);
+        QVERIFY(taps.questions.cloudQuestion());
+        QCOMPARE(taps.takenWithoutAStep("900001"), Step::Nothing);
+        QVERIFY(!taps.questions.cloudQuestion());
+        taps.tap(QStringLiteral("294650"));
+        taps.console(tapTaken("294650") + anotherQuestion("294650"));
+        QCOMPARE(taps.read(), Step::WaitingForAnswer);
+        QVERIFY(!taps.questions.cloudQuestion());
+        QCOMPARE(taps.takenWithoutAStep("294650"), Step::WaitingForAnswer);
+        QVERIFY(!taps.questions.cloudQuestion());
+    }
 };
 
 } // namespace

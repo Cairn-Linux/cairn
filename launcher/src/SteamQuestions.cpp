@@ -3,21 +3,26 @@
 
 void SteamQuestions::startLaunch(const QString& appId) {
     m_appId = appId;
+    m_heldByCloudQuestion = false;
+    m_cloudQuestion = false;
 }
 
 SteamLaunchLog::Step SteamQuestions::read(const SteamLaunchLog& launch) {
     const SteamLaunchLog::Step step = launch.step();
     m_heldByCloudQuestion = false;
+    m_cloudQuestion = false;
     if (launch.clientStarted()) {
         // A new client is asking nothing an earlier one asked.
         m_questioned.clear();
     }
     if (step == SteamLaunchLog::Step::WaitingForAnswer) {
-        m_questioned.insert(m_appId, launch.cloudSyncFailed() ? Question::Cloud : Question::Other);
+        m_cloudQuestion = launch.cloudSyncFailed();
+        m_questioned.insert(m_appId, m_cloudQuestion ? Question::Cloud : Question::Other);
     } else if (step != SteamLaunchLog::Step::Nothing) {
         m_questioned.remove(m_appId);
     } else if (launch.reachedSteam() && m_questioned.contains(m_appId)) {
         m_heldByCloudQuestion = m_questioned.value(m_appId) == Question::Cloud;
+        m_cloudQuestion = m_heldByCloudQuestion;
         return SteamLaunchLog::Step::WaitingForAnswer;
     }
     return step;
@@ -25,6 +30,10 @@ SteamLaunchLog::Step SteamQuestions::read(const SteamLaunchLog& launch) {
 
 bool SteamQuestions::heldByCloudQuestion() const {
     return m_heldByCloudQuestion;
+}
+
+bool SteamQuestions::cloudQuestion() const {
+    return m_cloudQuestion;
 }
 
 void SteamQuestions::steamRestarted() {
