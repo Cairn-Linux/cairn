@@ -638,7 +638,7 @@ Mechanism:
   until the child logs out (ADR-0045, #211). When Steam's sign-in was
   turned down, the grown-up screen says "Log out, then a grown-up can fix
   it from their own login.", and a Guardian signs the child's Steam in
-  again from their own login (ADR-0032; ADR-0049).
+  again from their own login (ADR-0032, proposed; ADR-0049).
 - A child's Steam gets Steam's own tools, the Steam Linux Runtimes and
   Proton, from the parent's Steam: a Guardian's Save copies them into the
   child's own library with the child's new games, by reflink, so a first

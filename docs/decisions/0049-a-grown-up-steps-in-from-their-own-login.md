@@ -8,12 +8,13 @@ grown-up screen ("What Mason decided then", below). The in-session
 step-in stays open in #88. The ADR was to be accepted when checks 1 to 6
 and 8 under "Checks in the VM" had run without overturning a bullet of
 the Decision.
-On 2026-11-03 checks 1, 2 and 8 ran with real Steam sign-ins ("Run on
-2026-11-03"), apart from Exit in Steam's menu (check 1) and the screen
-reader (check 8).
-The same day Mason decided that neither holds acceptance back, nor does
-Steam's updater window at a child's login ("What Mason decided on
-2026-11-03", below).
+Checks 3 to 6 ran on 2026-11-02 ("Run on 2026-11-02"), and checks 1, 2
+and 8 on 2026-11-03 with real Steam sign-ins ("Run on 2026-11-03"), apart
+from Exit in Steam's menu (check 1) and the screen reader (check 8).
+Whether Back worked was not recorded either.
+The same day Mason decided that neither Exit nor the screen reader holds
+acceptance back, nor does Steam's updater window at a child's login
+("What Mason decided on 2026-11-03", below).
 **Date:** 2026-11-02
 **Closes:** (none) — the narrow version of issue #88, for child test 2
 (ROADMAP P1-17); the in-session step-in stays open in #88. It answers
@@ -646,7 +647,7 @@ The Family app's "Open Steam for Ada" is on the image only (ADR-0041).
   lines gains: "When Steam's sign-in was turned down, the grown-up
   screen says 'Log out, then a grown-up can fix it from their own
   login.', and a Guardian signs the child's Steam in again from their
-  own login (ADR-0032; ADR-0049)."
+  own login (ADR-0032, proposed; ADR-0049)."
 - **DESIGN §8.3, mitigation 3,** said the foreign-toplevel protocol tells
   the launcher a Steam window appeared "so it can show the grown-up
   screen instead".
@@ -1022,16 +1023,17 @@ The VM was powered off into the snapshot
 
 After the run, Mason decided three things, and this ADR was accepted.
 
-- **Steam's updater window at a child's login does not go against "What
-  the child sees".**
-  It is a bug of its own, in #275, not a fault of stepping in from the
-  grown-up's login.
+- **Steam's updater window at a child's login does not hold acceptance
+  back.**
+  It goes against "What the child sees", but it is a bug of its own, in
+  #275, not a fault of stepping in from the grown-up's login.
 - **Exit in Steam's menu need not be tried first.**
-  Done ends a visit, and works.
+  Done, which ends a visit, works.
   Exit can be tried on the kids' laptop.
 - **The screen reader need not be heard first.**
   The QML test `test_theGrownUpScreenSaysWhatWillHelp` checks that the
-  line is read with the screen.
+  screen's accessible description includes the line, which is what a
+  screen reader reads with the screen.
   No screen reader runs in the kiosk yet.
 
 ### Research only, after child test 2
@@ -1050,9 +1052,9 @@ After the run, Mason decided three things, and this ADR was accepted.
 
 ### On the kids' laptop
 
-10. Once it runs the image: check 2's route, timed; and `getfacl
-    /dev/hidraw*` during a child's session, to size the hidraw residue
-    on that computer.
+10. Once it runs the image: check 2's route, timed; Exit in Steam's menu
+    to end a visit (check 1); and `getfacl /dev/hidraw*` during a child's
+    session, to size the hidraw residue on that computer.
 
 ## Alternatives considered
 
