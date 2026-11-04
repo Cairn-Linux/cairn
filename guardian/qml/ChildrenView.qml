@@ -69,6 +69,8 @@ Column {
         case ChildrenPage.Dismissed:
         case ChildrenPage.NotAuthorized:
             return qsTr("Nothing changed. It needs your password: the box was closed, or the password was not accepted.");
+        case ChildrenPage.Busy:
+            return qsTr("Another change to the family was still under way, so nothing changed. Try again in a moment.");
         case ChildrenPage.Failed:
             return qsTr("The change did not finish. Trying again is safe. If it fails again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian");
         }

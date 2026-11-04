@@ -45,7 +45,8 @@ public:
         // so two changes at once never work from one old reading (#255).
         QString lock = QStringLiteral("/run/lock/cairn-family-accounts");
         // How long a change waits for one already under way. A change runs
-        // a handful of tools, each with two minutes to finish.
+        // up to seven tools, each with two minutes to finish, so one change
+        // ahead always finishes in time.
         int lockWaitMilliseconds = 15 * 60 * 1000;
         unsigned int euid = Caller::effectiveUid();
         // PKEXEC_UID, when pkexec started the command.

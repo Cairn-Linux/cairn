@@ -60,6 +60,7 @@ public:
         Taken,
         NotAChild,
         Failed,
+        Busy, // another change to the family was under way (#255)
         Dismissed,
         NotAuthorized,
         Unknown,

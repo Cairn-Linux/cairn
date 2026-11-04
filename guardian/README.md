@@ -294,7 +294,8 @@ administrator.
   groups the first left (#255). Without that, two level changes could
   each drop the group the other had just added, and leave the child in
   none. A change waits up to 15 minutes for one already under way, then
-  answers `busy` and changes nothing.
+  answers `busy` and changes nothing, and Family says another change was
+  still under way. A lock that cannot be made at all is `failed`.
 
 It answers in one line: `done`, or `refused` and one of `not-root`,
 `not-a-grown-up`, `usage`, `bad-name`, `bad-full-name`, `bad-level`,

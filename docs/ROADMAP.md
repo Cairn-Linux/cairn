@@ -537,7 +537,11 @@ done, and what could sink it. Decisions that change the design get an ADR in
   the login screen's way in without a password. `cairn-family` now takes
   a lock in `/run/lock` before it reads the account and keeps it until
   the change is made, so the second change waits and reads what the
-  first left. Tested with stand-ins only; not yet checked on the VM.
+  first left. After 15 minutes it answers `busy` and changes nothing,
+  and Family says another change was still under way (ADR-0039 lists
+  the word). Tested with stand-ins only, in one process; still to check
+  on the VM: two `pkexec cairn-family set-level` runs started together
+  on one child leave exactly one level group.
   `provision/cairn-provision.sh`, which refuses on the image, does not
   take the lock.
 - **Steam Cloud's marker stays out of a child's copy (2026-11-03, #250,

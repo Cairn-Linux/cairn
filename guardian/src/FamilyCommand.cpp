@@ -42,8 +42,12 @@ FamilyCommand::Outcome FamilyCommand::run(const QStringList& arguments) const {
     // that was killed is taken back, because its process is gone.
     QLockFile lock(m_setup.lock);
     lock.setStaleLockTime(0);
+    // Only a lock another change holds is "busy"; a lock that cannot be
+    // made at all would say so on every change, and point the wrong way.
     if (!lock.tryLock(m_setup.lockWaitMilliseconds)) {
-        return {.refusal = Refusal::Busy, .asked = asked};
+        const Refusal refusal =
+            lock.error() == QLockFile::LockFailedError ? Refusal::Busy : Refusal::Failed;
+        return {.refusal = refusal, .asked = asked};
     }
     const std::optional<Account> account = m_setup.lookUp(request.login);
     if (request.action == FamilyRequest::Action::SetLevel) {

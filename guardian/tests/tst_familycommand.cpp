@@ -525,6 +525,23 @@ private slots:
         QVERIFY(!QDir(standIns.applications()).exists());
     }
 
+    // A lock that cannot be made is a failure, not a change under way, and
+    // nothing is read or changed.
+    void aLockThatCannotBeMadeFails() {
+        const StandIns standIns;
+        FamilyCommand::Setup setup = standIns.setup();
+        setup.lock = standIns.path("missing/lock");
+        bool read = false;
+        setup.lookUp = [&read](const QString&) -> std::optional<Account> {
+            read = true;
+            return std::nullopt;
+        };
+        const FamilyCommand::Outcome outcome = FamilyCommand(setup).run({"set-level", "ada", "2"});
+        QCOMPARE(outcome.refusal, std::optional(Refusal::Failed));
+        QVERIFY(!read);
+        QCOMPARE(standIns.calls(), QStringList());
+    }
+
     // The child is read with the lock held, and the lock goes when the
     // change is made, so the next change can start.
     void theChildIsReadUnderTheLock() {

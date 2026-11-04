@@ -375,6 +375,23 @@ private slots:
         QCOMPARE(logins, QStringList({"cy", "cy", "dee", "cy"}));
     }
 
+    // A busy add changed nothing, so it is not remembered: when the change
+    // under way made a Cy, adding Cy again is refused as any same name is.
+    void aBusyAddIsNotRemembered() {
+        StandInFamily family(QStringLiteral("refused-busy"));
+        family.page->addChild(QStringLiteral("Cy"), QString(), 1);
+        family.accounts.push_back(
+            {.uid = 1005, .groups = {"cy", "cairn-l1"}, .login = "cy", .fullName = "Cy"});
+        QVERIFY(family.waitUntilAnswered());
+        QCOMPARE(family.page->reason(), ChildrenPage::Reason::Busy);
+
+        StandInFamily::answerWith(QStringLiteral("done"));
+        family.page->addChild(QStringLiteral("Cy"), QString(), 1);
+        QCOMPARE(family.page->step(), ChildrenPage::Step::NotChanged);
+        QCOMPARE(family.page->reason(), ChildrenPage::Reason::SameName);
+        QCOMPARE(family.runs().size(), 1);
+    }
+
     // Another account took the login meanwhile, so it is not used again:
     // an account that is not a child, or another child, whom create-child
     // would change.
@@ -456,6 +473,7 @@ private slots:
         QTest::newRow("taken") << "refused-taken" << Reason::Taken;
         QTest::newRow("not-a-child") << "refused-not-a-child" << Reason::NotAChild;
         QTest::newRow("failed") << "refused-failed" << Reason::Failed;
+        QTest::newRow("busy") << "refused-busy" << Reason::Busy;
         QTest::newRow("a word it does not know") << "refused-moon" << Reason::Unknown;
         QTest::newRow("dismissed") << "dismissed" << Reason::Dismissed;
         QTest::newRow("not-authorized") << "not-authorized" << Reason::NotAuthorized;
