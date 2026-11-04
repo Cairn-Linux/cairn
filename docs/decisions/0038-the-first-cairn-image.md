@@ -5,8 +5,11 @@ login screen, a child reached the tiles, and a Guardian reached Plasma.
 **Date:** 2026-10-21
 **Closes:** (none) — the first slice of issue #164; part of ROADMAP P1-2
 and P1-3
-**Amended by:** ADR-0041, proposed (the family's setup makes no child's
-copy of the games; a Guardian's Save on the Games page does);
+**Amended by:** ADR-0051, proposed (the image also owns
+`/etc/pam.d/kde-fingerprint`, so the lock screen never counts a missing
+fingerprint reader as a wrong try); ADR-0041, proposed (the family's
+setup makes no child's copy of the games; a Guardian's Save on the Games
+page does);
 ADR-0044, proposed (the image builds its own initramfs, with Cairn's
 boot screen); ADR-0046, proposed (tmpfiles also makes
 /var/lib/cairn/steam-tools, the build installs the tools step,
@@ -118,7 +121,8 @@ file Plasma's setup writes there, and SDDM reads `/etc` after its packaged
 folder.
 
 PAM's `login` and `sddm` replace files Fedora ships in `/etc/pam.d`, and
-a file there wins over `/usr/lib/pam.d`. `cairn-steam-visit` sits beside
+a file there wins over `/usr/lib/pam.d`. So does `kde-fingerprint`, the
+lock screen's fingerprint service (ADR-0051). `cairn-steam-visit` sits beside
 them. `pam_faillock` reads its settings only from `/etc`.
 
 ### The files provisioning also installs

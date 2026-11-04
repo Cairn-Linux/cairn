@@ -23,6 +23,7 @@ REPO = pathlib.Path(__file__).resolve().parents[2]
 # Every file the image gets from the build, and its mode.
 EXPECTED = {
     "etc/pam.d/cairn-steam-visit": 0o644,
+    "etc/pam.d/kde-fingerprint": 0o644,
     "etc/pam.d/login": 0o644,
     "etc/pam.d/sddm": 0o644,
     "etc/sddm.conf.d/zz-cairn-no-autologin.conf": 0o644,
@@ -254,6 +255,7 @@ class InstallTree(unittest.TestCase):
         pairs = {
             "usr/share/sddm/themes/cairn/mark-on-ink.svg": "brand/mark-on-ink.svg",
             "usr/share/cairn/manifest.json": "provision/manifest.json",
+            "etc/pam.d/kde-fingerprint": "session/pam.d/kde-fingerprint",
             "etc/pam.d/login": "session/pam.d/login",
             "etc/pam.d/sddm": "session/sddm/pam.d/sddm",
             "usr/libexec/cairn/kidscan.py": "tools/kidscan/kidscan.py",

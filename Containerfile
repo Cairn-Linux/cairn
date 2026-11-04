@@ -99,13 +99,16 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
 
 # The image must say Cairn, not Bazzite or Fedora (slice 5), from the
 # boot screen on (#165) to the Guardian's start-menu button (#166), and
-# the Bazzite extras the build takes out must stay out (#261).
+# the Bazzite extras the build takes out must stay out (#261). The lock
+# screen's fingerprint check must not count a missing reader as a wrong
+# try (#283).
 RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=tmpfs,dst=/tmp \
     /ctx/check-name-and-logos.sh && \
     /ctx/check-boot-screen.sh && \
     /ctx/check-guardian-desktop.sh && \
-    /ctx/check-bazzite-extras.sh
+    /ctx/check-bazzite-extras.sh && \
+    python3 -I /ctx/check-lock-screen-pam.py
 
 # Any lint warning stops the build.
 RUN bootc container lint --fatal-warnings

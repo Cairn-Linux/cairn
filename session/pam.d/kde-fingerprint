@@ -1,0 +1,29 @@
+#%PAM-1.0
+# SPDX-License-Identifier: Apache-2.0
+# Plasma's lock screen tries this service each time it wakes, beside the
+# password (ADR-0051). Fedora's copy, from plasma-workspace, runs authselect's
+# fingerprint-auth as a substack, and with with-faillock that writes a wrong
+# try whenever pam_fprintd answers "no reader, no finger or no answer"
+# (#283). Here the auth lines are authselect's own, except that answer ends
+# the stack first, and each wrong finger is its own try, so a wrong finger
+# still counts. Fedora's "auth include postlogin" is left out: success=done
+# here ends the whole stack, and postlogin's auth line is only ecryptfs,
+# which Cairn does not use. The other stacks are Fedora's, unchanged.
+auth        required      pam_env.so
+auth        required      pam_faillock.so preauth silent
+auth        [success=done authinfo_unavail=die default=bad] pam_fprintd.so max-tries=1
+auth        required      pam_faillock.so authfail
+auth        required      pam_deny.so
+
+account     required      pam_nologin.so
+account     include       fingerprint-auth
+
+password    include       fingerprint-auth
+
+session     required      pam_selinux.so close
+session     required      pam_loginuid.so
+session     required      pam_selinux.so open
+session     optional      pam_keyinit.so force revoke
+session     required      pam_namespace.so
+session     include       fingerprint-auth
+session     include       postlogin

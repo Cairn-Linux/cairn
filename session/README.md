@@ -99,8 +99,10 @@ What is here:
   logout meanwhile is refused with `logging-out`. On the image `cairn-family log-out` runs it as a system job
   (ADR-0041).
 - `pam.d/`: `cairn-steam-visit`, the session a visit runs in, which no one
-  logs in through; and `login`, Fedora's console login with the line that
-  refuses a child on a visit, as the greeter's file has.
+  logs in through; `login`, Fedora's console login with the line that
+  refuses a child on a visit, as the greeter's file has; and
+  `kde-fingerprint`, the lock screen's fingerprint service, which ends
+  before faillock counts when there is no reader (#283, ADR-0051).
 - `logind.conf.d/10-cairn-power.conf`: the power button (ADR-0018). A tap
   is ignored, a five-second hold powers off in order, and no program's
   shutdown lock stops the hold (`PowerKeyIgnoreInhibited=yes`, ADR-0049).

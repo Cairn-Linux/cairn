@@ -467,6 +467,18 @@ done, and what could sink it. Decisions that change the design get an ADR in
   `sudo systemctl enable --now tailscaled`, then sets the operator once
   with `sudo tailscale set --operator=<name>`. Built and checked in a
   container on 2026-11-03; not yet seen in a VM.
+- **ADR-0051 (2026-11-04, #283, proposed): the lock screen never counts a
+  missing fingerprint reader.** On the kids' laptop, each wake of
+  Plasma's lock screen spent one of the Guardian's three tries, because
+  its fingerprint check counted "no reader" as a wrong try; two locks and
+  one typo kept the Guardian out of every prompt for ten minutes. The
+  cause was Bazzite's `with-fingerprint` with provisioning's
+  `with-faillock`, kept in `/etc` across the move. The image now ships
+  its own `/etc/pam.d/kde-fingerprint`, which ends the fingerprint check
+  first when there is no reader and counts each wrong finger, and a
+  build check runs the real stack. Provisioning installs it too. Built
+  and checked in a container on 2026-11-04; the VM checks (cairn-min, a
+  fresh install, the kids' laptop) are open.
 - **ADR-0050 (2026-11-03, #260, proposed): Cairn builds its own installer
   image.** A friend given a Cairn stick today would see Fedora's logo,
   colours and boot splash all through the installer. With Secure Boot
@@ -957,7 +969,7 @@ first-boot wizard, quick-actions overlay, signed image, CI, ISO.
 | **Trademark reviews** | Legal | Universal Blue / Fedora / Bazzite derivative policies; Scratch Foundation branding; "Cairn" search in software classes. |
 | **Website** `cairnlinux.com` | Separate repo, later | Hold until Phase 1 has something a parent can install. |
 | **Brand v0.2** | `docs/brand-guide/` | Iconography, motion (the rule is ADR-0028), avatars, spacing, sound policy, high-contrast and large-text variants. See the review notes in issue tracker. |
-| **Guardian boundary audits** | Issues #85 and #86, then `docs/research/` | Can an older child get into a Guardian account or around their level (ADR-0020)? Twice: #85 early, against what Phase 0 built; #86 before the first public image, against the installed image, and it blocks publishing like P1-14. From ADR-0049, the audits gain four rows: what a program of a child can still do in the seconds after Log out, through `/dev/uinput` and some keyboards' raw HID nodes (its check 4); three wrong passwords keeping a Guardian out of every prompt for 10 minutes, and the words shown (check 5); a copy of the login screen drawn in a child's kiosk, which nothing tells from the real one today except restarting the computer before typing a password, as `docs/TRY.md` says (check 6); and a child's delay lock, which holds the power button's power-off back for up to 5 s (check 3). Before any friend gets the ISO, each in a change of its own: launched apps in a session of their own, `kernel.yama.ptrace_scope` 1, Ctrl+Alt+Del doing nothing on a text console, a shorter stop for a child's user manager, and keyboards' raw HID nodes kept from children; what is not built by then is stated in the parent docs as a known gap. Two findings filed on 2026-11-02: `uupd.rules` lets any account, a child's included, start or stop the system updater (#265, for #85), and the image has no fingerprint in its PAM stack, against ADR-0032 (#264). |
+| **Guardian boundary audits** | Issues #85 and #86, then `docs/research/` | Can an older child get into a Guardian account or around their level (ADR-0020)? Twice: #85 early, against what Phase 0 built; #86 before the first public image, against the installed image, and it blocks publishing like P1-14. From ADR-0049, the audits gain four rows: what a program of a child can still do in the seconds after Log out, through `/dev/uinput` and some keyboards' raw HID nodes (its check 4); three wrong passwords keeping a Guardian out of every prompt for 10 minutes, and the words shown (check 5); a copy of the login screen drawn in a child's kiosk, which nothing tells from the real one today except restarting the computer before typing a password, as `docs/TRY.md` says (check 6); and a child's delay lock, which holds the power button's power-off back for up to 5 s (check 3). Before any friend gets the ISO, each in a change of its own: launched apps in a session of their own, `kernel.yama.ptrace_scope` 1, Ctrl+Alt+Del doing nothing on a text console, a shorter stop for a child's user manager, and keyboards' raw HID nodes kept from children; what is not built by then is stated in the parent docs as a known gap. Two findings filed on 2026-11-02: `uupd.rules` lets any account, a child's included, start or stop the system updater (#265, for #85), and the image has no fingerprint in its PAM stack, against ADR-0032 (#264). Found on 2026-11-04: the lock screen's fingerprint check counted a missing reader as a wrong try and locked the Guardian out (#283); ADR-0051 (proposed) gives the image its own `kde-fingerprint`, so #283 no longer blocks #264, though #264 must still decide how wrong fingers count at sudo and polkit. |
 | **Software catalogue survey** | Issue tracker, then DESIGN §5.2 | Find existing, maintained, kid-oriented apps for music composing, writing/story, camera and coding so the project does not build or maintain its own (ADR-0009). Criteria: actively maintained; Flatpak or Fedora package; offline; no accounts, ads or telemetry; free licence; Wayland/XWayland; age fit with mouse and keyboard; fits the Minimum tier. |
 
 ---
