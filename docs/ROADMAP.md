@@ -676,7 +676,8 @@ done, and what could sink it. Decisions that change the design get an ADR in
   acceptance back, and the ADR was accepted. That window is a bug of its
   own (#275), not a fault of stepping in from the grown-up's login. Exit
   in Steam's menu, not tried yet, can be tried on the kids' laptop, since
-  Done works. Check 8's screen reader was not heard, but a QML test checks
+  Done works and closing Steam's window ended a visit by itself. Back
+  worked on both grown-up screens. Check 8's screen reader was not heard, but a QML test checks
   that the screen's accessible description includes the line, and no
   screen reader runs in the kiosk yet. Next: check 7; then, if Mason
   wants one, a 60-minute limit on a visit, its second slice.

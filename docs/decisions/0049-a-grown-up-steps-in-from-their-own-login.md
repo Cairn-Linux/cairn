@@ -11,7 +11,8 @@ the Decision.
 Checks 3 to 6 ran on 2026-11-02 ("Run on 2026-11-02"), and checks 1, 2
 and 8 on 2026-11-03 with real Steam sign-ins ("Run on 2026-11-03"), apart
 from Exit in Steam's menu (check 1) and the screen reader (check 8).
-Whether Back worked was not recorded either.
+Closing Steam's window ended a visit by itself, which is what Exit was
+to show.
 The same day Mason decided that neither Exit nor the screen reader holds
 acceptance back, nor does Steam's updater window at a child's login
 ("What Mason decided on 2026-11-03", below).
@@ -950,7 +951,9 @@ The record is in the maintainer's work area.
   The launcher logged that Steam was getting it ready, and the game
   started at 16:40:46, about 9 s after the tap.
   No Steam window showed: the game's window was the only one in sight.
-  Not tried: Exit in Steam's menu to end a visit.
+  Exit in Steam's menu was not tried, nor a second visit straight
+  after this one; check 2's visit, below, ended when Mason closed
+  Steam's window.
   The snapshot `ada-signed-in-2026-11-03`, taken at the login screen
   afterwards, keeps her signed in.
 - **Check 8's offline half passed.**
@@ -995,7 +998,9 @@ The record is in the maintainer's work area.
   Log out reached the login screen at 21:30:36.
   The Guardian logged in at 21:30:43.
   "Steam for ada", Open and the password started the visit at 21:32:00.
-  Mason signed her Steam in, and Done ended the visit at 21:34:12.
+  Mason signed her Steam in and closed her Steam's window with its X.
+  That ended the visit by itself at 21:34:12: the window said it was
+  closed and went back to Family, with no Done.
   The Guardian logged out at 21:34:41, and `ada` logged in at 21:34:45.
   Her Steam signed in at 21:34:59.
   She tapped the game at 21:35:21, and it started at 21:35:24.
@@ -1012,8 +1017,9 @@ The record is in the maintainer's work area.
   It was seen at this one login only, the first after a visit.
   The launcher logged no such window at `ada`'s other four logins that
   day, so whether it follows a visit or comes at random is not known.
-- **Not recorded:** whether the line is read with the screen (check 8),
-  and whether Back worked; Log out did (21:30:36).
+- **Back worked** both times the grown-up screen came (offline, and the
+  refused sign-in), as Mason saw, and Log out did (21:30:36).
+- **Not recorded:** whether the line is read with the screen (check 8).
 - **Still to run:** Exit in Steam's menu (check 1), and check 7.
 
 The VM was powered off into the snapshot
@@ -1028,7 +1034,7 @@ After the run, Mason decided three things, and this ADR was accepted.
   It goes against "What the child sees", but it is a bug of its own, in
   #275, not a fault of stepping in from the grown-up's login.
 - **Exit in Steam's menu need not be tried first.**
-  Done, which ends a visit, works.
+  Done, which ends a visit, works, and so does closing Steam's window.
   Exit can be tried on the kids' laptop.
 - **The screen reader need not be heard first.**
   The QML test `test_theGrownUpScreenSaysWhatWillHelp` checks that the
