@@ -1203,6 +1203,182 @@ class ToolsTest(CopyTestCase):
         self.assertEqual(self.machine.run(), ["skipped 100 unreadable"])
 
 
+class InterruptedPublicationTest(CopyTestCase):
+    """A run ended for good, as by a kill or a power cut, at each step of
+    putting a copy in place, and the next run settles it (#256). The run is
+    a forked process that ends at once at that step, with no clean-up of
+    its own. Copies use a stand-in for cp, so these run on any filesystem."""
+
+    def end_run_at(self, step, module=None, *arguments):
+        """Runs the program in a forked process that ends at `step`: just
+        before ("before", NAME) or just after ("after", NAME) the rename
+        whose target is called NAME. Says whether it got there."""
+        when, name = step
+        module = module or self.machine.load()
+        pid = os.fork()
+        if pid == 0:
+            try:
+                real_rename = os.rename
+
+                def rename(source, target):
+                    if when == "before" and pathlib.Path(target).name == name:
+                        os._exit(9)
+                    real_rename(source, target)
+                    if when == "after" and pathlib.Path(target).name == name:
+                        os._exit(9)
+
+                with (mock.patch.object(module, "reflink_copy", CopyTest.copy_tree),
+                      mock.patch.object(module.os, "rename", rename)):
+                    self.machine.run_in_process(module, *arguments)
+            finally:
+                os._exit(1)
+        _, status = os.waitpid(pid, 0)
+        return os.waitstatus_to_exitcode(status) == 9
+
+    def retry(self, *arguments):
+        module = self.machine.load()
+        with mock.patch.object(module, "reflink_copy", CopyTest.copy_tree):
+            return self.machine.run_in_process(module, *arguments)
+
+    def assertCopiedAndSettled(self, appid=100, installdir="A Game"):
+        library = self.machine.library
+        self.assertEqual((library / f"appmanifest_{appid}.acf").read_bytes(), manifest(appid, installdir))
+        self.assertEqual(files_of(library / "common" / installdir),
+                         files_of(self.machine.shared / "common" / installdir))
+        self.assertEqual([p.name for p in library.iterdir() if p.name.startswith(".")], [],
+                         "nothing of the run's own is left")
+        self.assertEqual([p.name for p in (library / "common").iterdir() if p.name.startswith(".")], [])
+
+    def test_a_folder_in_place_without_its_manifest_is_finished(self):
+        # The issue's crash point: the folder has its full name, and the
+        # manifest is still under its temporary one.
+        self.machine.add_game(100)
+        self.assertTrue(self.end_run_at(("after", "A Game")))
+        self.assertTrue((self.machine.library / "common" / "A Game").is_dir())
+        self.assertFalse((self.machine.library / "appmanifest_100.acf").exists())
+        self.assertTrue((self.machine.library / ".cairn-manifest-100").exists())
+        self.assertEqual(self.retry(), (0, ["copied 100"]))
+        self.assertCopiedAndSettled()
+        self.assertEqual(self.retry(), (0, ["have 100"]))
+
+    def test_a_retry_off_the_list_still_finishes_it(self):
+        # The copy is Cairn's own whichever games the retry looks at, and a
+        # game it does not look at says nothing.
+        self.machine.add_game(100)
+        self.machine.add_game(200, "Second")
+        self.assertTrue(self.end_run_at(("after", "A Game"), None, "--only", "100"))
+        self.assertEqual(self.retry("--only", "200"), (0, ["copied 200"]))
+        self.assertCopiedAndSettled()
+        self.assertCopiedAndSettled(200, "Second")
+
+    def test_an_end_before_the_folder_moves_leaves_only_leftovers(self):
+        self.machine.add_game(100)
+        self.assertTrue(self.end_run_at(("before", "A Game")))
+        self.assertFalse((self.machine.library / "common" / "A Game").exists())
+        self.assertEqual(self.retry(), (0, ["copied 100"]))
+        self.assertCopiedAndSettled()
+
+    def test_an_end_after_the_manifest_moves_leaves_the_game_as_it_is(self):
+        self.machine.add_game(100)
+        self.assertTrue(self.end_run_at(("after", "appmanifest_100.acf")))
+        self.assertEqual(self.retry(), (0, ["have 100"]))
+        self.assertCopiedAndSettled()
+
+    def test_an_end_while_the_folder_goes_back_out_is_finished_too(self):
+        # The manifest could not take its name, and the run ended as the
+        # folder went back to its temporary one.
+        self.machine.add_game(100)
+        module = self.machine.load()
+        real_rename = os.rename
+
+        def rename(source, target):
+            if pathlib.Path(target).name == "appmanifest_100.acf":
+                raise OSError("disk full")
+            real_rename(source, target)
+
+        with mock.patch.object(module.os, "rename", rename):
+            self.assertTrue(self.end_run_at(("before", ".cairn-copy-100"), module))
+        self.assertEqual(self.retry(), (0, ["copied 100"]))
+        self.assertCopiedAndSettled()
+
+    def test_a_finish_that_fails_keeps_what_the_next_run_needs(self):
+        self.machine.add_game(100)
+        self.assertTrue(self.end_run_at(("after", "A Game")))
+        module = self.machine.load()
+        real_rename = os.rename
+
+        def rename(source, target):
+            if pathlib.Path(target).name == "appmanifest_100.acf":
+                raise OSError("disk full")
+            real_rename(source, target)
+
+        with (mock.patch.object(module, "reflink_copy", CopyTest.copy_tree),
+              mock.patch.object(module.os, "rename", rename)):
+            self.assertEqual(self.machine.run_in_process(module),
+                             (0, ["skipped 100 folder-without-manifest"]))
+        self.assertTrue((self.machine.library / ".cairn-manifest-100").exists())
+        self.assertEqual(self.retry(), (0, ["copied 100"]))
+        self.assertCopiedAndSettled()
+
+    def test_a_childs_own_folder_is_never_finished_or_removed(self):
+        # What a run left beside a folder of the child's own, with no
+        # manifest, never adopts it: the folder is not the copy the run
+        # made, whatever its name.
+        self.machine.add_game(100)
+        self.assertTrue(self.end_run_at(("before", "A Game")))
+        own = self.machine.library / "common" / "A Game"
+        (own / "Saves").mkdir(parents=True)
+        (own / "Saves" / "slot1.sav").write_bytes(b"mine")
+        self.assertEqual(self.retry(), (0, ["skipped 100 folder-without-manifest"]))
+        self.assertEqual(files_of(own), {"Saves/slot1.sav": b"mine"})
+        self.assertFalse((self.machine.library / "appmanifest_100.acf").exists())
+        self.assertEqual(sorted(p.name for p in self.machine.library.iterdir()), ["common"])
+        self.assertEqual(sorted(p.name for p in (self.machine.library / "common").iterdir()), ["A Game"])
+
+    def test_a_record_that_does_not_fit_finishes_nothing(self):
+        # A record and manifest of the run's own names that do not match
+        # what is in place are leftovers, and go; the folder stays.
+        own = self.machine.library / "common" / "A Game"
+        own.mkdir()
+        (own / "slot1.sav").write_bytes(b"mine")
+        details = own.lstat()
+        identity = f"{details.st_dev} {details.st_ino}\n".encode()
+        cases = {
+            "another appid": (manifest(200), identity),
+            "another folder": (manifest(100, "Other"), identity),
+            "unreadable": (b"half", identity),
+            "another identity": (manifest(100), b"1 2\n"),
+            "no identity": (manifest(100), b""),
+        }
+        for case, (data, record) in cases.items():
+            with self.subTest(case=case):
+                (self.machine.library / ".cairn-manifest-100").write_bytes(data)
+                (self.machine.library / ".cairn-publish-100").write_bytes(record)
+                self.assertEqual(self.retry(), (0, []))
+                self.assertFalse((self.machine.library / "appmanifest_100.acf").exists())
+                self.assertEqual(sorted(p.name for p in self.machine.library.iterdir()), ["common"])
+                self.assertEqual(files_of(own), {"slot1.sav": b"mine"})
+
+    def test_a_link_in_place_of_the_folder_is_never_finished(self):
+        self.machine.add_game(100)
+        self.assertTrue(self.end_run_at(("after", "A Game")))
+        common = self.machine.library / "common"
+        common.joinpath("A Game").rename(common / "Moved")
+        common.joinpath("A Game").symlink_to("Moved")
+        self.assertEqual(self.retry(), (0, ["skipped 100 folder-without-manifest"]))
+        self.assertFalse((self.machine.library / "appmanifest_100.acf").exists())
+        self.assertTrue((common / "A Game").is_symlink())
+
+    def test_a_tool_is_finished_the_same_way(self):
+        self.machine.add_tool(**SCOUT)
+        self.assertTrue(self.end_run_at(("after", "SteamLinuxRuntime")))
+        # Scout runs in soldier, which the tools folder does not have.
+        self.assertEqual(self.retry(), (0, ["tool-copied 1070560", "tool-missing 1391110"]))
+        self.assertTrue((self.machine.library / "appmanifest_1070560.acf").exists())
+        self.assertEqual(sorted(p.name for p in self.machine.library.iterdir()),
+                         ["appmanifest_1070560.acf", "common"])
+
+
 class NoReflinkTest(unittest.TestCase):
     """On tmpfs, which cannot reflink, nothing is copied."""
 
