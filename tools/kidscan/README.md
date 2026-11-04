@@ -63,8 +63,9 @@ copied later still shows (ADR-0047).
    bare-string one.
    It takes only a path written in full, as Steam writes it, and passes
    over any other entry. A file that does not parse, or whose
-   `libraryfolders` is not a block, gets a warning, and kidscan reads only
-   the main library.
+   `libraryfolders` is something other than a block, gets a warning, and
+   kidscan reads only the main library. A file with no `libraryfolders`
+   lists nothing more.
    With `--library` it follows none, so a file in a shared folder cannot
    send it into someone's home. A `--library` whose `steamapps` is a link
    is not read either: kidscan warns, lists no games and exits 2.

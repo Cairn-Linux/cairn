@@ -167,7 +167,8 @@ def library_paths(steam_root):
         if not isinstance(raw, str) or not os.path.isabs(raw) or "\0" in raw:
             continue
         steamapps = Path(raw) / "steamapps"
-        if steamapps.is_dir() and steamapps not in paths:
+        # os.path.isdir never raises, where Path.is_dir can before 3.14.
+        if os.path.isdir(steamapps) and steamapps not in paths:
             paths.append(steamapps)
     return paths
 

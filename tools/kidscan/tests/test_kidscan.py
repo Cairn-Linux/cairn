@@ -5,6 +5,7 @@
 Run:  python3 tools/kidscan/tests/test_kidscan.py
 """
 
+import contextlib
 import io
 import json
 import os
@@ -236,6 +237,11 @@ class KidscanTests(unittest.TestCase):
             \t"9"\t\t{{ "path" "{self.lib.lib2}" }}
             }}
             '''))
+        # The relative entries name folders that do exist from where the
+        # scan runs, so only the rule keeps them out.
+        for rel in ("relative/SteamLibrary", "~nosuchuser/SteamLibrary"):
+            (self.base / rel / "steamapps").mkdir(parents=True)
+        self.enterContext(contextlib.chdir(self.base))
         paths = kidscan.library_paths(self.lib.root)
         self.assertEqual(paths, [self.lib.root / "steamapps", self.lib.lib2 / "steamapps"])
 
