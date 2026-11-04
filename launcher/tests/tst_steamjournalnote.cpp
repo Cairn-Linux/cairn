@@ -59,8 +59,9 @@ private slots:
                                                                  .cloudQuestion = true,
                                                                  .stallNote = {}});
         QCOMPARE(note, QStringLiteral("Steam could not reach the internet to check the cloud saves "
-                                      "for Pajama Sam 2, so it did not start. Steam is waiting "
-                                      "for an answer about it on a window the kiosk hides."));
+                                      "for Pajama Sam 2, so the game did not start. Steam is "
+                                      "waiting for an answer about it on a window the kiosk "
+                                      "hides."));
     }
 
     // Another question asked while offline: both facts, and no claim that
@@ -72,8 +73,8 @@ private slots:
                                       "answer about Pajama Sam 2 on a window the kiosk hides."));
     }
 
-    // Being offline says nothing on its own once Steam gave another reason,
-    // or none.
+    // Being offline adds nothing when Steam refused to start the game, or
+    // is still working on it.
     void beingOfflineAloneAddsNothing() {
         QCOMPARE(SteamJournalNote::of(
                      pajamaSam2(), {.offline = true, .lastStep = Step::Refused, .stallNote = {}}),

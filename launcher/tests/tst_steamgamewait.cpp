@@ -88,7 +88,7 @@ QString pajamaSam2Question() {
 // (#274).
 QString pajamaSam2OfflineCloudQuestion() {
     return QStringLiteral("Steam could not reach the internet to check the cloud saves for "
-                          "Pajama Sam 2, so it did not start. Steam is waiting for an answer "
+                          "Pajama Sam 2, so the game did not start. Steam is waiting for an answer "
                           "about it on a window the kiosk hides.");
 }
 
@@ -566,8 +566,8 @@ private slots:
             << QByteArray("LogonFailure No Connection")
             << QByteArray("waiting for user response to SynchronizingCloud \"syncfailed\"")
             << QStringLiteral("Steam could not reach the internet to check the cloud saves for "
-                              "Ada's game, so it did not start. Steam is waiting for an answer "
-                              "about it on a window the kiosk hides.");
+                              "Ada's game, so the game did not start. Steam is waiting for an "
+                              "answer about it on a window the kiosk hides.");
         QTest::newRow("no connection, another question")
             << QByteArray("LogonFailure No Connection")
             << QByteArray("waiting for user response to ShowInterstitials \"\"")
@@ -1109,6 +1109,39 @@ private slots:
         pajamaSam2Says(log, "changed task to ShowInterstitials with \"\"");
         pajamaSam2Says(log, "waiting for user response to ShowInterstitials \"\"");
         QVERIFY(!wait.stillComing());
+        wait.startLaunch(pajamaSam2());
+        steamLine(log, 0, pajamaSam2Taken());
+        QVERIFY(!wait.stillComing());
+        QCOMPARE(wait.lastStep(), SteamLaunchLog::Step::WaitingForAnswer);
+        QVERIFY(!wait.logOutWouldHelp());
+        QCOMPARE(wait.journalNote(QStringLiteral("Pajama Sam 2")), pajamaSam2Question());
+    }
+
+    // Another question met offline holds its game too. A later tap while
+    // Steam is still offline names the internet beside the question, but
+    // not as its cause; once Steam signs in again it names the question
+    // alone (#274).
+    void anotherQuestionHeldOfflineNamesTheInternet() {
+        const QTemporaryDir root;
+        const QString log = root.filePath(QStringLiteral("console_log.txt"));
+        SteamGameWait wait(root.path(), log, root.filePath(QStringLiteral("bootstrap_log.txt")));
+        steamLine(log, 0, "LogonFailure No Connection");
+        wait.startLaunch(pajamaSam2());
+        steamLine(log, 0, pajamaSam2Taken());
+        pajamaSam2Says(log, "changed task to ShowInterstitials with \"\"");
+        pajamaSam2Says(log, "waiting for user response to ShowInterstitials \"\"");
+        QVERIFY(!wait.stillComing());
+        const QString offline =
+            QStringLiteral("Steam could not reach the internet, and is waiting for an answer "
+                           "about Pajama Sam 2 on a window the kiosk hides.");
+        QCOMPARE(wait.journalNote(QStringLiteral("Pajama Sam 2")), offline);
+        wait.startLaunch(pajamaSam2());
+        steamLine(log, 0, pajamaSam2Taken());
+        QVERIFY(!wait.stillComing());
+        QCOMPARE(wait.lastStep(), SteamLaunchLog::Step::WaitingForAnswer);
+        QVERIFY(!wait.logOutWouldHelp());
+        QCOMPARE(wait.journalNote(QStringLiteral("Pajama Sam 2")), offline);
+        steamLine(log, 0, "Waiting for compat in post-logon took: 0.098334s");
         wait.startLaunch(pajamaSam2());
         steamLine(log, 0, pajamaSam2Taken());
         QVERIFY(!wait.stillComing());

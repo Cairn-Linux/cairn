@@ -479,10 +479,13 @@ was is not known yet: the record does not keep Steam's own line.
 **The journal names the internet beside the question.** The wait does not
 change: once Steam's log names the game, its sign-in still does not decide
 it. But when the launch stands at a question and Steam's sign-in says
-`No Connection` at the last look, the journal's sentence says both. For
-the cloud question (`SynchronizingCloud "syncfailed"`) it says "Steam
-could not reach the internet to check the cloud saves for …, so it did
-not start. Steam is waiting for an answer about it on a window the kiosk
+`No Connection` at the last look, the journal's sentence says both. (So
+does any other reason Steam retries by itself, such as `Service
+Unavailable` or `Timeout`; the journal's existing "could not reach the
+internet" sentence already counts those the same way.) For the cloud
+question (`SynchronizingCloud "syncfailed"`) it says "Steam could not
+reach the internet to check the cloud saves for …, so the game did not
+start. Steam is waiting for an answer about it on a window the kiosk
 hides." For any other question it says "Steam could not reach the
 internet, and is waiting for an answer about … on a window the kiosk
 hides.", since nothing shows the internet caused that one. The same holds
@@ -494,7 +497,8 @@ refused sign-in still comes first.
 
 Whether a child can play such a game offline is not decided here (#274).
 
-Tested in C++: both sentences, and that being offline alone adds nothing
-to a refusal or to work; the VM's case, ended by Steam's startup time with
+Tested in C++: both sentences, and that being offline adds nothing when
+Steam refused to start the game, or is still working on it; the VM's case, ended by Steam's startup time with
 the cloud question and `No Connection`, names the internet; and a held
-cloud question while Steam is still offline does too.
+cloud question while Steam is still offline does too, and so does a held
+other question, which names the question alone once Steam signs in again.

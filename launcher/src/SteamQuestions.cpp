@@ -3,6 +3,8 @@
 
 void SteamQuestions::startLaunch(const QString& appId) {
     m_appId = appId;
+    m_heldByCloudQuestion = false;
+    m_cloudQuestion = false;
 }
 
 SteamLaunchLog::Step SteamQuestions::read(const SteamLaunchLog& launch) {

@@ -220,8 +220,9 @@ themselves.
   Steam for the child from your own account, as in the steps below for a
   sign-in.
   The journal command above also says it for each such launch: "Steam is
-  waiting for an answer about …" or "Steam refused to start …". Without
-  internet it starts with "Steam could not reach the internet" instead.
+  waiting for an answer about …" or "Steam refused to start …". When
+  Steam's sign-in has failed for want of the internet, it starts with
+  "Steam could not reach the internet" instead.
   Steam keeps the question for that game. The game stays held after the
   internet comes back, until the child logs out and back in. Each tap on
   it says "did not start" again, and the journal names the question again.

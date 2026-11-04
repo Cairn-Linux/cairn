@@ -1032,7 +1032,7 @@ private slots:
         for (int tap = 0; tap < 2; ++tap) {
             QTest::ignoreMessage(QtWarningMsg,
                                  "Steam could not reach the internet to check the cloud saves for "
-                                 "Pajama Sam 2, so it did not start. Steam is waiting for an "
+                                 "Pajama Sam 2, so the game did not start. Steam is waiting for an "
                                  "answer about it on a window the kiosk hides.");
             QTest::ignoreMessage(QtWarningMsg,
                                  "Nothing of Pajama Sam 2 came on the screen in time.");
