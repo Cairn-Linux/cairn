@@ -471,6 +471,10 @@ install_greeter() {
 # --- 9. The Guardian's password: a lockout that survives a reboot (ADR-0020) -
 protect_guardians() {
     install_file 644 "$REPO/session/security/faillock.conf" /etc/security/faillock.conf
+    # Bazzite has with-fingerprint, so with with-faillock its lock screen's
+    # fingerprint check would count a missing reader as a wrong try (#283,
+    # ADR-0051). The image's copy ends that check first.
+    install_file 644 "$REPO/session/pam.d/kde-fingerprint" /etc/pam.d/kde-fingerprint
     # Only the local rules, read to the end: grep -q would stop at the first
     # match, semanage would die of SIGPIPE, and pipefail would call it a miss.
     if ! semanage fcontext -l -C | grep -F '/var/lib/faillock(/.*)?' > /dev/null; then
@@ -889,7 +893,8 @@ relabel() {
             "$APPS" \
             "$PREFIX/libexec/cairn" "$PREFIX/lib64/cairn" "$SHARE" \
             /etc/sddm.conf.d /etc/pam.d/sddm /etc/polkit-1/rules.d /etc/systemd/logind.conf.d \
-            /etc/security/faillock.conf /etc/pam.d/cairn-steam-visit /etc/pam.d/login \
+            /etc/security/faillock.conf /etc/pam.d/kde-fingerprint /etc/pam.d/cairn-steam-visit \
+            /etc/pam.d/login \
             /etc/polkit-1/actions
     fi
 }

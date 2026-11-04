@@ -33,6 +33,9 @@ cairn_install_file(SOURCE sddm/pam.d/sddm DESTINATION "${CMAKE_INSTALL_FULL_SYSC
 cairn_install_file(SOURCE pam.d/cairn-steam-visit DESTINATION "${CMAKE_INSTALL_FULL_SYSCONFDIR}/pam.d"
     MODE 644)
 cairn_install_file(SOURCE pam.d/login DESTINATION "${CMAKE_INSTALL_FULL_SYSCONFDIR}/pam.d" MODE 644)
+# Replaces plasma-workspace's copy from the base image (ADR-0051).
+cairn_install_file(SOURCE pam.d/kde-fingerprint DESTINATION "${CMAKE_INSTALL_FULL_SYSCONFDIR}/pam.d"
+    MODE 644)
 cairn_install_file(SOURCE security/faillock.conf DESTINATION "${CMAKE_INSTALL_FULL_SYSCONFDIR}/security"
     MODE 644)
 
@@ -57,6 +60,9 @@ add_test(NAME log_out
 )
 add_test(NAME steam_visit
     COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_steam_visit.py"
+)
+add_test(NAME pam_kde_fingerprint
+    COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_pam_kde_fingerprint.py"
 )
 add_test(NAME pam_steam_visit
     COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_pam_steam_visit.py"
