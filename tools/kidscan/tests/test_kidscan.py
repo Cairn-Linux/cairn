@@ -5,6 +5,7 @@
 Run:  python3 tools/kidscan/tests/test_kidscan.py
 """
 
+import contextlib
 import io
 import json
 import os
@@ -263,6 +264,68 @@ class KidscanTests(unittest.TestCase):
         paths = kidscan.library_paths(self.lib.root)
         self.assertEqual(paths, [self.lib.root / "steamapps", self.lib.lib2 / "steamapps"])
 
+    def write_libraryfolders(self, text):
+        (self.lib.root / "steamapps" / "libraryfolders.vdf").write_text(text)
+
+    def test_library_paths_takes_an_old_list_of_bare_paths(self):
+        self.write_libraryfolders(f'"LibraryFolders" {{ "1" "{self.lib.lib2}" }}')
+        paths = kidscan.library_paths(self.lib.root)
+        self.assertEqual(paths, [self.lib.root / "steamapps", self.lib.lib2 / "steamapps"])
+
+    def test_library_paths_keeps_the_root_when_the_list_is_not_a_block(self):
+        # Each parses, but libraryfolders is not a block of entries (#258).
+        for text in ('"libraryfolders" "not-a-block"',
+                     '"libraryfolders" ""',
+                     '"something-else" { "1" { "path" "/x" } }',
+                     ''):
+            with self.subTest(text=text):
+                self.write_libraryfolders(text)
+                stderr = io.StringIO()
+                with redirect_stderr(stderr):
+                    paths = kidscan.library_paths(self.lib.root)
+                self.assertEqual(paths, [self.lib.root / "steamapps"])
+
+    def test_library_paths_warns_when_libraryfolders_is_not_a_block(self):
+        self.write_libraryfolders('"libraryfolders" "not-a-block"')
+        stderr = io.StringIO()
+        with redirect_stderr(stderr):
+            kidscan.library_paths(self.lib.root)
+        self.assertIn("libraryfolders.vdf", stderr.getvalue())
+        self.assertIn("only the main library", stderr.getvalue())
+
+    def test_library_paths_passes_over_entries_of_the_wrong_kind(self):
+        # The good entry is last, so every bad one before it is passed over
+        # and the scan still reaches it.
+        self.write_libraryfolders(textwrap.dedent(f'''\
+            "libraryfolders"
+            {{
+            \t"contentstatsid"\t\t"-123456789"
+            \t"1"\t\t""
+            \t"2"\t\t"relative/SteamLibrary"
+            \t"3"\t\t"~nosuchuser/SteamLibrary"
+            \t"4"\t\t{{ }}
+            \t"5"\t\t{{ "path" {{ "inner" "/x" }} }}
+            \t"6"\t\t{{ "path" "" }}
+            \t"7"\t\t{{ "path" "~nosuchuser/SteamLibrary" }}
+            \t"8"\t\t{{ "label" "no path" }}
+            \t"9"\t\t{{ "path" "{self.lib.lib2}" }}
+            }}
+            '''))
+        # The relative entries name folders that do exist from where the
+        # scan runs, so only the rule keeps them out.
+        for rel in ("relative/SteamLibrary", "~nosuchuser/SteamLibrary"):
+            (self.base / rel / "steamapps").mkdir(parents=True)
+        self.enterContext(contextlib.chdir(self.base))
+        paths = kidscan.library_paths(self.lib.root)
+        self.assertEqual(paths, [self.lib.root / "steamapps", self.lib.lib2 / "steamapps"])
+
+    def test_a_list_that_is_not_a_block_still_lists_the_main_librarys_games(self):
+        self.write_libraryfolders('"libraryfolders" "not-a-block"')
+        stderr = io.StringIO()
+        with redirect_stderr(stderr):
+            entries = kidscan.build_entries([self.lib.root], None, {})
+        self.assertEqual({e["source"]["appid"] for e in entries}, {"294660", "400"})
+
     def test_installed_apps_filters_denylist_proton_and_missing_dirs(self):
         apps = {a["appid"]: a for a in kidscan.installed_apps(self.lib.root / "steamapps")}
         self.assertEqual(set(apps), {"294660", "400"})
@@ -486,6 +549,22 @@ class KidscanTests(unittest.TestCase):
         self.assertEqual(len(manifest["entries"]), 3)
         self.assertEqual(len(list(desktop.glob("kid-*.desktop"))), 3)
         self.assertIn("3 tiles (0 native ScummVM, 3 via Steam)", stderr.getvalue())
+
+    def test_a_category_map_that_is_not_an_object_is_passed_over(self):
+        categories = self.base / "categories.json"
+        for text in ('["294660", "games"]', '"games"', '7', 'null'):
+            with self.subTest(text=text):
+                categories.write_text(text)
+                stderr = io.StringIO()
+                with redirect_stderr(stderr):
+                    self.assertEqual(kidscan.load_category_map(str(categories)), {})
+                self.assertIn("category map", stderr.getvalue())
+
+    def test_a_category_map_object_still_maps(self):
+        categories = self.base / "categories.json"
+        categories.write_text('{"294660": "games", "400": "puzzle"}')
+        self.assertEqual(kidscan.load_category_map(str(categories)),
+                         {"294660": "games", "400": "puzzle"})
 
     def test_main_returns_2_when_no_steam(self):
         with redirect_stderr(io.StringIO()):

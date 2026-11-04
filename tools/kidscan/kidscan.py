@@ -155,13 +155,20 @@ def library_paths(steam_root):
         return paths
 
     folders = ci_get(data, "libraryfolders", {})
+    if not isinstance(folders, dict):
+        print(f"warning: {vdf_path} does not list libraries as Steam does; "
+              "reading only the main library", file=sys.stderr)
+        return paths
     for entry in folders.values():
         # Modern format nests a dict with "path"; ancient format is a bare string.
         raw = ci_get(entry, "path") if isinstance(entry, dict) else entry
-        if not raw:
+        # Steam writes each path in full. Provisioning's steps read the
+        # lists by the same rule, so kidscan finds the libraries they do.
+        if not isinstance(raw, str) or not os.path.isabs(raw) or "\0" in raw:
             continue
-        steamapps = Path(raw).expanduser() / "steamapps"
-        if steamapps.is_dir() and steamapps not in paths:
+        steamapps = Path(raw) / "steamapps"
+        # os.path.isdir never raises, where Path.is_dir can before 3.14.
+        if os.path.isdir(steamapps) and steamapps not in paths:
             paths.append(steamapps)
     return paths
 
@@ -558,6 +565,10 @@ def load_category_map(path):
         data = json.loads(Path(path).expanduser().read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
         print(f"warning: could not read category map: {exc}", file=sys.stderr)
+        return {}
+    if not isinstance(data, dict):
+        print("warning: category map is not a JSON object of appid to category; "
+              "every game keeps its usual category", file=sys.stderr)
         return {}
     return {str(k): str(v) for k, v in data.items()}
 
