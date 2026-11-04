@@ -483,23 +483,61 @@ def write_atomically(text, out_path):
         os.close(folder)
 
 
+# The Desktop Entry Specification 1.5 reads a file line by line, so a value
+# that holds a line break would start a new key or group (#257). Steam's
+# manifests, and so titles, can hold any character.
+_CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f]")
+_LINE_BREAKS = re.compile(r"[\t\n\r]+")
+# Characters the spec says an Exec argument must be quoted to hold.
+_EXEC_RESERVED = re.compile(r"""[ \t\n"'\\><~|&;$*?#()`]""")
+
+
+def desktop_string(text):
+    """A one-line title or word as a .desktop string value: tabs and line
+    breaks become one space, other control characters go, and a backslash,
+    or a space at either end that a reader would trim, is escaped."""
+    text = _CONTROL.sub("", _LINE_BREAKS.sub(" ", text))
+    text = text.replace("\\", "\\\\")
+    lead = len(text) - len(text.lstrip(" "))
+    trail = len(text) - len(text.rstrip(" "))
+    if lead == len(text):
+        return "\\s" * lead
+    return "\\s" * lead + text[lead:len(text) - trail] + "\\s" * trail
+
+
+def exec_argument(argument):
+    """One argument as the Exec key needs it, or None when it holds a control
+    character, which a reader of the file could not be trusted to keep."""
+    if _CONTROL.search(argument):
+        return None
+    argument = argument.replace("%", "%%")
+    if argument == "" or _EXEC_RESERVED.search(argument):
+        argument = '"' + re.sub(r'(["`$\\])', r"\\\1", argument) + '"'
+    # The Exec value is a string too, so its backslashes are escaped again.
+    return argument.replace("\\", "\\\\")
+
+
 def write_desktop_files(entries, outdir):
     outdir.mkdir(parents=True, exist_ok=True)
     written = []
     for entry in entries:
-        # Quote nothing fancy; Exec fields with spaces in paths need quoting.
-        exec_line = " ".join(
-            f'"{part}"' if " " in part else part for part in entry["exec"]
-        )
+        arguments = [exec_argument(part) for part in entry["exec"]]
+        if None in arguments:
+            print(f"warning: {entry['id']}: its command holds a control character, "
+                  "so it gets no .desktop file", file=sys.stderr)
+            continue
+        title = entry["title"]
+        if not _CONTROL.sub("", title).strip():
+            title = entry["id"]
         target = outdir / f"kid-{entry['id']}.desktop"
         target.write_text(
             "[Desktop Entry]\n"
             "Type=Application\n"
-            f"Name={entry['title']}\n"
-            f"Exec={exec_line}\n"
+            f"Name={desktop_string(title)}\n"
+            f"Exec={' '.join(arguments)}\n"
             f"Categories=Game;\n"
-            f"X-Kid-Category={entry['category']}\n"
-            f"X-Kid-Engine={entry['engine']}\n"
+            f"X-Kid-Category={desktop_string(entry['category'])}\n"
+            f"X-Kid-Engine={desktop_string(entry['engine'])}\n"
             "Terminal=false\n",
             encoding="utf-8",
         )
