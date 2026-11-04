@@ -530,6 +530,20 @@ done, and what could sink it. Decisions that change the design get an ADR in
   killed at fifteen points was settled by the next run each time
   (checks 1 and 12, and parts of 3, 4, 6 and 10). A moved game's files
   are group-writable, where those Steam's own Move put there are not.
+- **Two level changes at once leave a child in one level (2026-11-03,
+  #255).** An audit found that two grown-ups changing one child's level
+  at the same moment could each drop the group the other had just added,
+  leaving the child in no level group: gone from Family's list and from
+  the login screen's way in without a password. `cairn-family` now takes
+  a lock in `/run/lock` before it reads the account and keeps it until
+  the change is made, so the second change waits and reads what the
+  first left. After 15 minutes it answers `busy` and changes nothing,
+  and Family says another change was still under way (ADR-0039 lists
+  the word). Tested with stand-ins only, in one process; still to check
+  on the VM: two `pkexec cairn-family set-level` runs started together
+  on one child leave exactly one level group.
+  `provision/cairn-provision.sh`, which refuses on the image, does not
+  take the lock.
 - **Steam Cloud's marker stays out of a child's copy (2026-11-03, #250,
   amends ADR-0033, ADR-0041 and ADR-0042).** In the VM on 2026-11-01 a
   game the Guardian played from the family folder gained Steam Cloud's

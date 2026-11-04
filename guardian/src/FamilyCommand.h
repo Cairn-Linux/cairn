@@ -41,6 +41,13 @@ public:
         // same name.
         QString gamesFolder = QStringLiteral("/var/lib/cairn/games");
         unsigned int gamesOwner = 0;
+        // Held from before the account is read until the change is made,
+        // so two changes at once never work from one old reading (#255).
+        QString lock = QStringLiteral("/run/lock/cairn-family-accounts");
+        // How long a change waits for one already under way. A change runs
+        // up to seven tools, each with two minutes to finish, so one change
+        // ahead always finishes in time.
+        int lockWaitMilliseconds = 15 * 60 * 1000;
         unsigned int euid = Caller::effectiveUid();
         // PKEXEC_UID, when pkexec started the command.
         std::optional<QString> pkexecUid = Caller::pkexecUidFromEnvironment();

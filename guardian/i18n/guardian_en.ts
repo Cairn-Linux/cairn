@@ -226,26 +226,31 @@
     </message>
     <message>
         <location filename="../qml/ChildrenView.qml" line="73"/>
-        <source>The change did not finish. Trying again is safe. If it fails again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
+        <source>Another change to the family was still under way, so nothing changed. Try again in a moment.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/ChildrenView.qml" line="75"/>
+        <source>The change did not finish. Trying again is safe. If it fails again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/ChildrenView.qml" line="77"/>
         <source>Cairn&apos;s family command did not answer as expected. The list shows what is in place now. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/ChildrenView.qml" line="82"/>
+        <location filename="../qml/ChildrenView.qml" line="84"/>
         <source>Children</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/ChildrenView.qml" line="95"/>
+        <location filename="../qml/ChildrenView.qml" line="97"/>
         <source>Each child has their own login and their own level. A level can go up or down at any time, whatever fits now. Every change asks for your password.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/ChildrenView.qml" line="109"/>
+        <location filename="../qml/ChildrenView.qml" line="111"/>
         <source>No children yet. Add one below.</source>
         <translation type="unfinished"></translation>
     </message>

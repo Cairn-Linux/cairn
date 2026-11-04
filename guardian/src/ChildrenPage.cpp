@@ -138,6 +138,7 @@ ChildrenPage::Reason ChildrenPage::reasonFor(const QString& answer) {
         {QStringLiteral("taken"), Reason::Taken},
         {QStringLiteral("not-a-child"), Reason::NotAChild},
         {QStringLiteral("failed"), Reason::Failed},
+        {QStringLiteral("busy"), Reason::Busy},
         {QStringLiteral("dismissed"), Reason::Dismissed},
         {QStringLiteral("not-authorized"), Reason::NotAuthorized},
     };

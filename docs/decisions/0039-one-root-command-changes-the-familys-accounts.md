@@ -70,6 +70,11 @@ in `guardian/`, the Guardian's side. It has two subcommands:
 | `create-child LOGIN LEVEL [--full-name NAME]` | A new account gets `useradd --create-home`, with the full name as its comment when one is given and its level group, then `passwd --lock`. An existing Cairn child gets its password locked if it is not, its full name if one is given and differs, and its level. A second run with the same values changes nothing. |
 | `set-level LOGIN LEVEL` | An existing Cairn child gets its password locked if it is not, then the new level group, then leaves every other level group. A child already at exactly that level, with its password locked and its entry as written, is left alone. |
 
+Since 2026-11-03 both take the lock `/run/lock/cairn-family-accounts`
+before they read the account, and hold it until the change is made, so
+two changes at once never work from one old reading (#255). A lock that
+cannot be made at all is `failed`, not `busy`.
+
 Both write the child's "Steam for <child>" entry in
 `/usr/local/share/applications`, with the same text as provisioning's
 `steam_entry`. On Bazzite that folder is the computer's own
@@ -100,6 +105,7 @@ helper does: `done`, or `refused` and a reason.
 | `bad-level` | Anything but `1` or `2` |
 | `taken` | `create-child` names an account Cairn did not make |
 | `not-a-child` | `set-level` names no Cairn child |
+| `busy` | `create-child` or `set-level` waited 15 minutes for another change to the family's accounts to finish, and changed nothing (#255) |
 | `failed` | A system tool, or writing the entry, failed |
 
 It exits 0 on `done` and 1 on a refusal. It writes one line to the
