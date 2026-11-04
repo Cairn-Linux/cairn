@@ -355,13 +355,16 @@ working afterwards. Each deployment has its own `/etc`, and they share
 ### What the kids' laptop's move will need
 
 Not done yet; only the maintainer runs these, on the laptop.
-They were rehearsed on 2026-11-02 in the test VM, from a Bazzite set up
-by hand like the laptop to the image built from e005b7a, and the list
-below has what that rehearsal found.
+They were rehearsed in the test VM, from a Bazzite set up by hand like
+the laptop: on 2026-11-02 to the image built from e005b7a, and on
+2026-11-03 to the image built from 2d37676.
+The list below has what those rehearsals found.
 The VM ran every step, but steps 6 and 7 found nothing to put right
 there, so step 6's copy and step 7's added rule are untried.
-The image does not record its commit, so note the commit beside the
-image.
+An image built as `docs/DEVELOPMENT.md` says names its commit in its
+`org.opencontainers.image.revision` label, which `podman image inspect`
+reads back.
+For an image built without the labels, note the commit beside it.
 
 First, keep what must not be lost, and get ready:
 
@@ -378,6 +381,8 @@ First, keep what must not be lost, and get ready:
   `sudo rpm-ostree cancel` if `rpm-ostree status` says busy.
   Its timer also runs a few minutes after any start that missed 04:00,
   and its upgrade makes step 2 fail.
+  An upgrade that already finished queued a newer Bazzite, which does no
+  harm: step 3 replaces it.
 - Check out the image's commit before step 1.
   A checkout from before 2026-10-21 has neither script below.
 - Load the image into root's container storage, for example
@@ -387,6 +392,8 @@ First, keep what must not be lost, and get ready:
   Reading a pipe, `podman load` keeps a second copy in `/var/tmp` while
   it runs, so leave twice the image's 12 GB free, and about 8 GB more for
   step 3.
+  Compare the loaded image's ID with the one built, not its digest,
+  which `podman save` changes.
 
 Then check that no group has the image's numbers:
 `getent group 461 462 463 464 465` should print nothing, or only Cairn's
@@ -399,8 +406,8 @@ own groups.
    `desktop-backgrounds-compat`.
    Go straight on to step 3: a restart now would start Bazzite without
    SDDM.
-   In the rehearsal step 3 replaced the system the reset queued, so this
-   step may not be needed.
+   Both rehearsals ran it, and step 3 then replaced the system it queued.
+   Neither tried step 3 without it, so keep it.
 3. `sudo bootc switch --transport containers-storage localhost/cairn:dev`,
    then restart.
    The login screen is still provisioning's, from `/usr/local`, until
@@ -414,6 +421,10 @@ own groups.
    `/etc/polkit-1/actions/com.cairnlinux.steam-visit.policy`, which names
    `/var/usrlocal`, and `/etc/systemd/logind.conf.d/10-cairn-power.conf`.
    Use `rm -f`: a computer that never had the visit has no polkit action.
+   Until it goes, the old `10-cairn-power.conf` also hides the image's
+   file of that name, and with it `PowerKeyIgnoreInhibited=yes`
+   (ADR-0049); `systemd-analyze cat-config systemd/logind.conf` shows that
+   line once it is gone.
 6. Compare `/etc/pam.d/sddm`, `/etc/pam.d/login`,
    `/etc/pam.d/cairn-steam-visit`, `/etc/security/faillock.conf` and
    `/etc/sddm.conf.d/zz-cairn-no-autologin.conf` with the image's copies
@@ -434,6 +445,10 @@ own groups.
    A computer that never had the visit has only the faillock rule, and
    bootc keeps that file over the image's.
 8. Remove the leftover sudoers file, then check with `sudo visudo -c`.
+   From then on sudo asks for the password, and three wrong tries lock
+   the account for ten minutes.
+   A `sudo` sent over ssh without a terminal cannot ask, and counts as a
+   wrong try.
 9. Run `cairn-family-setup.sh` from a checkout of the image's commit.
    Its entries replace provisioning's, which named `/usr/local/bin`,
    for every child, named on that run or not.
@@ -446,10 +461,12 @@ own groups.
     The Save copies only what a child lacks, and a game left off keeps
     its copy and its saves; it only has no tile (ADR-0041).
 
-The rehearsal took about 20 minutes from the group check to the last
+The rehearsals took 21 and 12 minutes from the group check to the last
 restart, besides copying the image.
 The computer then calls itself `cairn` if it had no name of its own, and
 a Guardian made on Bazzite may still see Bazzite Portal at login.
+Switching off its "Launch at startup" removes the Guardian's own entry
+that starts it.
 
 The way back is `sudo rpm-ostree rollback`, then a restart;
 `bootc rollback` refuses a deployment with rpm-ostree packages.
@@ -458,6 +475,12 @@ step 4 removed it.
 From a text console (Ctrl+Alt+F3) or over ssh, restore the copy with
 `sudo tar -C /var -xpf ~/usrlocal-before-cairn.tar`, run
 `sudo restorecon -R /var/usrlocal`, then `sudo systemctl restart sddm`.
+On the image the login screen's own account can get a new number, and
+`/var/lib/sddm` goes with it: in the second rehearsal 955 became 956.
+The way back was not tried again since.
+If the old login screen does not come back,
+`sudo chown -R sddm:sddm /var/lib/sddm` gives the folder back to the old
+system's account; then restart sddm again.
 
 ## What it must do
 
