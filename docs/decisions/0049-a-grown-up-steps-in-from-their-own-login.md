@@ -1,19 +1,27 @@
 # ADR-0049: A grown-up steps in from their own login, not inside the child's session
 
-**Status:** proposed. On 2026-11-02 Mason decided that child test 2
-includes Steam games. After the research below, he decided the same day
-that for that test a grown-up steps in by logging the child out and
-fixing Steam from their own login, with one new line on the grown-up
-screen ("What Mason decided then", below). The in-session step-in stays
-open in #88. This ADR becomes accepted when checks 1 to 6 and 8 under
-"Checks in the VM" have run without overturning a bullet of the
-Decision.
+**Status:** accepted (2026-11-03). On 2026-11-02 Mason decided that
+child test 2 includes Steam games. After the research below, he decided
+the same day that for that test a grown-up steps in by logging the child
+out and fixing Steam from their own login, with one new line on the
+grown-up screen ("What Mason decided then", below). The in-session
+step-in stays open in #88. The ADR was to be accepted when checks 1 to 6
+and 8 under "Checks in the VM" had run without overturning a bullet of
+the Decision.
+Checks 3 to 6 ran on 2026-11-02 ("Run on 2026-11-02"), and checks 1, 2
+and 8 on 2026-11-03 with real Steam sign-ins ("Run on 2026-11-03"), apart
+from Exit in Steam's menu (check 1) and the screen reader (check 8).
+Closing Steam's window ended a visit by itself, which is what Exit was
+to show.
+The same day Mason decided that neither Exit nor the screen reader holds
+acceptance back, nor does Steam's updater window at a child's login
+("What Mason decided on 2026-11-03", below).
 **Date:** 2026-11-02
 **Closes:** (none) — the narrow version of issue #88, for child test 2
 (ROADMAP P1-17); the in-session step-in stays open in #88. It answers
 the question ADR-0045 left open for #182, and the change that brings it
-closes #182, as Mason chose on 2026-11-02. Part of ROADMAP P1-13. Once
-accepted, amends ADR-0018, ADR-0032, ADR-0036 and ADR-0045.
+closes #182, as Mason chose on 2026-11-02. Part of ROADMAP P1-13.
+Amends ADR-0018, ADR-0032, ADR-0036 and ADR-0045.
 
 ## Context
 
@@ -268,6 +276,10 @@ window and no text console appear in their session.
   Nobody has yet seen a sign-in made in a visit reach the kiosk (check
   1), or a refused sign-in mended this way (check 2).
   So this change merges only after checks 1 and 2 have passed ("Slices").
+  It merged on 2026-11-03 at 12:19 (#267), before either check ran,
+  against this rule.
+  Check 1 passed at 16:40 and check 2 at 21:35 the same day ("Run on
+  2026-11-03").
 - **Steam's questions do not get it yet.**
   For a question Steam keeps, such as a cloud conflict, the grown-up
   would press Play inside the visit so that Steam asks again, answer,
@@ -461,6 +473,7 @@ With `ptrace_scope` 1, criterion 6 becomes a yes for this route too.
    The change merges only after checks 1 and 2 have passed, since
    ADR-0045 adds a line only with a remedy that was seen to mend the
    case ("The line").
+   (It merged first; see "The line".)
 2. **A time limit on a visit,** 60 minutes, in the visit helper's own
    close (ADR-0032), in a change of its own, if Mason wants one.
    Plasma's idle lock is the only limit today, and a family can turn it
@@ -607,7 +620,7 @@ The Family app's "Open Steam for Ada" is on the image only (ADR-0041).
 - If a sign-in made in a visit does not reach the kiosk (check 1), this
   route fails for Steam, and P1-17's other branch applies: no Steam in
   that run.
-- Once accepted, it amends:
+- It amends:
   - **ADR-0018:** no program's lock stops the power button's hold.
     L1 and L2 are refused logind's lock on the power key, and
     `PowerKeyIgnoreInhibited=yes` makes the hold ignore every program's
@@ -635,7 +648,7 @@ The Family app's "Open Steam for Ada" is on the image only (ADR-0041).
   lines gains: "When Steam's sign-in was turned down, the grown-up
   screen says 'Log out, then a grown-up can fix it from their own
   login.', and a Guardian signs the child's Steam in again from their
-  own login (ADR-0032; ADR-0049, proposed)."
+  own login (ADR-0032, proposed; ADR-0049)."
 - **DESIGN §8.3, mitigation 3,** said the foreign-toplevel protocol tells
   the launcher a Steam window appeared "so it can show the grown-up
   screen instead".
@@ -645,7 +658,7 @@ The Family app's "Open Steam for Ada" is on the image only (ADR-0041).
   A launch held behind one ends on the grown-up screen (mitigation 2,
   ADR-0030).
   No Steam window is shown in a child's session, even for a grown-up
-  (ADR-0049, proposed).
+  (ADR-0049).
   The sentences on why L1 and L2 use `labwc`, and that Phase 0 proved
   it, stay with the window rules and the protocol they are about.
 - **DESIGN §3.2, "Two access paths":** "Full administration" gains a
@@ -666,6 +679,8 @@ The Family app's "Open Steam for Ada" is on the image only (ADR-0041).
   §4.5 changes later, with launched apps' own sessions.
 - **ADR-0018, ADR-0032, ADR-0036 and ADR-0045** get "Amended by"
   lines; ADR-0018's is in its status line.
+- Until this ADR was accepted on 2026-11-03, these edits, the "Amended
+  by" lines and the ROADMAP called it "ADR-0049, proposed".
 - **`docs/TRY.md`:** the steps, the habits and the sentences above.
   Its closing note says the steps for a refused sign-in have not been
   run as written yet.
@@ -723,7 +738,8 @@ before this change merges.
 2. **A real refused sign-in, mended from the grown-up's login.**
    Make `ada`'s saved sign-in fail by spoiling it in a snapshot: with
    her Steam stopped, change the saved token (Steam keeps it under
-   `ConnectCache` in `config/config.vdf`; inference).
+   `ConnectCache` in `config/local.vdf`, as the run on 2026-11-03 found;
+   this text first guessed `config/config.vdf`).
    Nothing else is done to the account.
    If that gives no `LogonFailure` other than `No Connection`, the check
    stops there and is reported, and the test account's saved sign-ins
@@ -898,6 +914,133 @@ The record and its pictures are in the maintainer's work area.
   watcher is to read too.
 - **Not run yet:** checks 1 and 2, which need the test account's
   password, and checks 7 and 8.
+  Checks 1, 2 and 8 ran on 2026-11-03 (next section).
+
+### Run on 2026-11-03
+
+In `cairn-min`, from its snapshot `before-steam-session-2026-11-03`: the
+image built from main 2d37676, with nothing laid over `/usr`.
+So the line and the journal's sentence were this change's as merged
+(#267).
+The system updater, `uupd`, was stopped by hand.
+Mason typed the test Steam account's password himself.
+The game was Freddi Fish 2, a Linux game.
+The Guardian's Steam owns it and shares it with the test account through
+Steam Families.
+The Guardian's Steam installed it straight into the family folder.
+Look for new games and Save then put it on `ada`'s list (ADR-0033's
+section "What the VM showed on 2026-11-03").
+Times are the VM's clock, in MST.
+The record is in the maintainer's work area.
+
+- **Check 1 passed.**
+  In the first visit `ada`'s Steam started at 16:32:28.
+  At 16:33:49, before Mason had typed anything, it wrote `LogonFailure
+  No Connection`, as a Steam with no saved sign-in did on 2026-11-02.
+  It signed in at 16:34:21, with "Remember me".
+  The visit ended with Done (16:35:37), and the window said it was
+  closed.
+  Afterwards the visit list was empty and no process of the visits was
+  left.
+  Her Steam's `config/local.vdf` held one saved sign-in under
+  `ConnectCache`.
+  At `ada`'s login her Steam started at 16:40:22.
+  It signed in at 16:40:40, with `Waiting for compat in post-logon took:`
+  and no `LogonFailure`.
+  The game was tapped at 16:40:37, while Steam was still signing in.
+  The launcher logged that Steam was getting it ready, and the game
+  started at 16:40:46, about 9 s after the tap.
+  No Steam window showed: the game's window was the only one in sight.
+  Exit in Steam's menu was not tried, nor a second visit straight
+  after this one; check 2's visit, below, ended when Mason closed
+  Steam's window.
+  The snapshot `ada-signed-in-2026-11-03`, taken at the login screen
+  afterwards, keeps her signed in.
+- **Check 8's offline half passed.**
+  With the VM's network link set down from the host and her sign-in
+  fine, `ada` tapped the game.
+  The launcher logged at 21:22:09 that Steam was getting it ready.
+  Steam wrote `LogonFailure No Connection` from 21:22:22.
+  At 21:22:54 the journal noted the failed launch, and the screen said
+  "Something needs a grown-up." and
+  "Freddi Fish 2 … did not start.", with no line under it.
+- **The journal's reason offline was not the one expected.**
+  The session's notes expected ADR-0036's sentence for no connection,
+  "Steam could not reach the internet, so … did not start."
+  The journal said instead "Nothing of … came on the screen in time."
+  and "Steam is waiting for an answer about … on a window the kiosk
+  hides."
+  Steam's log had named the game before its sign-in failed.
+  From then on ADR-0036 has the launch's own steps decide the reason,
+  not the sign-in.
+  What Steam waited for was most likely Steam Cloud's question about
+  playing offline, which ADR-0030 names as the usual reason a game will
+  not start offline (inference: the kiosk hid the window, so nobody saw
+  it).
+  So this game, which uses Steam Cloud, did not start offline
+  (#274).
+  ADR-0036 saw a game start offline on 2026-10-28.
+  The screen held: no line.
+  With the network back up, Steam signed in at 21:23:53.
+- **Check 2 passed.**
+  With `ada`'s Steam stopped, one character near the end of its one
+  saved sign-in in `config/local.vdf` was changed.
+  `config/config.vdf` held no `ConnectCache` entry.
+  At her next login Steam started at 21:26:13, and she tapped the game at
+  21:26:14.
+  Steam wrote `LogonFailure Invalid Password` at 21:26:20.
+  At 21:26:29, 15 s after the tap, the journal said "Steam could not sign
+  in, so … did not start. Log the child out, then open Steam for them
+  from your own login and sign in again."
+  The screen showed "Log out, then a grown-up can fix it from their own
+  login." under "… did not start.", at the same size, as check 8 asks.
+  This is check 8's first half.
+  Log out reached the login screen at 21:30:36.
+  The Guardian logged in at 21:30:43.
+  "Steam for ada", Open and the password started the visit at 21:32:00.
+  Mason signed her Steam in and closed her Steam's window with its X.
+  That ended the visit by itself at 21:34:12: the window said it was
+  closed and went back to Family, with no Done.
+  The Guardian logged out at 21:34:41, and `ada` logged in at 21:34:45.
+  Her Steam signed in at 21:34:59.
+  She tapped the game at 21:35:21, and it started at 21:35:24.
+  From the Guardian's login to the game took 4 minutes 41 seconds.
+  From the refused tap to the game took about 9 minutes, logouts and
+  the visit included.
+- **Steam's updater window showed at that login.**
+  At 21:34:48 Steam checked for an update of itself and applied none.
+  Mason saw its updating window for about a second.
+  At 21:34:50 the launcher logged "Steam opened a window on its own." and
+  the kiosk hid it.
+  That is a Steam window in a child's session, which "What the child
+  sees" says does not appear (#275).
+  It was seen at this one login only, the first after a visit.
+  The launcher logged no such window at `ada`'s other four logins that
+  day, so whether it follows a visit or comes at random is not known.
+- **Back worked** both times the grown-up screen came (offline, and the
+  refused sign-in), as Mason saw, and Log out did (21:30:36).
+- **Not recorded:** whether the line is read with the screen (check 8).
+- **Still to run:** Exit in Steam's menu (check 1), and check 7.
+
+The VM was powered off into the snapshot
+`after-steam-session-2026-11-03`.
+
+### What Mason decided on 2026-11-03
+
+After the run, Mason decided three things, and this ADR was accepted.
+
+- **Steam's updater window at a child's login does not hold acceptance
+  back.**
+  It goes against "What the child sees", but it is a bug of its own, in
+  #275, not a fault of stepping in from the grown-up's login.
+- **Exit in Steam's menu need not be tried first.**
+  Done, which ends a visit, works, and so does closing Steam's window.
+  Exit can be tried on the kids' laptop.
+- **The screen reader need not be heard first.**
+  The QML test `test_theGrownUpScreenSaysWhatWillHelp` checks that the
+  screen's accessible description includes the line, which is what a
+  screen reader reads with the screen.
+  No screen reader runs in the kiosk yet.
 
 ### Research only, after child test 2
 
@@ -915,9 +1058,9 @@ The record and its pictures are in the maintainer's work area.
 
 ### On the kids' laptop
 
-10. Once it runs the image: check 2's route, timed; and `getfacl
-    /dev/hidraw*` during a child's session, to size the hidraw residue
-    on that computer.
+10. Once it runs the image: check 2's route, timed; Exit in Steam's menu
+    to end a visit (check 1); and `getfacl /dev/hidraw*` during a child's
+    session, to size the hidraw residue on that computer.
 
 ## Alternatives considered
 

@@ -818,10 +818,17 @@ Valve documents none of it.
   name out of a moved game, and the copy step out of a child's new copy.
   A copy made before then loses one only while it is byte for byte the
   family folder's file in the same place, and the family folder keeps
-  its own (ADR-0033 and ADR-0042, sections of that date). Not known yet:
-  what a child's Steam does with a copy whose marker names another
-  account, and whether a Steam that finds saves with no marker asks
-  anything before it writes its own.
+  its own (ADR-0033 and ADR-0042, sections of that date). Partly
+  answered on 2026-11-03 in the test VM, for Freddi Fish 2 with no saves
+  yet (ADR-0033, "What the VM showed on 2026-11-03"). A child's Steam,
+  signed in to an account other than the Guardian's, wrote its own
+  marker in a copy that had none, and asked nothing. With the Guardian's
+  marker put in the child's copy by hand, it replaced it with its own,
+  again with no question. Its cloud log named no conflict (ADR-0033
+  gives its counts), nothing moved or set aside, and `Saves` held no file but
+  the marker. Still not known:
+  what it does with real saves beside another account's marker, and
+  whether it asks anything when it finds saves with no marker.
 - **A manifest is what makes a game installed.** Steam knows a library's
   games from its `appmanifest_<appid>.acf` files, whose `installdir`
   names the folder under `common/` ("How Steam keeps its list of
