@@ -189,6 +189,63 @@ class KidscanTests(unittest.TestCase):
         paths = kidscan.library_paths(self.lib.root)
         self.assertEqual(paths, [self.lib.root / "steamapps", self.lib.lib2 / "steamapps"])
 
+    def write_libraryfolders(self, text):
+        (self.lib.root / "steamapps" / "libraryfolders.vdf").write_text(text)
+
+    def test_library_paths_takes_an_old_list_of_bare_paths(self):
+        self.write_libraryfolders(f'"LibraryFolders" {{ "1" "{self.lib.lib2}" }}')
+        paths = kidscan.library_paths(self.lib.root)
+        self.assertEqual(paths, [self.lib.root / "steamapps", self.lib.lib2 / "steamapps"])
+
+    def test_library_paths_keeps_the_root_when_the_list_is_not_a_block(self):
+        # Each parses, but libraryfolders is not a block of entries (#258).
+        for text in ('"libraryfolders" "not-a-block"',
+                     '"libraryfolders" ""',
+                     '"something-else" { "1" { "path" "/x" } }',
+                     ''):
+            with self.subTest(text=text):
+                self.write_libraryfolders(text)
+                stderr = io.StringIO()
+                with redirect_stderr(stderr):
+                    paths = kidscan.library_paths(self.lib.root)
+                self.assertEqual(paths, [self.lib.root / "steamapps"])
+
+    def test_library_paths_warns_when_libraryfolders_is_not_a_block(self):
+        self.write_libraryfolders('"libraryfolders" "not-a-block"')
+        stderr = io.StringIO()
+        with redirect_stderr(stderr):
+            kidscan.library_paths(self.lib.root)
+        self.assertIn("libraryfolders.vdf", stderr.getvalue())
+        self.assertIn("only the main library", stderr.getvalue())
+
+    def test_library_paths_passes_over_entries_of_the_wrong_kind(self):
+        # The good entry is last, so every bad one before it is passed over
+        # and the scan still reaches it.
+        self.write_libraryfolders(textwrap.dedent(f'''\
+            "libraryfolders"
+            {{
+            \t"contentstatsid"\t\t"-123456789"
+            \t"1"\t\t""
+            \t"2"\t\t"relative/SteamLibrary"
+            \t"3"\t\t"~nosuchuser/SteamLibrary"
+            \t"4"\t\t{{ }}
+            \t"5"\t\t{{ "path" {{ "inner" "/x" }} }}
+            \t"6"\t\t{{ "path" "" }}
+            \t"7"\t\t{{ "path" "~nosuchuser/SteamLibrary" }}
+            \t"8"\t\t{{ "label" "no path" }}
+            \t"9"\t\t{{ "path" "{self.lib.lib2}" }}
+            }}
+            '''))
+        paths = kidscan.library_paths(self.lib.root)
+        self.assertEqual(paths, [self.lib.root / "steamapps", self.lib.lib2 / "steamapps"])
+
+    def test_a_list_that_is_not_a_block_still_lists_the_main_librarys_games(self):
+        self.write_libraryfolders('"libraryfolders" "not-a-block"')
+        stderr = io.StringIO()
+        with redirect_stderr(stderr):
+            entries = kidscan.build_entries([self.lib.root], None, {})
+        self.assertEqual({e["source"]["appid"] for e in entries}, {"294660", "400"})
+
     def test_installed_apps_filters_denylist_proton_and_missing_dirs(self):
         apps = {a["appid"]: a for a in kidscan.installed_apps(self.lib.root / "steamapps")}
         self.assertEqual(set(apps), {"294660", "400"})

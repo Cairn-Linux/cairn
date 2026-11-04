@@ -155,12 +155,18 @@ def library_paths(steam_root):
         return paths
 
     folders = ci_get(data, "libraryfolders", {})
+    if not isinstance(folders, dict):
+        print(f"warning: {vdf_path} does not list libraries as Steam does; "
+              "reading only the main library", file=sys.stderr)
+        return paths
     for entry in folders.values():
         # Modern format nests a dict with "path"; ancient format is a bare string.
         raw = ci_get(entry, "path") if isinstance(entry, dict) else entry
-        if not raw:
+        # Steam writes each path in full. Provisioning's steps read the
+        # lists by the same rule, so kidscan finds the libraries they do.
+        if not isinstance(raw, str) or not os.path.isabs(raw) or "\0" in raw:
             continue
-        steamapps = Path(raw).expanduser() / "steamapps"
+        steamapps = Path(raw) / "steamapps"
         if steamapps.is_dir() and steamapps not in paths:
             paths.append(steamapps)
     return paths
