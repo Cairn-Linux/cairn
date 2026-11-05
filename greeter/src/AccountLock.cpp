@@ -14,7 +14,8 @@ constexpr int readEveryMs = 1000;
 // reads "10 minutes" here as it does at sudo. faillock lets a try in only
 // the second after the count reaches 0, so at each step the real wait can
 // be up to a second longer than said. Only "You can try again now." says
-// a try is allowed, and it comes exactly when faillock allows one.
+// a try is allowed; it never comes early, but the once-a-second read can
+// make it up to a second late.
 int wholeMinutes(qint64 seconds) {
     return static_cast<int>((seconds + secondsInMinute - 1) / secondsInMinute);
 }

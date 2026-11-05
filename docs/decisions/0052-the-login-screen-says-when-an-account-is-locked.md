@@ -18,8 +18,9 @@ account was locked or for how long.
 The Guardian thought they had forgotten their password.
 
 The login screen could not see a lock:
-- `/var/lib/faillock/<login>` is mode 0660, owned by the account and
-  group root, and the greeter runs as user `sddm`;
+- `/var/lib/faillock/<login>` is mode 0660, owned by the account, with
+  the group of whoever made it (root for the login screen and sudo, the
+  caller's own group for `su`), and the greeter runs as user `sddm`;
 - authselect's `pam_faillock.so preauth silent` sends the greeter no
   message;
 - libpam has no call that asks, and the `faillock` command opens the
@@ -156,8 +157,9 @@ Set aside:
   600-second lock reads "10 minutes" here as at sudo. faillock lets a try
   in only the second after the count reaches 0, so at each step the real
   wait can be up to a second longer than the screen says. Only "You can
-  try again now." says a try is allowed, and it comes exactly when
-  faillock allows one.
+  try again now." says a try is allowed. It never comes early, but can
+  come up to a second late, because the screen reads the record once a
+  second.
 - The screen reads the record once a second while a locked tile is open,
   and not at all otherwise.
 - ADR-0049's check 5 recorded today's words for a locked account; they
@@ -177,10 +179,11 @@ laptop:
    `default:user:sddm:r--` and `default:group::rw-` on the folder, and on
    each file `user:sddm:r--`, `group::rw-` and `mask::rw-`. A count made
    by three new wrong tries shows the same. `systemd-tmpfiles --create`
-   leaves each file's owner `<login>:root` and mode 0660.
+   leaves each file's owner, group and mode 0660 as they were.
 2. `ps -eZ | grep sddm-greeter` shows `xdm_t`, `ls -Z /var/lib/faillock`
-   shows `faillog_t`, and `ausearch -m avc -ts recent` is empty after a
-   locked tile is chosen.
+   shows `faillog_t`, and `journalctl -b | grep 'AVC avc'` shows no new
+   denial after a locked tile is chosen. (`ausearch` sees no AVCs on the
+   image, so its empty answer proves nothing.)
 3. Three wrong tries at the login screen: the third shows "locked …
    Try again in 10 minutes." at once, not on the fourth.
 4. Three wrong `su - <guardian>` tries, then the Guardian's tile: the
@@ -197,3 +200,9 @@ laptop:
 9. The right password sent in the last two or three seconds of a lock
    says "You can try again now.", never "did not work", and the next
    try logs in.
+
+## Record
+
+2026-11-05, cairn-min on `dev.20261105-b0797c5`: checks 1 to 7 and 9
+passed, and an audit of the evidence confirmed them. Check 8 passed on
+the VM only; the laptop's `getfacl` waits for its image update.
