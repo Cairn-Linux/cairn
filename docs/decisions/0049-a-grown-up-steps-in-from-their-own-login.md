@@ -870,6 +870,8 @@ The record and its pictures are in the maintainer's work area.
   A wrong password at the login screen gives "That password did not
   work. After a few wrong tries, the account waits a few minutes before
   it lets anyone try again.", and so does a locked account.
+  Since ADR-0052 the login screen says when the account is locked and
+  for how long, and never calls a password wrong while it is.
   Three wrong tries locked the Guardian.
   While locked, the right password was refused at the login screen and
   by `su`, whose PAM stack, `system-auth`, the visit's polkit box uses

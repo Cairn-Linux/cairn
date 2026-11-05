@@ -23,11 +23,23 @@ theme and the small C++ module the theme imports.
   open from their own login, "A grown-up is setting something up for you.
   Try again soon." It reads the list of children on a visit that PAM reads
   (`/run/cairn/steam-visits`, ADR-0032).
-- `tests/`: `tst_accountkind`, `tst_familymodel` and `tst_failedlogin`
-  for the C++; `tst_loginscreen` loads the real `theme/Main.qml` with a
-  stand-in for SDDM's `sddm`, `userModel` and `sessionModel` and drives it
-  by keyboard and mouse. `fixtures/` holds two lists of children on a
-  visit for it.
+  `AccountLock` says whether faillock has locked the account whose
+  password row is open, and for how long (ADR-0052). It reads faillock's
+  settings (`FaillockSettings`) and its count of wrong tries
+  (`TallyFile`, from `/var/lib/faillock`, which the image lets `sddm`
+  read), and applies faillock's own rule (`LockRule`, copied from
+  linux-pam 1.7.2). The screen then says "This account is locked … Try
+  again in N minutes.", counting down by the minute, or "One more wrong
+  try locks this account for 10 minutes." When it cannot tell, it keeps
+  the plain words, and the password row stays open either way.
+- `tests/`: `tst_accountkind`, `tst_familymodel`, `tst_failedlogin`,
+  `tst_faillocksettings`, `tst_tallyfile`, `tst_lockrule` and
+  `tst_accountlock` for the C++; `tst_loginscreen` loads the real
+  `theme/Main.qml` with a stand-in for SDDM's `sddm`, `userModel` and
+  `sessionModel` and drives it by keyboard and mouse. `StandInFaillock`
+  writes faillock's records in a folder of its own, so no test needs
+  root. `fixtures/` holds two lists of children on a visit and a
+  faillock settings file the screen does not follow.
 - `i18n/greeter_en.ts`: the theme's strings (ADR-0007), from the
   `greeter_lupdate` target.
 
