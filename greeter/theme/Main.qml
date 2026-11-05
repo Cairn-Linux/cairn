@@ -28,6 +28,9 @@ Rectangle {
     property bool busy: false
     property string loggingIn: ""
     property string message: ""
+    // The lock sentence last put in the message, so one that no longer
+    // holds can be taken away again.
+    property string lockWords: ""
 
     width: Tokens.displaySize * 20
     height: Tokens.displaySize * 14
@@ -45,6 +48,13 @@ Rectangle {
             switch (root.failedLogin.reasonFor(root.loggingIn, root.askingFor >= 0)) {
             case FailedLogin.Locked:
                 root.askAgain(root.lockNotice());
+                root.lockWords = root.message;
+                break;
+            case FailedLogin.LockRanOut:
+                // Refused for the lock, which ran out while PAM answered:
+                // the password was never checked, so it is not called wrong.
+                root.askAgain(qsTr("You can try again now."));
+                root.lockWords = root.message;
                 break;
             case FailedLogin.SteamVisit:
                 root.askingFor = -1;
@@ -83,8 +93,10 @@ Rectangle {
             if (root.askingFor < 0 || root.busy)
                 return;
             const notice = root.lockNotice();
-            if (notice.length > 0)
+            // A lock sentence that no longer holds goes; other words stay.
+            if (notice.length > 0 || root.message === root.lockWords)
                 root.message = notice;
+            root.lockWords = notice;
             if (root.accountLock.state === AccountLock.OpenAgain)
                 passwordRow.takeFocus();
         }
@@ -120,6 +132,8 @@ Rectangle {
         root.busy = true;
         root.loggingIn = loginName;
         root.message = "";
+        if (root.askingFor >= 0)
+            root.accountLock.noteTry();
         sddm.login(loginName, password, sessionModel.lastIndex >= 0 ? sessionModel.lastIndex : 0);
     }
 
@@ -133,6 +147,7 @@ Rectangle {
             root.accountLock.loginName = loginName;
             // Said before anyone types; the row stays open all the same.
             root.message = root.lockNotice();
+            root.lockWords = root.message;
             passwordRow.clear();
             passwordRow.takeFocus();
         } else {
@@ -144,6 +159,7 @@ Rectangle {
         root.askingFor = -1;
         root.accountLock.loginName = "";
         root.message = "";
+        root.lockWords = "";
         tiles.forceActiveFocus();
     }
 

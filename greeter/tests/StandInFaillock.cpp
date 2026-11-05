@@ -9,10 +9,7 @@
 
 StandInFaillock::StandInFaillock(const QByteArray& settings, QObject* parent) : QObject(parent) {
     QDir(m_root.path()).mkdir(QStringLiteral("faillock"));
-    QFile file(m_root.filePath(QStringLiteral("faillock.conf")));
-    if (file.open(QIODevice::WriteOnly)) {
-        file.write("dir = " + dir().toUtf8() + "\n" + settings);
-    }
+    setSettings(QString::fromUtf8(settings));
 }
 
 QString StandInFaillock::dir() const {
@@ -50,5 +47,12 @@ void StandInFaillock::reset() const {
     QDir folder(dir());
     for (const QString& name : folder.entryList(QDir::Files)) {
         folder.remove(name);
+    }
+}
+
+void StandInFaillock::setSettings(const QString& settings) const {
+    QFile file(m_root.filePath(QStringLiteral("faillock.conf")));
+    if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        file.write("dir = " + dir().toUtf8() + "\n" + settings.toUtf8());
     }
 }

@@ -42,6 +42,11 @@ FailedLogin::Reason FailedLogin::reasonFor(const QString& loginName, bool gavePa
         if (m_accountLock->locked()) {
             return Reason::Locked;
         }
+        // faillock refused that try for the lock, which ran out while PAM
+        // was answering; the password was never checked.
+        if (m_accountLock->lockedAtLastTry()) {
+            return Reason::LockRanOut;
+        }
         lock = m_accountLock->state();
     }
     if (lists(m_visitsFile.toLocalFile(), loginName)) {

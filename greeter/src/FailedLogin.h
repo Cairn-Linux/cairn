@@ -32,6 +32,7 @@ class FailedLogin : public QObject {
 public:
     enum class Reason : std::uint8_t {
         Locked,           // faillock has locked the account; the password may be right
+        LockRanOut,       // locked when the password was sent, and not now
         SteamVisit,       // a grown-up has this child's Steam open
         WrongPassword,    // a password was not taken, and the lock is unknown
         TryAgain,         // a password was not taken; two or more tries are left

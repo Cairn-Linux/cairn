@@ -4,17 +4,17 @@
 <context>
     <name>Main</name>
     <message>
-        <location filename="../theme/Main.qml" line="52"/>
+        <location filename="../theme/Main.qml" line="62"/>
         <source>A grown-up is setting something up for you. Try again soon.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../theme/Main.qml" line="56"/>
+        <location filename="../theme/Main.qml" line="66"/>
         <source>That password did not work. Try again.</source>
         <translation type="unfinished"></translation>
     </message>
     <message numerus="yes">
-        <location filename="../theme/Main.qml" line="61"/>
+        <location filename="../theme/Main.qml" line="71"/>
         <source>That password did not work. One more wrong try locks this account for %n minutes.</source>
         <translation type="unfinished">
             <numerusform></numerusform>
@@ -22,22 +22,22 @@
         </translation>
     </message>
     <message>
-        <location filename="../theme/Main.qml" line="64"/>
+        <location filename="../theme/Main.qml" line="74"/>
         <source>That password did not work. One more wrong try locks this account.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../theme/Main.qml" line="67"/>
+        <location filename="../theme/Main.qml" line="77"/>
         <source>That password did not work. After a few wrong tries, the account waits a few minutes before it lets anyone try again.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../theme/Main.qml" line="70"/>
+        <location filename="../theme/Main.qml" line="80"/>
         <source>Something needs a grown-up.</source>
         <translation type="unfinished"></translation>
     </message>
     <message numerus="yes">
-        <location filename="../theme/Main.qml" line="99"/>
+        <location filename="../theme/Main.qml" line="111"/>
         <source>This account is locked after too many wrong passwords. Try again in %n minutes.</source>
         <translation type="unfinished">
             <numerusform></numerusform>
@@ -45,27 +45,28 @@
         </translation>
     </message>
     <message>
-        <location filename="../theme/Main.qml" line="101"/>
+        <location filename="../theme/Main.qml" line="113"/>
         <source>This account is locked after too many wrong passwords. Try again in less than a minute.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../theme/Main.qml" line="103"/>
+        <location filename="../theme/Main.qml" line="115"/>
         <source>This account is locked after too many wrong passwords. A grown-up can unlock it.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../theme/Main.qml" line="105"/>
+        <location filename="../theme/Main.qml" line="117"/>
         <source>This account is locked after too many wrong passwords. Try again later.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../theme/Main.qml" line="107"/>
+        <location filename="../theme/Main.qml" line="56"/>
+        <location filename="../theme/Main.qml" line="119"/>
         <source>You can try again now.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../theme/Main.qml" line="184"/>
+        <location filename="../theme/Main.qml" line="200"/>
         <source>Who&apos;s playing today?</source>
         <translation type="unfinished"></translation>
     </message>

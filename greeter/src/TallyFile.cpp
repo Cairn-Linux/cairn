@@ -54,9 +54,13 @@ TallyFile::Result TallyFile::read(const QString& dir, const QString& loginName) 
     }
     // faillock rewrites the file from the start under an exclusive lock, so
     // a read while it holds one could see half of each. Never wait for it:
-    // the screen must not freeze.
-    if (flock(file.handle(), LOCK_SH | LOCK_NB) != 0 && errno == EWOULDBLOCK) {
-        return {.outcome = Outcome::Busy, .failureTimes = {}};
+    // the screen must not freeze. A lock that cannot be taken for any
+    // other reason means the read could be half-written, so "not sure".
+    if (flock(file.handle(), LOCK_SH | LOCK_NB) != 0) {
+        if (errno == EWOULDBLOCK || errno == EINTR) {
+            return {.outcome = Outcome::Busy, .failureTimes = {}};
+        }
+        return unknown();
     }
     const QByteArray bytes = file.read(recordSize * maxRecords);
     if (file.error() != QFileDevice::NoError) {

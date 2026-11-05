@@ -166,6 +166,38 @@ private slots:
         QCOMPARE(failed.reasonFor(QStringLiteral("guardian"), true), reason);
     }
 
+    // A lock that ran out while the tile was open: a wrong password after
+    // it gets the short words, not the old long sentence.
+    void aWrongTryAfterALockRunsOutSaysTryAgain() {
+        const StandInFaillock faillock;
+        AccountLock lock;
+        watch(lock, faillock, QStringLiteral("guardian"), 3);
+        lock.setFixedTime(QDateTime::fromSecsSinceEpoch(t + 601));
+        QCOMPARE(lock.state(), AccountLock::State::OpenAgain);
+        lock.noteTry();
+        // write_tally forgets the old tries once the lock has run out.
+        faillock.write(QStringLiteral("guardian"), StandInFaillock::record(t + 601));
+        FailedLogin failed;
+        failed.setAccountLock(&lock);
+        QCOMPARE(failed.reasonFor(QStringLiteral("guardian"), true), Reason::TryAgain);
+    }
+
+    // A try sent in the last seconds of a lock is refused for the lock, and
+    // PAM answers about two seconds later, after the lock has run out. The
+    // password was never checked, so it is not called wrong.
+    void aTrySentWhileLockedIsNotCalledWrongAfterTheLockEnds() {
+        const StandInFaillock faillock;
+        AccountLock lock;
+        watch(lock, faillock, QStringLiteral("guardian"), 3);
+        lock.setFixedTime(QDateTime::fromSecsSinceEpoch(t + 599));
+        lock.noteTry();
+        lock.setFixedTime(QDateTime::fromSecsSinceEpoch(t + 601));
+        FailedLogin failed;
+        failed.setAccountLock(&lock);
+        QCOMPARE(failed.reasonFor(QStringLiteral("guardian"), true), Reason::LockRanOut);
+        QCOMPARE(failed.reasonFor(QStringLiteral("guardian"), true), Reason::LockRanOut);
+    }
+
     // A lock read for one account never speaks for another.
     void anotherAccountsLockIsNotThisOnesReason() {
         const StandInFaillock faillock;

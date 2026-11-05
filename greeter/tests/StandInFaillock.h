@@ -38,6 +38,8 @@ public:
     void write(const QString& loginName, const QByteArray& bytes) const;
     // Empties the folder, as if no one had made a wrong try.
     Q_INVOKABLE void reset() const;
+    // Writes the settings file again, with settings after its "dir =" line.
+    Q_INVOKABLE void setSettings(const QString& settings) const;
 
 private:
     QTemporaryDir m_root;

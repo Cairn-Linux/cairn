@@ -4,6 +4,7 @@
 
 #include <QSignalSpy>
 #include <QTest>
+#include <QTimer>
 
 #include <fcntl.h>
 #include <sys/file.h>
@@ -245,6 +246,89 @@ private slots:
         watch(lock, faillock, t);
         lock.setLoginName(QStringLiteral("../guardian"));
         QCOMPARE(lock.state(), State::Unknown);
+    }
+
+    // Read only while there is something to count down: not at all once
+    // the account is open.
+    void itDoesNotReadAgainWhenOpen() {
+        const StandInFaillock faillock;
+        for (int i = 0; i < 3; ++i) {
+            faillock.addFailure(QStringLiteral("guardian"), t);
+        }
+        AccountLock lock;
+        watch(lock, faillock, t);
+        const auto* timer = lock.findChild<QTimer*>();
+        QVERIFY(timer != nullptr);
+        QVERIFY(timer->isActive());
+        lock.setFixedTime(at(t + 601));
+        QCOMPARE(lock.state(), State::OpenAgain);
+        QVERIFY(!timer->isActive());
+        lock.setLoginName(QStringLiteral("ben"));
+        QCOMPARE(lock.state(), State::Open);
+        QVERIFY(!timer->isActive());
+    }
+
+    // With deny = 1 a lock that runs out leaves one try. The screen first
+    // says the lock is over, rather than going quiet with the lock's
+    // words still up.
+    void aLockOfOneTryThatEndsIsOpenAgain() {
+        const StandInFaillock faillock("deny = 1\nunlock_time = 600\n");
+        faillock.addFailure(QStringLiteral("guardian"), t);
+        AccountLock lock;
+        watch(lock, faillock, t + 590);
+        QCOMPARE(lock.state(), State::LockedUnderAMinute);
+        lock.setFixedTime(at(t + 601));
+        QCOMPARE(lock.state(), State::OpenAgain);
+    }
+
+    // A try sent while locked is remembered, so a lock that runs out
+    // while PAM answers is still why that try failed.
+    void itRemembersWhetherATryWasSentWhileLocked() {
+        const StandInFaillock faillock;
+        for (int i = 0; i < 3; ++i) {
+            faillock.addFailure(QStringLiteral("guardian"), t);
+        }
+        AccountLock lock;
+        watch(lock, faillock, t + 599);
+        QVERIFY(!lock.lockedAtLastTry());
+        lock.noteTry();
+        QVERIFY(lock.lockedAtLastTry());
+        lock.setFixedTime(at(t + 601));
+        QVERIFY(lock.lockedAtLastTry());
+        lock.noteTry();
+        QVERIFY(!lock.lockedAtLastTry());
+        lock.setFixedTime(at(t + 599));
+        lock.noteTry();
+        lock.setLoginName(QStringLiteral("ben"));
+        QVERIFY(!lock.lockedAtLastTry());
+    }
+
+    // Choosing another account while faillock writes that account's
+    // record never shows the last account's lock.
+    void aBusyFirstReadIsNotTheLastAccountsLock() {
+        const StandInFaillock faillock;
+        for (int i = 0; i < 3; ++i) {
+            faillock.addFailure(QStringLiteral("guardian"), t);
+        }
+        faillock.addFailure(QStringLiteral("ben"), t);
+        AccountLock lock;
+        watch(lock, faillock, t);
+        QCOMPARE(lock.state(), State::Locked);
+        const QByteArray path = (faillock.dir() + QStringLiteral("/ben")).toLocal8Bit();
+        const int writer = open(path.constData(), O_RDWR | O_CLOEXEC);
+        QVERIFY(writer >= 0);
+        QCOMPARE(flock(writer, LOCK_EX), 0);
+        const QSignalSpy changes(&lock, &AccountLock::stateChanged);
+        lock.setLoginName(QStringLiteral("ben"));
+        const State whileBusy = lock.state();
+        const bool lockedWhileBusy = lock.locked();
+        const int minutesWhileBusy = lock.minutesLeft();
+        close(writer);
+        QCOMPARE(whileBusy, State::Unknown);
+        QVERIFY(!lockedWhileBusy);
+        QCOMPARE(minutesWhileBusy, 0);
+        QVERIFY(changes.count() >= 1);
+        QTRY_COMPARE(lock.state(), State::Open);
     }
 
     // While faillock writes, the last reading stands.

@@ -10,8 +10,11 @@ namespace {
 constexpr int secondsInMinute = 60;
 constexpr int readEveryMs = 1000;
 
-// Rounded up, as faillock's own message does, so the screen never says a
-// try is allowed before faillock allows it.
+// Rounded up, as faillock's own message does, so a lock of 600 seconds
+// reads "10 minutes" here as it does at sudo. faillock lets a try in only
+// the second after the count reaches 0, so at each step the real wait can
+// be up to a second longer than said. Only "You can try again now." says
+// a try is allowed, and it comes exactly when faillock allows one.
 int wholeMinutes(qint64 seconds) {
     return static_cast<int>((seconds + secondsInMinute - 1) / secondsInMinute);
 }
@@ -33,7 +36,14 @@ void AccountLock::setLoginName(const QString& loginName) {
     }
     m_loginName = loginName;
     m_wasLocked = false;
+    m_lockedAtLastTry = false;
     emit loginNameChanged();
+    // Nothing read so far is about this account, so a first read that finds
+    // faillock writing must not keep the last account's lock.
+    if (m_state != State::Unknown) {
+        show(State::Unknown, 0);
+        emit stateChanged();
+    }
     refresh();
 }
 
@@ -78,6 +88,15 @@ int AccountLock::minutesLeft() const {
 
 int AccountLock::lockMinutes() const {
     return m_lockMinutes;
+}
+
+bool AccountLock::lockedAtLastTry() const {
+    return m_lockedAtLastTry;
+}
+
+void AccountLock::noteTry() {
+    refresh();
+    m_lockedAtLastTry = locked();
 }
 
 void AccountLock::refresh() {
@@ -130,6 +149,12 @@ void AccountLock::workOut() {
         show(m_wasLocked ? State::OpenAgain : State::Open, 0);
         return;
     case LockRule::Kind::OneTryLeft:
+        // With deny = 1 a lock that runs out leaves one try; the screen
+        // first says the lock is over.
+        if (m_wasLocked) {
+            show(State::OpenAgain, 0);
+            return;
+        }
         // "for 1 minutes" would read wrong with no translation loaded, so a
         // lock of a minute or less, or until a reset, is not said in minutes.
         show(m_lockMinutes >= 2 ? State::OneTryLeft : State::OneTryLeftNoTime, 0);

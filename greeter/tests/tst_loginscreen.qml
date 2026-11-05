@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Window
 import QtTest
 import Cairn.Brand
+import Cairn.Greeter
 
 // The real theme from greeter/theme with a stand-in for SDDM. Accounts: Ada
 // (L1), Ben (L3) and Test Guardian (a Guardian, named as on the test VM),
@@ -52,6 +53,7 @@ TestCase {
         // No wrong tries, whatever the machine running the tests has in
         // /var/lib/faillock, and a clock that holds still.
         faillock.reset();
+        faillock.setSettings("deny = 3\nunlock_time = 600\n");
         screen.accountLock.settingsFile = faillock.settingsFile;
         screen.accountLock.fixedTime = at(now);
         tiles = findChild(screen, "familyTiles");
@@ -265,6 +267,7 @@ TestCase {
         verify(back.border.width > 0);
         compare(back.border.color, Tokens.focusOnInk);
     }
+
     // With two or more tries left, no count: a number on every try is noise.
     function test_aWrongPasswordWithTriesLeftSaysTryAgain() {
         tryAPassword();
@@ -334,10 +337,68 @@ TestCase {
         // faillock still refuses at exactly ten minutes.
         screen.accountLock.fixedTime = at(now + 600);
         compare(message.text, "This account is locked after too many wrong passwords. Try again in less than a minute.");
+        // Focus elsewhere, so the end of the lock has to bring it back.
+        findChild(passwordRow, "backButton").forceActiveFocus();
         screen.accountLock.fixedTime = at(now + 601);
         compare(message.text, "You can try again now.");
         compare(message.Accessible.name, "You can try again now.");
         verify(findChild(passwordRow, "passwordField").activeFocus);
+        // A wrong password now gets the short words. faillock forgets the
+        // old tries once the lock has run out.
+        keyClick(Qt.Key_X);
+        keyClick(Qt.Key_Return);
+        faillock.reset();
+        wrongTries("guardian", 1, now + 601);
+        sddm.fail();
+        compare(message.text, "That password did not work. Try again.");
+    }
+
+    // A try sent in the last seconds of a lock is refused for the lock,
+    // and PAM answers after the lock has run out. The password was never
+    // checked, so it is not called wrong.
+    function test_aTryAsTheLockEndsIsNotCalledWrong() {
+        wrongTries("guardian", 3, now);
+        screen.accountLock.fixedTime = at(now + 599);
+        tryAPassword();
+        screen.accountLock.fixedTime = at(now + 601);
+        sddm.fail();
+        compare(message.text, "You can try again now.");
+        verify(passwordRow.visible);
+    }
+
+    function test_aLockUntilResetSaysAGrownUpCanUnlockIt() {
+        faillock.setSettings("deny = 3\nunlock_time = never\n");
+        wrongTries("guardian", 3, now - 86400);
+        mouseClick(tiles.itemAtIndex(2));
+        compare(message.text, "This account is locked after too many wrong passwords. A grown-up can unlock it.");
+    }
+
+    // The record's newest try is later than the clock.
+    function test_aClockSetBackSaysTryAgainLater() {
+        wrongTries("guardian", 3, now);
+        screen.accountLock.fixedTime = at(now - 3600);
+        mouseClick(tiles.itemAtIndex(2));
+        compare(message.text, "This account is locked after too many wrong passwords. Try again later.");
+    }
+
+    function test_beforeTheLastTryOfALockUntilResetItWarns() {
+        faillock.setSettings("deny = 3\nunlock_time = never\n");
+        wrongTries("guardian", 1, now - 30);
+        tryAPassword();
+        wrongTries("guardian", 1, now);
+        sddm.fail();
+        compare(message.text, "That password did not work. One more wrong try locks this account.");
+    }
+
+    // A lock sentence that can no longer be worked out does not stay up.
+    function test_aLockThatBecomesUnclearTakesItsWordsAway() {
+        wrongTries("guardian", 3, now);
+        mouseClick(tiles.itemAtIndex(2));
+        verify(message.text.indexOf("locked") >= 0);
+        faillock.setSettings("admin_group = wheel\n");
+        screen.accountLock.fixedTime = at(now + 1);
+        compare(screen.accountLock.state, AccountLock.Unknown);
+        compare(message.text, "");
     }
 
     // A grown-up's faillock --reset shows without anyone touching the screen.
@@ -361,7 +422,7 @@ TestCase {
     // When the lock cannot be worked out, the old words stay, and nothing
     // claims a lock.
     function test_aLockThatCannotBeWorkedOutKeepsThePlainWords() {
-        screen.accountLock.settingsFile = Qt.resolvedUrl("fixtures/faillock-unclear.conf");
+        faillock.setSettings("admin_group = wheel\n");
         wrongTries("guardian", 3, now);
         mouseClick(tiles.itemAtIndex(2));
         compare(message.text, "");

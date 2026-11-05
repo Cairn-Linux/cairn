@@ -65,6 +65,13 @@ public:
 
     // Reads the record again now.
     Q_INVOKABLE void refresh();
+    // The screen calls this as it sends a password: it reads the record
+    // and keeps whether the account was locked at that moment.
+    Q_INVOKABLE void noteTry();
+    // Whether the account was locked when the last password was sent. A
+    // lock can run out while PAM is still answering, and that try was
+    // refused for the lock, not for the password.
+    bool lockedAtLastTry() const;
 
 signals:
     void loginNameChanged();
@@ -83,6 +90,7 @@ private:
     int m_minutesLeft = 0;
     int m_lockMinutes = 0;
     bool m_wasLocked = false;
+    bool m_lockedAtLastTry = false;
     bool m_busy = false;
     QTimer m_timer;
 };

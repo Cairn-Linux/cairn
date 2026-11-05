@@ -68,13 +68,13 @@ private slots:
     // after '#', and spaces anywhere around them.
     void theWaysFaillockSplitsALine_data() {
         QTest::addColumn<QByteArray>("line");
-        QTest::newRow("spaces around =") << QByteArray("deny = 5");
-        QTest::newRow("no spaces") << QByteArray("deny=5");
-        QTest::newRow("a space and no =") << QByteArray("deny 5");
-        QTest::newRow("a tab") << QByteArray("deny\t5");
-        QTest::newRow("leading spaces") << QByteArray("   deny = 5   ");
-        QTest::newRow("a comment after") << QByteArray("deny = 5 # five");
-        QTest::newRow("a space before =") << QByteArray("deny =5");
+        QTest::newRow("spaces around =") << QByteArray("deny = 5\n");
+        QTest::newRow("no spaces") << QByteArray("deny=5\n");
+        QTest::newRow("a space and no =") << QByteArray("deny 5\n");
+        QTest::newRow("a tab") << QByteArray("deny\t5\n");
+        QTest::newRow("leading spaces") << QByteArray("   deny = 5   \n");
+        QTest::newRow("a comment after") << QByteArray("deny = 5 # five\n");
+        QTest::newRow("a space before =") << QByteArray("deny =5\n");
         QTest::newRow("no newline at the end") << QByteArray("deny = 5");
     }
     void theWaysFaillockSplitsALine() {
