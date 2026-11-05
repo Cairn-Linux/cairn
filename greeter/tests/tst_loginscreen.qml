@@ -17,6 +17,8 @@ TestCase {
     property ListView tiles
     property Item passwordRow
     property Item message
+    // Some time on some day; the wrong tries are counted from here.
+    readonly property real now: 1800000000
 
     // A TestCase is never visible itself, so the screen gets a window, the
     // size of the smallest laptop screen the design targets.
@@ -47,6 +49,11 @@ TestCase {
         // No one on a visit, whatever the machine running the tests has in
         // /run/cairn.
         screen.failedLogin.visitsFile = Qt.resolvedUrl("fixtures/no-visits");
+        // No wrong tries, whatever the machine running the tests has in
+        // /var/lib/faillock, and a clock that holds still.
+        faillock.reset();
+        screen.accountLock.settingsFile = faillock.settingsFile;
+        screen.accountLock.fixedTime = at(now);
         tiles = findChild(screen, "familyTiles");
         passwordRow = findChild(screen, "passwordRow");
         message = findChild(screen, "message");
@@ -56,6 +63,22 @@ TestCase {
         tryVerify(() => host.active);
         tiles.forceActiveFocus();
         waitForRendering(screen);
+    }
+
+    function at(seconds) {
+        return new Date(seconds * 1000);
+    }
+
+    function wrongTries(loginName, count, time) {
+        for (let i = 0; i < count; ++i)
+            faillock.addFailure(loginName, time);
+    }
+
+    // Opens the Guardian's password row and sends a password.
+    function tryAPassword() {
+        mouseClick(tiles.itemAtIndex(2));
+        keyClick(Qt.Key_X);
+        keyClick(Qt.Key_Return);
     }
 
     function test_familyInOrder() {
@@ -241,5 +264,120 @@ TestCase {
         back.forceActiveFocus();
         verify(back.border.width > 0);
         compare(back.border.color, Tokens.focusOnInk);
+    }
+    // With two or more tries left, no count: a number on every try is noise.
+    function test_aWrongPasswordWithTriesLeftSaysTryAgain() {
+        tryAPassword();
+        wrongTries("guardian", 1, now);
+        sddm.fail();
+        compare(message.text, "That password did not work. Try again.");
+    }
+
+    // The issue's sentence, with the real numbers, drawn as written.
+    function test_beforeTheLastTryItWarns() {
+        wrongTries("guardian", 1, now - 30);
+        tryAPassword();
+        wrongTries("guardian", 1, now);
+        sddm.fail();
+        compare(message.text, "That password did not work. One more wrong try locks this account for 10 minutes.");
+        compare(findChild(passwordRow, "passwordField").text, "");
+        verify(findChild(passwordRow, "passwordField").activeFocus);
+    }
+
+    // The third wrong try says the lock at once, and SDDM's second
+    // loginFailed gives the same words.
+    function test_theTryThatLocksSaysSo() {
+        wrongTries("guardian", 2, now - 30);
+        tryAPassword();
+        wrongTries("guardian", 1, now);
+        sddm.fail();
+        const locked = "This account is locked after too many wrong passwords. Try again in 10 minutes.";
+        compare(message.text, locked);
+        sddm.fail();
+        compare(message.text, locked);
+        verify(passwordRow.visible);
+    }
+
+    // The right password while locked is refused by PAM; the screen never
+    // calls it wrong, and the row stays open, since PAM is the gate.
+    function test_aTryWhileLockedIsNotCalledWrong() {
+        wrongTries("guardian", 3, now - 120);
+        tryAPassword();
+        sddm.fail();
+        compare(message.text, "This account is locked after too many wrong passwords. Try again in 8 minutes.");
+        verify(message.text.indexOf("did not work") < 0);
+        verify(passwordRow.visible);
+        verify(findChild(passwordRow, "passwordField").activeFocus);
+    }
+
+    // A lock from sudo or the lock screen shows as soon as the tile is
+    // chosen, before anyone types.
+    function test_aLockedTileSaysSoBeforeTyping() {
+        wrongTries("guardian", 3, now - 60);
+        mouseClick(tiles.itemAtIndex(2));
+        compare(logins.count, 0);
+        compare(message.text, "This account is locked after too many wrong passwords. Try again in 9 minutes.");
+        compare(message.Accessible.name, message.text);
+        verify(passwordRow.visible);
+        verify(findChild(passwordRow, "passwordField").activeFocus);
+    }
+
+    function test_itCountsDownByTheMinute() {
+        wrongTries("guardian", 3, now);
+        mouseClick(tiles.itemAtIndex(2));
+        screen.accountLock.fixedTime = at(now + 59);
+        compare(message.text, "This account is locked after too many wrong passwords. Try again in 10 minutes.");
+        screen.accountLock.fixedTime = at(now + 539);
+        compare(message.text, "This account is locked after too many wrong passwords. Try again in 2 minutes.");
+        screen.accountLock.fixedTime = at(now + 540);
+        compare(message.text, "This account is locked after too many wrong passwords. Try again in less than a minute.");
+        // faillock still refuses at exactly ten minutes.
+        screen.accountLock.fixedTime = at(now + 600);
+        compare(message.text, "This account is locked after too many wrong passwords. Try again in less than a minute.");
+        screen.accountLock.fixedTime = at(now + 601);
+        compare(message.text, "You can try again now.");
+        compare(message.Accessible.name, "You can try again now.");
+        verify(findChild(passwordRow, "passwordField").activeFocus);
+    }
+
+    // A grown-up's faillock --reset shows without anyone touching the screen.
+    function test_aResetShowsByItself() {
+        wrongTries("guardian", 3, now);
+        mouseClick(tiles.itemAtIndex(2));
+        verify(message.text.indexOf("locked") >= 0);
+        faillock.reset();
+        tryCompare(message, "text", "You can try again now.");
+    }
+
+    function test_backLeavesTheLockWords() {
+        wrongTries("guardian", 3, now);
+        mouseClick(tiles.itemAtIndex(2));
+        keyClick(Qt.Key_Escape);
+        compare(message.text, "");
+        compare(screen.accountLock.loginName, "");
+        verify(tiles.activeFocus);
+    }
+
+    // When the lock cannot be worked out, the old words stay, and nothing
+    // claims a lock.
+    function test_aLockThatCannotBeWorkedOutKeepsThePlainWords() {
+        screen.accountLock.settingsFile = Qt.resolvedUrl("fixtures/faillock-unclear.conf");
+        wrongTries("guardian", 3, now);
+        mouseClick(tiles.itemAtIndex(2));
+        compare(message.text, "");
+        keyClick(Qt.Key_X);
+        keyClick(Qt.Key_Return);
+        sddm.fail();
+        compare(message.text, "That password did not work. After a few wrong tries, the account waits a few minutes before it lets anyone try again.");
+    }
+
+    // L1 and L2 children are let in before faillock, so a stray record
+    // changes nothing for them.
+    function test_aYoungChildWithAStrayRecordStillLogsInAtOnce() {
+        wrongTries("ada", 3, now);
+        keyClick(Qt.Key_Return);
+        compare(logins.count, 1);
+        compare(sddm.lastUser, "ada");
+        compare(message.text, "");
     }
 }

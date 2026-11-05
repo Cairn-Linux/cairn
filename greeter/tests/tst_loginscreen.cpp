@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "FamilyModel.h"
+#include "StandInFaillock.h"
 #include "StandInSddm.h"
 
 #include <QQmlContext>
@@ -27,7 +28,8 @@ std::optional<Account> family(const QString& name) {
 }
 
 // Gives the theme what SDDM would: `sddm`, `userModel` and `sessionModel`,
-// and a family model over a table of accounts instead of the system's.
+// a family model over a table of accounts instead of the system's, and a
+// folder of faillock records in place of /var/lib/faillock.
 class Setup : public QObject {
     Q_OBJECT
 
@@ -51,6 +53,8 @@ public slots:
         context->setContextProperty("sddm", new StandInSddm(engine));
         context->setContextProperty("sessionModel", new StandInSessions(engine));
         context->setContextProperty("testFamily", familyModel);
+        context->setContextProperty("faillock",
+                                    new StandInFaillock("deny = 3\nunlock_time = 600\n", engine));
     }
 };
 
