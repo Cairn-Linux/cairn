@@ -18,6 +18,8 @@ acceptance back, nor does Steam's updater window at a child's login
 ("What Mason decided on 2026-11-03", below).
 **Date:** 2026-11-02
 **Closes:** (none) — the narrow version of issue #88, for child test 2
+**Amended by:** ADR-0052, proposed (the login screen's words for a locked
+account in check 5 are now ADR-0052's)
 (ROADMAP P1-17); the in-session step-in stays open in #88. It answers
 the question ADR-0045 left open for #182, and the change that brings it
 closes #182, as Mason chose on 2026-11-02. Part of ROADMAP P1-13.

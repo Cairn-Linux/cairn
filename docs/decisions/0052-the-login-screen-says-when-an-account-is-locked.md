@@ -56,7 +56,8 @@ Provisioning does the same with `setfacl`.
 - `TallyFile` reads the 64-byte records, with the valid bit tested on
   its own, as faillock tests it. A try from sudo carries the terminal bit
   too. It takes a shared `flock` without waiting, and tries again a
-  second later if faillock is writing.
+  second later if faillock is writing. If the lock fails for any other
+  reason, it is not sure.
 - `LockRule` is `check_tally` and `write_tally`:
   - the window is counted back from the newest try;
   - the account is still locked at exactly the newest try plus
@@ -82,13 +83,18 @@ and readable.
 | Locked, two or more minutes left | "This account is locked after too many wrong passwords. Try again in N minutes." |
 | Locked, a minute or less left (faillock still refuses at 0) | "… Try again in less than a minute." |
 | The lock ends while the screen shows it | "You can try again now." |
+| A password sent while locked, answered after the lock ends | "You can try again now." |
 | A wrong password, and the next locks | "That password did not work. One more wrong try locks this account for 10 minutes." (from `unlock_time`) |
 | A wrong password, two or more tries left | "That password did not work. Try again." |
 | `unlock_time = never` (not used on Cairn) | "… A grown-up can unlock it." |
 | The record's newest try is later than now | "… Try again later." |
 | Unknown | Today's words. |
 
-- A locked account is never told its password was wrong.
+- A locked account is never told its password was wrong. That holds for
+  a password sent in the last seconds of a lock too: faillock refuses it
+  for the lock, and PAM answers about two seconds later, when the lock
+  may be over. The screen keeps whether the account was locked when the
+  password was sent.
 - A tile that is locked says so as soon as it is chosen, before anyone
   types.
 - The password row stays open throughout. If this copy of the rule were
@@ -146,8 +152,12 @@ Set aside:
 - A setting on a module line in `/etc/pam.d` (`deny=5` after
   `pam_faillock.so`) overrides the file, and this copy does not see it.
   authselect writes none.
-- The minutes are an upper bound, up to 59 seconds over, so the screen
-  never invites a try too early.
+- The minutes are rounded up as faillock's own message rounds them, so a
+  600-second lock reads "10 minutes" here as at sudo. faillock lets a try
+  in only the second after the count reaches 0, so at each step the real
+  wait can be up to a second longer than the screen says. Only "You can
+  try again now." says a try is allowed, and it comes exactly when
+  faillock allows one.
 - The screen reads the record once a second while a locked tile is open,
   and not at all otherwise.
 - ADR-0049's check 5 recorded today's words for a locked account; they
@@ -184,3 +194,6 @@ laptop:
 7. An L2 child with a stray count still logs in with one press.
 8. The laptop's `/var` takes ACLs. The shared Steam library's already
    work there, so it should.
+9. The right password sent in the last two or three seconds of a lock
+   says "You can try again now.", never "did not work", and the next
+   try logs in.
