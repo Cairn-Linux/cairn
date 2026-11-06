@@ -125,7 +125,9 @@ Window {
         height: tabs.height + window.margin
         color: Tokens.ground
 
-        // Buttons that do not fit on one line go on to the next.
+        // The window's minimum width keeps the four buttons on one line.
+        // Longer words, from a translation or larger text, go on to the
+        // next line rather than out of sight.
         Flow {
             id: tabs
 

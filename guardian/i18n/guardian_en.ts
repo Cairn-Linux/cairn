@@ -263,27 +263,27 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="139"/>
+        <location filename="../qml/FamilyWindow.qml" line="141"/>
         <source>Pages</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="149"/>
+        <location filename="../qml/FamilyWindow.qml" line="151"/>
         <source>Children</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="162"/>
+        <location filename="../qml/FamilyWindow.qml" line="164"/>
         <source>Games</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="176"/>
+        <location filename="../qml/FamilyWindow.qml" line="178"/>
         <source>Your account</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="190"/>
+        <location filename="../qml/FamilyWindow.qml" line="192"/>
         <source>Notices</source>
         <translation type="unfinished"></translation>
     </message>
@@ -610,167 +610,173 @@
 <context>
     <name>NoticeWords</name>
     <message>
-        <location filename="../src/NoticeWords.cpp" line="40"/>
+        <location filename="../src/NoticeWords.cpp" line="61"/>
         <source>The password of a login name that is not an account on this computer</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/NoticeWords.cpp" line="43"/>
+        <location filename="../src/NoticeWords.cpp" line="64"/>
         <source>Your password</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/NoticeWords.cpp" line="46"/>
-        <source>%1&apos;s password</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/NoticeWords.cpp" line="48"/>
+        <location filename="../src/NoticeWords.cpp" line="69"/>
         <source>The password of the account %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/NoticeWords.cpp" line="53"/>
+        <location filename="../src/NoticeWords.cpp" line="74"/>
         <source>Your account</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/NoticeWords.cpp" line="56"/>
-        <source>%1&apos;s account</source>
+        <location filename="../src/NoticeWords.cpp" line="50"/>
+        <source>%1 (%2)</source>
+        <comment>an account&apos;s full name, then its login name</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/NoticeWords.cpp" line="58"/>
-        <source>The account %1</source>
+        <location filename="../src/NoticeWords.cpp" line="67"/>
+        <source>The password of %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/NoticeWords.cpp" line="65"/>
-        <source>at the login screen</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/NoticeWords.cpp" line="69"/>
-        <source>in your own login, at the lock screen or in another program</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/NoticeWords.cpp" line="70"/>
-        <source>in their own login, at the lock screen or in another program</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/NoticeWords.cpp" line="73"/>
-        <source>with sudo</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/NoticeWords.cpp" line="76"/>
-        <source>with su</source>
+        <location filename="../src/NoticeWords.cpp" line="77"/>
+        <source>The account of %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../src/NoticeWords.cpp" line="79"/>
-        <source>in a password box</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/NoticeWords.cpp" line="82"/>
-        <source>at a text console</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/NoticeWords.cpp" line="85"/>
-        <source>by another program</source>
+        <source>The account %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../src/NoticeWords.cpp" line="86"/>
+        <source>at the login screen</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="90"/>
+        <source>in your own login, at the lock screen or in another program</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="91"/>
+        <source>in their own login, at the lock screen or in another program</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="94"/>
+        <source>with sudo</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="97"/>
+        <source>with su</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="100"/>
+        <source>in a password box</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="103"/>
+        <source>at a text console</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="106"/>
+        <source>by another program</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="107"/>
         <source>by another program (%1)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/NoticeWords.cpp" line="93"/>
+        <location filename="../src/NoticeWords.cpp" line="114"/>
         <source>%1, from another login</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/NoticeWords.cpp" line="96"/>
+        <location filename="../src/NoticeWords.cpp" line="117"/>
         <source>%1, from your login</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/NoticeWords.cpp" line="98"/>
-        <source>%1, from %2&apos;s login</source>
+        <location filename="../src/NoticeWords.cpp" line="119"/>
+        <source>%1, from the login of %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/NoticeWords.cpp" line="105"/>
+        <location filename="../src/NoticeWords.cpp" line="152"/>
+        <source>Someone tried to use the account of %1 %2 %3, %4.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="126"/>
         <source>That locked the account for a while, at every password prompt.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/NoticeWords.cpp" line="109"/>
+        <location filename="../src/NoticeWords.cpp" line="130"/>
         <source>That locked the account at every password prompt, until someone with an administrator&apos;s account reset its count of wrong tries.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/NoticeWords.cpp" line="114"/>
+        <location filename="../src/NoticeWords.cpp" line="135"/>
         <source>That locked the account for %1, at every password prompt. The right password did not work until about %2.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/NoticeWords.cpp" line="119"/>
+        <location filename="../src/NoticeWords.cpp" line="140"/>
         <source>Wrong tries at other prompts, and wrong fingers at the lock screen, count toward a lock too.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/NoticeWords.cpp" line="130"/>
-        <source>Someone tried to use %1 %2 %3, %4.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src/NoticeWords.cpp" line="134"/>
+        <location filename="../src/NoticeWords.cpp" line="156"/>
         <source>%1 was typed wrong %2 %3, %4.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/NoticeWords.cpp" line="139"/>
+        <location filename="../src/NoticeWords.cpp" line="161"/>
         <source>It was tried %1 while the account was locked.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/NoticeWords.cpp" line="143"/>
+        <location filename="../src/NoticeWords.cpp" line="165"/>
         <source>%1 was tried %2 %3 while it was locked, %4.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/NoticeWords.cpp" line="147"/>
+        <location filename="../src/NoticeWords.cpp" line="169"/>
         <source>%1 was locked %2, %3.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/NoticeWords.cpp" line="161"/>
+        <location filename="../src/NoticeWords.cpp" line="183"/>
         <source>A few wrong tries in a row, by password or by finger, lock an account. If this was you, there is nothing to do. If it was not, someone may be guessing: a password nobody has watched you type is the best protection. Children do not see this page.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/NoticeWords.cpp" line="166"/>
+        <location filename="../src/NoticeWords.cpp" line="188"/>
         <source>%1 wrong tries within %2, by password or by finger, lock an account for %3. If this was you, there is nothing to do. If it was not, someone may be guessing: a password nobody has watched you type is the best protection. Children do not see this page.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/NoticeWords.cpp" line="178"/>
+        <location filename="../src/NoticeWords.cpp" line="200"/>
         <source>This computer&apos;s record goes back only to %1.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/NoticeWords.cpp" line="186"/>
+        <location filename="../src/NoticeWords.cpp" line="208"/>
         <source>One older notice is not shown.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/NoticeWords.cpp" line="188"/>
+        <location filename="../src/NoticeWords.cpp" line="210"/>
         <source>%1 older notices are not shown.</source>
         <translation type="unfinished"></translation>
     </message>

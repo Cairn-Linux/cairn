@@ -1017,7 +1017,7 @@ TestCase {
         verify(!findChild(window, "noticesStatus").visible);
         const texts = noticeTexts(window);
         compare(texts.length, 2);
-        verify(texts[0].startsWith("The password of a login name that is not an account on this computer was typed wrong once with su, from Ben's login, on "), texts[0]);
+        verify(texts[0].startsWith("The password of a login name that is not an account on this computer was typed wrong once with su, from the login of Ben (ben), on "), texts[0]);
         verify(texts[1].startsWith("Your password was typed wrong 3 times at the login screen, on "), texts[1]);
         const repeater = findChild(window, "noticeRows");
         compare(repeater.itemAt(1).Accessible.name, texts[1]);

@@ -211,8 +211,9 @@ The Notices page (ADR-0054, proposed):
    for every account, the Guardian's own, other Guardians', children's
    and accounts outside the family. Tries for one account from one place
    and one login, each within faillock's 15 minutes of the last, are one
-   card: "Ben's password was typed wrong 3 times with su, from Ada's
-   login, on Wednesday, 4 November 2026, from 16:02 to 16:05."
+   card: "The password of Ben (ben) was typed wrong 3 times with su, from
+   the login of Ada (ada), on Wednesday, 4 November 2026, from 16:02 to
+   16:05."
 2. The places are the login screen, the account's own login (the lock
    screen, or another program run there), sudo, su, a password box and a
    text console. Any other program is named, "by another program
@@ -225,11 +226,13 @@ The Notices page (ADR-0054, proposed):
    one from wrong fingers at the lock screen, says that tries elsewhere
    and fingers count too.
 4. A child at level 1 or 2 has no password, so a try on their account
-   reads "Someone tried to use Ada's account …".
+   reads "Someone tried to use the account of Ada (ada) …".
 5. A name typed at su or sudo that is no account on this computer is
    never shown: "a login name that is not an account on this computer".
    Every name on the page is an account's own name, and every word is
-   plain text.
+   plain text. A full name always has its login name beside it, because
+   a child can change their own full name with no password: a child who
+   calls themselves "Mum" shows as "Mum (ben)".
 6. Under the list, once, how faillock locks, from `faillock.conf`, and
    what to do. When the journal is shorter than 30 days, it says how far
    back it goes; when this account cannot read it (not in `wheel`), or

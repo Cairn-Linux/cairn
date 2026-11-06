@@ -55,12 +55,15 @@ private:
     struct HeldLock {
         qint64 time = 0;
         LockEvent lock;
-        // Its try's process was seen, and the lock went with that try.
+        // The try that caused it was seen: the first try after it from
+        // its process.
+        bool claimed = false;
+        // That try's notice took it as its lock.
         bool attached = false;
     };
 
-    bool whileLocked(const PasswordTry& passwordTry) const;
-    void attachByProcess(const PasswordTry& passwordTry, TryEpisode& episode);
+    HeldLock* claimOwnLock(const PasswordTry& passwordTry);
+    bool whileLocked(const PasswordTry& passwordTry, const HeldLock* own) const;
     void attachOrAdd(const LockEvent& lock, std::vector<TryEpisode>& all) const;
 
     FaillockSettings m_rule;

@@ -52,11 +52,13 @@ private slots:
 
     void onceAndTwice() {
         QCOMPARE(words().sentence(episode(sam, TryPlace::Sudo, 1, start)),
-                 QStringLiteral("Sam's password was typed wrong once with sudo, on Wednesday, 4 "
-                                "November 2026, at 16:02."));
-        QCOMPARE(words().sentence(episode(ben, TryPlace::PasswordBox, 2)),
-                 QStringLiteral("Ben's password was typed wrong twice in a password box, on "
-                                "Wednesday, 4 November 2026, from 16:02 to 16:05."));
+                 QStringLiteral(
+                     "The password of Sam (sam) was typed wrong once with sudo, on Wednesday, 4 "
+                     "November 2026, at 16:02."));
+        QCOMPARE(
+            words().sentence(episode(ben, TryPlace::PasswordBox, 2)),
+            QStringLiteral("The password of Ben (ben) was typed wrong twice in a password box, on "
+                           "Wednesday, 4 November 2026, from 16:02 to 16:05."));
     }
 
     void anAccountOutsideTheFamily() {
@@ -77,9 +79,10 @@ private slots:
     // anything else run in that login, a child's own program too.
     void inTheirOwnLogin() {
         QCOMPARE(words().sentence(episode(ben, TryPlace::OwnLogin, 3)),
-                 QStringLiteral("Ben's password was typed wrong 3 times in their own login, at the "
-                                "lock screen or in another program, on Wednesday, 4 November 2026, "
-                                "from 16:02 to 16:05."));
+                 QStringLiteral(
+                     "The password of Ben (ben) was typed wrong 3 times in their own login, at the "
+                     "lock screen or in another program, on Wednesday, 4 November 2026, "
+                     "from 16:02 to 16:05."));
         QVERIFY(words()
                     .sentence(episode(guardian, TryPlace::OwnLogin, 3))
                     .contains(QStringLiteral("in your own login, at the lock screen")));
@@ -88,9 +91,10 @@ private slots:
     void fromAnotherLogin() {
         TryEpisode fromBen = episode(guardian, TryPlace::Su, 3);
         fromBen.from = ben;
-        QCOMPARE(words().sentence(fromBen),
-                 QStringLiteral("Your password was typed wrong 3 times with su, from Ben's login, "
-                                "on Wednesday, 4 November 2026, from 16:02 to 16:05."));
+        QCOMPARE(
+            words().sentence(fromBen),
+            QStringLiteral("Your password was typed wrong 3 times with su, from the login of Ben "
+                           "(ben), on Wednesday, 4 November 2026, from 16:02 to 16:05."));
         Account gone;
         gone.uid = 1500;
         fromBen.from = gone;
@@ -113,8 +117,9 @@ private slots:
         TryEpisode tried = episode(ada, TryPlace::Su, 3);
         tried.from = ben;
         QCOMPARE(words().sentence(tried),
-                 QStringLiteral("Someone tried to use Ada's account 3 times with su, from Ben's "
-                                "login, on Wednesday, 4 November 2026, from 16:02 to 16:05."));
+                 QStringLiteral("Someone tried to use the account of Ada (ada) 3 times with su, "
+                                "from the login of Ben (ben), on Wednesday, 4 November 2026, from "
+                                "16:02 to 16:05."));
     }
 
     void aLock() {
@@ -145,12 +150,13 @@ private slots:
         alone.lockTime = start;
         QCOMPARE(
             words().sentence(alone),
-            QStringLiteral("Ben's account was locked in their own login, at the lock screen or "
-                           "in another program, on Wednesday, 4 November 2026, at 16:02. That "
-                           "locked the account for 10 minutes, at every password prompt. The "
-                           "right password did not work until about 16:12. Wrong tries at "
-                           "other prompts, and wrong fingers at the lock screen, count toward "
-                           "a lock too."));
+            QStringLiteral(
+                "The account of Ben (ben) was locked in their own login, at the lock screen or "
+                "in another program, on Wednesday, 4 November 2026, at 16:02. That "
+                "locked the account for 10 minutes, at every password prompt. The "
+                "right password did not work until about 16:12. Wrong tries at "
+                "other prompts, and wrong fingers at the lock screen, count toward "
+                "a lock too."));
     }
 
     // Tries refused while locked are never called wrong.
@@ -186,10 +192,34 @@ private slots:
     void aNameWithAPercentSign() {
         Account odd = ben;
         odd.fullName = QStringLiteral("%2 %1");
-        QVERIFY(
-            words()
-                .sentence(episode(odd, TryPlace::Su, 3))
-                .startsWith(QStringLiteral("%2 %1's password was typed wrong 3 times with su")));
+        QVERIFY(words()
+                    .sentence(episode(odd, TryPlace::Su, 3))
+                    .startsWith(QStringLiteral(
+                        "The password of %2 %1 (ben) was typed wrong 3 times with su")));
+    }
+
+    // A child can set their own full name with no password (ADR-0043), so
+    // a full name is never shown without the login name an administrator
+    // gave, and cannot hide or turn it round.
+    void aChildCallingThemselvesSomeoneElse() {
+        Account mum = ben;
+        mum.fullName = QStringLiteral("Mum");
+        TryEpisode fromMum = episode(guardian, TryPlace::Su, 1, start);
+        fromMum.from = mum;
+        QVERIFY(words().sentence(fromMum).contains(
+            QStringLiteral("with su, from the login of Mum (ben), on")));
+        fromMum.from->fullName =
+            QStringLiteral("Mum") + QChar(0x202e) + QChar(0x0a) + QChar(0x2066);
+        QVERIFY(words().sentence(fromMum).contains(
+            QStringLiteral("with su, from the login of Mum (ben), on")));
+        fromMum.from->fullName = QString(QChar(0x202e));
+        QVERIFY(words().sentence(fromMum).contains(
+            QStringLiteral("with su, from the login of ben, on")));
+        Account plain = ben;
+        plain.fullName = QStringLiteral("ben");
+        QVERIFY(words()
+                    .sentence(episode(plain, TryPlace::Su, 1, start))
+                    .startsWith(QStringLiteral("The password of ben was typed wrong once")));
     }
 
     void theFooter() {

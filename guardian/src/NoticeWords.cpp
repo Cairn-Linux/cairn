@@ -30,6 +30,27 @@ bool hasNoPassword(const std::optional<Account>& account) {
 
 } // namespace
 
+// An account's full name is text its owner can change with no password
+// (ADR-0043), so a child could call themselves "Mum". Its login name, which
+// only an administrator can change, always goes beside it. Control and
+// format characters, such as line breaks and bidi overrides, are dropped so
+// the full name cannot hide or turn round the login name after it.
+QString NoticeWords::nameOf(const Account& account) {
+    QString fullName;
+    for (const QChar character : account.fullName) {
+        const QChar::Category kind = character.category();
+        if (kind != QChar::Other_Control && kind != QChar::Other_Format) {
+            fullName.append(character);
+        }
+    }
+    fullName = fullName.trimmed();
+    if (fullName.isEmpty() || fullName == account.login) {
+        return account.login;
+    }
+    return tr("%1 (%2)", "an account's full name, then its login name")
+        .arg(fullName, account.login);
+}
+
 NoticeWords::NoticeWords(unsigned int ownUid, std::optional<FaillockSettings> settings,
                          QTimeZone zone, QLocale locale)
     : m_ownUid(ownUid), m_settings(std::move(settings)),
@@ -43,7 +64,7 @@ QString NoticeWords::passwordOf(const std::optional<Account>& account) const {
         return tr("Your password");
     }
     if (isFamily(*account)) {
-        return tr("%1's password").arg(account->displayName());
+        return tr("The password of %1").arg(nameOf(*account));
     }
     return tr("The password of the account %1").arg(account->login);
 }
@@ -53,7 +74,7 @@ QString NoticeWords::accountOf(const Account& account) const {
         return tr("Your account");
     }
     if (isFamily(account)) {
-        return tr("%1's account").arg(account.displayName());
+        return tr("The account of %1").arg(nameOf(account));
     }
     return tr("The account %1").arg(account.login);
 }
@@ -95,7 +116,7 @@ QString NoticeWords::place(const TryEpisode& episode) const {
     if (episode.from->uid == m_ownUid) {
         return tr("%1, from your login").arg(words);
     }
-    return tr("%1, from %2's login").arg(words, episode.from->displayName());
+    return tr("%1, from the login of %2").arg(words, nameOf(*episode.from));
 }
 
 QString NoticeWords::lock(const TryEpisode& episode) const {
@@ -127,8 +148,9 @@ QString NoticeWords::sentence(const TryEpisode& episode) const {
     const QString whenWords = m_time.when(episode.first, episode.last);
     if (episode.wrong > 0) {
         if (hasNoPassword(episode.account)) {
-            sentences << tr("Someone tried to use %1 %2 %3, %4.")
-                             .arg(accountOf(*episode.account), m_time.times(episode.wrong),
+            // Only a child has no password, so never "your account".
+            sentences << tr("Someone tried to use the account of %1 %2 %3, %4.")
+                             .arg(nameOf(*episode.account), m_time.times(episode.wrong),
                                   place(episode), whenWords);
         } else {
             sentences << tr("%1 was typed wrong %2 %3, %4.")

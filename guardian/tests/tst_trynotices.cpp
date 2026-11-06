@@ -92,6 +92,26 @@ private slots:
         QCOMPARE(shown[0].lockTime, start + 2 * minute);
     }
 
+    // sudo makes its three tries in one process. Two wrong tries at the
+    // lock screen, then sudo's first try locks: that process writes the
+    // lock, and its next two tries were refused while locked.
+    void triesInTheProcessThatLocked() {
+        TryNotices notices(FaillockSettings{});
+        notices.addTry(tryAt(start, TryPlace::OwnLogin, guardian, 30));
+        notices.addTry(tryAt(start + second, TryPlace::OwnLogin, guardian, 31));
+        notices.addLock(lockAt(start + minute, TryPlace::Sudo, 50));
+        notices.addTry(tryAt(start + minute + 1000, TryPlace::Sudo, guardian, 50));
+        notices.addTry(tryAt(start + minute + 3 * second, TryPlace::Sudo, guardian, 50));
+        notices.addTry(tryAt(start + minute + 9 * second, TryPlace::Sudo, guardian, 50));
+        const auto shown = notices.notices().shown;
+        QCOMPARE(shown.size(), 2U);
+        QCOMPARE(shown[0].place, TryPlace::Sudo);
+        QCOMPARE(shown[0].wrong, 1);
+        QCOMPARE(shown[0].whileLocked, 2);
+        QCOMPARE(shown[0].lockTime, start + minute);
+        QCOMPARE(shown[1].wrong, 2);
+    }
+
     // Locked at sudo, then tried at the login screen: a notice that only
     // has tries while locked.
     void triesWhileLockedElsewhere() {
@@ -119,6 +139,22 @@ private slots:
         const auto shown = notices.notices().shown;
         QCOMPARE(shown.size(), 1U);
         QCOMPARE(shown[0].wrong, 3);
+        QCOMPARE(shown[0].lockTime, start + 2 * minute + second);
+    }
+
+    // Tries refused while the lock screen's lock held keep the run of
+    // tries open; the lock still goes with that run.
+    void theLockScreensLockWithTriesAfterIt() {
+        TryNotices notices(FaillockSettings{});
+        notices.addLock(lockAt(start + 2 * minute + second, TryPlace::OwnLogin, 4242));
+        notices.addTry(tryAt(start, TryPlace::OwnLogin, guardian, 30));
+        notices.addTry(tryAt(start + minute, TryPlace::OwnLogin, guardian, 31));
+        notices.addTry(tryAt(start + 2 * minute, TryPlace::OwnLogin, guardian, 32));
+        notices.addTry(tryAt(start + 5 * minute, TryPlace::OwnLogin, guardian, 33));
+        const auto shown = notices.notices().shown;
+        QCOMPARE(shown.size(), 1U);
+        QCOMPARE(shown[0].wrong, 3);
+        QCOMPARE(shown[0].whileLocked, 1);
         QCOMPARE(shown[0].lockTime, start + 2 * minute + second);
     }
 
@@ -178,6 +214,20 @@ private slots:
         QCOMPARE(result.shown.size(), 5U);
         QCOMPARE(result.notShown, 4);
         QCOMPARE(result.shown[0].first, start + 8 * 20 * minute);
+    }
+
+    // A child can fake the lock screen's line about their own account as
+    // often as they like. Each is a notice alone, found without looking
+    // through the others, so the page does not freeze.
+    void aFloodOfLocks() {
+        TryNotices notices(FaillockSettings{}, 5);
+        for (int i = 0; i < 100000; ++i) {
+            notices.addLock(lockAt(start + i * 1000, TryPlace::OwnLogin, 4242, ben));
+        }
+        notices.addTry(tryAt(start, TryPlace::Su, ben, 1));
+        const auto result = notices.notices();
+        QCOMPARE(result.shown.size(), 5U);
+        QCOMPARE(result.notShown, 100001 - 5);
     }
 };
 

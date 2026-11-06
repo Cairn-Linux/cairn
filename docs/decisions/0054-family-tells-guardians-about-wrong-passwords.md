@@ -98,8 +98,13 @@ tests):
 - *Names* in an entry are never shown. `AUDIT_FIELD_ACCT` is whatever
   was typed at su or sudo: spaces, line breaks, markup, bidi controls.
   Each name is looked up with `getpwnam`; an account is shown by its
-  login tile's name, and anything else as "a login name that is not an
-  account on this computer". A field journalctl gives as bytes counts as
+  full name with its login name beside it, "Ben (ben)", and anything else
+  as "a login name that is not an account on this computer". A full name
+  alone would not do: polkit lets an account change its own full name
+  with no password (ADR-0043), so a child who set theirs to "Mum" and
+  then tried su would read as the other parent. Control and format
+  characters are dropped from the full name, so a bidi override cannot
+  turn the login name round. A field journalctl gives as bytes counts as
   no name. Every `Text` on the page is `Text.PlainText`.
 - *From whose login*: when `_AUDIT_LOGINUID` is set and is not the
   account tried, as for su from a child's login. su and sudo keep it
