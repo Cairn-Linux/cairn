@@ -4,6 +4,7 @@
 #include "FaillockSettings.h"
 #include "FaillockTally.h"
 #include "HeldLocks.h"
+#include "NoticeList.h"
 #include "PasswordTry.h"
 #include "TryEpisodes.h"
 
@@ -37,12 +38,9 @@ public:
     void addTry(const PasswordTry& passwordTry);
     void addGood(const GoodPassword& good);
 
-    struct Notices {
-        // Newest first, at most maxNotices.
-        std::vector<TryEpisode> shown;
-        // How many older notices there were beyond those.
-        int notShown = 0;
-    };
+    // Newest first, at most maxNotices, and how many older ones there
+    // were beyond those.
+    using Notices = NoticeList::Notices;
 
     // The notices so far, after the locks no try came after.
     Notices notices();
@@ -75,7 +73,6 @@ private:
     void settleBefore(AccountCount& count, qint64 time);
     void settle(AccountCount& count, HeldLocks::Held& held);
     void undoRefusals(AccountCount& count, qint64 time, int most);
-    void attachOrAdd(const LockEvent& lock, std::vector<TryEpisode>& all) const;
 
     FaillockSettings m_rule;
     bool m_follow;

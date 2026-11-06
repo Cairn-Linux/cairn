@@ -107,6 +107,7 @@ set(notices_rule_sources
     src/FaillockTally.h src/FaillockTally.cpp
     src/HeldLocks.h src/HeldLocks.cpp
     src/TryEpisodes.h src/TryEpisodes.cpp
+    src/NoticeList.h src/NoticeList.cpp
     src/TryNotices.h src/TryNotices.cpp
 )
 set(notices_sources

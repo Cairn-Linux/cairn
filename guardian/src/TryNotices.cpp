@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "TryNotices.h"
 
-#include <algorithm>
+#include <iterator>
 #include <limits>
-#include <utility>
 
 namespace {
 
@@ -200,49 +199,17 @@ void TryNotices::addGood(const GoodPassword& good) {
     count.goodPassword.reset();
 }
 
-// A lock no try took. A lock of the place of a notice of wrong tries, in
-// that notice's time, goes with it; any other is a notice alone. Only
-// notices made from tries are looked through.
-void TryNotices::attachOrAdd(const LockEvent& lock, std::vector<TryEpisode>& all) const {
-    const qint64 interval = m_rule.failInterval * microseconds;
-    const auto fromTries = all.begin() + static_cast<std::ptrdiff_t>(m_episodes.all().size());
-    const auto explained = std::find_if(all.begin(), fromTries, [&](const TryEpisode& episode) {
-        return episode.wrong > 0 && !episode.lockTime && episode.account &&
-               episode.account->uid == lock.account.uid && episode.place == lock.place &&
-               episode.first <= lock.time + sameMoment && episode.last >= lock.time - interval;
-    });
-    if (explained != fromTries) {
-        explained->lockTime = lock.time;
-        return;
-    }
-    TryEpisode alone;
-    alone.account = lock.account;
-    alone.place = lock.place;
-    alone.program = lock.program;
-    alone.first = lock.time;
-    alone.last = lock.time;
-    alone.lockTime = lock.time;
-    all.push_back(alone);
-}
-
 TryNotices::Notices TryNotices::notices() {
     for (auto& entry : m_counts) {
         settleBefore(entry.second, std::numeric_limits<qint64>::max());
     }
-    Notices result;
-    std::vector<TryEpisode>& all = result.shown;
-    all = m_episodes.all();
+    NoticeList list(m_episodes.all(), m_rule.failInterval);
     for (const auto& entry : m_counts) {
         for (const HeldLocks::Held& held : entry.second.locks.all()) {
             if (!held.attached) {
-                attachOrAdd(held.lock, all);
+                list.addLock(held.lock);
             }
         }
     }
-    std::ranges::stable_sort(all, std::ranges::greater{}, &TryEpisode::last);
-    if (std::cmp_greater(all.size(), m_maxNotices)) {
-        result.notShown = static_cast<int>(all.size()) - m_maxNotices;
-        all.resize(m_maxNotices);
-    }
-    return result;
+    return list.take(m_maxNotices);
 }
