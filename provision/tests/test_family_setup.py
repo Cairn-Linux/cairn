@@ -755,7 +755,6 @@ class ImageFoldersTest(unittest.TestCase):
         self.assertIn("d:g:cairn-guardian:rwx", acls["/var/lib/cairn/steam-tools"])
         self.assertIn("d:o::r-x", acls["/var/lib/cairn/steam-tools"])
 
-
     def test_every_count_of_wrong_passwords_keeps_group_root(self):
         # su runs with the caller's group, so without setgid a child's su
         # would make another account's count the child's to write (#289).
@@ -764,6 +763,7 @@ class ImageFoldersTest(unittest.TestCase):
         lines = [line.split() for line in tmpfiles.splitlines() if line and not line.startswith("#")]
         self.assertIn(["d", "/var/lib/faillock", "2755", "root", "root", "-"], lines)
         self.assertIn(["z", "/var/lib/faillock/*", "0660", "-", "root", "-"], lines)
+
 
 if __name__ == "__main__":
     unittest.main()

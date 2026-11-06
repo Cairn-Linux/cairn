@@ -46,15 +46,21 @@ afterwards.
 
 A count made before, or brought by a moved computer, is put back to
 group root and mode 0660 at every boot.
-Its owner is left alone: pam_faillock sets it at each try, and no one
-line can name each account's owner.
+At boot its owner is left alone: pam_faillock sets it at each try, and
+no one tmpfiles line can name each account's owner.
+That leaves one gap on a moved computer whose account numbers changed:
+a Guardian's count, say, could belong to a child's number, and so be the
+child's to write, until the Guardian's next try sets it again.
+Provisioning closes it: each count named after an account that exists
+is given that account as its owner.
 
 - **On the image:** two lines in
   `system_files/usr/lib/tmpfiles.d/cairn.conf`:
   `d /var/lib/faillock 2755 root root` and
   `z /var/lib/faillock/* 0660 - root`.
 - **On a computer set up by hand:** `provision/cairn-provision.sh` makes
-  the folder 2755 and puts each count back the same way, on every run.
+  the folder 2755 and puts each count back the same way, on every run,
+  and gives each count its account as owner.
 - **New accounts:** nothing. The Family app's `useradd` and the family's
   setup make no count; the folder gives the first one its group.
 - **The image's build** runs the real lines: `systemd-tmpfiles --root`

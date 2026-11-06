@@ -491,7 +491,7 @@ protect_guardians() {
     # su runs with the caller's group, and pam_faillock keeps the group a
     # count is made with. Setgid gives each new count group root, so a
     # child with su cannot make another account's count their own (#289,
-    # ADR-0052), as the image's tmpfiles.d/cairn.conf does.
+    # ADR-0053), as the image's tmpfiles.d/cairn.conf does.
     if [ "$(stat --format=%U:%G:%a -- "$FAILLOCK")" != root:root:2755 ]; then
         chown root:root "$FAILLOCK"
         chmod 2755 "$FAILLOCK"
@@ -506,12 +506,21 @@ protect_guardians() {
         setfacl -m 'd:u::rw,d:u:sddm:r,d:g::rw,d:m::rw,d:o::-' -- "$FAILLOCK"
         changed "$FAILLOCK readable by the login screen"
     fi
-    local count
+    local count name owner group mode
     for count in "$FAILLOCK"/*; do
         [ -f "$count" ] && [ ! -L "$count" ] || continue
-        # A count made before, perhaps by su with a child's group. The
-        # owner stays: faillock sets it to the account at every try.
-        if [ "$(stat --format=%G:%a -- "$count")" != root:660 ]; then
+        IFS=: read -r owner group mode < <(stat --format=%U:%G:%a -- "$count")
+        # Each count is named after its account. On a moved computer the
+        # numbers may have changed, so a Guardian's count could belong to a
+        # child until the Guardian's next try. A count with no account
+        # keeps its owner (ADR-0053).
+        name="$(basename -- "$count")"
+        if [ "$owner" != "$name" ] && getent passwd "$name" > /dev/null; then
+            chown -- "$name" "$count"
+            changed "$count owned by $name"
+        fi
+        # A count made before, perhaps by su with a child's group.
+        if [ "$group:$mode" != root:660 ]; then
             chgrp root "$count"
             chmod 660 "$count"
             changed "$count in group root, mode 660"

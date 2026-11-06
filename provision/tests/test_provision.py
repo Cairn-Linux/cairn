@@ -582,10 +582,11 @@ class SharedLibraryTest(unittest.TestCase):
 
 
 class FaillockFolderTest(unittest.TestCase):
-    """The folder of wrong-password counts (ADR-0020, ADR-0052): each count
+    """The folder of wrong-password counts (ADR-0020, ADR-0053): each count
     must keep group root, so a child with su cannot write another account's
-    (#289). stat answers from the scenario, by file name; chown, chmod,
-    chgrp and setfacl write what they were asked to a log."""
+    (#289). stat answers from the scenario, by file name, and getent knows
+    only the accounts the scenario lists; chown, chmod, chgrp and setfacl
+    write what they were asked to a log."""
 
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
@@ -600,6 +601,7 @@ class FaillockFolderTest(unittest.TestCase):
             "semanage": "#!/bin/bash\necho \"/var/lib/faillock(/.*)? all files faillog_t\"\n",
             "authselect": "#!/bin/bash\necho '- with-faillock'\n",
             "restorecon": "#!/bin/bash\n",
+            "getent": '#!/bin/bash\n[ "$1" = passwd ] && grep -qx -- "$2" "$STATE/accounts" 2> /dev/null\n',
         }
         for name in ("chown", "chmod", "chgrp", "setfacl"):
             self.stubs[name] = f'#!/bin/bash\necho "{name} $*" >> "$STATE/calls"\n'
@@ -637,18 +639,42 @@ class FaillockFolderTest(unittest.TestCase):
         self.faillock.mkdir()
         self.answer("faillock", "root:root:2755")
         (self.faillock / "gina").touch()
-        self.answer("gina", "ben:660")
+        self.answer("gina", "gina:ben:660")
         code, output, calls = self.run_step()
         self.assertEqual(code, 0, output)
         count = self.faillock / "gina"
         self.assertEqual(calls, [f"chgrp root {count}", f"chmod 660 {count}"])
         self.assertIn(f"changed: {count} in group root, mode 660", output.splitlines())
 
-    def test_a_count_keeps_its_owner(self):
+    def test_a_count_owned_by_another_number_goes_back_to_its_account(self):
+        # A moved computer whose account numbers changed: the Guardian's
+        # count would be the child's to write until the Guardian's next try.
         self.faillock.mkdir()
         self.answer("faillock", "root:root:2755")
+        (self.state / "accounts").write_text("gina\n")
         (self.faillock / "gina").touch()
-        self.answer("gina", "ben:640")
+        self.answer("gina", "ben:root:660")
+        code, output, calls = self.run_step()
+        self.assertEqual(code, 0, output)
+        count = self.faillock / "gina"
+        self.assertEqual(calls, [f"chown -- gina {count}"])
+        self.assertIn(f"changed: {count} owned by gina", output.splitlines())
+
+    def test_a_count_with_no_account_keeps_its_owner(self):
+        self.faillock.mkdir()
+        self.answer("faillock", "root:root:2755")
+        (self.faillock / "gone").touch()
+        self.answer("gone", "UNKNOWN:root:660")
+        code, output, calls = self.run_step()
+        self.assertEqual(code, 0, output)
+        self.assertEqual(calls, [])
+
+    def test_a_count_owned_by_its_account_keeps_its_owner(self):
+        self.faillock.mkdir()
+        self.answer("faillock", "root:root:2755")
+        (self.state / "accounts").write_text("gina\n")
+        (self.faillock / "gina").touch()
+        self.answer("gina", "gina:ben:640")
         code, output, calls = self.run_step()
         self.assertEqual(code, 0, output)
         self.assertFalse([call for call in calls if call.startswith("chown")], calls)
@@ -656,9 +682,10 @@ class FaillockFolderTest(unittest.TestCase):
     def test_a_second_run_changes_nothing(self):
         self.faillock.mkdir()
         self.answer("faillock", "root:root:2755")
+        (self.state / "accounts").write_text("gina\nada\n")
         for name in ("gina", "ada"):
             (self.faillock / name).touch()
-            self.answer(name, "root:660")
+            self.answer(name, f"{name}:root:660")
         code, output, calls = self.run_step()
         self.assertEqual(code, 0, output)
         self.assertEqual(calls, [])

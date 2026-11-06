@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
 """A child with su must never be able to write another account's faillock
-count (#289, ADR-0052).
+count (#289, ADR-0053).
 
 Runs the image's own tmpfiles lines for /var/lib/faillock into a copy of
 the folder in /tmp, then the image's real pam_faillock through libpam, as
@@ -78,7 +78,11 @@ def main():
 
         # Without setgid, a count su makes takes the caller's group.
         plain.mkdir(mode=0o755)
-        run_pam(confdir, f"authfail dir={plain}", account.pw_gid)
+        made = run_pam(confdir, f"authfail dir={plain}", account.pw_gid)
+        if made is None or not (plain / USER).exists():
+            print(f"pam_faillock made no count in a plain folder (PAM answered {made}), "
+                  "so this check cannot run", file=sys.stderr)
+            return 1
         if os.stat(plain / USER).st_gid != account.pw_gid:
             failures.append("a count made without setgid did not take the caller's group, "
                             "so this check proves nothing")
