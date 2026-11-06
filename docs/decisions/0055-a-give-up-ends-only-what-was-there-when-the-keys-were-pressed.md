@@ -113,3 +113,29 @@ On cairn-min with this change installed in a child's session:
    screen is up, before its window: the app never opens over the
    tiles, and `systemctl --user list-units 'app-flatpak-*'` shows its
    scope gone.
+
+## Record
+
+2026-11-06, cairn-min on `dev.20261106-be6bb57` (this change at 06a0033,
+merged with #290 and #291; ctest 104 of 104 in the image build). Every
+"tap" was Enter on the focused tile: the USB tablet's clicks did not
+reach the launcher in that boot.
+1. Passed, 5 of 5: Freddi Fish 2 started 0.53, 1.03 (twice), 1.53 and
+   2.03 s after the keys came up by +3 to +6 s and was still up at
+   +20 s, and the journal said "goes on" each time. In only two rounds
+   (0.53 s and the first 1.03 s) was the new game already running
+   while the helper took its second look; the other three tested only
+   the launcher's rule.
+2. Passed, 4 of 4: GCompris started 0.53 to 2.03 s after the keys, and
+   each new copy was alive during the second look and kept.
+3. Passed: the frozen Steam game was gone by +1 s with Steam's client
+   left up; the frozen Tux Paint was killed at 2 s.
+4. Passed: no process or unit changed.
+5. Passed: keys 0.05 and 0.15 s after Enter ended `flatpak`, `bwrap`
+   and `gcompris-qt` within 0.1 s, and no `app-flatpak-*` scope was
+   left. But all three were already running, so the first look found
+   them. An app not there yet at the first look, the case the second
+   look exists for, was not made to happen.
+The old app or game was gone 0.17 to 0.51 s after the keys in every
+round. The ADR stays proposed: the second look's own case, and a real
+tap, are not yet seen.
