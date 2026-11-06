@@ -129,7 +129,7 @@ public:
     // The grown-up's give-up key (ADR-0018, ADR-0026): forget the launch and
     // every window open now, and go back to the tiles. pressedAt is when the
     // key was pressed, on the BootClock. A launch the child
-    // started after that is not the one given up on, and goes on (ADR-0053).
+    // started after that is not the one given up on, and goes on (ADR-0055).
     Q_INVOKABLE void giveUp(qint64 pressedAt);
 
     // What the compositor reports. Whether a window is hidden and which window

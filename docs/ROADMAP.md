@@ -467,7 +467,7 @@ done, and what could sink it. Decisions that change the design get an ADR in
   `sudo systemctl enable --now tailscaled`, then sets the operator once
   with `sudo tailscale set --operator=<name>`. Built and checked in a
   container on 2026-11-03; not yet seen in a VM.
-- **ADR-0053 (2026-11-06, part of #287, proposed): a give-up ends only
+- **ADR-0055 (2026-11-06, part of #287, proposed): a give-up ends only
   what was there when the keys were pressed.** On cairn-min, a tile
   tapped 1 to 2 s after Ctrl-Alt-Home was undone: the helper's SIGKILL at
   2 s searched again and ended a Flatpak app just started, and its file

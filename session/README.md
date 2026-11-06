@@ -60,7 +60,7 @@ What is here:
   the SIGKILL, takes only what began before the press, and writes the
   time of the press into the file, so a tile the child taps before the
   SIGKILL two seconds later starts and stays, and an app that was still
-  starting at the press is still ended (ADR-0053, #287).
+  starting at the press is still ended (ADR-0055, #287).
   It also ends the `app-flatpak-*.scope` a Flatpak app moves into before
   its `bwrap` starts. The time is read from `/proc/uptime`, a clock the
   network cannot set back.

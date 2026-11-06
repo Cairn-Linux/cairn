@@ -1,4 +1,4 @@
-# ADR-0053: A give-up ends only what began before the keys were pressed
+# ADR-0055: A give-up ends only what began before the keys were pressed
 
 **Status:** proposed. It becomes accepted when the checks under "Checks
 in the VM" have passed on cairn-min.

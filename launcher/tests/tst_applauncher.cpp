@@ -1830,7 +1830,7 @@ private slots:
     }
 
     // The helper tells the launcher two seconds after the key; a tile tapped
-    // before then is a new launch and goes on (#287, ADR-0053).
+    // before then is a new launch and goes on (#287, ADR-0055).
     void aLaunchStartedAfterTheGiveUpKeyGoesOn() {
         AppLauncher launcher(this);
         launcher.setSteadyMilliseconds(0);

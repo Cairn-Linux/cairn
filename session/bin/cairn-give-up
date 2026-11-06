@@ -22,7 +22,7 @@ me="$(id -u)"
 
 # When the grown-up pressed the keys, on the clock behind /proc/uptime: time
 # since the computer started, which the network cannot set back. The launcher
-# reads the same clock (ADR-0053). It is kept in milliseconds for the launcher
+# reads the same clock (ADR-0055). It is kept in milliseconds for the launcher
 # and in the clock ticks /proc/<pid>/stat counts a process's start in.
 read -r uptime _ < /proc/uptime
 hundredths=$((${uptime%.*} * 100 + 10#${uptime#*.}))

@@ -70,7 +70,7 @@ private slots:
     }
 
     // cairn-give-up writes its time from /proc/uptime, so the launcher's clock
-    // must be that one, not the wall clock (ADR-0053).
+    // must be that one, not the wall clock (ADR-0055).
     void theClockIsTheOneTheHelperReads() {
         const qint64 before = BootClock::milliseconds();
         QFile uptime(QStringLiteral("/proc/uptime"));

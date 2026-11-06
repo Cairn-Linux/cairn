@@ -11,7 +11,7 @@
 // the session's runtime directory; this watches that file, so the launcher can
 // go back to the tiles even when a window it was waiting on never closes
 // (ADR-0026). The file holds when the keys were pressed, so a tile the child
-// tapped since then is not given up on too (ADR-0053).
+// tapped since then is not given up on too (ADR-0055).
 class GiveUpWatch : public QObject {
     Q_OBJECT
     QML_ELEMENT

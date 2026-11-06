@@ -77,7 +77,7 @@ class GiveUpHelperTest(unittest.TestCase):
 
     def test_the_time_is_on_the_clock_the_network_cannot_set_back(self):
         # The launcher reads CLOCK_BOOTTIME, the clock behind /proc/uptime
-        # (ADR-0053); a wall-clock time could step back between tap and key.
+        # (ADR-0055); a wall-clock time could step back between tap and key.
         self.assertIn("read -r uptime _ < /proc/uptime", self.text)
         self.assertNotIn("date +", self.text)
 
