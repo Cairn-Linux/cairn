@@ -25,7 +25,7 @@ theme and the small C++ module the theme imports.
   (`/run/cairn/steam-visits`, ADR-0032).
   `AccountLock` says whether faillock has locked the account whose
   password row is open, and for how long (ADR-0052). It reads faillock's
-  settings (`FaillockSettings`) and its count of wrong tries
+  settings (`FaillockSettings`, in `../accounts/`, which Family shares) and its count of wrong tries
   (`TallyFile`, from `/var/lib/faillock`, which the image lets `sddm`
   read), and applies faillock's own rule (`LockRule`, copied from
   linux-pam 1.7.2). The screen then says "This account is locked … Try
@@ -33,7 +33,7 @@ theme and the small C++ module the theme imports.
   try locks this account for 10 minutes." When it cannot tell, it keeps
   the plain words, and the password row stays open either way.
 - `tests/`: `tst_accountkind`, `tst_familymodel`, `tst_failedlogin`,
-  `tst_faillocksettings`, `tst_tallyfile`, `tst_lockrule` and
+  `tst_tallyfile`, `tst_lockrule` and
   `tst_accountlock` for the C++; `tst_loginscreen` loads the real
   `theme/Main.qml` with a stand-in for SDDM's `sddm`, `userModel` and
   `sessionModel` and drives it by keyboard and mouse. `StandInFaillock`
