@@ -112,3 +112,14 @@ laptop:
    group root.
 5. On the kids' laptop, after its image update, `ls -ln /var/lib/faillock`
    shows group 0 on every count.
+
+## Record
+
+2026-11-05, cairn-min on `dev.20261105-00f4d67`, with this change's
+`cairn.conf` laid over it as `/etc/tmpfiles.d/cairn.conf` rather than
+built in: checks 1 to 4 passed, `bazzite` (not a Guardian) standing in
+for an L3 child. The count `ben` that the #288 audit's `su` had left in
+group `bazzite` went back to group root. A new count for `guardian` made
+by `bazzite`'s wrong `su` was `guardian:root 660`, and `bazzite` could
+not empty it. They wait for an image built with the change, and check 5
+for the kids' laptop.

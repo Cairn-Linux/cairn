@@ -478,7 +478,9 @@ done, and what could sink it. Decisions that change the design get an ADR in
   count back to group root at every boot; provisioning does the same.
   New accounts need nothing. A build check runs the image's tmpfiles
   lines and its real pam_faillock as `su` does. Built and checked in a
-  container on 2026-11-05; the VM checks are open.
+  container on 2026-11-05, and on cairn-min the same day with the new
+  tmpfiles file laid over the image; the checks on a built image and on
+  the kids' laptop are open.
 - **ADR-0052 (2026-11-05, #284, proposed): the login screen says when an
   account is locked.** On the kids' laptop the Guardian, locked out by
   faillock, was told "That password did not work" for the right
