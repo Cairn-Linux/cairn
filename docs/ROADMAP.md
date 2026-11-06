@@ -472,9 +472,12 @@ done, and what could sink it. Decisions that change the design get an ADR in
   tapped 1 to 2 s after Ctrl-Alt-Home was undone: the helper's SIGKILL at
   2 s searched again and ended a Flatpak app just started, and its file
   made the launcher forget a Steam game just tapped, which then opened
-  over the tiles. `cairn-give-up` now lists what it will end and the time
-  of the press before any signal, signals only that list, and writes the
-  time; the launcher keeps a launch begun after it. Built and tested in
+  over the tiles. `cairn-give-up` now notes the time of the press on the
+  clock behind `/proc/uptime`, and its search before the SIGKILL takes
+  only processes and scopes that began before the press, so an app that
+  was still starting at the press, in `app-flatpak-*.scope` or a
+  `cairn-app` scope not yet registered, is still ended; it writes the
+  time, and the launcher keeps a launch begun after it. Built and tested in
   the release build on 2026-11-06; the VM checks are open. The rest of
   #287 is open: on the laptop a Proton game started 9 s after a give-up
   quit by itself, cause unknown, and the starting screen stayed until the

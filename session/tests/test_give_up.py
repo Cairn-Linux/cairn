@@ -54,16 +54,32 @@ class GiveUpHelperTest(unittest.TestCase):
         order = [m.group(1) for m in re.finditer(r"(?:--signal|kill -s) (CONT|TERM|KILL)", self.text)]
         self.assertEqual(order, ["CONT"] * 2 + ["TERM"] * 2 + ["KILL"] * 2)
 
-    def test_signals_only_what_it_found_when_the_keys_were_pressed(self):
-        # The child can tap a tile between the SIGTERM and the SIGKILL. What
-        # that tap starts was not found, so nothing searches again (#287).
-        first_signal = self.text.index("kill -s CONT")
-        for search in ("pgrep", "pkill", "list-units"):
-            for found in re.finditer(search, self.text):
-                self.assertLess(found.start(), first_signal, f"{search} after the first signal")
+    def test_takes_only_what_began_before_the_keys_were_pressed(self):
+        # The child can tap a tile between the SIGTERM and the SIGKILL, so the
+        # search before the SIGKILL takes only what began before the press;
+        # every search is in find_targets, which checks each find (#287).
         self.assertNotIn("pkill", self.text)
-        self.assertNotIn('"$units" ||', self.text, "the scopes are named, not matched again")
-        self.assertLess(self.text.index("date +%s%3N"), self.text.index("pgrep"))
+        start = self.text.index("find_targets() {")
+        end = self.text.index("\n}\n", start)
+        for search in ("pgrep", "list-units"):
+            for found in re.finditer(search, self.text):
+                self.assertTrue(start < found.start() < end, f"{search} outside find_targets")
+        self.assertEqual(self.text.count("began_before_press", start, end), 3,
+                         "bwrap, reaper and scope are each checked")
+        # The time comes first, then a search before any signal, and one more
+        # after the wait and before the SIGKILL.
+        calls = [m.start() for m in re.finditer(r"^find_targets$", self.text, re.MULTILINE)]
+        self.assertEqual(len(calls), 2)
+        self.assertLess(self.text.index("/proc/uptime"), calls[0])
+        self.assertLess(calls[0], self.text.index("kill -s CONT"))
+        self.assertLess(self.text.index("sleep 2"), calls[1])
+        self.assertLess(calls[1], self.text.index("kill -s KILL"))
+
+    def test_the_time_is_on_the_clock_the_network_cannot_set_back(self):
+        # The launcher reads CLOCK_BOOTTIME, the clock behind /proc/uptime
+        # (ADR-0053); a wall-clock time could step back between tap and key.
+        self.assertIn("read -r uptime _ < /proc/uptime", self.text)
+        self.assertNotIn("date +", self.text)
 
     def test_tells_the_launcher_last(self):
         # The launcher goes back to the tiles when this file changes
@@ -182,11 +198,12 @@ old_game=$!
 sleep 0.3
 told="$here/give-up"
 touch "$told"
-before=$(date +%s%3N)
+now_ms() { read -r up _ < /proc/uptime; echo $(( ${up%.*} * 1000 + 10#${up#*.} * 10 )); }
+before=$(now_ms)
 CAIRN_GIVE_UP_FILE="$told" CAIRN_APP_UNITS=none "$2" > /dev/null 2>&1 &
 helper=$!
 sleep 0.5
-tapped=$(date +%s%3N)
+tapped=$(now_ms)
 "$here/bwrap" &
 new_flatpak=$!
 "$here/reaper" SteamLaunch AppId=2 &
@@ -279,6 +296,12 @@ class GiveUpEndsAScopedProgramTest(unittest.TestCase):
                  f"--unit={tag}-app", "--", "sleep", "300"]
             )
             frame = subprocess.Popen(["sleep", "300"])
+            # A program still starting when the keys are pressed: it began
+            # before them, and it is in its scope only a moment later.
+            starting = subprocess.Popen(
+                ["bash", "-c", f"sleep 0.8; exec systemd-run --user --scope --quiet --collect "
+                 f"--unit={tag}-starting -- sleep 300"]
+            )
             late = frame
             try:
                 self.assertTrue(wait_for(lambda: tag in pathlib.Path(f"/proc/{app.pid}/cgroup").read_text()))
@@ -312,8 +335,12 @@ class GiveUpEndsAScopedProgramTest(unittest.TestCase):
                 self.assertIn(app.returncode, (-signal.SIGTERM, -signal.SIGKILL))
                 self.assertIsNone(frame.poll(), "a program outside the scopes must keep running")
                 self.assertIsNone(late.poll(), "a launch after the keys must keep running")
+                # A launch from before the keys that only reached its scope
+                # after them, as Flatpak and systemd-run do, is caught.
+                starting.wait(timeout=10)
+                self.assertEqual(starting.returncode, -signal.SIGKILL)
             finally:
-                for process in (app, frame, late):
+                for process in (app, frame, late, starting):
                     if process.poll() is None:
                         os.kill(process.pid, signal.SIGCONT)
                         process.kill()

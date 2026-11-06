@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
+#include "BootClock.h"
 #include "GiveUpWatch.h"
 
-#include <QDateTime>
 #include <QFile>
 #include <QSignalSpy>
 #include <QStandardPaths>
@@ -59,7 +59,7 @@ private slots:
         GiveUpWatch watch(this);
         watch.setPath(path);
         const QSignalSpy presses(&watch, &GiveUpWatch::pressed);
-        const qint64 before = QDateTime::currentMSecsSinceEpoch();
+        const qint64 before = BootClock::milliseconds();
 
         QFile file(path);
         QVERIFY(file.open(QIODevice::WriteOnly | QIODevice::Truncate));
@@ -67,6 +67,22 @@ private slots:
         file.close();
         QTRY_COMPARE(presses.count(), 1);
         QVERIFY(presses.first().first().toLongLong() >= before);
+    }
+
+    // cairn-give-up writes its time from /proc/uptime, so the launcher's clock
+    // must be that one, not the wall clock (ADR-0053).
+    void theClockIsTheOneTheHelperReads() {
+        const qint64 before = BootClock::milliseconds();
+        QFile uptime(QStringLiteral("/proc/uptime"));
+        QVERIFY(uptime.open(QIODevice::ReadOnly));
+        bool isNumber = false;
+        const double seconds = uptime.readAll().split(' ').first().toDouble(&isNumber);
+        const qint64 after = BootClock::milliseconds();
+        QVERIFY(isNumber);
+        const auto helper = static_cast<qint64>(seconds * 1000);
+        // /proc/uptime has hundredths of a second.
+        QVERIFY(helper >= before - 10);
+        QVERIFY(helper <= after);
     }
 
     void noPathWatchesNothing() {

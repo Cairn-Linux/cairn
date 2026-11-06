@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "AppLauncher.h"
+#include "BootClock.h"
 #include "SteamAtLogin.h"
 
 #include <QCoreApplication>
@@ -1236,7 +1237,7 @@ private slots:
         QTest::qWait(600);
         QCOMPARE(timesRun(), 1);
         QCOMPARE(launcher.state(), AppLauncher::State::Starting);
-        launcher.giveUp(QDateTime::currentMSecsSinceEpoch());
+        launcher.giveUp(BootClock::milliseconds());
         qputenv("PATH", path);
     }
 
@@ -1332,7 +1333,7 @@ private slots:
         QCOMPARE(toHide.count(), 1);
         QTRY_VERIFY(launcher.gettingReady());
         QCOMPARE(launcher.state(), AppLauncher::State::Starting);
-        launcher.giveUp(QDateTime::currentMSecsSinceEpoch());
+        launcher.giveUp(BootClock::milliseconds());
         QVERIFY(QFile::remove(dataHome().filePath(QStringLiteral("Steam/logs/bootstrap_log.txt"))));
         qputenv("PATH", path);
     }
@@ -1368,7 +1369,7 @@ private slots:
                               QStringLiteral("Open"));
         QCOMPARE(launcher.state(), AppLauncher::State::Interrupted);
         QCOMPARE(toHide.count(), 0);
-        launcher.giveUp(QDateTime::currentMSecsSinceEpoch());
+        launcher.giveUp(BootClock::milliseconds());
         // Its program ends by itself, before the launcher goes.
         QTest::qWait(500);
         QVERIFY(QFile::remove(dataHome().filePath(QStringLiteral("Steam/logs/bootstrap_log.txt"))));
@@ -1510,7 +1511,7 @@ private slots:
         // "Getting it ready" from the first look until the game.
         QCOMPARE(ready.count(), 2);
         QCOMPARE(launcher.grownUpStep(), AppLauncher::GrownUpStep::None);
-        launcher.giveUp(QDateTime::currentMSecsSinceEpoch());
+        launcher.giveUp(BootClock::milliseconds());
         forgetSteamsLogs();
         qputenv("PATH", path);
     }
@@ -1597,7 +1598,7 @@ private slots:
         QCOMPARE(launcher.state(), AppLauncher::State::Running);
         QCOMPARE(linesOf(runs).count(QStringLiteral("-shutdown")), 0);
         QCOMPARE(linesOf(runs).count(QStringLiteral("-applaunch 292780")), 1);
-        launcher.giveUp(QDateTime::currentMSecsSinceEpoch());
+        launcher.giveUp(BootClock::milliseconds());
         forgetSteamsLogs();
         qputenv("PATH", path);
     }
@@ -1810,7 +1811,7 @@ private slots:
         launcher.windowOpened(QStringLiteral("w1"), QStringLiteral("steam"),
                               QStringLiteral("Steam"));
         QCOMPARE(launcher.state(), AppLauncher::State::Interrupted);
-        launcher.giveUp(QDateTime::currentMSecsSinceEpoch());
+        launcher.giveUp(BootClock::milliseconds());
         QCOMPARE(launcher.state(), AppLauncher::State::Idle);
         QVERIFY(!launcher.needsGrownUp());
         launcher.windowClosed(QStringLiteral("w1"));
@@ -1821,7 +1822,7 @@ private slots:
         launcher.windowOpened(QStringLiteral("g1"), QStringLiteral("gcompris"),
                               QStringLiteral("GCompris"));
         QCOMPARE(launcher.state(), AppLauncher::State::Running);
-        launcher.giveUp(QDateTime::currentMSecsSinceEpoch());
+        launcher.giveUp(BootClock::milliseconds());
         QCOMPARE(launcher.state(), AppLauncher::State::Idle);
         launcher.launch(QStringLiteral("Draw"),
                         {shell(), QStringLiteral("-c"), QStringLiteral("exit 0")});
@@ -1833,7 +1834,7 @@ private slots:
     void aLaunchStartedAfterTheGiveUpKeyGoesOn() {
         AppLauncher launcher(this);
         launcher.setSteadyMilliseconds(0);
-        const qint64 pressedAt = QDateTime::currentMSecsSinceEpoch() - 1000;
+        const qint64 pressedAt = BootClock::milliseconds() - 1000;
         launcher.launch(QStringLiteral("Practice"),
                         {shell(), QStringLiteral("-c"), QStringLiteral("exit 0")});
         QCOMPARE(launcher.state(), AppLauncher::State::Starting);
@@ -1845,7 +1846,7 @@ private slots:
         QVERIFY(!launcher.needsGrownUp());
 
         // A press after the launch still ends it.
-        launcher.giveUp(QDateTime::currentMSecsSinceEpoch());
+        launcher.giveUp(BootClock::milliseconds());
         QCOMPARE(launcher.state(), AppLauncher::State::Idle);
     }
 };

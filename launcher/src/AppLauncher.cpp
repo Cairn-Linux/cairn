@@ -2,6 +2,7 @@
 #include "AppLauncher.h"
 
 #include "AppScope.h"
+#include "BootClock.h"
 #include "GrownUpLine.h"
 
 #include <QDateTime>
@@ -158,7 +159,7 @@ void AppLauncher::launch(const QString& title, const QStringList& exec) {
         return;
     }
 
-    m_launchStartedAt = QDateTime::currentMSecsSinceEpoch();
+    m_launchStartedAt = BootClock::milliseconds();
     m_settled = false;
     m_quitWhileOpening = false;
     m_waitingLate = false;

@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "GiveUpWatch.h"
 
+#include "BootClock.h"
+
 #include <QByteArray>
-#include <QDateTime>
 #include <QDebug>
 #include <QDir>
 #include <QFile>
@@ -28,7 +29,7 @@ void GiveUpWatch::onFileChanged() {
     const qint64 pressedAt = written.toLongLong(&isNumber);
     // Anything else in the file still means the key was pressed; taking it
     // as now gives up on everything, as before the time was written.
-    emit pressed(isNumber ? pressedAt : QDateTime::currentMSecsSinceEpoch());
+    emit pressed(isNumber ? pressedAt : BootClock::milliseconds());
 }
 
 QString GiveUpWatch::path() const {

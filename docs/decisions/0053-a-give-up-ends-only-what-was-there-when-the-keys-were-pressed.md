@@ -1,4 +1,4 @@
-# ADR-0053: A give-up ends only what was there when the keys were pressed
+# ADR-0053: A give-up ends only what began before the keys were pressed
 
 **Status:** proposed. It becomes accepted when the checks under "Checks
 in the VM" have passed on cairn-min.
@@ -34,13 +34,30 @@ The relaunch that failed on the kids' laptop on 2026-11-04 (#287) came
 
 ## Decision
 
-**The helper finds everything once, when the keys are pressed, and
-signals only that.**
-- It notes the time first, in milliseconds (`date +%s%3N`).
-- It lists the `bwrap` processes, the Steam reapers with their
-  containers, and the `cairn-app-*.scope` units then, before any signal.
-- SIGCONT, SIGTERM and SIGKILL go to that list by process id or unit
-  name. Nothing is searched for again.
+**The helper ends only what began before the keys were pressed.**
+- It notes the time first, on the clock behind `/proc/uptime`: time
+  since the computer started, which a network clock sync cannot set
+  back.
+- It looks for the `bwrap` processes, the Steam reapers with their
+  containers, and the `cairn-app-*.scope` and `app-flatpak-*.scope`
+  units, before any signal, and again after the two seconds, just
+  before the SIGKILL.
+- Each time, it takes a process only if it began before the press, by
+  its start in `/proc/<pid>/stat`, and a scope only if the oldest
+  process in it did. A reaper's container is taken with its reaper,
+  even if the reaper started it since.
+- SIGCONT and SIGTERM go to what the first look found, SIGKILL to what
+  both found, by process id or unit name.
+- *Why look again:* an app the grown-up gave up on can still be
+  starting at the press. `flatpak run` moves into its
+  `app-flatpak-*.scope` before it starts the app's `bwrap`, and
+  `systemd-run` takes a moment to register a `cairn-app` scope. Neither
+  is there at the first look; both began before the press, so the
+  second look ends them, and the app's window does not open later over
+  the tiles.
+- *Why not everything at the second look:* that is what the helper did
+  before, and it ended the app of a tile the child tapped in those two
+  seconds.
 
 **The launcher is told when the keys were pressed.**
 - The helper writes that time into the file, in place of the time it
@@ -64,10 +81,15 @@ signals only that.**
   to `pid_max` (4194304 on Fedora), so this needs millions of new
   processes in two seconds. The Steam reapers were already signalled by
   process id.
-- The launcher and the helper compare wall-clock times on the same
-  computer. A clock change of more than the gap between the keys and a
-  tap, in those two seconds, would decide wrongly; that only changes
-  whether a new launch is forgotten.
+- The launcher and the helper compare times on the boot clock
+  (`CLOCK_BOOTTIME` in the launcher, `/proc/uptime` in the helper), so a
+  change to the wall clock between a tap and the keys cannot decide
+  wrongly. `/proc/uptime` has hundredths of a second, so the press can
+  read up to 10 ms early; only a tap within 10 ms before the keys could
+  be kept.
+- A Steam game whose reaper had not started by the press, in the
+  roughly 8 s Steam takes to start one, is in no scope of ours and is
+  not ended. That was so before this decision too.
 - A launch kept this way leaves the windows the launcher had before it
   as they were. A window still on the screen at a tap cannot be the old
   app's, since the child could reach the tiles.
@@ -87,3 +109,7 @@ On cairn-min with this change installed in a child's session:
 3. A SIGSTOP-frozen game and a frozen Tux Paint still end with
    Ctrl-Alt-Home, and the tiles come back.
 4. Ctrl-Alt-Home with nothing running changes nothing.
+5. A Flatpak tile tapped and Ctrl-Alt-Home pressed while its starting
+   screen is up, before its window: the app never opens over the
+   tiles, and `systemctl --user list-units 'app-flatpak-*'` shows its
+   scope gone.

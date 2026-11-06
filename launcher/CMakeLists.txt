@@ -33,6 +33,7 @@ set(launcher_model_sources
     src/AppScope.h src/AppScope.cpp
     src/LaunchWindows.h src/LaunchWindows.cpp
     src/GiveUpWatch.h src/GiveUpWatch.cpp
+    src/BootClock.h src/BootClock.cpp
     src/LogTail.h src/LogTail.cpp
     src/SteamAtLogin.h src/SteamAtLogin.cpp
     src/SteamContentLog.h src/SteamContentLog.cpp

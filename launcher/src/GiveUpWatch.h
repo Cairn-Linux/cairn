@@ -29,7 +29,7 @@ public:
 signals:
     void pathChanged();
     // The grown-up pressed the key and the helper has done its work.
-    // pressedAt is when the key was pressed, in milliseconds since the epoch.
+    // pressedAt is when the key was pressed, on the BootClock.
     void pressed(qint64 pressedAt);
 
 private:
