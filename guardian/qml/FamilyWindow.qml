@@ -56,16 +56,22 @@ Window {
     }
 
     // Scrolls just enough that the item shows whole, with a little room
-    // around it; its top wins when it is taller than the window. Only an
-    // item on the page scrolls; the switch above it is always in sight.
+    // around it; its top wins when it is taller than the window, unless it
+    // already fills the window, which a page key may have just scrolled
+    // into. Only an item on the page scrolls; the switch above it is
+    // always in sight.
     function showItem(item) {
         let inPage = item;
         while (inPage && inPage !== flickable.contentItem)
             inPage = inPage.parent;
         if (!inPage || !item.visible)
             return;
+        const itemTop = item.mapToItem(flickable.contentItem, 0, 0).y;
+        if (itemTop <= flickable.contentY &&
+                itemTop + item.height >= flickable.contentY + flickable.height)
+            return;
         const room = Tokens.bodySize;
-        const top = item.mapToItem(flickable.contentItem, 0, 0).y - room;
+        const top = itemTop - room;
         const bottom = top + item.height + room * 2;
         let y = flickable.contentY;
         if (bottom > y + flickable.height)

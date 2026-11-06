@@ -1162,6 +1162,81 @@ TestCase {
         tryVerify(() => repeater.itemAt(0).activeFocus);
     }
 
+    // A notice taller than the window, among short ones: each Page Down
+    // and Page Up moves the page on, never back the way it came, and the
+    // keyboard stays on a notice that shows whole or, when taller than
+    // the window, fills part of it.
+    function test_pageKeysWithTallAndShortNotices() {
+        const window = makeWindow("done", {
+            "journal": "many"
+        });
+        window.height = Tokens.headingSize * 20;
+        showNotices(window);
+        const scroller = findChild(window, "scroller");
+        const repeater = findChild(window, "noticeRows");
+        for (let i = 0; i < repeater.count; ++i) {
+            const tall = i % 3 === 1;
+            repeater.itemAt(i).height = Math.round(scroller.height * (tall ? 1.4 : 330 / 520));
+        }
+        waitForPolish(window);
+        scroller.contentY = 0;
+        repeater.itemAt(0).forceActiveFocus();
+        const shows = item => {
+            const top = item.mapToItem(scroller, 0, 0).y;
+            if (item.height > scroller.height)
+                return top < scroller.height && top + item.height > 0;
+            return top >= 0 && top + item.height <= scroller.height;
+        };
+        const lowest = scroller.contentHeight - scroller.height;
+        for (let i = 0; i < 60 && scroller.contentY < lowest; ++i) {
+            const before = scroller.contentY;
+            keyClick(Qt.Key_PageDown);
+            verify(scroller.contentY > before, "Page Down " + i + " did not move the page on");
+            verify(shows(window.activeFocusItem), "Page Down " + i + " left the keyboard out of sight");
+        }
+        compare(scroller.contentY, lowest);
+        for (let i = 0; i < 60 && scroller.contentY > 0; ++i) {
+            const before = scroller.contentY;
+            keyClick(Qt.Key_PageUp);
+            verify(scroller.contentY < before, "Page Up " + i + " did not move the page on");
+            verify(shows(window.activeFocusItem), "Page Up " + i + " left the keyboard out of sight");
+        }
+        compare(scroller.contentY, 0);
+    }
+
+    // After Page Down, a notice taller than the window that shows most
+    // but whose top went out of sight is passed over for the notice below
+    // it, so the page is not pulled back to the tall notice's top.
+    function test_pageDownPassesOverATallNoticeCutAtTheTop() {
+        const window = makeWindow("done", {
+            "journal": "many"
+        });
+        window.height = Tokens.headingSize * 20;
+        showNotices(window);
+        const scroller = findChild(window, "scroller");
+        const repeater = findChild(window, "noticeRows");
+        const short = Math.round(scroller.height * 330 / 520);
+        for (let i = 0; i < repeater.count; ++i)
+            repeater.itemAt(i).height = i === 0 ? scroller.height * 3 : short;
+        waitForPolish(window);
+        scroller.contentY = 0;
+        repeater.itemAt(0).forceActiveFocus();
+        keyClick(Qt.Key_PageDown);
+        const page = scroller.contentY;
+        verify(page > 0);
+        repeater.itemAt(0).height = short;
+        repeater.itemAt(1).height = Math.round(scroller.height * 1.4);
+        waitForPolish(window);
+        scroller.contentY = 0;
+        repeater.itemAt(0).forceActiveFocus();
+        const tallTop = repeater.itemAt(1).mapToItem(scroller.contentItem, 0, 0).y;
+        const before = Math.round(tallTop + scroller.height * 0.6 - page);
+        scroller.contentY = before;
+        keyClick(Qt.Key_PageDown);
+        verify(repeater.itemAt(2).activeFocus, "the keyboard is not on the notice below");
+        verify(scroller.contentY >= before + page, "the page went back to the tall notice");
+    }
+
     // The keyboard reaches the fourth button from the third.
     function test_theNoticesButtonByKeyboard() {
         const window = makeWindow("done");

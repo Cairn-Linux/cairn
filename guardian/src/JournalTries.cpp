@@ -84,11 +84,14 @@ bool fieldIs(const QJsonObject& entry, const QString& field, const QString& valu
     return text(entry, field) == value;
 }
 
-// A level 1 or 2 child, whose password is locked (ADR-0023). The login
-// screen lets them in with no password, before the password stack, so
-// faillock's part never runs and their login empties nothing; and their
-// lock screen has no password to count wrong, so it never locks them.
-// The same rule as session/sddm/pam.d/sddm.
+// A level 1 or 2 child. The login screen lets them in with no password,
+// before the password stack, so faillock's part never runs there, their
+// login empties nothing and a lock never stops them. Their session is the
+// labwc kiosk (session/bin/cairn-session), which has no lock screen, so a
+// lock screen line about them comes from a program they ran by hand: real
+// or forged, it locks nothing that matters. Their locked password (#35)
+// does not prevent such a line: pam_unix fails every try and faillock
+// counts each. The same rule as session/sddm/pam.d/sddm.
 bool logsInWithoutPassword(const Account& account) {
     const QStringList& groups = account.groups;
     return (groups.contains(QStringLiteral("cairn-l1")) ||
@@ -228,8 +231,8 @@ std::optional<LockEvent> JournalTries::lockFrom(const QJsonObject& entry) const 
     }
     // The program's path is no proof: in a user namespace a child can run
     // their own program at the lock screen's path (cairn-min, 2026-11-06).
-    // A child whose password is locked can never be locked at the lock
-    // screen, so a line about one is forged.
+    // A level 1 or 2 child's kiosk has no lock screen and faillock never
+    // stops their login, so a line about one locks nothing that matters.
     if (logsInWithoutPassword(*account)) {
         return std::nullopt;
     }

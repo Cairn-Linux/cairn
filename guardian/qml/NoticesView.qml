@@ -66,12 +66,29 @@ Column {
         return shown;
     }
 
+    // Whether showing the item would scroll the page back against the page
+    // key, down after Page Up or up after Page Down. The window shows an
+    // item whole, or the top of one taller than it, and leaves alone one
+    // that already fills it.
+    function goesBack(item, down) {
+        const top = item.mapToItem(view.flickable, 0, 0).y;
+        const bottom = top + item.height;
+        const height = view.flickable.height;
+        if (top <= 0 && bottom >= height)
+            return false;
+        if (down)
+            return top < 0;
+        return item.height > height ? top > 0 : bottom > height;
+    }
+
     // Down and Up go from one stop to the next; the page keys scroll. A
     // stop that left the window, even in part, hands the keyboard to the
     // stop ahead of it that shows most, below it after Page Down and above
-    // it after Page Up, and the window scrolls on to show it whole, so the
-    // page never goes back the way it came. Notices are often too tall for two to show whole at once
-    // (cairn-min, 2026-11-06), so the one that shows most may be cut off.
+    // it after Page Up, and the window scrolls on to show it whole. A stop
+    // whose showing would take the page back the way it came is passed
+    // over while another ahead shows. Notices are often too tall for two
+    // to show whole at once (cairn-min, 2026-11-06), so the one that shows
+    // most may be cut off. With no stop ahead in sight the keyboard stays.
     // Any other key is left to the window.
     function keyPressed(event, item) {
         const list = view.stops();
@@ -90,7 +107,8 @@ Column {
             return;
         const down = event.key === Qt.Key_PageDown;
         const ahead = down ? list.slice(at + 1) : list.slice(0, Math.max(at, 0)).reverse();
-        const shown = view.mostShown(ahead) ?? view.mostShown(down ? list : list.slice().reverse());
+        const forward = ahead.filter(stop => !view.goesBack(stop, down));
+        const shown = view.mostShown(forward) ?? view.mostShown(ahead);
         if (shown === null)
             return;
         shown.forceActiveFocus(Qt.OtherFocusReason);

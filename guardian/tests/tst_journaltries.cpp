@@ -26,6 +26,9 @@ const std::vector<Account>& family() {
          .groups = {"cora", "cairn-l2", "cairn-guardian"},
          .login = "cora",
          .fullName = "Cora"},
+        // An account in a level group and wheel but not cairn-guardian,
+        // whom the login screen also asks for a password.
+        {.uid = 1004, .groups = {"dana", "cairn-l1", "wheel"}, .login = "dana", .fullName = "Dana"},
     };
     return accounts;
 }
@@ -361,11 +364,12 @@ private slots:
         QVERIFY(!rules().lockFrom(entry).has_value());
     }
 
-    // A level 1 or 2 child's password is locked, so the lock screen can
-    // never lock them. In a user namespace a child can run their own
-    // program at the lock screen's path and write faillock's line about
-    // themselves (cairn-min, 2026-11-06), so that line is dropped, from
-    // root too, and so is their own try through unix_chkpwd. A Guardian
+    // A level 1 or 2 child's kiosk has no lock screen, and faillock never
+    // stops their login, so a lock screen line about them locks nothing
+    // that matters. In a user namespace a child can run their own program
+    // at the lock screen's path and write faillock's line about themselves
+    // (cairn-min, 2026-11-06), so that line is dropped, from root too, and
+    // so is their own try through unix_chkpwd. A Guardian or wheel member
     // in a level group, and a level 3 child, still count.
     void aChildWhoseLockScreenCannotLock_data() {
         QTest::addColumn<QString>("login");
@@ -375,6 +379,7 @@ private slots:
         QTest::newRow("level 1, from root") << "ada" << "0" << false;
         QTest::newRow("level 3, own") << "ben" << "1002" << true;
         QTest::newRow("a Guardian at level 2, own") << "cora" << "1003" << true;
+        QTest::newRow("wheel at level 1, own") << "dana" << "1004" << true;
         QTest::newRow("a Guardian, own") << "guardian" << "1000" << true;
     }
 

@@ -102,10 +102,11 @@ tests):
 - *Places*, by program: `sddm-helper` and `plasmalogin-helper` (Fedora
   44's own login screen, which a rebase can bring) are the login screen;
   `unix_chkpwd` is "in their own login, at the lock screen or in another
-  program" (never for a level 1 or 2 child, below); then sudo, su, polkit's helper ("a password box") and `login`
-  (a text console). Any other program is "another program (name)", never
-  dropped: a way in nobody knows about is what a parent should see. Its
-  name shows only when it is plain letters, digits and `._+-`.
+  program" (never for a level 1 or 2 child, below); then sudo, su,
+  polkit's helper ("a password box") and `login` (a text console). Any
+  other program is "another program (name)", never dropped: a way in
+  nobody knows about is what a parent should see. Its name shows only
+  when it is plain letters, digits and `._+-`.
 - *A lock* is faillock's audit record, whose account is a number looked
   up on this computer; or faillock's line from the lock screen's own
   program, `/usr/libexec/kscreenlocker_worker` or
@@ -121,12 +122,18 @@ tests):
   faillock's line from su carries the caller's uid and is dropped; the
   audit record covers su.
 - *A level 1 or 2 child at the lock screen.* An account in `cairn-l1` or
-  `cairn-l2`, and in neither `cairn-guardian` nor `wheel`, has a locked
-  password (ADR-0023), so its lock screen has no password to count wrong
-  and can never lock it. A lock screen line about such an account, from
-  root too, is a forgery and is dropped, and so are its own `unix_chkpwd`
-  tries, which only the child running `unix_chkpwd` by hand can make.
-  The same rule as the login screen's, below. Their tries at every other
+  `cairn-l2`, and in neither `cairn-guardian` nor `wheel`, logs in to
+  the labwc kiosk (`session/bin/cairn-session`), which has no lock
+  screen, and the login screen lets it in before the password stack, so
+  faillock has no effect on how it logs in. Its password is locked
+  (#35, `PasswordLock`), which does not stop a lock: pam_unix fails
+  every try at a locked password and faillock counts each one. So a
+  child who runs the lock screen's program by hand and types three
+  times makes a genuine lock line. It locks nothing that matters, and a
+  forged one looks the same, so a lock screen line about such an
+  account, from root too, is dropped, and so are its own `unix_chkpwd`
+  tries, which only the child running a program by hand can make. The
+  same rule as the login screen's, below. Their tries at every other
   place still count: su for a child's account is someone trying it.
 - *A right password* is a `USER_AUTH` record of a whole PAM check that
   succeeded (never `unix_chkpwd`'s, which can succeed while faillock
@@ -160,11 +167,12 @@ tests):
   whoever they run as. It names a place, not a person: anyone at the
   keyboard could have typed.
 
-**Grouping** (`TryNotices`, with `NoticeList` for the list itself). Tries for one account from one place and one
-login, each within faillock's `fail_interval` of the last, are one
-notice, with their count, first and last time, until a wrong try after
-that notice's lock ended, which starts the next. Tries are counted, not
-kept, so a flood takes no more room than its count.
+**Grouping** (`TryNotices`, with `NoticeList` for the list itself).
+Tries for one account from one place and one login, each within
+faillock's `fail_interval` of the last, are one notice, with their
+count, first and last time, until a wrong try after that notice's lock
+ended, which starts the next. Tries are counted, not kept, so a flood
+takes no more room than its count.
 
 **Locks worked out from the tries** (`FaillockTally`). Since faillock
 does not announce every lock, each account's tries, in time order from
@@ -240,8 +248,10 @@ journal's locks show.
   keyboard goes on to the notice ahead that shows most and the window
   scrolls to show it whole. Notices are often too tall for two to show
   whole at once (about 330 pixels in a page 520 tall on cairn-min), so
-  "a notice in sight" alone would leave the keyboard out of sight. Each
-  keeps its sentence as its
+  "a notice in sight" alone would leave the keyboard out of sight. A
+  notice whose showing would pull the page back the way it came, such
+  as one taller than the window whose top went out of sight, is passed
+  over while another ahead shows. Each keeps its sentence as its
   `Accessible.name`.
 
 **What Family keeps.** Nothing. The journal is already the record; a
@@ -319,9 +329,8 @@ ADR takes the safer side of each.
   covers that). No guess is added for it: a lone "Error sending audit
   message" says nothing certain, and a wrong guess would call a real
   wrong try refused. The fix belongs upstream, in kscreenlocker running
-  preauth when the password arrives; a report is drafted, not filed
-  (`~/.local/share/cairn-dev/vm-checks-290-291/upstream-draft-kscreenlocker-preauth.md`
-  on the dev PC).
+  preauth when the password arrives; a report is drafted, not yet
+  filed.
 - A full disk shortens the record below 30 days, and the page says so.
 - "about 16:15" is wrong if someone ran `faillock --reset`; hence
   "about". Tries after such a reset that lead to no new lock are still
