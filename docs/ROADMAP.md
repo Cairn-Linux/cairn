@@ -488,8 +488,8 @@ done, and what could sink it. Decisions that change the design get an ADR in
   keyboard scrolls it. The second VM run (2026-11-06, an image with the
   fix) passed check 4 and four places of check 5; it led to Page Up and
   Page Down landing on the notice that shows most, and to dropping lock
-  screen locks and tries for level 1 and 2 children, whose password is
-  locked, since only a forgery could make one. kscreenlocker refusing the
+  screen locks and tries for level 1 and 2 children, whose kiosk has no
+  lock screen, so such a lock locks nothing. kscreenlocker refusing the
   right password just after a lock ends is a known limitation in the
   ADR. Upstream reports for pam and kscreenlocker are drafted, not filed.
   Next: marking new notices (slice

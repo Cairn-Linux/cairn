@@ -440,3 +440,18 @@ no fingerprint reader; ctest 104 of 104 in the image build):
   keyboard on a notice out of the window whenever no notice showed
   whole, which the rule above fixes.
 The ADR stays proposed until those two fixes have been seen in the VM.
+
+2026-11-06, third run, cairn-min on `dev.20261106-be6bb57` (this change
+at bf58050, merged with #290 and #293; ctest 104 of 104 in the image
+build):
+- The child's forgery through a user namespace, with the lock screen's
+  real path and the child's own uid, showed nothing, and the second
+  run's forgery was gone from the page.
+- Three wrong unlocks by `guardian` at the lock screen still showed as
+  "typed wrong 3 times in your own login, at the lock screen", with the
+  lock and its end time.
+- Page Down and Page Up, eight presses each way: after every press the
+  ring was on a notice shown whole, and Page Up ended on the first. A
+  press sometimes passed over one notice, as the rule above allows.
+Both fixes have now been seen in the VM; acceptance waits for the
+maintainer.

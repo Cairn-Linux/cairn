@@ -235,10 +235,11 @@ The Notices page (ADR-0054, proposed):
    many refused tries as it needs become wrong ones. A lock no password
    try explains, such as wrong fingers, leaves refused tries refused. A
    level 1 or 2 child's login at the login screen asks no password, so it
-   never counts as the right password, and their lock screen has no
-   password to lock them by, so a lock-screen lock or try for one is
-   never shown: only a forgery could make one. When a person's own journal file
-   cannot be read, a lock worked out at their lock screen still shows.
+   never counts as the right password. Their kiosk has no lock screen
+   and faillock never stops their login, so a lock-screen lock or try
+   for one locks nothing that matters and is never shown, real or
+   forged. When a person's own journal file cannot be read, a lock
+   worked out at their lock screen still shows.
 4. A child at level 1 or 2 has no password, so a try on their account
    reads "Someone tried to use the account of Ada (ada) …".
 5. A name that is no account on this computer, as a text console's
