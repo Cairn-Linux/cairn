@@ -42,8 +42,13 @@ QString NoticeTime::minutes(qint64 seconds) const {
     return tr("%1 minutes").arg(number(count));
 }
 
+// Qt writes "5:41 AM" with a narrow no-break space (U+202F) that the
+// brand font lacks; the fallback font for that one character made every
+// line of a notice half again as tall (cairn-min, 2026-11-06). An ordinary
+// no-break space keeps the time on one line in the brand font.
 QString NoticeTime::clock(qint64 time) const {
-    return m_locale.toString(local(time).time(), QLocale::ShortFormat);
+    return m_locale.toString(local(time).time(), QLocale::ShortFormat)
+        .replace(QChar(0x202f), QChar(0x00a0));
 }
 
 QString NoticeTime::day(qint64 time) const {

@@ -258,6 +258,15 @@ private slots:
                     .startsWith(QStringLiteral("The password of ben was typed wrong once")));
     }
 
+    void aClockWithAnAmOrPm() {
+        const NoticeWords american(1000, FaillockSettings{}, QTimeZone::utc(),
+                                   QLocale(QLocale::English, QLocale::UnitedStates));
+        const QString said = american.sentence(episode(guardian, TryPlace::LoginScreen, 3));
+        QVERIFY2(said.contains(QStringLiteral("4:02") + QChar(0x00a0) + QStringLiteral("PM")),
+                 qPrintable(said));
+        QVERIFY(!said.contains(QChar(0x202f)));
+    }
+
     void theFooter() {
         QCOMPARE(words().footer(),
                  QStringLiteral("3 wrong tries within 15 minutes, by password or by finger, lock "
