@@ -283,6 +283,7 @@ Window {
             width: window.width - window.margin * 2
             visible: window.showing === "notices"
             page: window.noticesPage
+            flickable: flickable
         }
     }
 

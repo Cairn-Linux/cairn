@@ -283,7 +283,8 @@ public:
     // The window's NoticesPage, for the Guardian of page(), over a journal
     // of its own: "tries" has three wrong passwords at the login screen
     // that locked the Guardian, and one at su for a name typed with markup
-    // in it, from Ben's login; "none" has nothing; "unreadable" is a
+    // in it, from Ben's login; "many" has 30 notices, more than fit;
+    // "none" has nothing; "unreadable" is a
     // journal this account may not read. Times are in UTC.
     Q_INVOKABLE NoticesPage* noticesPage(const QString& journal = QStringLiteral("none")) {
         const QDir files(m_files.path());
@@ -303,6 +304,14 @@ public:
                                    "4294967295", 100 + i);
             }
             audit += auditLine(start + 7200000000LL, "<b>guardian</b>", "/usr/bin/su", "1002", 200);
+        }
+        if (journal == "many") {
+            // A wrong su each 20 minutes: a notice each, more than fit.
+            const qint64 start = 1793808120LL * 1000000;
+            for (int i = 0; i < 30; ++i) {
+                audit +=
+                    auditLine(start + i * 1200000000LL, "guardian", "/usr/bin/su", "1002", 300 + i);
+            }
         }
         writeFile(files.filePath("notices/audit"), audit);
         writeFile(files.filePath("notices/journalctl"),

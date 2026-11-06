@@ -1049,6 +1049,64 @@ TestCase {
         compare(findChild(window, "noticesStatus").text, "Family cannot read this computer's record of password tries from your account. An account in the wheel group can.");
     }
 
+    // The keyboard reads a page longer than the window (cairn-min,
+    // 2026-11-05: Tab went back to Children, Page Down did nothing). Tab
+    // goes from the Notices button to each notice in turn, and the page
+    // scrolls to show it; Page Down and Page Up scroll a page and take the
+    // keyboard to a notice in sight; Down and Up go to the next notice and
+    // the one before. A notice keeps its words as its name.
+    function test_theNoticesPageByKeyboard() {
+        const window = makeWindow("done", {
+            "journal": "many"
+        });
+        window.height = Tokens.headingSize * 20;
+        showNotices(window);
+        const scroller = findChild(window, "scroller");
+        const repeater = findChild(window, "noticeRows");
+        compare(repeater.count, 30);
+        verify(scroller.contentHeight > scroller.height * 2);
+        findChild(window, "noticesTab").forceActiveFocus();
+        keyClick(Qt.Key_Tab);
+        tryVerify(() => repeater.itemAt(0).activeFocus);
+        compare(repeater.itemAt(0).Accessible.name, findChild(repeater.itemAt(0), "noticeText").text);
+        compare(repeater.itemAt(0).Accessible.focusable, true);
+        keyClick(Qt.Key_Tab);
+        tryVerify(() => repeater.itemAt(1).activeFocus);
+        keyClick(Qt.Key_Down);
+        tryVerify(() => repeater.itemAt(2).activeFocus);
+        keyClick(Qt.Key_Up);
+        tryVerify(() => repeater.itemAt(1).activeFocus);
+        const before = scroller.contentY;
+        keyClick(Qt.Key_PageDown);
+        verify(scroller.contentY > before);
+        let item = window.activeFocusItem;
+        verify(item.objectName === "noticeCard", item.objectName);
+        verify(inSightOnThePage(window, item));
+        // Far enough down that Tab never leaves the page for Children.
+        for (let i = 0; i < 40; ++i)
+            keyClick(Qt.Key_PageDown);
+        compare(scroller.contentY, scroller.contentHeight - scroller.height);
+        item = window.activeFocusItem;
+        verify(inSightOnThePage(window, item));
+        verify(item.objectName === "noticeCard" || item.objectName === "noticesFooter", item.objectName);
+        keyClick(Qt.Key_PageUp);
+        verify(scroller.contentY < scroller.contentHeight - scroller.height);
+        verify(inSightOnThePage(window, window.activeFocusItem));
+        // Tab from the first notice visits every one, then the words under
+        // them, each in sight, before it goes back to the page buttons.
+        repeater.itemAt(0).forceActiveFocus();
+        for (let i = 1; i < 30; ++i) {
+            keyClick(Qt.Key_Tab);
+            tryVerify(() => repeater.itemAt(i).activeFocus);
+            verify(inSightOnThePage(window, repeater.itemAt(i)));
+        }
+        keyClick(Qt.Key_Tab);
+        tryVerify(() => findChild(window, "noticesFooter").activeFocus);
+        verify(inSightOnThePage(window, findChild(window, "noticesFooter")));
+        keyClick(Qt.Key_Tab);
+        tryVerify(() => findChild(window, "childrenTab").activeFocus);
+    }
+
     // The keyboard reaches the fourth button from the third.
     function test_theNoticesButtonByKeyboard() {
         const window = makeWindow("done");
