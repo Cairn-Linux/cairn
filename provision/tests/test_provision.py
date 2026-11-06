@@ -581,6 +581,100 @@ class SharedLibraryTest(unittest.TestCase):
         self.assertEqual(calls, [])
 
 
+class FaillockFolderTest(unittest.TestCase):
+    """The folder of wrong-password counts (ADR-0020, ADR-0052): each count
+    must keep group root, so a child with su cannot write another account's
+    (#289). stat answers from the scenario, by file name; chown, chmod,
+    chgrp and setfacl write what they were asked to a log."""
+
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.state = pathlib.Path(self.directory.name)
+        self.faillock = self.state / "faillock"
+        (self.state / "stat").mkdir()
+        self.stubs = {
+            "stat": '#!/bin/bash\ncat "$STATE/stat/$(basename "${@: -1}")"\n',
+            # Both read entries already there, so only the group and mode
+            # are in question.
+            "getfacl": '#!/bin/bash\nprintf "user:sddm:r--\\ndefault:user:sddm:r--\\n"\n',
+            "semanage": "#!/bin/bash\necho \"/var/lib/faillock(/.*)? all files faillog_t\"\n",
+            "authselect": "#!/bin/bash\necho '- with-faillock'\n",
+            "restorecon": "#!/bin/bash\n",
+        }
+        for name in ("chown", "chmod", "chgrp", "setfacl"):
+            self.stubs[name] = f'#!/bin/bash\necho "{name} $*" >> "$STATE/calls"\n'
+
+    def tearDown(self):
+        self.directory.cleanup()
+
+    def answer(self, name, text):
+        (self.state / "stat" / name).write_text(text + "\n")
+
+    def run_step(self):
+        snippet = (f"FAILLOCK={shlex.quote(str(self.faillock))}\n"
+                   "install_file() { :; }\nprotect_guardians\necho after")
+        code, output, _ = run_steps(snippet, env_extra={"STATE": str(self.state)}, extra_stubs=self.stubs)
+        calls = self.state / "calls"
+        return code, output, calls.read_text().splitlines() if calls.exists() else []
+
+    def test_a_new_folder_is_made_setgid(self):
+        self.answer("faillock", "root:root:2755")
+        code, output, calls = self.run_step()
+        self.assertEqual(code, 0, output)
+        self.assertEqual(oct(self.faillock.stat().st_mode & 0o7777), oct(0o2755))
+        self.assertIn(f"changed: {self.faillock}", output.splitlines())
+        self.assertEqual(calls, [])
+
+    def test_a_folder_without_setgid_gets_it(self):
+        self.faillock.mkdir()
+        self.answer("faillock", "root:root:755")
+        code, output, calls = self.run_step()
+        self.assertEqual(code, 0, output)
+        self.assertEqual(calls, [f"chown root:root {self.faillock}", f"chmod 2755 {self.faillock}"])
+        self.assertIn("after", output.splitlines())
+
+    def test_a_count_made_by_su_goes_back_to_group_root(self):
+        self.faillock.mkdir()
+        self.answer("faillock", "root:root:2755")
+        (self.faillock / "gina").touch()
+        self.answer("gina", "ben:660")
+        code, output, calls = self.run_step()
+        self.assertEqual(code, 0, output)
+        count = self.faillock / "gina"
+        self.assertEqual(calls, [f"chgrp root {count}", f"chmod 660 {count}"])
+        self.assertIn(f"changed: {count} in group root, mode 660", output.splitlines())
+
+    def test_a_count_keeps_its_owner(self):
+        self.faillock.mkdir()
+        self.answer("faillock", "root:root:2755")
+        (self.faillock / "gina").touch()
+        self.answer("gina", "ben:640")
+        code, output, calls = self.run_step()
+        self.assertEqual(code, 0, output)
+        self.assertFalse([call for call in calls if call.startswith("chown")], calls)
+
+    def test_a_second_run_changes_nothing(self):
+        self.faillock.mkdir()
+        self.answer("faillock", "root:root:2755")
+        for name in ("gina", "ada"):
+            (self.faillock / name).touch()
+            self.answer(name, "root:660")
+        code, output, calls = self.run_step()
+        self.assertEqual(code, 0, output)
+        self.assertEqual(calls, [])
+        self.assertNotIn("changed:", output)
+
+    def test_a_link_is_left_alone(self):
+        self.faillock.mkdir()
+        self.answer("faillock", "root:root:2755")
+        elsewhere = self.state / "elsewhere"
+        elsewhere.touch()
+        (self.faillock / "gina").symlink_to(elsewhere)
+        code, output, calls = self.run_step()
+        self.assertEqual(code, 0, output)
+        self.assertEqual(calls, [])
+
+
 # A stand-in for the visit helper's copy mode: each child's lines come from
 # the scenario, and so does how it ends.
 COPY_HELPER = r"""#!/bin/bash
