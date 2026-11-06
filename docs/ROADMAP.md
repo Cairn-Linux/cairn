@@ -480,8 +480,15 @@ done, and what could sink it. Decisions that change the design get an ADR in
   write, and faillock's line from the lock screen under a uid rule, as the
   Guardian through systemd's own `wheel` ACL; no helper, no new
   permission, no copy kept. `FaillockSettings` moved to `accounts/`.
-  Built and tested in the release build on 2026-11-05; the VM checks are
-  open. Next: marking new notices (slice 2), a notification at login.
+  The VM checks of 2026-11-05 found the lock screen's line comes from
+  `kscreenlocker_worker` in Plasma 6.8, and that pam_faillock 1.7.2 locks
+  without a record or a line when a lock starts within `fail_interval` of
+  an ended one; the page now reads the worker and works each lock out
+  from the tries with faillock's own rule (`FaillockTally`), and the
+  keyboard scrolls it. Replayed on cairn-min's real journal on
+  2026-11-06; checks 4 and 5 wait for an image with the fix. An upstream
+  report for pam is drafted, not filed. Next: marking new notices (slice
+  2), a notification at login.
 - **ADR-0052 (2026-11-05, #284, proposed): the login screen says when an
   account is locked.** On the kids' laptop the Guardian, locked out by
   faillock, was told "That password did not work" for the right
