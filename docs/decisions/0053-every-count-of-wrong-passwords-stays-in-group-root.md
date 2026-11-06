@@ -19,7 +19,8 @@ makes the file with `open(path, O_RDWR | O_CREAT, 0660)`, then
 group as the file was made.
 It adds group write if the file lacks it, and nothing else.
 Nothing in pam_faillock, nor in the `faillock` command, ever renames,
-removes or changes the group of a count; a good login and
+removes or changes the group of a count; a good login (at the login
+screen, sudo or su, not at the lock screen: ADR-0051) and
 `faillock --reset` only empty it.
 
 `su` is setuid root, not setgid, so it runs with the caller's group.
@@ -128,4 +129,13 @@ for an L3 child. The count `ben` that the #288 audit's `su` had left in
 group `bazzite` went back to group root. A new count for `guardian` made
 by `bazzite`'s wrong `su` was `guardian:root 660`, and `bazzite` could
 not empty it. They wait for an image built with the change, and check 5
+for the kids' laptop.
+
+2026-11-06, cairn-min on `dev.20261105-b00fa88`, an image built with this
+change and #285's: checks 1 to 4 and 6 passed with the change built in.
+The build check ran and passed. A count planted in a child's group, and
+one at mode 0666, came back `<login>:root 0660` with the `sddm` entry at
+boot and from `systemd-tmpfiles --create`. A good su, sudo and login
+screen login, and `faillock --reset`, kept group root. The lock screen
+still writes counts, and three wrong unlocks still lock. Check 5 waits
 for the kids' laptop.
