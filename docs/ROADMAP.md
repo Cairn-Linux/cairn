@@ -467,7 +467,7 @@ done, and what could sink it. Decisions that change the design get an ADR in
   `sudo systemctl enable --now tailscaled`, then sets the operator once
   with `sudo tailscale set --operator=<name>`. Built and checked in a
   container on 2026-11-03; not yet seen in a VM.
-- **ADR-0054 (2026-11-05, #285 slice 1, proposed): Family tells
+- **ADR-0054 (2026-11-05, #285 slice 1, accepted): Family tells
   Guardians about wrong passwords.** Nothing told a Guardian, later, that
   wrong passwords were typed for their account or a child's, or that an
   account locked; the Guardian locked out on 2026-11-04 thought they had

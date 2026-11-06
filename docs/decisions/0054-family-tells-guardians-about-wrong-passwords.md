@@ -1,7 +1,6 @@
 # ADR-0054: Family tells Guardians about wrong passwords
 
-**Status:** proposed. It becomes accepted when the checks under "Checks
-in the VM" have passed on cairn-min.
+**Status:** accepted 2026-11-06, after the third VM run (Record).
 **Date:** 2026-11-05
 **Closes:** (none). Issue #285, first slice. Builds on ADR-0040 (Family),
 ADR-0051 (the lock screen's fingerprint) and ADR-0052 (the login screen
@@ -453,5 +452,5 @@ build):
 - Page Down and Page Up, eight presses each way: after every press the
   ring was on a notice shown whole, and Page Up ended on the first. A
   press sometimes passed over one notice, as the rule above allows.
-Both fixes have now been seen in the VM; acceptance waits for the
-maintainer.
+Both fixes have now been seen in the VM; the maintainer accepted the ADR
+on 2026-11-06.

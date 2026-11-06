@@ -204,7 +204,7 @@ out, and the page says why; their Put back waits too, so logging them
 out is the way on. A child who logs in after the page looked is still held
 `logged-in` by `cairn-family`, and the Save's result says so.
 
-The Notices page (ADR-0054, proposed):
+The Notices page (ADR-0054):
 
 1. "Wrong passwords in the last 30 days": one card for each time wrong
    passwords were typed for an account on this computer, newest first,
