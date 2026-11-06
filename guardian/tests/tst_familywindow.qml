@@ -1105,6 +1105,15 @@ TestCase {
         verify(inSightOnThePage(window, findChild(window, "noticesFooter")));
         keyClick(Qt.Key_Tab);
         tryVerify(() => findChild(window, "childrenTab").activeFocus);
+        // A notice taller than the window (very large text) can never show
+        // whole; after Page Down the keyboard goes to it, in part in sight,
+        // rather than staying on one that left the window.
+        scroller.contentY = 0;
+        repeater.itemAt(1).height = scroller.height * 3;
+        waitForPolish(window);
+        repeater.itemAt(0).forceActiveFocus();
+        keyClick(Qt.Key_PageDown);
+        tryVerify(() => repeater.itemAt(1).activeFocus);
     }
 
     // The keyboard reaches the fourth button from the third.

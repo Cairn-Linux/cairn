@@ -463,6 +463,113 @@ private slots:
         QCOMPARE(shown[0].whileLocked, 1);
         QCOMPARE(shown[0].lockTime, lock + 896 * second);
     }
+
+    // The same at the lock screen, whose line comes from its own program
+    // just after the try faillock announced. That line is the announced
+    // lock that never was, not a lock of its own, and the try after it,
+    // which locked without a word, takes the lock.
+    void aLockScreenLockFaillockSaidButDidNotMake() {
+        const auto run = [](bool oneMore) {
+            TryNotices notices(FaillockSettings{});
+            notices.addLock(lockAt(start + 20 * second + 200, TryPlace::OwnLogin, 4242));
+            const qint64 lock = start + 20 * second;
+            notices.addLock(lockAt(lock + 895 * second + 200, TryPlace::OwnLogin, 4242));
+            notices.addTry(tryAt(start, TryPlace::OwnLogin, guardian, 1));
+            notices.addTry(tryAt(start + 10 * second, TryPlace::OwnLogin, guardian, 2));
+            notices.addTry(tryAt(lock, TryPlace::OwnLogin, guardian, 3));
+            notices.addTry(tryAt(lock + 610 * second, TryPlace::OwnLogin, guardian, 10));
+            notices.addTry(tryAt(lock + 895 * second, TryPlace::OwnLogin, guardian, 11));
+            if (oneMore) {
+                notices.addTry(tryAt(lock + 896 * second, TryPlace::OwnLogin, guardian, 12));
+                notices.addTry(tryAt(lock + 897 * second, TryPlace::OwnLogin, guardian, 13));
+            }
+            return notices.notices().shown;
+        };
+        auto shown = run(false);
+        QCOMPARE(shown.size(), 2U);
+        QCOMPARE(shown[0].wrong, 2);
+        QVERIFY(!shown[0].lockTime.has_value());
+        QCOMPARE(shown[1].wrong, 3);
+        QCOMPARE(shown[1].lockTime, start + 20 * second + 200);
+        shown = run(true);
+        QCOMPARE(shown.size(), 2U);
+        QCOMPARE(shown[0].wrong, 3);
+        QCOMPARE(shown[0].whileLocked, 1);
+        QCOMPARE(shown[0].lockTime, start + 916 * second);
+    }
+
+    // A try refused under a later lock from another place never joins the
+    // notice of an earlier lock, whose "while it was locked" would name
+    // the wrong lock.
+    void refusedUnderAnotherLock() {
+        TryNotices notices(FaillockSettings{});
+        for (int i = 0; i < 3; ++i) {
+            if (i == 2) {
+                notices.addLock(lockAt(start + i * second, TryPlace::Su, 1 + i, ben));
+            }
+            notices.addTry(tryAt(start + i * second, TryPlace::Su, ben, 1 + i));
+        }
+        // That lock ends; the login screen locks; su is refused.
+        const qint64 later = start + 11 * minute;
+        for (int i = 0; i < 3; ++i) {
+            if (i == 2) {
+                notices.addLock(lockAt(later + i * second, TryPlace::LoginScreen, 20 + i, ben));
+            }
+            notices.addTry(tryAt(later + i * second, TryPlace::LoginScreen, ben, 20 + i));
+        }
+        notices.addTry(tryAt(later + minute, TryPlace::Su, ben, 30));
+        const auto shown = notices.notices().shown;
+        QCOMPARE(shown.size(), 3U);
+        QCOMPARE(shown[0].place, TryPlace::Su);
+        QCOMPARE(shown[0].wrong, 0);
+        QCOMPARE(shown[0].whileLocked, 1);
+        QVERIFY(!shown[0].lockTime.has_value());
+        QCOMPARE(shown[1].place, TryPlace::LoginScreen);
+        QCOMPARE(shown[2].whileLocked, 0);
+    }
+
+    // A lock no password try explains, inside a lock the count holds: the
+    // count was emptied out of sight, and wrong fingers may have made the
+    // new lock. The try refused before it stays refused.
+    void aFingerLockInsideALock() {
+        TryNotices notices(FaillockSettings{});
+        notices.addLock(lockAt(start + 2 * minute, TryPlace::OwnLogin, 4242, ben));
+        for (int i = 0; i < 3; ++i) {
+            if (i == 2) {
+                notices.addLock(lockAt(start + i * second, TryPlace::Su, 1 + i, ben));
+            }
+            notices.addTry(tryAt(start + i * second, TryPlace::Su, ben, 1 + i));
+        }
+        notices.addTry(tryAt(start + minute, TryPlace::Su, ben, 10));
+        const auto shown = notices.notices().shown;
+        QCOMPARE(shown.size(), 2U);
+        QCOMPARE(shown[0].place, TryPlace::OwnLogin);
+        QCOMPARE(shown[0].wrong, 0);
+        QCOMPARE(shown[0].lockTime, start + 2 * minute);
+        QCOMPARE(shown[1].wrong, 3);
+        QCOMPARE(shown[1].whileLocked, 1);
+        QCOMPARE(shown[1].lockTime, start + 2 * second);
+    }
+
+    // When the account's own journal file, where the lock screen's line
+    // is, could not be read, a lock the count works out at the lock screen
+    // is still a lock, not a sign that the count was emptied.
+    void aLockScreenFileNotRead() {
+        for (const bool unread : {true, false}) {
+            TryNotices notices(FaillockSettings{});
+            if (unread) {
+                notices.lockScreenUnread(guardian.uid);
+            }
+            for (int i = 0; i < 4; ++i) {
+                notices.addTry(tryAt(start + i * 10 * second, TryPlace::OwnLogin, guardian, 1 + i));
+            }
+            const auto shown = notices.notices().shown;
+            QCOMPARE(shown.size(), 1U);
+            QCOMPARE(shown[0].wrong, unread ? 3 : 4);
+            QCOMPARE(shown[0].whileLocked, unread ? 1 : 0);
+            QCOMPARE(shown[0].lockTime.has_value(), unread);
+        }
+    }
 };
 
 } // namespace

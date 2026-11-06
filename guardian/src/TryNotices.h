@@ -9,6 +9,7 @@
 
 #include <optional>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 // Groups tries and locks into notices as journalctl gives them, oldest
@@ -27,6 +28,11 @@ public:
     // locked.
     explicit TryNotices(std::optional<FaillockSettings> settings, int maxNotices = 200);
 
+    // The lock screen's locks for this account are in a journal file that
+    // could not be read. A lock the count works out there is then a lock,
+    // where otherwise a missing line would mean the count was emptied out
+    // of sight.
+    void lockScreenUnread(unsigned int uid);
     void addLock(const LockEvent& lock);
     void addTry(const PasswordTry& passwordTry);
     void addGood(const GoodPassword& good);
@@ -77,4 +83,6 @@ private:
     TryEpisodes m_episodes;
     // Each account's count, by uid.
     std::unordered_map<unsigned int, AccountCount> m_counts;
+    // Accounts whose lock screen's locks could not be read, by uid.
+    std::unordered_set<unsigned int> m_unreadLockScreens;
 };

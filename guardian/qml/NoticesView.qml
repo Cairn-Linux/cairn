@@ -32,10 +32,14 @@ Column {
         return list;
     }
 
-    // Whether the item shows whole in the scroller.
+    // Whether the item shows whole in the scroller, or, when it is taller
+    // than the scroller and can never show whole, fills part of it.
     function inSight(item) {
         const top = item.mapToItem(view.flickable, 0, 0).y;
-        return top >= 0 && top + item.height <= view.flickable.height;
+        const bottom = top + item.height;
+        if (item.height > view.flickable.height)
+            return top < view.flickable.height && bottom > 0;
+        return top >= 0 && bottom <= view.flickable.height;
     }
 
     // Down and Up go from one stop to the next; the page keys scroll, and

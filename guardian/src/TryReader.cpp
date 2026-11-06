@@ -84,7 +84,7 @@ QStringList TryReader::arguments(int step) const {
     }
 }
 
-TryReader::Readable TryReader::journalReadable() const {
+TryReader::Readable TryReader::journalReadable() {
     static const QRegularExpression machineId(QStringLiteral("^[0-9a-f]{32}$"));
     QFile idFile(m_setup.machineId);
     if (!idFile.open(QIODevice::ReadOnly)) {
@@ -99,7 +99,7 @@ TryReader::Readable TryReader::journalReadable() const {
         const QDir machine(QDir(folder).filePath(id));
         QFile journal(machine.filePath(QStringLiteral("system.journal")));
         if (journal.open(QIODevice::ReadOnly)) {
-            warnOfUnreadableUserFiles(machine);
+            m_unreadUsers = unreadableUserFiles(machine);
             return Readable::Yes;
         }
         if (journal.exists()) {
@@ -112,18 +112,27 @@ TryReader::Readable TryReader::journalReadable() const {
 // systemd gives wheel read access to every user's file through the
 // folder's default ACL, but journalctl skips a file it may not open
 // without a word, and the lock screen's locks are only in those files.
-// The page still shows every try, from the system's file; a lock it could
-// not read shows as tries alone (ADR-0054).
-void TryReader::warnOfUnreadableUserFiles(const QDir& machine) {
+// The page still shows every try, from the system's file, and the locks
+// worked out from them (ADR-0054). The uids whose files, current or
+// archived (user-1000@...journal), could not be read.
+std::vector<unsigned int> TryReader::unreadableUserFiles(const QDir& machine) {
+    static const QRegularExpression userFile(QStringLiteral("^user-([0-9]{1,9})[@.]"));
+    std::vector<unsigned int> uids;
     const QStringList files =
         machine.entryList({QStringLiteral("user-*.journal")}, QDir::Files | QDir::System);
     for (const QString& name : files) {
         QFile file(machine.filePath(name));
-        if (!file.open(QIODevice::ReadOnly)) {
-            qWarning("cairn-guardian: cannot read %s; the lock screen's locks in it are not shown.",
-                     qUtf8Printable(name));
+        if (file.open(QIODevice::ReadOnly)) {
+            continue;
+        }
+        qWarning("cairn-guardian: cannot read %s; the lock screen's locks in it are not shown.",
+                 qUtf8Printable(name));
+        const QRegularExpressionMatch match = userFile.match(name);
+        if (match.hasMatch()) {
+            uids.push_back(match.captured(1).toUInt());
         }
     }
+    return uids;
 }
 
 void TryReader::read(const std::optional<FaillockSettings>& settings) {
@@ -143,6 +152,9 @@ void TryReader::read(const std::optional<FaillockSettings>& settings) {
         return;
     }
     m_grouping.emplace(settings);
+    for (const unsigned int uid : m_unreadUsers) {
+        m_grouping->lockScreenUnread(uid);
+    }
     runStep(OldestEntry);
 }
 

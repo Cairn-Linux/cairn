@@ -231,8 +231,12 @@ The Notices page (ADR-0054, proposed):
    so a lock pam_faillock 1.7.2 made without writing a word (one that
    starts within 15 minutes of an ended lock) still shows; a lock in the
    journal while the page counted the account locked means someone ran
-   `faillock --reset`, and only as many refused tries as that lock needs
-   become wrong ones.
+   `faillock --reset`, and, when a try's process wrote that lock, only as
+   many refused tries as it needs become wrong ones. A lock no password
+   try explains, such as wrong fingers, leaves refused tries refused. A
+   level 1 or 2 child's login at the login screen asks no password, so it
+   never counts as the right password. When a person's own journal file
+   cannot be read, a lock worked out at their lock screen still shows.
 4. A child at level 1 or 2 has no password, so a try on their account
    reads "Someone tried to use the account of Ada (ada) …".
 5. A name that is no account on this computer, as a text console's
@@ -562,9 +566,10 @@ Notices page `journaltries` (forged lines from a child's account, names
 with markup, line breaks and bidi controls, fields as bytes), `faillocktally` (faillock's rule, its silent lock and its early
 announcement), `trynotices`
 (grouping, locks, tries during a lock, locks faillock did not write
-down, `faillock --reset` out of sight, a flood of 100,000 tries),
+down, `faillock --reset` out of sight, a lock-screen file not read, a
+flood of 100,000 tries),
 `noticewords` and `tryreader`, with a stand-in journalctl each test
-writes, a journal this account cannot read and a flood with an
+writes, a journal or a user's file this account cannot read and a flood with an
 over-long line. They use stand-ins
 in `tests/fixtures/` for `pkexec` with the helper behind it, which takes
 a scenario where the helper's path goes, and for the Guardian's Steam

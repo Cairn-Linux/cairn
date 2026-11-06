@@ -169,15 +169,19 @@ QString NoticeWords::sentence(const TryEpisode& episode) const {
         if (!lockWords.isEmpty()) {
             sentences << lockWords;
         }
+        if (m_settings && episode.wrong < m_settings->deny) {
+            sentences << tr("Wrong tries at other prompts, and wrong fingers at the lock screen, "
+                            "count toward a lock too.");
+        }
     }
     if (episode.wrong > 0 && episode.whileLocked > 0) {
+        // Without this notice's lock, a lock from elsewhere refused them,
+        // before, between or after the wrong ones.
         sentences << (locked ? tr("It was tried %1 while it was locked.")
-                             : tr("It was tried %1 while the account was locked."))
-                         .arg(m_time.moreTimes(episode.whileLocked));
-    }
-    if (locked && m_settings && episode.wrong < m_settings->deny) {
-        sentences << tr("Wrong tries at other prompts, and wrong fingers at the lock screen, "
-                        "count toward a lock too.");
+                                   .arg(m_time.moreTimes(episode.whileLocked))
+                             : tr("In that time it was also tried %1 while the account was "
+                                  "locked.")
+                                   .arg(m_time.times(episode.whileLocked)));
     }
     return sentences.join(QLatin1Char(' '));
 }

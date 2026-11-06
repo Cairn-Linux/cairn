@@ -26,7 +26,8 @@
 //   fake that line, but only about their own account.
 // - A right password is an audit USER_AUTH record of a whole PAM check,
 //   never unix_chkpwd's, or a USER_ACCT record, that succeeded, which a
-//   child can cause only with the password.
+//   child can cause only with the password. A level 1 or 2 child's login
+//   at the login screen needs no password, so it is not one.
 // - Names in an entry are never shown: each is looked up on this computer,
 //   and a name that is no account becomes "no such account".
 class JournalTries {

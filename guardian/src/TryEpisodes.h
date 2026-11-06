@@ -41,8 +41,11 @@ public:
 
     // The notice a try goes in: the open one for its account, place and
     // login, unless the last try there was more than fail_interval before,
-    // or the try is wrong and the notice's lock ended before it.
-    std::size_t episodeFor(const PasswordTry& passwordTry, bool wrong);
+    // or the try is wrong and the notice's lock ended before it, or the
+    // try was refused under a lock that began at `lockedSince` and the
+    // notice's lock is another.
+    std::size_t episodeFor(const PasswordTry& passwordTry, bool wrong,
+                           std::optional<qint64> lockedSince = std::nullopt);
     TryEpisode& at(std::size_t index);
     const std::vector<TryEpisode>& all() const;
     // A try counted as refused that was wrong after all.

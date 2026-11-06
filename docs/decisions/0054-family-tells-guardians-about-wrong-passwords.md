@@ -123,7 +123,12 @@ tests):
   faillock's account part, which empties the count only after its own
   password check in that process. The lock screen never runs it
   (ADR-0053). A right password at all while the page counts the account
-  locked means the count was emptied out of sight.
+  locked means the count was emptied out of sight. The login screen lets
+  a level 1 or 2 child in before the password stack
+  (`session/sddm/pam.d/sddm`), so faillock never runs there and their
+  login writes successes that empty nothing: a login screen success for
+  an account in `cairn-l1` or `cairn-l2`, and in neither `cairn-guardian`
+  nor `wheel`, is not a right password.
 - *Names* in an entry are never shown. `AUDIT_FIELD_ACCT` is the name PAM
   was given. At su and sudo it is always an account (su refuses a name
   that is no account before PAM, sudo asks for its caller's own
@@ -166,9 +171,16 @@ while it was locked." The journal has the last word where it speaks:
   did not happen: someone emptied the count out of sight, with
   `faillock --reset`.
 - A lock in the journal inside a lock the count still holds means the
-  same. Then the tries refused since, at most `deny` less one, the newest
-  within `fail_interval`, become wrong ones: never more than the lock
-  needs, because nothing says when the reset came.
+  same. When a try's process wrote it (or, at the lock screen, its line
+  came just after a try faillock announced), the tries refused since, at
+  most `deny` less one, the newest within `fail_interval`, become wrong
+  ones: never more than the lock needs, because nothing says when the
+  reset came. A lock inside a lock that no try explains, such as one
+  from wrong fingers, empties the count and shows as a lock, and the
+  tries refused before it stay refused: the fingers may have been all of
+  it.
+- The lock screen's line just after a try faillock announced but did not
+  make by its own rule is that announcement, not a lock.
 - A right password, then the account part in that process, empties the
   count; a right password while the count holds a lock empties it too,
   and the tries refused before it stay refused.
@@ -191,9 +203,13 @@ journal's locks show.
   tries at other prompts, and wrong fingers at the lock screen, count
   toward a lock too."
 - The sentences come in the order things happened: the wrong passwords,
-  the lock they caused ("That locked …"), then the tries refused while
-  it held. "That" is the wrong passwords, so a notice of tries refused
-  while locked never says a lock came of them.
+  the lock they caused ("That locked …"), why it took fewer than `deny`,
+  then the tries refused while it held. "That" is the wrong passwords, so
+  a notice of tries refused while locked never says a lock came of them.
+  A try refused under another lock than a notice's own goes on a notice
+  of its own. On a notice without a lock, tries refused under a lock
+  from elsewhere may have come before the wrong ones, so they read "In
+  that time it was also tried twice while the account was locked."
 - Under the list: "3 wrong tries within 15 minutes, by password or by
   finger, lock an account for 10 minutes. If this was you, there is
   nothing to do. If it was not, someone may be guessing: a password
@@ -286,7 +302,9 @@ ADR takes the safer side of each.
 - The lock screen's locks are in each person's own journal file. A file a
   Guardian cannot read (a `wheel` ACL taken away by hand) is skipped by
   journalctl without a word; Family logs it, and the page shows those
-  tries with the locks worked out from them.
+  tries with the locks worked out from them. For that account a lock
+  worked out at the lock screen stands without its line, where otherwise
+  a missing line would mean the count was emptied out of sight.
 - The page reads the journal each time it is shown, which took 0.2 s on
   cairn-min for the audit run; the lock screen run reads every user
   journal and is the slow one. The window never waits for either.

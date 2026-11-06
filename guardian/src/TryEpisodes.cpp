@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "TryEpisodes.h"
 
+#include "HeldLocks.h"
+
 #include <QStringList>
 
 #include <algorithm>
+#include <cstdlib>
 
 namespace {
 
@@ -45,15 +48,23 @@ std::size_t TryEpisodes::open(const TryEpisode& like, qint64 time) {
     return m_episodes.size() - 1;
 }
 
-std::size_t TryEpisodes::episodeFor(const PasswordTry& passwordTry, bool wrong) {
+std::size_t TryEpisodes::episodeFor(const PasswordTry& passwordTry, bool wrong,
+                                    std::optional<qint64> lockedSince) {
     TryEpisode like;
     like.account = passwordTry.account;
     like.place = passwordTry.place;
     like.program = passwordTry.program;
     like.from = passwordTry.from;
     const auto found = m_open.constFind(keyOf(like));
-    if (found == m_open.cend() || passwordTry.time - m_episodes[*found].last > m_interval ||
-        (wrong && m_episodes[*found].lockTime)) {
+    if (found == m_open.cend() || passwordTry.time - m_episodes[*found].last > m_interval) {
+        return open(like, passwordTry.time);
+    }
+    const std::optional<qint64>& lockTime = m_episodes[*found].lockTime;
+    // A try refused under another lock than this notice's: "while it was
+    // locked" would name the wrong one.
+    const bool otherLock =
+        lockedSince && lockTime && std::abs(*lockTime - *lockedSince) > HeldLocks::sameMoment;
+    if ((wrong && lockTime) || otherLock) {
         return open(like, passwordTry.time);
     }
     TryEpisode& episode = m_episodes[*found];

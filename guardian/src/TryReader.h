@@ -12,6 +12,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <vector>
 
 class JournalRun;
 class QDir;
@@ -67,8 +68,8 @@ signals:
 private:
     enum class Readable : std::uint8_t { Yes, No, Missing };
 
-    Readable journalReadable() const;
-    static void warnOfUnreadableUserFiles(const QDir& machine);
+    Readable journalReadable();
+    static std::vector<unsigned int> unreadableUserFiles(const QDir& machine);
     void runStep(int step);
     void take(const QByteArray& line);
     void stepDone(bool succeeded);
@@ -79,6 +80,8 @@ private:
     std::optional<TryNotices> m_grouping;
     TryNotices::Notices m_notices;
     std::optional<qint64> m_oldest;
+    // Accounts whose own journal files could not all be read, by uid.
+    std::vector<unsigned int> m_unreadUsers;
     JournalRun* m_run = nullptr;
     int m_step = 0;
     State m_state = State::Ready;

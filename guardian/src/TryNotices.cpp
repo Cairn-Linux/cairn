@@ -32,6 +32,10 @@ TryNotices::AccountCount& TryNotices::countOf(const Account& account) {
     return found->second;
 }
 
+void TryNotices::lockScreenUnread(unsigned int uid) {
+    m_unreadLockScreens.insert(uid);
+}
+
 void TryNotices::addLock(const LockEvent& lock) {
     countOf(lock.account).locks.add(lock);
 }
@@ -42,14 +46,16 @@ void TryNotices::settleBefore(AccountCount& count, qint64 time) {
     }
 }
 
-// A lock no try's process explains. faillock locks only an account it does
-// not count as locked, so a lock inside one it counts means the count was
-// emptied out of sight, by faillock --reset. Otherwise tries it did not
-// see, such as wrong fingers, made it. The lock screen's lock goes with
-// the tries in that login that ended no longer than fail_interval before
-// it; any other waits for notices(). A child can fake the lock screen's
-// line about their own account by the thousand, so each is settled
-// without looking through the others.
+// A lock no try's process explains: tries the count did not see, such as
+// wrong fingers, made it. faillock locks only an account it does not count
+// as locked, so a lock inside one it counts means the count was emptied
+// out of sight, by faillock --reset. No password try made this lock, so
+// the tries refused before it stay refused: wrong fingers may have been
+// all of it. The lock screen's lock goes with the tries in that login that
+// ended no longer than fail_interval before it; any other waits for
+// notices(). A child can fake the lock screen's line about their own
+// account by the thousand, so each is settled without looking through the
+// others.
 void TryNotices::settle(AccountCount& count, HeldLocks::Held& held) {
     held.settled = true;
     const qint64 at = held.time;
@@ -60,7 +66,6 @@ void TryNotices::settle(AccountCount& count, HeldLocks::Held& held) {
                 held.attached = true;
                 return;
             }
-            undoRefusals(count, at, m_rule.deny);
             count.tally.reset();
         }
         count.tally.lockAt(at);
@@ -106,7 +111,9 @@ TryNotices::Counted TryNotices::countTry(AccountCount& count, const PasswordTry&
         count.tally.reset();
     }
     Outcome outcome = count.tally.fail(passwordTry.time);
-    if (own == nullptr && outcome == Outcome::Locked && passwordTry.place == TryPlace::OwnLogin) {
+    const bool announced = outcome == Outcome::Locked || outcome == Outcome::AnnouncedOnly;
+    const bool ownLogin = passwordTry.place == TryPlace::OwnLogin;
+    if (own == nullptr && announced && ownLogin) {
         own = count.locks.lockScreenLock(passwordTry);
         if (own != nullptr) {
             own->settled = true;
@@ -118,7 +125,11 @@ TryNotices::Counted TryNotices::countTry(AccountCount& count, const PasswordTry&
         own = nullptr;
     } else if (own != nullptr) {
         count.tally.lockAt(own->time);
-    } else if (outcome == Outcome::Locked || outcome == Outcome::AnnouncedOnly) {
+    } else if (announced && ownLogin && m_unreadLockScreens.contains(passwordTry.account->uid)) {
+        // The lock screen's line may be in the file that could not be
+        // read, so the count's word stands: it locked without a word seen.
+        outcome = outcome == Outcome::Locked ? Outcome::SilentlyLocked : Outcome::Wrong;
+    } else if (announced) {
         // faillock writes it each time, so the count was emptied out of
         // sight before this try.
         count.tally.reset();
@@ -145,7 +156,9 @@ void TryNotices::addTry(const PasswordTry& passwordTry) {
     const Outcome outcome = counted.outcome;
     own = counted.lock;
     const bool refused = outcome == Outcome::Refused;
-    const std::size_t index = m_episodes.episodeFor(passwordTry, !refused);
+    const std::size_t index =
+        refused ? m_episodes.episodeFor(passwordTry, false, count.tally.lockStart())
+                : m_episodes.episodeFor(passwordTry, true);
     TryEpisode& episode = m_episodes.at(index);
     if (refused) {
         ++episode.whileLocked;

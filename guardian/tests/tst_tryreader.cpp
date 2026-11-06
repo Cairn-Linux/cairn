@@ -168,6 +168,41 @@ private slots:
         QVERIFY(computer.asked().isEmpty());
     }
 
+    // A user's file this account cannot read hides that user's lock
+    // screen lines, so a lock worked out from their tries there stands,
+    // rather than meaning the count was emptied out of sight.
+    void aUserFileThisAccountCannotRead() {
+        if (geteuid() == 0) {
+            QSKIP("root reads every file");
+        }
+        const qint64 start = 1793808120LL * 1000000;
+        QByteArray tries;
+        for (int i = 0; i < 4; ++i) {
+            tries += line({{"__REALTIME_TIMESTAMP", QString::number(start + i * 1000000)},
+                           {"_TRANSPORT", "audit"},
+                           {"_AUDIT_TYPE", "1100"},
+                           {"_PID", QString::number(100 + i)},
+                           {"AUDIT_FIELD_OP", "PAM:unix_chkpwd"},
+                           {"AUDIT_FIELD_ACCT", "guardian"},
+                           {"AUDIT_FIELD_EXE", "/usr/bin/unix_chkpwd"},
+                           {"AUDIT_FIELD_RES", "failed"}});
+        }
+        for (const bool unread : {false, true}) {
+            const Computer computer;
+            computer.setStep("audit", tries);
+            const QString file = computer.path("journal/" + machineId + "/user-1000@0a1b.journal");
+            QVERIFY(writeFile(file, "LPKSHHRH"));
+            if (unread) {
+                QFile::setPermissions(file, QFile::WriteOwner);
+            }
+            TryReader reader(computer.setup());
+            QCOMPARE(readAll(reader), TryReader::State::Ready);
+            QCOMPARE(reader.notices().shown.size(), 1U);
+            QCOMPARE(reader.notices().shown[0].wrong, unread ? 3 : 4);
+            QCOMPARE(reader.notices().shown[0].whileLocked, unread ? 1 : 0);
+        }
+    }
+
     void noJournalAtAll() {
         const Computer computer;
         QFile::remove(computer.path("journal/" + machineId + "/system.journal"));

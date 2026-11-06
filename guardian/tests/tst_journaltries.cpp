@@ -20,6 +20,12 @@ const std::vector<Account>& family() {
         {.uid = 1001, .groups = {"ada", "cairn-l1"}, .login = "ada", .fullName = "Ada"},
         {.uid = 1002, .groups = {"ben", "cairn-l3"}, .login = "ben", .fullName = "Ben"},
         {.uid = 999, .groups = {"bazzite", "wheel"}, .login = "bazzite", .fullName = "cairn"},
+        // A Guardian also in a level group, whom the login screen still
+        // asks for a password (ADR-0023).
+        {.uid = 1003,
+         .groups = {"cora", "cairn-l2", "cairn-guardian"},
+         .login = "cora",
+         .fullName = "Cora"},
     };
     return accounts;
 }
@@ -385,6 +391,27 @@ private slots:
         QJsonObject syslog = entry;
         syslog.insert("_TRANSPORT", "syslog");
         QVERIFY(!rules().goodFrom(syslog).has_value());
+    }
+
+    // The login screen lets a level 1 or 2 child in with no password, and
+    // faillock's part never runs, so that login is no right password. At
+    // any other prompt their password was checked, and it is one.
+    void aChildsLoginWithoutAPassword() {
+        for (const QString op : {"PAM:authentication", "PAM:accounting"}) {
+            const bool accountPart = op == QLatin1String("PAM:accounting");
+            const auto good = [&](const QString& account, const QString& program) {
+                QJsonObject entry = failedAuth(account, program, op);
+                entry.insert("AUDIT_FIELD_RES", "success");
+                entry.insert("_AUDIT_TYPE", accountPart ? "1101" : "1100");
+                return rules().goodFrom(entry);
+            };
+            QVERIFY(!good("ada", "/usr/libexec/sddm-helper").has_value());
+            QVERIFY(!good("ada", "/usr/libexec/plasmalogin-helper").has_value());
+            QVERIFY(good("ada", "/usr/bin/su").has_value());
+            QVERIFY(good("ben", "/usr/libexec/sddm-helper").has_value());
+            QVERIFY(good("cora", "/usr/libexec/sddm-helper").has_value());
+            QVERIFY(good("guardian", "/usr/libexec/sddm-helper").has_value());
+        }
     }
 
     void aLineThatIsNotAnObject() {

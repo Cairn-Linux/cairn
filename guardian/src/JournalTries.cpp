@@ -84,6 +84,17 @@ bool fieldIs(const QJsonObject& entry, const QString& field, const QString& valu
     return text(entry, field) == value;
 }
 
+// The login screen lets a level 1 or 2 child in with no password, before
+// the password stack, so faillock's part never runs and their login
+// empties nothing. The same rule as session/sddm/pam.d/sddm.
+bool logsInWithoutPassword(const Account& account) {
+    const QStringList& groups = account.groups;
+    return (groups.contains(QStringLiteral("cairn-l1")) ||
+            groups.contains(QStringLiteral("cairn-l2"))) &&
+           !groups.contains(QStringLiteral("cairn-guardian")) &&
+           !groups.contains(QStringLiteral("wheel"));
+}
+
 } // namespace
 
 JournalTries::JournalTries(Lookups lookups) : m_lookups(std::move(lookups)) {}
@@ -238,6 +249,10 @@ std::optional<GoodPassword> JournalTries::goodFrom(const QJsonObject& entry) con
         number(entry, QStringLiteral("_PID"), std::numeric_limits<qint64>::max());
     const std::optional<Account> account = accountNamed(entry, QStringLiteral("AUDIT_FIELD_ACCT"));
     if (!when || !pid || *pid == 0 || !account) {
+        return std::nullopt;
+    }
+    const QString program = text(entry, QStringLiteral("AUDIT_FIELD_EXE")).value_or(QString());
+    if (placeOf(program) == TryPlace::LoginScreen && logsInWithoutPassword(*account)) {
         return std::nullopt;
     }
     good.time = *when;

@@ -159,6 +159,28 @@ private slots:
                            "the lock screen, count toward a lock too.")));
     }
 
+    // The words on where the rest of the lock came from follow the lock,
+    // before the tries refused while it held.
+    void aLockWithFewerTriesThenRefused() {
+        TryEpisode locked = episode(guardian, TryPlace::OwnLogin, 1, start);
+        locked.lockTime = start;
+        locked.whileLocked = 1;
+        QVERIFY(words().sentence(locked).endsWith(
+            QStringLiteral("until about 16:12. Wrong tries at other prompts, and wrong fingers at "
+                           "the lock screen, count toward a lock too. It was tried once more "
+                           "while it was locked.")));
+    }
+
+    // Without a lock of its own, the tries were refused under a lock from
+    // elsewhere, which may have ended before the wrong ones: the words do
+    // not say they came after.
+    void wrongAndRefusedWithoutALock() {
+        TryEpisode mixed = episode(guardian, TryPlace::Sudo, 1);
+        mixed.whileLocked = 2;
+        QVERIFY(words().sentence(mixed).endsWith(
+            QStringLiteral("In that time it was also tried twice while the account was locked.")));
+    }
+
     void aLockAlone() {
         TryEpisode alone = episode(ben, TryPlace::OwnLogin, 0, start);
         alone.lockTime = start;
