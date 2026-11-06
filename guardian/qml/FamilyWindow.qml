@@ -284,6 +284,8 @@ Window {
             visible: window.showing === "notices"
             page: window.noticesPage
             flickable: flickable
+
+            onShowRequested: item => window.showItem(item)
         }
     }
 

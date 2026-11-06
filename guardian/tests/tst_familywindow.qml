@@ -1116,6 +1116,52 @@ TestCase {
         tryVerify(() => repeater.itemAt(1).activeFocus);
     }
 
+    // Notices are often too tall for two to show whole in the window:
+    // on cairn-min (2026-11-06) about 330 pixels in a page 520 tall. After
+    // each Page Down and Page Up the keyboard is on a notice that shows
+    // whole, never on one that left the window, and the page still gets to
+    // either end.
+    function test_pageKeysWithTallNotices() {
+        const window = makeWindow("done", {
+            "journal": "many"
+        });
+        window.height = Tokens.headingSize * 20;
+        showNotices(window);
+        const scroller = findChild(window, "scroller");
+        const repeater = findChild(window, "noticeRows");
+        for (let i = 0; i < repeater.count; ++i)
+            repeater.itemAt(i).height = Math.round(scroller.height * 330 / 520);
+        waitForPolish(window);
+        scroller.contentY = 0;
+        repeater.itemAt(0).forceActiveFocus();
+        const lowest = scroller.contentHeight - scroller.height;
+        for (let i = 0; i < 40 && scroller.contentY < lowest; ++i) {
+            const before = scroller.contentY;
+            keyClick(Qt.Key_PageDown);
+            verify(scroller.contentY > before, "Page Down " + i + " did not move the page");
+            const item = window.activeFocusItem;
+            verify(item.objectName === "noticeCard" || item.objectName === "noticesFooter", item.objectName);
+            verify(inSightOnThePage(window, item), "Page Down " + i + " left the keyboard out of sight");
+        }
+        compare(scroller.contentY, lowest);
+        for (let i = 0; i < 40 && scroller.contentY > 0; ++i) {
+            const before = scroller.contentY;
+            keyClick(Qt.Key_PageUp);
+            verify(scroller.contentY < before, "Page Up " + i + " did not move the page");
+            const item = window.activeFocusItem;
+            verify(item.objectName === "noticeCard" || item.objectName === "noticesFooter", item.objectName);
+            verify(inSightOnThePage(window, item), "Page Up " + i + " left the keyboard out of sight");
+        }
+        compare(scroller.contentY, 0);
+        verify(repeater.itemAt(0).activeFocus);
+        // Down and Up still go to the next notice and the one before.
+        keyClick(Qt.Key_Down);
+        tryVerify(() => repeater.itemAt(1).activeFocus);
+        verify(inSightOnThePage(window, repeater.itemAt(1)));
+        keyClick(Qt.Key_Up);
+        tryVerify(() => repeater.itemAt(0).activeFocus);
+    }
+
     // The keyboard reaches the fourth button from the third.
     function test_theNoticesButtonByKeyboard() {
         const window = makeWindow("done");

@@ -12,7 +12,7 @@ import Cairn.Family
 // The keyboard reads it too. Each notice, and the words under them, takes
 // the keyboard in turn with Tab, and the window scrolls to show it; Down
 // and Up go to the next notice and the one before; Page Down and Page Up
-// scroll the page, and the keyboard goes to a notice in sight.
+// scroll the page, and the keyboard goes to the notice that shows most.
 Column {
     id: view
 
@@ -32,6 +32,9 @@ Column {
         return list;
     }
 
+    // Asks the window to scroll just enough that the item shows whole.
+    signal showRequested(Item item)
+
     // Whether the item shows whole in the scroller, or, when it is taller
     // than the scroller and can never show whole, fills part of it.
     function inSight(item) {
@@ -42,10 +45,34 @@ Column {
         return top >= 0 && bottom <= view.flickable.height;
     }
 
-    // Down and Up go from one stop to the next; the page keys scroll, and
-    // a stop that left the window hands the keyboard to the first one in
-    // sight, from the top after Page Down and from the bottom after Page
-    // Up. Any other key is left to the window.
+    // How many pixels of the item show in the scroller.
+    function shownHeight(item) {
+        const top = item.mapToItem(view.flickable, 0, 0).y;
+        return Math.max(0, Math.min(top + item.height, view.flickable.height) - Math.max(top, 0));
+    }
+
+    // Of the stops, nearest first, the one that shows most in the
+    // scroller, or null when none shows.
+    function mostShown(stops) {
+        let shown = null;
+        let most = 0;
+        for (const stop of stops) {
+            const height = view.shownHeight(stop);
+            if (height > most) {
+                shown = stop;
+                most = height;
+            }
+        }
+        return shown;
+    }
+
+    // Down and Up go from one stop to the next; the page keys scroll. A
+    // stop that left the window, even in part, hands the keyboard to the
+    // stop ahead of it that shows most, below it after Page Down and above
+    // it after Page Up, and the window scrolls on to show it whole, so the
+    // page never goes back the way it came. Notices are often too tall for two to show whole at once
+    // (cairn-min, 2026-11-06), so the one that shows most may be cut off.
+    // Any other key is left to the window.
     function keyPressed(event, item) {
         const list = view.stops();
         const at = list.indexOf(item);
@@ -61,10 +88,13 @@ Column {
         event.accepted = true;
         if (view.inSight(item))
             return;
-        const ordered = event.key === Qt.Key_PageUp ? list.slice().reverse() : list;
-        const shown = ordered.find(stop => view.inSight(stop));
-        if (shown !== undefined)
-            shown.forceActiveFocus(Qt.OtherFocusReason);
+        const down = event.key === Qt.Key_PageDown;
+        const ahead = down ? list.slice(at + 1) : list.slice(0, Math.max(at, 0)).reverse();
+        const shown = view.mostShown(ahead) ?? view.mostShown(down ? list : list.slice().reverse());
+        if (shown === null)
+            return;
+        shown.forceActiveFocus(Qt.OtherFocusReason);
+        view.showRequested(shown);
     }
 
     ScrollKeys {
