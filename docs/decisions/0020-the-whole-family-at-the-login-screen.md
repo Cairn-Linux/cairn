@@ -4,7 +4,9 @@
 **Date:** 2026-09-30
 **Closes:** (none) — addresses issues #81 and #82; amends ADR-0016
 **Amended by:** ADR-0052, proposed (the login screen says when an account
-is locked, for how long, and when a try is allowed again)
+is locked, for how long, and when a try is allowed again); ADR-0053,
+proposed (every count of wrong passwords stays in group root, so a child
+with `su` cannot write another account's)
 
 ## Context
 
