@@ -485,9 +485,14 @@ done, and what could sink it. Decisions that change the design get an ADR in
   without a record or a line when a lock starts within `fail_interval` of
   an ended one; the page now reads the worker and works each lock out
   from the tries with faillock's own rule (`FaillockTally`), and the
-  keyboard scrolls it. Replayed on cairn-min's real journal on
-  2026-11-06; checks 4 and 5 wait for an image with the fix. An upstream
-  report for pam is drafted, not filed. Next: marking new notices (slice
+  keyboard scrolls it. The second VM run (2026-11-06, an image with the
+  fix) passed check 4 and four places of check 5; it led to Page Up and
+  Page Down landing on the notice that shows most, and to dropping lock
+  screen locks and tries for level 1 and 2 children, whose password is
+  locked, since only a forgery could make one. kscreenlocker refusing the
+  right password just after a lock ends is a known limitation in the
+  ADR. Upstream reports for pam and kscreenlocker are drafted, not filed.
+  Next: marking new notices (slice
   2), a notification at login.
 - **ADR-0052 (2026-11-05, #284, proposed): the login screen says when an
   account is locked.** On the kids' laptop the Guardian, locked out by

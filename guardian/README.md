@@ -235,7 +235,9 @@ The Notices page (ADR-0054, proposed):
    many refused tries as it needs become wrong ones. A lock no password
    try explains, such as wrong fingers, leaves refused tries refused. A
    level 1 or 2 child's login at the login screen asks no password, so it
-   never counts as the right password. When a person's own journal file
+   never counts as the right password, and their lock screen has no
+   password to lock them by, so a lock-screen lock or try for one is
+   never shown: only a forgery could make one. When a person's own journal file
    cannot be read, a lock worked out at their lock screen still shows.
 4. A child at level 1 or 2 has no password, so a try on their account
    reads "Someone tried to use the account of Ada (ada) …".
@@ -255,7 +257,9 @@ The Notices page (ADR-0054, proposed):
 7. The keyboard reads it: Tab goes from the Notices button to each card in
    turn and then to the words under them, scrolling each into sight; Down
    and Up go to the next card and the one before; Page Down and Page Up
-   scroll the page and take the keyboard to a card in sight.
+   scroll the page; when the card with the keyboard leaves the window,
+   even in part, the keyboard goes on to the card ahead that shows most,
+   and the page scrolls to show it whole.
 
 It reads the journal each time the page is shown, as the Guardian:
 systemd lets `wheel` read every journal file. It takes only the audit
@@ -498,12 +502,13 @@ QML draws, C++ decides (ADR-0002):
 | `src/PictureFile` | A chosen picture made ready for AccountsService: a square from its middle, turned as the camera meant, at most 256 pixels, as PNG. |
 | `src/NewPassword` | The one rule for a new password, which the window and `cairn-family` both check. |
 | `qml/AccountView.qml`, `qml/PictureSection.qml`, `qml/PasswordForm.qml`, `qml/PasswordAnswers.qml`, `qml/PictureTile.qml`, `qml/OutcomeBox.qml`, `qml/WalletOffer.qml` | The Your account page, the picture section with its file dialog, the password form, the sentence about a password change with the wallet's card under it, one of Plasma's pictures to tap, the box a sentence goes in, and the card that offers to change KDE Wallet's password. |
-| `src/JournalTries` | The Notices page's trust boundary: one line of `journalctl -o json` into a wrong password (an audit `USER_AUTH` record that failed), a right one (a whole PAM check's `USER_AUTH`, or `USER_ACCT`, that succeeded) or a lock (faillock's audit record, or its line from the lock screen's `kscreenlocker_worker` or `kscreenlocker_greet`, by full path, under the uid rule), with the place each program stands for and every name looked up on this computer. No files, no clock. |
+| `src/JournalTries` | The Notices page's trust boundary: one line of `journalctl -o json` into a wrong password (an audit `USER_AUTH` record that failed), a right one (a whole PAM check's `USER_AUTH`, or `USER_ACCT`, that succeeded) or a lock (faillock's audit record, or its line from the lock screen's `kscreenlocker_worker` or `kscreenlocker_greet`, by full path, under the uid rule, never about a level 1 or 2 child, whose password is locked), with the place each program stands for and every name looked up on this computer. No files, no clock. |
 | `src/PasswordTry` | A wrong password and a lock as plain values, and the places a password is typed. |
 | `src/FaillockTally` | One account's count of wrong passwords as pam_faillock 1.7.2 keeps it, faults and all: when a try is refused, when it locks, and whether faillock said so. |
 | `src/HeldLocks` | One account's locks from the journal, in time order: the lock a try's own process wrote, the lock screen's lock just after a try, and the ones no try came after. |
 | `src/TryEpisodes` | The notices made from tries, and the one still open for each account, place and login. |
-| `src/TryNotices` | Puts each account's tries through `FaillockTally`, so tries refused during a lock are counted apart and a lock faillock never wrote down still shows, attaches each lock to the tries that caused it, counts rather than keeps the tries, and keeps the newest 200. |
+| `src/TryNotices` | Puts each account's tries through `FaillockTally`, so tries refused during a lock are counted apart and a lock faillock never wrote down still shows, attaches each lock to the tries that caused it, and counts rather than keeps the tries. |
+| `src/NoticeList` | The page's list: the notices made from tries, each lock no try took beside its tries or as a notice of its own, newest first, and the newest 200. |
 | `src/NoticeWords` | The page's sentences: whose password, where, from whose login, the lock, and the words under the list, with faillock's numbers. |
 | `src/NoticeTime` | How many times and when, in the page's words, with the locale's own dates, times and numbers. |
 | `src/JournalRun` | One run of journalctl, read line by line while it runs, with a clean environment and a two-minute limit; a line too long to be an entry is skipped. |

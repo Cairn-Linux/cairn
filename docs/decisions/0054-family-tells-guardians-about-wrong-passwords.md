@@ -102,7 +102,7 @@ tests):
 - *Places*, by program: `sddm-helper` and `plasmalogin-helper` (Fedora
   44's own login screen, which a rebase can bring) are the login screen;
   `unix_chkpwd` is "in their own login, at the lock screen or in another
-  program"; then sudo, su, polkit's helper ("a password box") and `login`
+  program" (never for a level 1 or 2 child, below); then sudo, su, polkit's helper ("a password box") and `login`
   (a text console). Any other program is "another program (name)", never
   dropped: a way in nobody knows about is what a parent should see. Its
   name shows only when it is plain letters, digits and `._+-`.
@@ -112,11 +112,22 @@ tests):
   `/usr/libexec/kscreenlocker_greet` by full path (a child's own program
   of that name, in their home, is not it), for the `kde` or
   `kde-fingerprint` stack (ADR-0051), believed only when that program ran
-  as root or as the account it names. A child
-  can send that line with a genuine `_EXE`, by `LD_PRELOAD` into the lock
-  screen, so the uid rule is the real guard, and it limits a forged lock
-  to the child's own account. faillock's line from su carries the
-  caller's uid and is dropped; the audit record covers su.
+  as root or as the account it names. The path keeps out only the
+  easiest forgeries: a child can send that line with a genuine `_EXE`,
+  by `LD_PRELOAD` into the lock screen, or by running a program of their
+  own over the lock screen's path in a user namespace (`unshare -rm` and
+  a bind mount; cairn-min, 2026-11-06). So the uid rule is the real
+  guard, and it limits a forged lock to the child's own account.
+  faillock's line from su carries the caller's uid and is dropped; the
+  audit record covers su.
+- *A level 1 or 2 child at the lock screen.* An account in `cairn-l1` or
+  `cairn-l2`, and in neither `cairn-guardian` nor `wheel`, has a locked
+  password (ADR-0023), so its lock screen has no password to count wrong
+  and can never lock it. A lock screen line about such an account, from
+  root too, is a forgery and is dropped, and so are its own `unix_chkpwd`
+  tries, which only the child running `unix_chkpwd` by hand can make.
+  The same rule as the login screen's, below. Their tries at every other
+  place still count: su for a child's account is someone trying it.
 - *A right password* is a `USER_AUTH` record of a whole PAM check that
   succeeded (never `unix_chkpwd`'s, which can succeed while faillock
   refuses), followed from the same process by a `USER_ACCT` success:
@@ -149,7 +160,7 @@ tests):
   whoever they run as. It names a place, not a person: anyone at the
   keyboard could have typed.
 
-**Grouping** (`TryNotices`). Tries for one account from one place and one
+**Grouping** (`TryNotices`, with `NoticeList` for the list itself). Tries for one account from one place and one
 login, each within faillock's `fail_interval` of the last, are one
 notice, with their count, first and last time, until a wrong try after
 that notice's lock ended, which starts the next. Tries are counted, not
@@ -224,8 +235,13 @@ journal's locks show.
 - Dates and times are the locale's own (`QLocale`), never built by hand.
 - The keyboard reads the page: each notice, and the words under them,
   takes the keyboard in turn with Tab, the window scrolling to show it;
-  Down and Up go between notices; Page Down and Page Up scroll and take
-  the keyboard to a notice in sight. Each keeps its sentence as its
+  Down and Up go between notices; Page Down and Page Up scroll, and when
+  the notice with the keyboard leaves the window, even in part, the
+  keyboard goes on to the notice ahead that shows most and the window
+  scrolls to show it whole. Notices are often too tall for two to show
+  whole at once (about 330 pixels in a page 520 tall on cairn-min), so
+  "a notice in sight" alone would leave the keyboard out of sight. Each
+  keeps its sentence as its
   `Accessible.name`.
 
 **What Family keeps.** Nothing. The journal is already the record; a
@@ -285,9 +301,27 @@ ADR takes the safer side of each.
   vanish silently. Each rebase's VM check catches that.
 - A login screen whose helper is neither `sddm-helper` nor
   `plasmalogin-helper` shows as "another program" until it is added.
-- A child can make real tries on any account with su, and fake a lock
-  screen lock on their own account. Both show as what they are; neither
+- A child can make real tries on any account with su. A level 3 or 4
+  child, who has a password, can fake a lock screen lock on their own
+  account; a level 1 or 2 child cannot, as theirs is dropped. Neither
   can hide a real try.
+- **Known limitation: the right password just after a lock ends.**
+  kscreenlocker 6.8.2 starts the next PAM check as soon as a try fails,
+  so faillock's preauth runs while the account is still locked, and the
+  check that then waits for the password is already lost. The right
+  password typed after the lock has ended is refused, and faillock
+  writes a wrong-try record for it; the journal shows only
+  "pam_faillock(kde:auth): Error sending audit message", and
+  `unix_chkpwd`'s own record says `res=success` (cairn-min, 2026-11-06,
+  02:23:59). The page cannot see that record, so a lock that follows
+  comes one try early by the page's count: a try faillock refused may be
+  called wrong, and the lock's end may be a few seconds off ("about"
+  covers that). No guess is added for it: a lone "Error sending audit
+  message" says nothing certain, and a wrong guess would call a real
+  wrong try refused. The fix belongs upstream, in kscreenlocker running
+  preauth when the password arrives; a report is drafted, not filed
+  (`~/.local/share/cairn-dev/vm-checks-290-291/upstream-draft-kscreenlocker-preauth.md`
+  on the dev PC).
 - A full disk shortens the record below 30 days, and the page says so.
 - "about 16:15" is wrong if someone ran `faillock --reset`; hence
   "about". Tries after such a reset that lead to no new lock are still
@@ -372,6 +406,28 @@ the new queries and replayed through `JournalTries`, `TryNotices` and
 screen's lock, the silent locks at sudo (23:28, two wrong, one refused)
 and at su from a child's login (23:57), the two locks of 00:04 as two
 notices, the right password refused at the login screen at 22:55 still
-counted as refused, and no notice contradicting itself. The new image is
-not built yet, so checks 4 and 5 wait for it in the window; the ADR stays
-proposed until then.
+counted as refused, and no notice contradicting itself.
+
+2026-11-06, second run, cairn-min on `dev.20261106-f00e934` (this change
+at 54105d9 merged onto main with #290; pam 1.7.2, kscreenlocker 6.8.2,
+no fingerprint reader; ctest 104 of 104 in the image build):
+- Check 4 passed: three wrong unlocks at the lock screen gave
+  faillock's line from `/usr/libexec/kscreenlocker_worker` with the
+  account's own `_UID`, and the page showed the lock, to `guardian` and
+  to `bazzite` made a second Guardian for the check.
+- Check 5 passed at four places of five: the login screen, the lock
+  screen, sudo (a silent lock two minutes after an ended one, worked out
+  from the tries) and `su - guardian` from a child's login, with a try
+  refused after it. At Family's password box the place and the lock
+  were right, but the notice said "typed wrong 3 times" where faillock
+  had refused the third: the lock screen had written a hidden record
+  just before (the known limitation above).
+- Forgeries of the lock screen's line about `guardian` from a child's
+  login, through `logger`, a renamed copy, and the lock screen's own
+  path in a user namespace, showed nothing. The last one, about the
+  child themselves, put a lock on the page; the rule for level 1 and 2
+  children above was added for it.
+- The keyboard: Tab, Down and Up passed; Page Down and Page Up left the
+  keyboard on a notice out of the window whenever no notice showed
+  whole, which the rule above fixes.
+The ADR stays proposed until those two fixes have been seen in the VM.
