@@ -5,14 +5,17 @@
 #include <QJsonDocument>
 #include <QJsonValue>
 #include <QRegularExpression>
+#include <QStringList>
 
 #include <limits>
 #include <utility>
 
 namespace {
 
-// audit's record types: a password check, and faillock's lock.
+// audit's record types: a password check, the account check after it,
+// and faillock's lock.
 const QString userAuth = QStringLiteral("1100");
+const QString userAcct = QStringLiteral("1101");
 const QString loginFailures = QStringLiteral("2100");
 // syslog's authpriv, where PAM's modules write.
 const QString authpriv = QStringLiteral("10");
@@ -21,10 +24,25 @@ constexpr qint64 noLogin = 4294967295;
 // The longest login name worth asking NSS about.
 constexpr qsizetype maxName = 256;
 
-// The lock screen's program, the only one whose faillock line is read.
+// The lock screen's programs, the only ones whose faillock line is read,
+// by full path in folders only root can write, so a program of a child's
+// own with the same name is not one of them. Plasma 6.8 checks passwords
+// in kscreenlocker_worker (cairn-min, 2026-11-05); earlier Plasma in
+// kscreenlocker_greet.
 bool isLockScreen(const QString& program) {
-    return program == QLatin1String("/usr/libexec/kscreenlocker_greet") ||
-           program == QLatin1String("/usr/lib/kscreenlocker_greet");
+    static const QStringList programs{
+        QStringLiteral("/usr/libexec/kscreenlocker_worker"),
+        QStringLiteral("/usr/lib/kscreenlocker_worker"),
+        QStringLiteral("/usr/libexec/kscreenlocker_greet"),
+        QStringLiteral("/usr/lib/kscreenlocker_greet"),
+    };
+    return programs.contains(program);
+}
+
+// A password check through PAM, never sshd's key checks or systemd's
+// credentials, which are records of the same type.
+bool isPasswordCheck(const std::optional<QString>& op) {
+    return op == QLatin1String("PAM:authentication") || op == QLatin1String("PAM:unix_chkpwd");
 }
 
 // A field as text. journalctl gives a field that is not UTF-8, or that is
@@ -114,10 +132,7 @@ std::optional<PasswordTry> JournalTries::tryFrom(const QJsonObject& entry) const
         !fieldIs(entry, QStringLiteral("AUDIT_FIELD_RES"), QStringLiteral("failed"))) {
         return std::nullopt;
     }
-    // A password check through PAM, never sshd's key checks or systemd's
-    // credentials, which are records of the same type.
-    const std::optional<QString> op = text(entry, QStringLiteral("AUDIT_FIELD_OP"));
-    if (op != QLatin1String("PAM:authentication") && op != QLatin1String("PAM:unix_chkpwd")) {
+    if (!isPasswordCheck(text(entry, QStringLiteral("AUDIT_FIELD_OP")))) {
         return std::nullopt;
     }
     const std::optional<qint64> when = time(entry);
@@ -195,4 +210,38 @@ std::optional<LockEvent> JournalTries::lockFrom(const QJsonObject& entry) const 
     lock.account = *account;
     lock.place = TryPlace::OwnLogin;
     return lock;
+}
+
+std::optional<GoodPassword> JournalTries::goodFrom(const QJsonObject& entry) const {
+    if (!fieldIs(entry, QStringLiteral("_TRANSPORT"), QStringLiteral("audit")) ||
+        !fieldIs(entry, QStringLiteral("AUDIT_FIELD_RES"), QStringLiteral("success"))) {
+        return std::nullopt;
+    }
+    GoodPassword good;
+    const std::optional<QString> op = text(entry, QStringLiteral("AUDIT_FIELD_OP"));
+    // unix_chkpwd's own record says only whether the password matched.
+    // The lock screen's stack goes on to it after faillock has refused
+    // (its preauth is "required", not "requisite"), so the right password
+    // typed while locked is a unix_chkpwd success and still refused
+    // (cairn-min, 2026-11-05, 22:57:51). Only a whole PAM check counts.
+    if (fieldIs(entry, QStringLiteral("_AUDIT_TYPE"), userAuth) &&
+        op == QLatin1String("PAM:authentication")) {
+        good.accountPart = false;
+    } else if (fieldIs(entry, QStringLiteral("_AUDIT_TYPE"), userAcct) &&
+               op == QLatin1String("PAM:accounting")) {
+        good.accountPart = true;
+    } else {
+        return std::nullopt;
+    }
+    const std::optional<qint64> when = time(entry);
+    const std::optional<qint64> pid =
+        number(entry, QStringLiteral("_PID"), std::numeric_limits<qint64>::max());
+    const std::optional<Account> account = accountNamed(entry, QStringLiteral("AUDIT_FIELD_ACCT"));
+    if (!when || !pid || *pid == 0 || !account) {
+        return std::nullopt;
+    }
+    good.time = *when;
+    good.account = *account;
+    good.pid = *pid;
+    return good;
 }

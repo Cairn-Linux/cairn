@@ -119,33 +119,32 @@ QString NoticeWords::place(const TryEpisode& episode) const {
     return tr("%1, from the login of %2").arg(words, nameOf(*episode.from));
 }
 
+// How long the lock lasted. "That" is the wrong passwords before it, or,
+// on a notice of a lock alone, the lock.
 QString NoticeWords::lock(const TryEpisode& episode) const {
     const bool alone = episode.wrong == 0 && episode.whileLocked == 0;
     if (!m_settings) {
         return alone ? QString()
                      : tr("That locked the account for a while, at every password prompt.");
     }
-    QStringList sentences;
     if (m_settings->unlockTime == 0) {
-        sentences << tr("That locked the account at every password prompt, until someone with an "
-                        "administrator's account reset its count of wrong tries.");
-    } else {
-        const QString until =
-            m_time.clock(*episode.lockTime + (m_settings->unlockTime * microseconds));
-        sentences << tr("That locked the account for %1, at every password prompt. The right "
-                        "password did not work until about %2.")
-                         .arg(m_time.minutes(m_settings->unlockTime), until);
+        return tr("That locked the account at every password prompt, until someone with an "
+                  "administrator's account reset its count of wrong tries.");
     }
-    if (episode.wrong < m_settings->deny) {
-        sentences << tr("Wrong tries at other prompts, and wrong fingers at the lock screen, "
-                        "count toward a lock too.");
-    }
-    return sentences.join(QLatin1Char(' '));
+    const QString until = m_time.clock(*episode.lockTime + (m_settings->unlockTime * microseconds));
+    return tr("That locked the account for %1, at every password prompt. The right password did "
+              "not work until about %2.")
+        .arg(m_time.minutes(m_settings->unlockTime), until);
 }
 
+// In the order it happened: the wrong passwords, the lock they caused,
+// then the tries refused while it held. A lock goes only with wrong
+// passwords, or alone: tries refused while an account was locked cannot
+// have locked it, so they never come with "That locked the account".
 QString NoticeWords::sentence(const TryEpisode& episode) const {
     QStringList sentences;
     const QString whenWords = m_time.when(episode.first, episode.last);
+    const bool locked = episode.lockTime && (episode.wrong > 0 || episode.whileLocked == 0);
     if (episode.wrong > 0) {
         if (hasNoPassword(episode.account)) {
             // Only a child has no password, so never "your account".
@@ -157,10 +156,6 @@ QString NoticeWords::sentence(const TryEpisode& episode) const {
                              .arg(passwordOf(episode.account), m_time.times(episode.wrong),
                                   place(episode), whenWords);
         }
-        if (episode.whileLocked > 0) {
-            sentences << tr("It was tried %1 while the account was locked.")
-                             .arg(m_time.moreTimes(episode.whileLocked));
-        }
     } else if (episode.whileLocked > 0 && episode.account) {
         sentences << tr("%1 was tried %2 %3 while it was locked, %4.")
                          .arg(accountOf(*episode.account), m_time.times(episode.whileLocked),
@@ -169,11 +164,20 @@ QString NoticeWords::sentence(const TryEpisode& episode) const {
         sentences << tr("%1 was locked %2, %3.")
                          .arg(accountOf(*episode.account), place(episode), whenWords);
     }
-    if (episode.lockTime) {
+    if (locked) {
         const QString lockWords = lock(episode);
         if (!lockWords.isEmpty()) {
             sentences << lockWords;
         }
+    }
+    if (episode.wrong > 0 && episode.whileLocked > 0) {
+        sentences << (locked ? tr("It was tried %1 while it was locked.")
+                             : tr("It was tried %1 while the account was locked."))
+                         .arg(m_time.moreTimes(episode.whileLocked));
+    }
+    if (locked && m_settings && episode.wrong < m_settings->deny) {
+        sentences << tr("Wrong tries at other prompts, and wrong fingers at the lock screen, "
+                        "count toward a lock too.");
     }
     return sentences.join(QLatin1Char(' '));
 }

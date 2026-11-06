@@ -1,137 +1,202 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "TryNotices.h"
 
-#include <QStringList>
-
 #include <algorithm>
-#include <cstdlib>
+#include <limits>
 #include <utility>
 
 namespace {
 
 constexpr qint64 microseconds = 1000000;
-// faillock's record of the try that locked, and the try's own record, come
-// from one process within moments of each other.
-constexpr qint64 sameMoment = 5 * microseconds;
-
-QString keyOf(const PasswordTry& passwordTry) {
-    return QStringList{
-        passwordTry.account ? passwordTry.account->login : QString(),
-        QString::number(static_cast<int>(passwordTry.place)),
-        passwordTry.program,
-        passwordTry.from ? QString::number(passwordTry.from->uid) : QString(),
-    }
-        .join(QLatin1Char('\n'));
-}
+constexpr qint64 sameMoment = HeldLocks::sameMoment;
+// A right password, then the account part, in one process.
+constexpr qint64 accountPartWithin = 60 * microseconds;
 
 } // namespace
 
 TryNotices::TryNotices(std::optional<FaillockSettings> settings, int maxNotices)
-    : m_rule(settings.value_or(FaillockSettings())), m_known(settings.has_value()),
-      m_maxNotices(maxNotices) {}
+    : m_rule(settings.value_or(FaillockSettings())),
+      m_follow(settings && settings->unlockTime != 0 && settings->deny > 0),
+      m_maxNotices(maxNotices), m_episodes(m_rule.failInterval) {}
+
+// faillock never locks root with the settings FaillockSettings accepts.
+bool TryNotices::follows(const Account& account) const {
+    return m_follow && account.uid != 0;
+}
+
+TryNotices::AccountCount& TryNotices::countOf(const Account& account) {
+    const auto [found, added] = m_counts.try_emplace(account.uid);
+    if (added) {
+        found->second.tally = FaillockTally(m_rule);
+    }
+    return found->second;
+}
 
 void TryNotices::addLock(const LockEvent& lock) {
-    // The lock screen's locks come from a run of their own, so they may sit
-    // among the others out of order.
-    std::vector<HeldLock>& locks = m_locks[lock.account.uid];
-    const auto at = std::ranges::upper_bound(locks, lock.time, {}, &HeldLock::time);
-    locks.insert(at,
-                 HeldLock{.time = lock.time, .lock = lock, .claimed = false, .attached = false});
+    countOf(lock.account).locks.add(lock);
 }
 
-// faillock's record of the lock comes just before the record of the try
-// that caused it, from the same process. sudo, console login and polkit's
-// helper make several tries in one process, so only the first try after
-// the lock from that process is the one that caused it.
-TryNotices::HeldLock* TryNotices::claimOwnLock(const PasswordTry& passwordTry) {
-    if (!passwordTry.account || passwordTry.pid == 0) {
-        return nullptr;
+void TryNotices::settleBefore(AccountCount& count, qint64 time) {
+    while (HeldLocks::Held* held = count.locks.nextBefore(time)) {
+        settle(count, *held);
     }
-    const auto found = m_locks.find(passwordTry.account->uid);
-    if (found == m_locks.end()) {
-        return nullptr;
-    }
-    std::vector<HeldLock>& locks = *found;
-    auto near = std::ranges::lower_bound(locks, passwordTry.time - sameMoment, {}, &HeldLock::time);
-    for (; near != locks.end() && near->time <= passwordTry.time + sameMoment; ++near) {
-        if (!near->claimed && near->lock.pid == passwordTry.pid) {
-            near->claimed = true;
-            return &*near;
-        }
-    }
-    return nullptr;
 }
 
-// A try in the minutes a lock lasted, other than the one that locked, was
-// refused whatever was typed. faillock locks an account only while it is
-// not locked, so only the last lock before the try, or the one before it
-// when that last lock was this try's own, can still hold. With unlock_time
-// "never", how long a lock lasted depends on when someone reset it, which
-// the journal does not say, so no try counts as made while locked.
-bool TryNotices::whileLocked(const PasswordTry& passwordTry, const HeldLock* own) const {
-    if (!m_known || !passwordTry.account || m_rule.unlockTime == 0) {
-        return false;
+// A lock no try's process explains. faillock locks only an account it does
+// not count as locked, so a lock inside one it counts means the count was
+// emptied out of sight, by faillock --reset. Otherwise tries it did not
+// see, such as wrong fingers, made it. The lock screen's lock goes with
+// the tries in that login that ended no longer than fail_interval before
+// it; any other waits for notices(). A child can fake the lock screen's
+// line about their own account by the thousand, so each is settled
+// without looking through the others.
+void TryNotices::settle(AccountCount& count, HeldLocks::Held& held) {
+    held.settled = true;
+    const qint64 at = held.time;
+    if (follows(held.lock.account)) {
+        if (count.tally.refuses(at)) {
+            if (at - count.tally.lockStart() <= sameMoment) {
+                // The lock the tries made, said twice.
+                held.attached = true;
+                return;
+            }
+            undoRefusals(count, at, m_rule.deny);
+            count.tally.reset();
+        }
+        count.tally.lockAt(at);
+        count.refused.clear();
     }
-    const auto found = m_locks.constFind(passwordTry.account->uid);
-    if (found == m_locks.cend()) {
-        return false;
+    if (held.lock.place != TryPlace::OwnLogin) {
+        return;
     }
-    const std::vector<HeldLock>& locks = *found;
-    auto before = std::ranges::lower_bound(locks, passwordTry.time, {}, &HeldLock::time);
-    const qint64 lasted = m_rule.unlockTime * microseconds;
-    for (int checked = 0; checked < 2 && before != locks.begin(); ++checked) {
-        --before;
-        if (&*before != own) {
-            return passwordTry.time <= before->time + lasted;
+    if (TryEpisode* episode = m_episodes.openWithoutLock(held.lock.account, held.lock.place, at)) {
+        episode->lockTime = at;
+        held.attached = true;
+    }
+}
+
+// The count was emptied out of sight, at a time the journal does not say,
+// so tries counted as refused since the last lock may have been wrong
+// passwords after all. Only as many as the lock at `time` needs, at most
+// `most`, the newest within fail_interval of it, are counted wrong:
+// a try refused is never called wrong without cause.
+void TryNotices::undoRefusals(AccountCount& count, qint64 time, int most) {
+    const qint64 interval = m_rule.failInterval * microseconds;
+    auto from = count.refused.end();
+    for (int taken = 0; taken < most && from != count.refused.begin(); ++taken) {
+        if (std::prev(from)->time < time - interval) {
+            break;
+        }
+        --from;
+    }
+    for (; from != count.refused.end(); ++from) {
+        m_episodes.countAsWrong(from->episode, from->time);
+    }
+    count.refused.clear();
+}
+
+// The try through faillock's rule, with the journal's own lock, if any,
+// as the last word. `own` is the lock its process wrote, or nothing.
+TryNotices::Counted TryNotices::countTry(AccountCount& count, const PasswordTry& passwordTry,
+                                         HeldLocks::Held* own) {
+    using Outcome = FaillockTally::Outcome;
+    if (own != nullptr && count.tally.refuses(passwordTry.time)) {
+        // This try was the last of deny, so deny less one before it.
+        undoRefusals(count, passwordTry.time, m_rule.deny - 1);
+        count.tally.reset();
+    }
+    Outcome outcome = count.tally.fail(passwordTry.time);
+    if (own == nullptr && outcome == Outcome::Locked && passwordTry.place == TryPlace::OwnLogin) {
+        own = count.locks.lockScreenLock(passwordTry);
+        if (own != nullptr) {
+            own->settled = true;
         }
     }
-    return false;
+    if (own != nullptr && outcome == Outcome::AnnouncedOnly) {
+        // faillock wrote that it locked, and by its own rule it did not.
+        own->attached = true;
+        own = nullptr;
+    } else if (own != nullptr) {
+        count.tally.lockAt(own->time);
+    } else if (outcome == Outcome::Locked || outcome == Outcome::AnnouncedOnly) {
+        // faillock writes it each time, so the count was emptied out of
+        // sight before this try.
+        count.tally.reset();
+        outcome = count.tally.fail(passwordTry.time);
+    }
+    return Counted{.outcome = outcome, .lock = own};
 }
 
 void TryNotices::addTry(const PasswordTry& passwordTry) {
-    const QString key = keyOf(passwordTry);
-    const auto open = m_open.constFind(key);
-    const qint64 interval = m_rule.failInterval * microseconds;
-    if (open == m_open.cend() || passwordTry.time - m_episodes[*open].last > interval) {
-        TryEpisode episode;
-        episode.account = passwordTry.account;
-        episode.place = passwordTry.place;
-        episode.program = passwordTry.program;
-        episode.from = passwordTry.from;
-        episode.first = passwordTry.time;
-        episode.last = passwordTry.time;
-        m_episodes.push_back(episode);
-        m_open.insert(key, m_episodes.size() - 1);
+    if (!passwordTry.account) {
+        ++m_episodes.at(m_episodes.episodeFor(passwordTry, true)).wrong;
+        return;
     }
-    TryEpisode& episode = m_episodes[m_open.value(key)];
-    episode.last = std::max(episode.last, passwordTry.time);
-    HeldLock* own = claimOwnLock(passwordTry);
-    if (whileLocked(passwordTry, own)) {
+    using Outcome = FaillockTally::Outcome;
+    AccountCount& count = countOf(*passwordTry.account);
+    HeldLocks::Held* own = count.locks.ownLock(passwordTry);
+    if (own != nullptr) {
+        own->settled = true;
+    }
+    settleBefore(count, passwordTry.time);
+    const Counted counted = follows(*passwordTry.account)
+                                ? countTry(count, passwordTry, own)
+                                : Counted{.outcome = Outcome::Wrong, .lock = own};
+    const Outcome outcome = counted.outcome;
+    own = counted.lock;
+    const bool refused = outcome == Outcome::Refused;
+    const std::size_t index = m_episodes.episodeFor(passwordTry, !refused);
+    TryEpisode& episode = m_episodes.at(index);
+    if (refused) {
         ++episode.whileLocked;
-    } else {
-        ++episode.wrong;
+        count.refused.push_back(Refusal{.episode = index, .time = passwordTry.time});
+        return;
     }
-    if (own != nullptr && !episode.lockTime) {
-        own->attached = true;
-        episode.lockTime = own->time;
+    ++episode.wrong;
+    if (own != nullptr || outcome == Outcome::SilentlyLocked) {
+        episode.lockTime = own != nullptr ? own->time : passwordTry.time;
+        if (own != nullptr) {
+            own->attached = true;
+        }
+        count.refused.clear();
     }
 }
 
-// A lock no try's process explains. The lock screen's lock follows tries
-// in the person's own login, made by a program of its own, so it goes with
-// the tries there that began before it and ended no longer than
-// fail_interval before it; tries after it in the same run, refused while
-// locked, keep that run open. Any other is a notice alone. Only notices
-// made from tries are looked through: a child can fake the lock screen's
-// line about their own account by the thousand, and each fake looking
-// through the fakes before it would freeze the page.
+// A right password is refused while faillock counts the account as locked,
+// so one then means the count was emptied out of sight. It says nothing of
+// the tries before it, which stay refused.
+void TryNotices::addGood(const GoodPassword& good) {
+    if (!follows(good.account)) {
+        return;
+    }
+    AccountCount& count = countOf(good.account);
+    settleBefore(count, good.time);
+    if (!good.accountPart) {
+        if (count.tally.refuses(good.time)) {
+            count.tally.reset();
+            count.refused.clear();
+        }
+        count.goodPassword = good;
+        return;
+    }
+    const std::optional<GoodPassword>& checked = count.goodPassword;
+    if (checked && checked->pid == good.pid && good.time - checked->time <= accountPartWithin) {
+        count.tally.reset();
+        count.refused.clear();
+    }
+    count.goodPassword.reset();
+}
+
+// A lock no try took. A lock of the place of a notice of wrong tries, in
+// that notice's time, goes with it; any other is a notice alone. Only
+// notices made from tries are looked through.
 void TryNotices::attachOrAdd(const LockEvent& lock, std::vector<TryEpisode>& all) const {
     const qint64 interval = m_rule.failInterval * microseconds;
-    const auto fromTries = all.begin() + static_cast<std::ptrdiff_t>(m_episodes.size());
+    const auto fromTries = all.begin() + static_cast<std::ptrdiff_t>(m_episodes.all().size());
     const auto explained = std::find_if(all.begin(), fromTries, [&](const TryEpisode& episode) {
-        return !episode.lockTime && episode.account && episode.account->uid == lock.account.uid &&
-               episode.place == lock.place && episode.first <= lock.time + sameMoment &&
-               episode.last >= lock.time - interval;
+        return episode.wrong > 0 && !episode.lockTime && episode.account &&
+               episode.account->uid == lock.account.uid && episode.place == lock.place &&
+               episode.first <= lock.time + sameMoment && episode.last >= lock.time - interval;
     });
     if (explained != fromTries) {
         explained->lockTime = lock.time;
@@ -147,12 +212,15 @@ void TryNotices::attachOrAdd(const LockEvent& lock, std::vector<TryEpisode>& all
     all.push_back(alone);
 }
 
-TryNotices::Notices TryNotices::notices() const {
+TryNotices::Notices TryNotices::notices() {
+    for (auto& entry : m_counts) {
+        settleBefore(entry.second, std::numeric_limits<qint64>::max());
+    }
     Notices result;
     std::vector<TryEpisode>& all = result.shown;
-    all = m_episodes;
-    for (const std::vector<HeldLock>& locks : m_locks) {
-        for (const HeldLock& held : locks) {
+    all = m_episodes.all();
+    for (const auto& entry : m_counts) {
+        for (const HeldLocks::Held& held : entry.second.locks.all()) {
             if (!held.attached) {
                 attachOrAdd(held.lock, all);
             }

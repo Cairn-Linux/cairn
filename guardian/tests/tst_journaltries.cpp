@@ -270,6 +270,52 @@ private slots:
                 .has_value());
     }
 
+    // Plasma 6.8 runs the lock screen's PAM in kscreenlocker_worker, so
+    // faillock's line comes from there (cairn-min, 2026-11-05).
+    void theLockScreensWorker() {
+        const QString worker = QStringLiteral("/usr/libexec/kscreenlocker_worker");
+        auto lock = rules().lockFrom(lockScreenLine(lockLine("guardian"), "1000", worker));
+        QVERIFY(lock.has_value());
+        QCOMPARE(lock->account.uid, 1000U);
+        QCOMPARE(int(lock->place), int(TryPlace::OwnLogin));
+        lock = rules().lockFrom(lockScreenLine(lockLine("ada", "kde-fingerprint"), "1001", worker));
+        QVERIFY(lock.has_value());
+    }
+
+    // The uid rule on its own: the lock screen's real program, and a
+    // line about an account other than the one it ran as, is dropped,
+    // whichever program it was. Only root, or the account itself, is
+    // believed.
+    void theUidRule_data() {
+        QTest::addColumn<QString>("program");
+        QTest::addColumn<QString>("login");
+        QTest::addColumn<QString>("sender");
+        QTest::addColumn<bool>("believed");
+        for (const QString& program : {QStringLiteral("/usr/libexec/kscreenlocker_worker"),
+                                       QStringLiteral("/usr/libexec/kscreenlocker_greet")}) {
+            const QByteArray name = program.section('/', -1).toUtf8();
+            QTest::newRow(name + ", own account") << program << "ben" << "1002" << true;
+            QTest::newRow(name + ", root") << program << "ben" << "0" << true;
+            QTest::newRow(name + ", a Guardian's, from a child")
+                << program << "guardian" << "1002" << false;
+            QTest::newRow(name + ", a child's, from another child")
+                << program << "ada" << "1002" << false;
+            QTest::newRow(name + ", a child's, from a Guardian")
+                << program << "ben" << "1000" << false;
+            QTest::newRow(name + ", from an account that is gone")
+                << program << "guardian" << "4242" << false;
+        }
+    }
+
+    void theUidRule() {
+        QFETCH(QString, program);
+        QFETCH(QString, login);
+        QFETCH(QString, sender);
+        QFETCH(bool, believed);
+        QCOMPARE(rules().lockFrom(lockScreenLine(lockLine(login), sender, program)).has_value(),
+                 believed);
+    }
+
     // A child can write this line, from the lock screen's own program too
     // (LD_PRELOAD), so it counts only for the child's own account.
     void aForgedLockLine_data() {
@@ -277,6 +323,13 @@ private slots:
         QTest::newRow("a Guardian's, from a child") << lockScreenLine(lockLine("guardian"), "1002");
         QTest::newRow("through logger")
             << lockScreenLine(lockLine("guardian"), "1000", "/usr/bin/logger");
+        // A program of the child's own, named as the lock screen's.
+        QTest::newRow("a worker in the child's home")
+            << lockScreenLine(lockLine("ben"), "1002", "/home/ben/kscreenlocker_worker");
+        QTest::newRow("a worker in /tmp")
+            << lockScreenLine(lockLine("ben"), "1002", "/tmp/usr/libexec/kscreenlocker_worker");
+        QTest::newRow("the worker's name alone")
+            << lockScreenLine(lockLine("ben"), "1002", "kscreenlocker_worker");
         QJsonObject entry = lockScreenLine(lockLine("guardian"), "1000");
         entry.remove("_EXE");
         QTest::newRow("no program") << entry;
@@ -299,6 +352,39 @@ private slots:
     void aForgedLockLine() {
         QFETCH(QJsonObject, entry);
         QVERIFY(!rules().lockFrom(entry).has_value());
+    }
+
+    // A right password, and the account part after it, which faillock's
+    // count goes by. Never one that failed, nor sshd's key check, nor one
+    // for a name that is no account.
+    void aRightPassword() {
+        QJsonObject entry = failedAuth("guardian", "/usr/libexec/sddm-helper");
+        entry.insert("AUDIT_FIELD_RES", "success");
+        auto good = rules().goodFrom(entry);
+        QVERIFY(good.has_value());
+        QCOMPARE(good->account.uid, 1000U);
+        QCOMPARE(good->pid, 1801);
+        QVERIFY(!good->accountPart);
+        QVERIFY(!rules().tryFrom(entry).has_value());
+        entry.insert("_AUDIT_TYPE", "1101");
+        entry.insert("AUDIT_FIELD_OP", "PAM:accounting");
+        good = rules().goodFrom(entry);
+        QVERIFY(good.has_value());
+        QVERIFY(good->accountPart);
+        QJsonObject failed = entry;
+        failed.insert("AUDIT_FIELD_RES", "failed");
+        QVERIFY(!rules().goodFrom(failed).has_value());
+        QVERIFY(!rules().goodFrom(failedAuth("guardian", "/usr/bin/sudo")).has_value());
+        QJsonObject key = failedAuth("guardian", "/usr/sbin/sshd", "PAM:authentication");
+        key.insert("AUDIT_FIELD_RES", "success");
+        key.insert("AUDIT_FIELD_OP", "pubkey");
+        QVERIFY(!rules().goodFrom(key).has_value());
+        QJsonObject nobody = entry;
+        nobody.insert("AUDIT_FIELD_ACCT", "nobody");
+        QVERIFY(!rules().goodFrom(nobody).has_value());
+        QJsonObject syslog = entry;
+        syslog.insert("_TRANSPORT", "syslog");
+        QVERIFY(!rules().goodFrom(syslog).has_value());
     }
 
     void aLineThatIsNotAnObject() {

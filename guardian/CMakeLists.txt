@@ -104,6 +104,9 @@ install(TARGETS cairn-family RUNTIME DESTINATION "${CAIRN_LIBEXECDIR}")
 set(notices_rule_sources
     src/PasswordTry.h
     src/JournalTries.h src/JournalTries.cpp
+    src/FaillockTally.h src/FaillockTally.cpp
+    src/HeldLocks.h src/HeldLocks.cpp
+    src/TryEpisodes.h src/TryEpisodes.cpp
     src/TryNotices.h src/TryNotices.cpp
 )
 set(notices_sources
@@ -529,6 +532,12 @@ qt_add_executable(tst_journaltries tests/tst_journaltries.cpp ${notices_rule_sou
 target_include_directories(tst_journaltries PRIVATE src)
 target_link_libraries(tst_journaltries PRIVATE Qt6::Core Qt6::Test cairn-accounts)
 add_test(NAME journaltries COMMAND tst_journaltries)
+
+qt_add_executable(tst_faillocktally tests/tst_faillocktally.cpp
+    src/FaillockTally.h src/FaillockTally.cpp)
+target_include_directories(tst_faillocktally PRIVATE src)
+target_link_libraries(tst_faillocktally PRIVATE Qt6::Core Qt6::Test cairn-accounts)
+add_test(NAME faillocktally COMMAND tst_faillocktally)
 
 qt_add_executable(tst_trynotices tests/tst_trynotices.cpp ${notices_rule_sources})
 target_include_directories(tst_trynotices PRIVATE src)

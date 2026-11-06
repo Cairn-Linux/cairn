@@ -129,10 +129,24 @@ private slots:
         QCOMPARE(
             words().sentence(locked),
             QStringLiteral("Your password was typed wrong 3 times at the login screen, on "
-                           "Wednesday, 4 November 2026, from 16:02 to 16:07. It was tried twice "
-                           "more while the account was locked. That locked the account for 10 "
-                           "minutes, at every password prompt. The right password did not "
-                           "work until about 16:15."));
+                           "Wednesday, 4 November 2026, from 16:02 to 16:07. That locked the "
+                           "account for 10 minutes, at every password prompt. The right password "
+                           "did not work until about 16:15. It was tried twice more while it was "
+                           "locked."));
+    }
+
+    // "That" is the wrong passwords, so a notice with none never says a
+    // lock came of it, whatever it was given (cairn-min, 2026-11-05: "tried
+    // 3 times ... while it was locked ... That locked the account").
+    void noLockFromTriesRefusedWhileLocked() {
+        TryEpisode refused = episode(guardian, TryPlace::PasswordBox, 0);
+        refused.whileLocked = 3;
+        refused.lockTime = start + 3 * minute;
+        const QString words3 = words().sentence(refused);
+        QCOMPARE(words3,
+                 QStringLiteral("Your account was tried 3 times in a password box while it was "
+                                "locked, on Wednesday, 4 November 2026, from 16:02 to 16:05."));
+        QVERIFY(!words3.contains(QStringLiteral("That locked")));
     }
 
     // Fewer wrong passwords here than faillock needs: the rest came from

@@ -14,12 +14,14 @@
 #include <optional>
 
 class JournalRun;
+class QDir;
 
 // Reads the last days of the journal into notices, as the Guardian, without
 // root (ADR-0054): systemd lets the wheel group read every journal file,
-// and every Guardian Cairn makes is in wheel. Three runs of journalctl, one
-// after another: the journal's oldest entry, the lock screen's locks, then
-// the audit records of tries and locks.
+// each user's own too, and every Guardian Cairn makes is in wheel. Three
+// runs of journalctl, one after another: the journal's oldest entry, the
+// lock screen's locks from every file, then, from the system's file, the
+// audit records of password checks and locks.
 class TryReader : public QObject {
     Q_OBJECT
 
@@ -66,6 +68,7 @@ private:
     enum class Readable : std::uint8_t { Yes, No, Missing };
 
     Readable journalReadable() const;
+    static void warnOfUnreadableUserFiles(const QDir& machine);
     void runStep(int step);
     void take(const QByteArray& line);
     void stepDone(bool succeeded);

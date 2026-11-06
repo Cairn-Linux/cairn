@@ -137,11 +137,13 @@ private slots:
         QCOMPARE(asked.size(), 3);
         QVERIFY(asked[0].contains("--system --lines=+1"));
         QVERIFY(asked[1].contains("--since=-30d"));
+        QVERIFY(asked[1].contains("SYSLOG_FACILITY=10 _EXE=/usr/libexec/kscreenlocker_worker"));
         QVERIFY(asked[1].contains("SYSLOG_FACILITY=10 _EXE=/usr/libexec/kscreenlocker_greet"));
         // Every user's files for the lock screen, the system's for audit.
         QVERIFY(!asked[1].contains("--system"));
         QVERIFY(asked[2].contains("--system"));
-        QVERIFY(asked[2].contains("_TRANSPORT=audit _AUDIT_TYPE=1100 AUDIT_FIELD_RES=failed + "
+        QVERIFY(asked[2].contains("_TRANSPORT=audit _AUDIT_TYPE=1100 + "
+                                  "_TRANSPORT=audit _AUDIT_TYPE=1101 AUDIT_FIELD_RES=success + "
                                   "_TRANSPORT=audit _AUDIT_TYPE=2100"));
     }
 

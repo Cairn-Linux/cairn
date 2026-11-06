@@ -21,9 +21,12 @@
 //   by really trying, but cannot write one.
 // - A lock is faillock's audit ANOM_LOGIN_FAILURES record, or, for the lock
 //   screen, which runs as the person and cannot write audit, faillock's
-//   own line from the lock screen's program, and only when that program
-//   ran as root or as the account it names. A child can fake that line,
-//   but only about their own account.
+//   own line from the lock screen's program, by its full path, and only
+//   when that program ran as root or as the account it names. A child can
+//   fake that line, but only about their own account.
+// - A right password is an audit USER_AUTH record of a whole PAM check,
+//   never unix_chkpwd's, or a USER_ACCT record, that succeeded, which a
+//   child can cause only with the password.
 // - Names in an entry are never shown: each is looked up on this computer,
 //   and a name that is no account becomes "no such account".
 class JournalTries {
@@ -42,6 +45,7 @@ public:
 
     std::optional<PasswordTry> tryFrom(const QJsonObject& entry) const;
     std::optional<LockEvent> lockFrom(const QJsonObject& entry) const;
+    std::optional<GoodPassword> goodFrom(const QJsonObject& entry) const;
 
     // The place a program's full path stands for; Other for any other.
     static TryPlace placeOf(const QString& program);

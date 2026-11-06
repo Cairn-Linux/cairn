@@ -711,17 +711,17 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/NoticeWords.cpp" line="152"/>
+        <location filename="../src/NoticeWords.cpp" line="151"/>
         <source>Someone tried to use the account of %1 %2 %3, %4.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/NoticeWords.cpp" line="126"/>
+        <location filename="../src/NoticeWords.cpp" line="128"/>
         <source>That locked the account for a while, at every password prompt.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/NoticeWords.cpp" line="130"/>
+        <location filename="../src/NoticeWords.cpp" line="131"/>
         <source>That locked the account at every password prompt, until someone with an administrator&apos;s account reset its count of wrong tries.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -731,52 +731,57 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/NoticeWords.cpp" line="140"/>
+        <location filename="../src/NoticeWords.cpp" line="179"/>
         <source>Wrong tries at other prompts, and wrong fingers at the lock screen, count toward a lock too.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/NoticeWords.cpp" line="156"/>
+        <location filename="../src/NoticeWords.cpp" line="155"/>
         <source>%1 was typed wrong %2 %3, %4.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/NoticeWords.cpp" line="161"/>
+        <location filename="../src/NoticeWords.cpp" line="175"/>
         <source>It was tried %1 while the account was locked.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/NoticeWords.cpp" line="165"/>
+        <location filename="../src/NoticeWords.cpp" line="160"/>
         <source>%1 was tried %2 %3 while it was locked, %4.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/NoticeWords.cpp" line="169"/>
+        <location filename="../src/NoticeWords.cpp" line="164"/>
         <source>%1 was locked %2, %3.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/NoticeWords.cpp" line="183"/>
+        <location filename="../src/NoticeWords.cpp" line="174"/>
+        <source>It was tried %1 while it was locked.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="187"/>
         <source>A few wrong tries in a row, by password or by finger, lock an account. If this was you, there is nothing to do. If it was not, someone may be guessing: a password nobody has watched you type is the best protection. Children do not see this page.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/NoticeWords.cpp" line="188"/>
+        <location filename="../src/NoticeWords.cpp" line="192"/>
         <source>%1 wrong tries within %2, by password or by finger, lock an account for %3. If this was you, there is nothing to do. If it was not, someone may be guessing: a password nobody has watched you type is the best protection. Children do not see this page.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/NoticeWords.cpp" line="200"/>
+        <location filename="../src/NoticeWords.cpp" line="204"/>
         <source>This computer&apos;s record goes back only to %1.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/NoticeWords.cpp" line="208"/>
+        <location filename="../src/NoticeWords.cpp" line="212"/>
         <source>One older notice is not shown.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/NoticeWords.cpp" line="210"/>
+        <location filename="../src/NoticeWords.cpp" line="214"/>
         <source>%1 older notices are not shown.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -784,27 +789,27 @@
 <context>
     <name>NoticesView</name>
     <message>
-        <location filename="../qml/NoticesView.qml" line="22"/>
+        <location filename="../qml/NoticesView.qml" line="76"/>
         <source>Reading this computer&apos;s record of password tries.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/NoticesView.qml" line="24"/>
+        <location filename="../qml/NoticesView.qml" line="78"/>
         <source>Family cannot read this computer&apos;s record of password tries from your account. An account in the wheel group can.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/NoticesView.qml" line="26"/>
+        <location filename="../qml/NoticesView.qml" line="80"/>
         <source>Family could not read this computer&apos;s record of password tries. The reason is in the system log. In a terminal: journalctl -t cairn-guardian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/NoticesView.qml" line="29"/>
+        <location filename="../qml/NoticesView.qml" line="83"/>
         <source>No wrong passwords in the last %1 days.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/NoticesView.qml" line="38"/>
+        <location filename="../qml/NoticesView.qml" line="92"/>
         <source>Wrong passwords in the last %1 days</source>
         <translation type="unfinished"></translation>
     </message>

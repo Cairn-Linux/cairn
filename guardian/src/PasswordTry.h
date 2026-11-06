@@ -44,6 +44,20 @@ struct PasswordTry {
     qint64 pid = 0;
 };
 
+// A password that was right, from an audit record: USER_AUTH when it was
+// checked, then USER_ACCT when the account part ran. faillock's account
+// part empties the count, but only after its own password check in that
+// process (pam_faillock.c, pam_sm_acct_mgmt), so it takes both, from one
+// process. The lock screen never runs the account part, and empties
+// nothing (ADR-0053).
+struct GoodPassword {
+    qint64 time = 0;
+    Account account;
+    qint64 pid = 0;
+    // USER_ACCT, the account part, rather than USER_AUTH.
+    bool accountPart = false;
+};
+
 // faillock locking an account, from its audit record or, for the lock
 // screen, which cannot write one, its line in the journal.
 struct LockEvent {

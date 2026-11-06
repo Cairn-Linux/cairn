@@ -20,6 +20,14 @@ const QString fields = QStringLiteral(
     "AUDIT_FIELD_RES,AUDIT_FIELD_OP,AUDIT_FIELD_ACCT,AUDIT_FIELD_EXE,AUDIT_FIELD_SUID,"
     "SYSLOG_FACILITY,MESSAGE");
 
+// The lock screen's programs, as JournalTries believes them.
+const QStringList lockScreenPrograms{
+    QStringLiteral("/usr/libexec/kscreenlocker_worker"),
+    QStringLiteral("/usr/lib/kscreenlocker_worker"),
+    QStringLiteral("/usr/libexec/kscreenlocker_greet"),
+    QStringLiteral("/usr/lib/kscreenlocker_greet"),
+};
+
 } // namespace
 
 TryReader::TryReader(Setup setup, QObject* parent)
@@ -45,23 +53,31 @@ QStringList TryReader::arguments(int step) const {
     case OldestEntry:
         return common + QStringList{QStringLiteral("--system"), QStringLiteral("--lines=+1"),
                                     QStringLiteral("--output-fields=__REALTIME_TIMESTAMP")};
-    case LockScreenLocks:
-        // The lock screen runs as the person, so its lines are in their
-        // own journal files, not only the system's.
-        return common + QStringList{since,
-                                    fields,
-                                    QStringLiteral("SYSLOG_FACILITY=10"),
-                                    QStringLiteral("_EXE=/usr/libexec/kscreenlocker_greet"),
-                                    QStringLiteral("+"),
-                                    QStringLiteral("SYSLOG_FACILITY=10"),
-                                    QStringLiteral("_EXE=/usr/lib/kscreenlocker_greet")};
+    case LockScreenLocks: {
+        // The lock screen runs as the person, so journald keeps its lines
+        // in that person's own file, user-<uid>.journal. With neither
+        // --system nor --user, journalctl reads every file it may open.
+        QStringList asked = common + QStringList{since, fields};
+        for (const QString& program : lockScreenPrograms) {
+            if (asked.size() > common.size() + 2) {
+                asked << QStringLiteral("+");
+            }
+            asked << QStringLiteral("SYSLOG_FACILITY=10") << QStringLiteral("_EXE=") + program;
+        }
+        return asked;
+    }
     default:
+        // Every password check, wrong or right, the account part's right
+        // ones, which can empty faillock's count, and faillock's locks.
         return common + QStringList{QStringLiteral("--system"),
                                     since,
                                     fields,
                                     QStringLiteral("_TRANSPORT=audit"),
                                     QStringLiteral("_AUDIT_TYPE=1100"),
-                                    QStringLiteral("AUDIT_FIELD_RES=failed"),
+                                    QStringLiteral("+"),
+                                    QStringLiteral("_TRANSPORT=audit"),
+                                    QStringLiteral("_AUDIT_TYPE=1101"),
+                                    QStringLiteral("AUDIT_FIELD_RES=success"),
                                     QStringLiteral("+"),
                                     QStringLiteral("_TRANSPORT=audit"),
                                     QStringLiteral("_AUDIT_TYPE=2100")};
@@ -80,8 +96,10 @@ TryReader::Readable TryReader::journalReadable() const {
     }
     Readable found = Readable::Missing;
     for (const QString& folder : m_setup.journalFolders) {
-        QFile journal(QDir(folder).filePath(id + QStringLiteral("/system.journal")));
+        const QDir machine(QDir(folder).filePath(id));
+        QFile journal(machine.filePath(QStringLiteral("system.journal")));
         if (journal.open(QIODevice::ReadOnly)) {
+            warnOfUnreadableUserFiles(machine);
             return Readable::Yes;
         }
         if (journal.exists()) {
@@ -89,6 +107,23 @@ TryReader::Readable TryReader::journalReadable() const {
         }
     }
     return found;
+}
+
+// systemd gives wheel read access to every user's file through the
+// folder's default ACL, but journalctl skips a file it may not open
+// without a word, and the lock screen's locks are only in those files.
+// The page still shows every try, from the system's file; a lock it could
+// not read shows as tries alone (ADR-0054).
+void TryReader::warnOfUnreadableUserFiles(const QDir& machine) {
+    const QStringList files =
+        machine.entryList({QStringLiteral("user-*.journal")}, QDir::Files | QDir::System);
+    for (const QString& name : files) {
+        QFile file(machine.filePath(name));
+        if (!file.open(QIODevice::ReadOnly)) {
+            qWarning("cairn-guardian: cannot read %s; the lock screen's locks in it are not shown.",
+                     qUtf8Printable(name));
+        }
+    }
 }
 
 void TryReader::read(const std::optional<FaillockSettings>& settings) {
@@ -136,6 +171,10 @@ void TryReader::take(const QByteArray& line) {
     if (m_step == AuditRecords) {
         if (const std::optional<PasswordTry> found = m_tries.tryFrom(*entry)) {
             m_grouping->addTry(*found);
+            return;
+        }
+        if (const std::optional<GoodPassword> good = m_tries.goodFrom(*entry)) {
+            m_grouping->addGood(*good);
             return;
         }
     }
