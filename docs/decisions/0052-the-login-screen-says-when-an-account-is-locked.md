@@ -6,6 +6,8 @@ next image update.
 **Date:** 2026-11-05
 **Closes:** (none) — issue #284. Amends ADR-0020 (the login screen) and
 ADR-0049 (check 5's words).
+**Amended by:** ADR-0053, proposed (the folder is setgid, so every count
+is in group root, and tmpfiles puts a count back to group root)
 
 ## Context
 
@@ -179,7 +181,8 @@ laptop:
    `default:user:sddm:r--` and `default:group::rw-` on the folder, and on
    each file `user:sddm:r--`, `group::rw-` and `mask::rw-`. A count made
    by three new wrong tries shows the same. `systemd-tmpfiles --create`
-   leaves each file's owner, group and mode 0660 as they were.
+   leaves each file's owner and mode 0660 as they were; since ADR-0053 it
+   puts the group back to root.
 2. `ps -eZ | grep sddm-greeter` shows `xdm_t`, `ls -Z /var/lib/faillock`
    shows `faillog_t`, and `journalctl -b | grep 'AVC avc'` shows no new
    denial after a locked tile is chosen. (`ausearch` sees no AVCs on the

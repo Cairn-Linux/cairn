@@ -41,6 +41,9 @@ GAME_PICTURES=/var/lib/cairn/game-pictures
 # keeps its picture when it leaves the shared folder (ADR-0047). A computer
 # set up by hand has no such folder, and so no lists.
 GAME_LISTS=/var/lib/cairn/games
+# pam_faillock's count of wrong passwords for each account (ADR-0020), in
+# session/security/faillock.conf.
+FAILLOCK=/var/lib/faillock
 # What stays when that file is not made again, for make_game_tiles' notes.
 # The family's setup says it its own way: on the image each child's tiles
 # come from the list a Guardian saved, not from this file (ADR-0041).
@@ -481,22 +484,47 @@ protect_guardians() {
         semanage fcontext -a -t faillog_t '/var/lib/faillock(/.*)?'
         changed "SELinux label for /var/lib/faillock"
     fi
-    if [ ! -d /var/lib/faillock ]; then
-        install -d --mode=755 /var/lib/faillock
-        changed "/var/lib/faillock"
+    if [ ! -d "$FAILLOCK" ]; then
+        install -d --mode=2755 "$FAILLOCK"
+        changed "$FAILLOCK"
     fi
-    restorecon -R /var/lib/faillock
+    # su runs with the caller's group, and pam_faillock keeps the group a
+    # count is made with. Setgid gives each new count group root, so a
+    # child with su cannot make another account's count their own (#289,
+    # ADR-0053), as the image's tmpfiles.d/cairn.conf does.
+    if [ "$(stat --format=%U:%G:%a -- "$FAILLOCK")" != root:root:2755 ]; then
+        chown root:root "$FAILLOCK"
+        chmod 2755 "$FAILLOCK"
+        changed "$FAILLOCK owned by root, mode 2755"
+    fi
+    restorecon -R "$FAILLOCK"
     # The login screen, as sddm, may read each count to say when an account
     # is locked (ADR-0052), as the image's tmpfiles.d/cairn.conf gives it.
     # Only the default ACL: the folder's mode already lets sddm in.
-    if ! getfacl --omit-header --absolute-names -- /var/lib/faillock |
+    if ! getfacl --omit-header --absolute-names -- "$FAILLOCK" |
         grep -x 'default:user:sddm:r--' > /dev/null; then
-        setfacl -m 'd:u::rw,d:u:sddm:r,d:g::rw,d:m::rw,d:o::-' -- /var/lib/faillock
-        changed "/var/lib/faillock readable by the login screen"
+        setfacl -m 'd:u::rw,d:u:sddm:r,d:g::rw,d:m::rw,d:o::-' -- "$FAILLOCK"
+        changed "$FAILLOCK readable by the login screen"
     fi
-    local count
-    for count in /var/lib/faillock/*; do
+    local count name owner group mode
+    for count in "$FAILLOCK"/*; do
         [ -f "$count" ] && [ ! -L "$count" ] || continue
+        IFS=: read -r owner group mode < <(stat --format=%U:%G:%a -- "$count")
+        # Each count is named after its account. On a moved computer the
+        # numbers may have changed, so a Guardian's count could belong to a
+        # child until the Guardian's next try. A count with no account
+        # keeps its owner (ADR-0053).
+        name="$(basename -- "$count")"
+        if [ "$owner" != "$name" ] && getent passwd "$name" > /dev/null; then
+            chown -- "$name" "$count"
+            changed "$count owned by $name"
+        fi
+        # A count made before, perhaps by su with a child's group.
+        if [ "$group:$mode" != root:660 ]; then
+            chgrp root "$count"
+            chmod 660 "$count"
+            changed "$count in group root, mode 660"
+        fi
         if ! getfacl --omit-header --absolute-names -- "$count" |
             grep -x 'user:sddm:r--' > /dev/null; then
             setfacl -m u:sddm:r -- "$count"
