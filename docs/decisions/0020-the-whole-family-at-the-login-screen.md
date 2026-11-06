@@ -3,6 +3,8 @@
 **Status:** accepted
 **Date:** 2026-09-30
 **Closes:** (none) — addresses issues #81 and #82; amends ADR-0016
+**Amended by:** ADR-0052, proposed (the login screen says when an account
+is locked, for how long, and when a try is allowed again)
 
 ## Context
 

@@ -486,6 +486,23 @@ protect_guardians() {
         changed "/var/lib/faillock"
     fi
     restorecon -R /var/lib/faillock
+    # The login screen, as sddm, may read each count to say when an account
+    # is locked (ADR-0052), as the image's tmpfiles.d/cairn.conf gives it.
+    # Only the default ACL: the folder's mode already lets sddm in.
+    if ! getfacl --omit-header --absolute-names -- /var/lib/faillock |
+        grep -x 'default:user:sddm:r--' > /dev/null; then
+        setfacl -m 'd:u::rw,d:u:sddm:r,d:g::rw,d:m::rw,d:o::-' -- /var/lib/faillock
+        changed "/var/lib/faillock readable by the login screen"
+    fi
+    local count
+    for count in /var/lib/faillock/*; do
+        [ -f "$count" ] && [ ! -L "$count" ] || continue
+        if ! getfacl --omit-header --absolute-names -- "$count" |
+            grep -x 'user:sddm:r--' > /dev/null; then
+            setfacl -m u:sddm:r -- "$count"
+            changed "$count readable by the login screen"
+        fi
+    done
     if ! authselect current | grep -qx -- '- with-faillock'; then
         authselect enable-feature with-faillock
         changed "authselect with-faillock"

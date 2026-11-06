@@ -18,6 +18,8 @@ acceptance back, nor does Steam's updater window at a child's login
 ("What Mason decided on 2026-11-03", below).
 **Date:** 2026-11-02
 **Closes:** (none) — the narrow version of issue #88, for child test 2
+**Amended by:** ADR-0052, proposed (the login screen's words for a locked
+account in check 5 are now ADR-0052's)
 (ROADMAP P1-17); the in-session step-in stays open in #88. It answers
 the question ADR-0045 left open for #182, and the change that brings it
 closes #182, as Mason chose on 2026-11-02. Part of ROADMAP P1-13.
@@ -870,6 +872,8 @@ The record and its pictures are in the maintainer's work area.
   A wrong password at the login screen gives "That password did not
   work. After a few wrong tries, the account waits a few minutes before
   it lets anyone try again.", and so does a locked account.
+  Since ADR-0052 the login screen says when the account is locked and
+  for how long, and never calls a password wrong while it is.
   Three wrong tries locked the Guardian.
   While locked, the right password was refused at the login screen and
   by `su`, whose PAM stack, `system-auth`, the visit's polkit box uses

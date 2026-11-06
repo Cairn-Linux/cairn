@@ -15,14 +15,22 @@ Rectangle {
     property FamilyModel family: FamilyModel {
         sourceModel: userModel
     }
+    // Whether faillock has locked the account whose password row is open
+    // (ADR-0052). Tests give it their own settings, folder and time.
+    property AccountLock accountLock: AccountLock {}
     // Why a login failed. Tests give it another list of children on a visit.
-    property FailedLogin failedLogin: FailedLogin {}
+    property FailedLogin failedLogin: FailedLogin {
+        accountLock: root.accountLock
+    }
     // The tile whose password row is open, or -1.
     property int askingFor: -1
     // Waiting for SDDM to answer a login, and whose.
     property bool busy: false
     property string loggingIn: ""
     property string message: ""
+    // The lock sentence last put in the message, so one that no longer
+    // holds can be taken away again.
+    property string lockWords: ""
 
     width: Tokens.displaySize * 20
     height: Tokens.displaySize * 14
@@ -34,18 +42,39 @@ Rectangle {
     Connections {
         target: sddm
 
+        // SDDM sends this twice for each try; both give the same words.
         function onLoginFailed() {
             root.busy = false;
             switch (root.failedLogin.reasonFor(root.loggingIn, root.askingFor >= 0)) {
+            case FailedLogin.Locked:
+                root.askAgain(root.lockNotice());
+                root.lockWords = root.message;
+                break;
+            case FailedLogin.LockRanOut:
+                // Refused for the lock, which ran out while PAM answered:
+                // the password was never checked, so it is not called wrong.
+                root.askAgain(qsTr("You can try again now."));
+                root.lockWords = root.message;
+                break;
             case FailedLogin.SteamVisit:
                 root.askingFor = -1;
+                root.accountLock.loginName = "";
                 root.message = qsTr("A grown-up is setting something up for you. Try again soon.");
                 tiles.forceActiveFocus();
                 break;
+            case FailedLogin.TryAgain:
+                root.askAgain(qsTr("That password did not work. Try again."));
+                break;
+            case FailedLogin.OneTryLeft:
+                // Always 2 or more: the theme loads no translation, so the
+                // English must be right as written.
+                root.askAgain(qsTr("That password did not work. One more wrong try locks this account for %n minutes.", "", root.accountLock.lockMinutes));
+                break;
+            case FailedLogin.OneTryLeftNoTime:
+                root.askAgain(qsTr("That password did not work. One more wrong try locks this account."));
+                break;
             case FailedLogin.WrongPassword:
-                root.message = qsTr("That password did not work. After a few wrong tries, the account waits a few minutes before it lets anyone try again.");
-                passwordRow.clear();
-                passwordRow.takeFocus();
+                root.askAgain(qsTr("That password did not work. After a few wrong tries, the account waits a few minutes before it lets anyone try again."));
                 break;
             case FailedLogin.NeedsGrownUp:
                 root.message = qsTr("Something needs a grown-up.");
@@ -55,10 +84,56 @@ Rectangle {
         }
     }
 
+    // While a locked account's password row is open, the words count down
+    // by the minute and say when a try is allowed again.
+    Connections {
+        target: root.accountLock
+
+        function onStateChanged() {
+            if (root.askingFor < 0 || root.busy)
+                return;
+            const notice = root.lockNotice();
+            // A lock sentence that no longer holds goes; other words stay.
+            if (notice.length > 0 || root.message === root.lockWords)
+                root.message = notice;
+            root.lockWords = notice;
+            if (root.accountLock.state === AccountLock.OpenAgain)
+                passwordRow.takeFocus();
+        }
+    }
+
+    // What the screen says about the lock, or nothing. The password row stays
+    // open throughout: PAM is the gate, and a try while locked costs nothing.
+    // The minutes are always 2 or more, so "%n minutes" is right as written.
+    function lockNotice() {
+        switch (root.accountLock.state) {
+        case AccountLock.Locked:
+            return qsTr("This account is locked after too many wrong passwords. Try again in %n minutes.", "", root.accountLock.minutesLeft);
+        case AccountLock.LockedUnderAMinute:
+            return qsTr("This account is locked after too many wrong passwords. Try again in less than a minute.");
+        case AccountLock.LockedUntilReset:
+            return qsTr("This account is locked after too many wrong passwords. A grown-up can unlock it.");
+        case AccountLock.LockedForUnknownTime:
+            return qsTr("This account is locked after too many wrong passwords. Try again later.");
+        case AccountLock.OpenAgain:
+            return qsTr("You can try again now.");
+        default:
+            return "";
+        }
+    }
+
+    function askAgain(text) {
+        root.message = text;
+        passwordRow.clear();
+        passwordRow.takeFocus();
+    }
+
     function logIn(loginName, password) {
         root.busy = true;
         root.loggingIn = loginName;
         root.message = "";
+        if (root.askingFor >= 0)
+            root.accountLock.noteTry();
         sddm.login(loginName, password, sessionModel.lastIndex >= 0 ? sessionModel.lastIndex : 0);
     }
 
@@ -68,8 +143,11 @@ Rectangle {
         const index = root.family.index(row, 0);
         const loginName = root.family.data(index, FamilyModel.LoginNameRole);
         if (root.family.data(index, FamilyModel.AsksForPasswordRole)) {
-            root.message = "";
             root.askingFor = row;
+            root.accountLock.loginName = loginName;
+            // Said before anyone types; the row stays open all the same.
+            root.message = root.lockNotice();
+            root.lockWords = root.message;
             passwordRow.clear();
             passwordRow.takeFocus();
         } else {
@@ -79,7 +157,9 @@ Rectangle {
 
     function stopAsking() {
         root.askingFor = -1;
+        root.accountLock.loginName = "";
         root.message = "";
+        root.lockWords = "";
         tiles.forceActiveFocus();
     }
 
@@ -174,6 +254,8 @@ Rectangle {
             wrapMode: Text.WordWrap
             text: root.message
             visible: text.length > 0
+            Accessible.role: Accessible.StaticText
+            Accessible.name: text
             font.family: Tokens.fontFamily
             font.pixelSize: Tokens.minChild
             color: Tokens.inkLabel
