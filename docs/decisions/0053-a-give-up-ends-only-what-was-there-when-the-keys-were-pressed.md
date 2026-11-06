@@ -1,0 +1,89 @@
+# ADR-0053: A give-up ends only what was there when the keys were pressed
+
+**Status:** proposed. It becomes accepted when the checks under "Checks
+in the VM" have passed on cairn-min.
+**Date:** 2026-11-06
+**Closes:** (none) — part of issue #287. Amends ADR-0018 (the give-up
+key) and ADR-0026 (the file that tells the launcher).
+
+## Context
+
+Ctrl-Alt-Home runs `cairn-give-up` (ADR-0018).
+It sends SIGCONT, then SIGTERM, waits two seconds, sends SIGKILL, and
+then writes `$XDG_RUNTIME_DIR/cairn/give-up` so the launcher goes back
+to the tiles (ADR-0026).
+
+A game's window goes at the SIGTERM, in about half a second, so the
+tiles are back well before the SIGKILL.
+A child who has just been handed back the computer taps a tile at once.
+On cairn-min on 2026-11-06, with a Steam game (Freddi Fish 2):
+- A tile tapped 1 to 2 s after the keys (4 of 4 tries): the file was
+  written at 2.05 s and the launcher forgot the new launch.
+  The tiles came back while Steam was still starting the game, then the
+  game opened over them, and the journal called it a window "opened on
+  its own".
+- GCompris tapped 0.95 s after the keys was ended by the SIGKILL at
+  2.0 s, because the helper searched again for `bwrap` and for
+  `cairn-app-*.scope` at the SIGKILL, and found the new app.
+
+To the child, the tap did nothing, or the game came up wrong.
+A tap 3 s or more after the keys worked every time (8 of 8).
+
+The relaunch that failed on the kids' laptop on 2026-11-04 (#287) came
+9 s after the keys, so it is not this; its cause is still open.
+
+## Decision
+
+**The helper finds everything once, when the keys are pressed, and
+signals only that.**
+- It notes the time first, in milliseconds (`date +%s%3N`).
+- It lists the `bwrap` processes, the Steam reapers with their
+  containers, and the `cairn-app-*.scope` units then, before any signal.
+- SIGCONT, SIGTERM and SIGKILL go to that list by process id or unit
+  name. Nothing is searched for again.
+
+**The launcher is told when the keys were pressed.**
+- The helper writes that time into the file, in place of the time it
+  finished.
+- `GiveUpWatch` reads it and passes it on. An empty file is the moment
+  between the helper emptying the file and writing it, and is not a
+  press. Anything else that is not a time counts as a press now, which
+  gives up on everything, as before.
+- `AppLauncher::giveUp` keeps a launch that began after that time, and
+  says so in the journal: "<tile> was started after the give-up key, so
+  it goes on."
+  Any other launch, and every window, is forgotten as before.
+
+## Consequences
+
+- A tile tapped at any moment after the keys starts its app, and the
+  tiles do not come back under it.
+- A process id the helper found can end and be used again by a new
+  process of the same child within the two seconds. The SIGKILL would
+  then reach that new process. Linux hands out process ids in order up
+  to `pid_max` (4194304 on Fedora), so this needs millions of new
+  processes in two seconds. The Steam reapers were already signalled by
+  process id.
+- The launcher and the helper compare wall-clock times on the same
+  computer. A clock change of more than the gap between the keys and a
+  tap, in those two seconds, would decide wrongly; that only changes
+  whether a new launch is forgotten.
+- A launch kept this way leaves the windows the launcher had before it
+  as they were. A window still on the screen at a tap cannot be the old
+  app's, since the child could reach the tiles.
+- A game that quits by itself in its first seconds, as on the laptop,
+  still leaves the starting screen up until the launch grace ends, with
+  no word in the journal (#276). That is the rest of #287.
+
+## Checks in the VM
+
+On cairn-min with this change installed in a child's session:
+1. A Steam game, Ctrl-Alt-Home, its tile tapped 1 s later: the game
+   comes up, the starting screen stays until it does, and the journal
+   says it "was started after the give-up key, so it goes on", never
+   "opened a window on its own".
+2. GCompris, Ctrl-Alt-Home, a Flatpak tile tapped 1 s later: it stays
+   up past 3 s.
+3. A SIGSTOP-frozen game and a frozen Tux Paint still end with
+   Ctrl-Alt-Home, and the tiles come back.
+4. Ctrl-Alt-Home with nothing running changes nothing.

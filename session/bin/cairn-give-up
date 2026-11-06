@@ -17,13 +17,24 @@
 # to ignore everything else.
 set -ouex pipefail
 
+# When the grown-up pressed the keys, in milliseconds. A tile the child taps
+# after this is a new launch, not the one given up on, and the launcher keeps
+# it (#287).
+pressed_at="$(date +%s%3N)"
+
 # The one child session this runs in; never another user's.
 me="$(id -u)"
+
+# Everything is found once, now, and only what was found is signalled. The
+# windows go at the SIGTERM, so the child can tap a tile before the SIGKILL
+# two seconds later; a sandbox or scope that tap starts is not one of these
+# and is left alone (#287).
 
 # A Flatpak app roots at a process called exactly `bwrap`. Steam's own
 # interface runs in a sandbox called `srt-bwrap`, so the name is matched
 # whole, never as part of a command line (#117).
 flatpak_root='bwrap'
+mapfile -t flatpaks < <(pgrep --uid "$me" --exact "$flatpak_root" || true)
 
 # A Steam game roots at Steam's reaper: a process called exactly `reaper`
 # started with the argument `SteamLaunch`. Both are checked, because the
@@ -48,28 +59,28 @@ games=("${containers[@]}" "${reapers[@]}")
 
 # The launcher's scopes, in this user's own systemd. The tests name their own.
 units="${CAIRN_APP_UNITS:-cairn-app-*.scope}"
+mapfile -t scopes < <(systemctl --user list-units --type=scope --plain --no-legend "$units" | awk '{ print $1 }' || true)
 
 # The file the launcher watches to hear that this ran (ADR-0026).
 told="${CAIRN_GIVE_UP_FILE:-${XDG_RUNTIME_DIR:-/nonexistent}/cairn/give-up}"
 
 # SIGCONT so a stopped process can receive what follows; SIGTERM as a courtesy
 # in case the app wants to flush; SIGKILL after a moment for anything left.
-pkill --uid "$me" --exact "$flatpak_root" --signal CONT || true
-[ "${#games[@]}" -eq 0 ] || kill -s CONT "${games[@]}" 2> /dev/null || true
-systemctl --user kill --signal CONT "$units" || true
-pkill --uid "$me" --exact "$flatpak_root" --signal TERM || true
-[ "${#games[@]}" -eq 0 ] || kill -s TERM "${games[@]}" 2> /dev/null || true
-systemctl --user kill --signal TERM "$units" || true
+targets=("${flatpaks[@]}" "${games[@]}")
+[ "${#targets[@]}" -eq 0 ] || kill -s CONT "${targets[@]}" 2> /dev/null || true
+[ "${#scopes[@]}" -eq 0 ] || systemctl --user kill --signal CONT "${scopes[@]}" || true
+[ "${#targets[@]}" -eq 0 ] || kill -s TERM "${targets[@]}" 2> /dev/null || true
+[ "${#scopes[@]}" -eq 0 ] || systemctl --user kill --signal TERM "${scopes[@]}" || true
 sleep 2
-pkill --uid "$me" --exact "$flatpak_root" --signal KILL || true
-[ "${#games[@]}" -eq 0 ] || kill -s KILL "${games[@]}" 2> /dev/null || true
-systemctl --user kill --signal KILL "$units" || true
+[ "${#targets[@]}" -eq 0 ] || kill -s KILL "${targets[@]}" 2> /dev/null || true
+[ "${#scopes[@]}" -eq 0 ] || systemctl --user kill --signal KILL "${scopes[@]}" || true
 
 # Then tell the launcher, so the tiles come back even if a window it was
 # waiting on never closes. It made the file when it started; none means no
-# launcher is listening.
+# launcher is listening. It is told when the keys were pressed, so a launch
+# the child started since then goes on (#287).
 if [ -f "$told" ]; then
-    date +%s > "$told"
+    echo "$pressed_at" > "$told"
 fi
 
 exit 0

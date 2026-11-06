@@ -467,6 +467,18 @@ done, and what could sink it. Decisions that change the design get an ADR in
   `sudo systemctl enable --now tailscaled`, then sets the operator once
   with `sudo tailscale set --operator=<name>`. Built and checked in a
   container on 2026-11-03; not yet seen in a VM.
+- **ADR-0053 (2026-11-06, part of #287, proposed): a give-up ends only
+  what was there when the keys were pressed.** On cairn-min, a tile
+  tapped 1 to 2 s after Ctrl-Alt-Home was undone: the helper's SIGKILL at
+  2 s searched again and ended a Flatpak app just started, and its file
+  made the launcher forget a Steam game just tapped, which then opened
+  over the tiles. `cairn-give-up` now lists what it will end and the time
+  of the press before any signal, signals only that list, and writes the
+  time; the launcher keeps a launch begun after it. Built and tested in
+  the release build on 2026-11-06; the VM checks are open. The rest of
+  #287 is open: on the laptop a Proton game started 9 s after a give-up
+  quit by itself, cause unknown, and the starting screen stayed until the
+  grace ran out (#276).
 - **ADR-0052 (2026-11-05, #284, proposed): the login screen says when an
   account is locked.** On the kids' laptop the Guardian, locked out by
   faillock, was told "That password did not work" for the right

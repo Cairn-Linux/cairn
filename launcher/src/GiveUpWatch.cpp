@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "GiveUpWatch.h"
 
+#include <QByteArray>
+#include <QDateTime>
 #include <QDebug>
 #include <QDir>
 #include <QFile>
@@ -8,7 +10,25 @@
 #include <QStandardPaths>
 
 GiveUpWatch::GiveUpWatch(QObject* parent) : QObject(parent), m_watcher(this) {
-    connect(&m_watcher, &QFileSystemWatcher::fileChanged, this, &GiveUpWatch::pressed);
+    connect(&m_watcher, &QFileSystemWatcher::fileChanged, this, &GiveUpWatch::onFileChanged);
+}
+
+void GiveUpWatch::onFileChanged() {
+    QFile file(m_path);
+    if (!file.open(QIODevice::ReadOnly)) {
+        return;
+    }
+    const QByteArray written = file.readAll().trimmed();
+    // The helper empties the file before it writes, and the watcher can hear
+    // the two apart; the write that follows is heard too.
+    if (written.isEmpty()) {
+        return;
+    }
+    bool isNumber = false;
+    const qint64 pressedAt = written.toLongLong(&isNumber);
+    // Anything else in the file still means the key was pressed; taking it
+    // as now gives up on everything, as before the time was written.
+    emit pressed(isNumber ? pressedAt : QDateTime::currentMSecsSinceEpoch());
 }
 
 QString GiveUpWatch::path() const {

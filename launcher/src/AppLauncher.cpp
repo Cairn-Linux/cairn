@@ -158,6 +158,7 @@ void AppLauncher::launch(const QString& title, const QStringList& exec) {
         return;
     }
 
+    m_launchStartedAt = QDateTime::currentMSecsSinceEpoch();
     m_settled = false;
     m_quitWhileOpening = false;
     m_waitingLate = false;
@@ -201,7 +202,14 @@ void AppLauncher::dismiss() {
     setState(State::Idle);
 }
 
-void AppLauncher::giveUp() {
+void AppLauncher::giveUp(qint64 pressedAt) {
+    // The helper tells the launcher two seconds after the key, and the tiles
+    // are back long before that; a tile tapped in between is a new launch.
+    if (m_windows.launching() && m_launchStartedAt > pressedAt) {
+        qInfo().noquote() << QStringLiteral("%1 was started after the give-up key, so it goes on.")
+                                 .arg(m_launchTitle);
+        return;
+    }
     endLaunch();
     m_windows.forgetAll();
     setTitle(m_launchTitle);

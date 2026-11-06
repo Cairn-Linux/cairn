@@ -56,6 +56,10 @@ What is here:
   app ends and the frame and the Steam client stay up. Then it writes
   `$XDG_RUNTIME_DIR/cairn/give-up`, which the launcher watches, so the tiles
   come back even if a window it was waiting on never closes (ADR-0026).
+  It finds all of these once, when the keys are pressed, signals only
+  those, and writes the time of the press into the file, so a tile the
+  child taps before the SIGKILL two seconds later starts and stays
+  (ADR-0053, #287).
 - `bin/cairn-log-out`: the child's Log out (ADR-0021, #44). The launcher
   runs it when the child confirms. It asks a running Steam client to shut
   down, then ends the child's own account with `loginctl terminate-user`,
