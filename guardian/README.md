@@ -7,7 +7,9 @@ The Guardian's side of Cairn (ROADMAP P1-5). So far it has three pieces:
   the family's children with their levels, adds a child and moves a
   child to another level. Its Games page chooses the games on each
   child's own list (ADR-0041). Its Your account page changes the
-  Guardian's own password and picture (ADR-0043).
+  Guardian's own password and picture (ADR-0043). Its Notices page says
+  when wrong passwords were typed, and whether an account locked
+  (ADR-0054).
 - **`cairn-family`**, the root command under it that makes a child's
   account, sets a child's level (ADR-0039) and gives children their
   games (ADR-0041). The family's setup on the image runs it too.
@@ -21,12 +23,14 @@ The Guardian's side of Cairn (ROADMAP P1-5). So far it has three pieces:
 Steam window, only the `cairn-guardian` group may run it, and the entry
 names it as its `TryExec`, so no one else's menu shows it. It is on the
 image only: hand provisioning installs neither it nor `cairn-family`.
-The entry's words name every page, "Children, games and your account",
+The entry's words name every page, "Children, games, your account and
+notices",
 and its keywords include games and Steam, so a search in the menu for
 either finds it.
 
-Three buttons above the page, **Children**, **Games** and **Your
-account**, move between its pages. The window opens on Children, with
+Four buttons above the page, **Children**, **Games**, **Your
+account** and **Notices**, move between its pages; in a narrow window
+the last ones go on to a second line. The window opens on Children, with
 the keyboard on its button, so Tab and Shift+Tab start there (#242).
 
 System Settings lists it too, as "Family" under System, where Plasma's
@@ -199,6 +203,45 @@ wait keeps them, but Save waits, for every child, until they are logged
 out, and the page says why; their Put back waits too, so logging them
 out is the way on. A child who logs in after the page looked is still held
 `logged-in` by `cairn-family`, and the Save's result says so.
+
+The Notices page (ADR-0054, proposed):
+
+1. "Wrong passwords in the last 30 days": one card for each time wrong
+   passwords were typed for an account on this computer, newest first,
+   for every account, the Guardian's own, other Guardians', children's
+   and accounts outside the family. Tries for one account from one place
+   and one login, each within faillock's 15 minutes of the last, are one
+   card: "Ben's password was typed wrong 3 times with su, from Ada's
+   login, on Wednesday, 4 November 2026, from 16:02 to 16:05."
+2. The places are the login screen, the account's own login (the lock
+   screen, or another program run there), sudo, su, a password box and a
+   text console. Any other program is named, "by another program
+   (sshd-session)", never left out.
+3. A lock says so, for how long and until when: "That locked the account
+   for 10 minutes, at every password prompt. The right password did not
+   work until about 16:15." Tries during a lock may have been the right
+   password, so they are counted apart and never called wrong. A lock
+   with fewer wrong passwords than faillock's `deny`, or none, such as
+   one from wrong fingers at the lock screen, says that tries elsewhere
+   and fingers count too.
+4. A child at level 1 or 2 has no password, so a try on their account
+   reads "Someone tried to use Ada's account …".
+5. A name typed at su or sudo that is no account on this computer is
+   never shown: "a login name that is not an account on this computer".
+   Every name on the page is an account's own name, and every word is
+   plain text.
+6. Under the list, once, how faillock locks, from `faillock.conf`, and
+   what to do. When the journal is shorter than 30 days, it says how far
+   back it goes; when this account cannot read it (not in `wheel`), or
+   journalctl fails, it says so rather than show an empty list.
+
+It reads the journal each time the page is shown, as the Guardian:
+systemd lets `wheel` read every journal file. It takes only the audit
+records of failed password checks and faillock's locks, which a child
+cannot write, and faillock's line from the lock screen, believed only
+from the lock screen's program running as root or as the account it
+names. Family keeps no copy, and nothing leaves the computer. Children
+never see the page.
 
 The window's notes and the error output of `cairn-family`'s tools go to
 the journal:
@@ -433,6 +476,15 @@ QML draws, C++ decides (ADR-0002):
 | `src/PictureFile` | A chosen picture made ready for AccountsService: a square from its middle, turned as the camera meant, at most 256 pixels, as PNG. |
 | `src/NewPassword` | The one rule for a new password, which the window and `cairn-family` both check. |
 | `qml/AccountView.qml`, `qml/PictureSection.qml`, `qml/PasswordForm.qml`, `qml/PasswordAnswers.qml`, `qml/PictureTile.qml`, `qml/OutcomeBox.qml`, `qml/WalletOffer.qml` | The Your account page, the picture section with its file dialog, the password form, the sentence about a password change with the wallet's card under it, one of Plasma's pictures to tap, the box a sentence goes in, and the card that offers to change KDE Wallet's password. |
+| `src/JournalTries` | The Notices page's trust boundary: one line of `journalctl -o json` into a wrong password (an audit `USER_AUTH` record that failed) or a lock (faillock's audit record, or its line from the lock screen under the uid rule), with the place each program stands for and every name looked up on this computer. No files, no clock. |
+| `src/PasswordTry` | A wrong password and a lock as plain values, and the places a password is typed. |
+| `src/TryNotices` | Groups tries into notices as they arrive, counting rather than keeping them, attaches each lock, counts the tries refused during a lock apart, and keeps the newest 200. |
+| `src/NoticeWords` | The page's sentences: whose password, where, from whose login, the lock, and the words under the list, with faillock's numbers. |
+| `src/NoticeTime` | How many times and when, in the page's words, with the locale's own dates, times and numbers. |
+| `src/JournalRun` | One run of journalctl, read line by line while it runs, with a clean environment and a two-minute limit; a line too long to be an entry is skipped. |
+| `src/TryReader` | Checks that this account can read the system journal, then runs journalctl three times: the oldest entry, the lock screen's locks, the audit records. |
+| `src/NoticesPage` | What the Notices page shows: its state, the sentences, how far back the record goes, and the words under the list. Its journalctl, folders, accounts, time zone and clock are in its `Setup`, so a test can replace them. |
+| `qml/NoticesView.qml` | The Notices page. |
 | `src/GamePicture` | A game's picture by its app id, with the launcher's rule: `<folder>/<appid>.jpg` when it is a plain file, not a link. The Games page and `cairn-family` both use it. |
 | `qml/FamilyWindow.qml`, `qml/ChildrenView.qml`, `qml/GamesView.qml` | The Guardian tool's window with its switch between pages, its Children page with the sentence for every answer, and its Games page. |
 | `qml/ChildChoice.qml`, `qml/GameCard.qml`, `qml/SaveOutcome.qml`, `qml/SaveResultWords.qml` | A child to pick on the Games page, one game in its grid, the sentences for a Save, and its words for what each child got. |
@@ -474,17 +526,23 @@ journalctl -t cairn-steam-for -t cairn-steam-visit --since today
 
 ## Tests
 
-CTest runs forty here, among them `steamvisit`, `ownsteam`,
+CTest runs forty-four here, among them `steamvisit`, `ownsteam`,
 `screenlockwatch`,
 `steamforchild`, `steamwindow` (the real window in Qt Quick Test),
 `familycommand`, `steamentry`, and for the Guardian tool `loginname`,
 `childlist`, `familychange`, `saverun`, `savereport`, `loginwatch`,
 `childlogout`, `gamechoices`,
 `childrenpage`, `gamepicture`, `gameshelf`, `gamespage` and
-`familywindow` (the real window in Qt Quick Test, all three pages and
+`familywindow` (the real window in Qt Quick Test, all four pages and
 the switch), and for a grown-up's own password and picture
 `newpassword`, `ownpasswordcommand`, `picturefile`, `accountpage`,
-`walletpassword`, `hideuserspage` and `kdepictures`. They use stand-ins
+`walletpassword`, `hideuserspage` and `kdepictures`, and for the
+Notices page `journaltries` (forged lines from a child's account, names
+with markup, line breaks and bidi controls, fields as bytes), `trynotices`
+(grouping, locks, tries during a lock, a flood of 100,000 tries),
+`noticewords` and `tryreader`, with a stand-in journalctl each test
+writes, a journal this account cannot read and a flood with an
+over-long line. They use stand-ins
 in `tests/fixtures/` for `pkexec` with the helper behind it, which takes
 a scenario where the helper's path goes, and for the Guardian's Steam
 client, over a stand-in process list. `pkexec-family` stands in for

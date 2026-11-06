@@ -467,6 +467,21 @@ done, and what could sink it. Decisions that change the design get an ADR in
   `sudo systemctl enable --now tailscaled`, then sets the operator once
   with `sudo tailscale set --operator=<name>`. Built and checked in a
   container on 2026-11-03; not yet seen in a VM.
+- **ADR-0054 (2026-11-05, #285 slice 1, proposed): Family tells
+  Guardians about wrong passwords.** Nothing told a Guardian, later, that
+  wrong passwords were typed for their account or a child's, or that an
+  account locked; the Guardian locked out on 2026-11-04 thought they had
+  forgotten their password. Family has a fourth page, Notices: each time
+  wrong passwords were typed in the last 30 days, for every account,
+  where (login screen, own login, sudo, su, a password box, a text
+  console, or another program by name), from whose login, and whether it
+  locked the account, with tries refused during a lock never called
+  wrong. It reads only the journal's audit records, which a child cannot
+  write, and faillock's line from the lock screen under a uid rule, as the
+  Guardian through systemd's own `wheel` ACL; no helper, no new
+  permission, no copy kept. `FaillockSettings` moved to `accounts/`.
+  Built and tested in the release build on 2026-11-05; the VM checks are
+  open. Next: marking new notices (slice 2), a notification at login.
 - **ADR-0052 (2026-11-05, #284, proposed): the login screen says when an
   account is locked.** On the kids' laptop the Guardian, locked out by
   faillock, was told "That password did not work" for the right

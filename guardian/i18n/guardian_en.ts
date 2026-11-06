@@ -258,28 +258,33 @@
 <context>
     <name>FamilyWindow</name>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="30"/>
+        <location filename="../qml/FamilyWindow.qml" line="32"/>
         <source>Family</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="132"/>
+        <location filename="../qml/FamilyWindow.qml" line="139"/>
         <source>Pages</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="142"/>
+        <location filename="../qml/FamilyWindow.qml" line="149"/>
         <source>Children</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="155"/>
+        <location filename="../qml/FamilyWindow.qml" line="162"/>
         <source>Games</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="169"/>
+        <location filename="../qml/FamilyWindow.qml" line="176"/>
         <source>Your account</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/FamilyWindow.qml" line="190"/>
+        <source>Notices</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -541,6 +546,260 @@
     <message>
         <location filename="../qml/Main.qml" line="208"/>
         <source>Cancel</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>NoticeTime</name>
+    <message>
+        <location filename="../src/NoticeTime.cpp" line="19"/>
+        <source>once</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeTime.cpp" line="22"/>
+        <source>twice</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeTime.cpp" line="24"/>
+        <source>%1 times</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeTime.cpp" line="29"/>
+        <source>once more</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeTime.cpp" line="32"/>
+        <source>twice more</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeTime.cpp" line="34"/>
+        <source>%1 more times</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeTime.cpp" line="40"/>
+        <source>1 minute</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeTime.cpp" line="42"/>
+        <source>%1 minutes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeTime.cpp" line="55"/>
+        <source>from %1 at %2 to %3 at %4</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeTime.cpp" line="59"/>
+        <source>on %1, at %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeTime.cpp" line="61"/>
+        <source>on %1, from %2 to %3</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>NoticeWords</name>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="40"/>
+        <source>The password of a login name that is not an account on this computer</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="43"/>
+        <source>Your password</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="46"/>
+        <source>%1&apos;s password</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="48"/>
+        <source>The password of the account %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="53"/>
+        <source>Your account</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="56"/>
+        <source>%1&apos;s account</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="58"/>
+        <source>The account %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="65"/>
+        <source>at the login screen</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="69"/>
+        <source>in your own login, at the lock screen or in another program</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="70"/>
+        <source>in their own login, at the lock screen or in another program</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="73"/>
+        <source>with sudo</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="76"/>
+        <source>with su</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="79"/>
+        <source>in a password box</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="82"/>
+        <source>at a text console</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="85"/>
+        <source>by another program</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="86"/>
+        <source>by another program (%1)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="93"/>
+        <source>%1, from another login</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="96"/>
+        <source>%1, from your login</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="98"/>
+        <source>%1, from %2&apos;s login</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="105"/>
+        <source>That locked the account for a while, at every password prompt.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="109"/>
+        <source>That locked the account at every password prompt, until someone with an administrator&apos;s account reset its count of wrong tries.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="114"/>
+        <source>That locked the account for %1, at every password prompt. The right password did not work until about %2.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="119"/>
+        <source>Wrong tries at other prompts, and wrong fingers at the lock screen, count toward a lock too.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="130"/>
+        <source>Someone tried to use %1 %2 %3, %4.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="134"/>
+        <source>%1 was typed wrong %2 %3, %4.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="139"/>
+        <source>It was tried %1 while the account was locked.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="143"/>
+        <source>%1 was tried %2 %3 while it was locked, %4.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="147"/>
+        <source>%1 was locked %2, %3.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="161"/>
+        <source>A few wrong tries in a row, by password or by finger, lock an account. If this was you, there is nothing to do. If it was not, someone may be guessing: a password nobody has watched you type is the best protection. Children do not see this page.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="166"/>
+        <source>%1 wrong tries within %2, by password or by finger, lock an account for %3. If this was you, there is nothing to do. If it was not, someone may be guessing: a password nobody has watched you type is the best protection. Children do not see this page.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="178"/>
+        <source>This computer&apos;s record goes back only to %1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="186"/>
+        <source>One older notice is not shown.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/NoticeWords.cpp" line="188"/>
+        <source>%1 older notices are not shown.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>NoticesView</name>
+    <message>
+        <location filename="../qml/NoticesView.qml" line="22"/>
+        <source>Reading this computer&apos;s record of password tries.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/NoticesView.qml" line="24"/>
+        <source>Family cannot read this computer&apos;s record of password tries from your account. An account in the wheel group can.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/NoticesView.qml" line="26"/>
+        <source>Family could not read this computer&apos;s record of password tries. The reason is in the system log. In a terminal: journalctl -t cairn-guardian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/NoticesView.qml" line="29"/>
+        <source>No wrong passwords in the last %1 days.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/NoticesView.qml" line="38"/>
+        <source>Wrong passwords in the last %1 days</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

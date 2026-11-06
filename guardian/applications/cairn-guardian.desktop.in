@@ -8,9 +8,9 @@
 [Desktop Entry]
 Type=Application
 Name=Family
-GenericName=Children, games and your account
-Comment=The children, their levels and games, and your own password and picture
-Keywords=children;child;level;games;Steam;password;picture;account;
+GenericName=Children, games, your account and notices
+Comment=The children, their levels and games, your own password and picture, and wrong passwords typed
+Keywords=children;child;level;games;Steam;password;picture;account;notices;locked;
 Exec=@CMAKE_INSTALL_FULL_BINDIR@/cairn-guardian
 TryExec=@CMAKE_INSTALL_FULL_BINDIR@/cairn-guardian
 Icon=system-users

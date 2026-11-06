@@ -39,6 +39,7 @@ TestCase {
             "page": standIns.page(scenario, given.withChildren !== false, given.withOlderChild === true),
             "gamesPage": standIns.gamesPage(given.withChildren !== false, given.withGames !== false, given.steamStarts !== false, given.gamesScenario === undefined ? "" : given.gamesScenario, given.loggedIn === undefined ? [] : given.loggedIn, given.withOwnSteamGames === true),
             "accountPage": standIns.accountPage(given.wallet === true),
+            "noticesPage": standIns.noticesPage(given.journal === undefined ? "none" : given.journal),
             "height": 1400
         };
         const window = createTemporaryObject(windowComponent, testCase, properties);
@@ -984,6 +985,80 @@ TestCase {
         verify(findChild(window, "childrenView").visible);
     }
 
+    function showNotices(window) {
+        mouseClick(findChild(window, "noticesTab"));
+        compare(window.showing, "notices");
+        tryCompare(window.noticesPage, "state", NoticesPage.Ready);
+        waitForPolish(window);
+    }
+
+    function noticeTexts(window) {
+        const texts = [];
+        const repeater = findChild(window, "noticeRows");
+        for (let i = 0; i < repeater.count; ++i)
+            texts.push(findChild(repeater.itemAt(i), "noticeText").text);
+        return texts;
+    }
+
+    // The fourth page (ADR-0054): each time wrong passwords were typed,
+    // newest first, in plain text. A name typed at su that is no account
+    // is never shown, and never read as markup.
+    function test_theNoticesPage() {
+        const window = makeWindow("done", {
+            "journal": "tries"
+        });
+        compare(findChild(window, "noticesTab").text, "Notices");
+        compare(findChild(window, "noticesTab").Accessible.role, Accessible.PageTab);
+        showNotices(window);
+        verify(findChild(window, "noticesView").visible);
+        verify(!findChild(window, "childrenView").visible);
+        compare(findChild(window, "noticesTab").Accessible.checked, true);
+        compare(findChild(window, "noticesHeading").text, "Wrong passwords in the last 30 days");
+        verify(!findChild(window, "noticesStatus").visible);
+        const texts = noticeTexts(window);
+        compare(texts.length, 2);
+        verify(texts[0].startsWith("The password of a login name that is not an account on this computer was typed wrong once with su, from Ben's login, on "), texts[0]);
+        verify(texts[1].startsWith("Your password was typed wrong 3 times at the login screen, on "), texts[1]);
+        const repeater = findChild(window, "noticeRows");
+        compare(repeater.itemAt(1).Accessible.name, texts[1]);
+        compare(findChild(repeater.itemAt(0), "noticeText").textFormat, Text.PlainText);
+        verify(findChild(window, "noticesFooter").text.startsWith("3 wrong tries within 15 minutes"));
+        verify(findChild(window, "noticesFooter").text.endsWith("Children do not see this page."));
+        compare(findChild(window, "recordStart").text, "");
+        if (standIns.screenshotPath() !== "") {
+            wait(200);
+            grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-notices.png"));
+        }
+    }
+
+    function test_noWrongPasswords() {
+        const window = makeWindow("done");
+        showNotices(window);
+        compare(noticeTexts(window), []);
+        compare(findChild(window, "noticesStatus").text, "No wrong passwords in the last 30 days.");
+    }
+
+    // Without the wheel group the page says so, never "no wrong passwords".
+    function test_aRecordThisAccountCannotRead() {
+        const window = makeWindow("done", {
+            "journal": "unreadable"
+        });
+        mouseClick(findChild(window, "noticesTab"));
+        tryCompare(window.noticesPage, "state", NoticesPage.Unreadable);
+        compare(noticeTexts(window), []);
+        compare(findChild(window, "noticesStatus").text, "Family cannot read this computer's record of password tries from your account. An account in the wheel group can.");
+    }
+
+    // The keyboard reaches the fourth button from the third.
+    function test_theNoticesButtonByKeyboard() {
+        const window = makeWindow("done");
+        findChild(window, "accountTab").forceActiveFocus();
+        keyClick(Qt.Key_Right);
+        verify(findChild(window, "noticesTab").activeFocus);
+        keyClick(Qt.Key_Return);
+        compare(window.showing, "notices");
+    }
+
     // The first child is picked, every shared game shows, and the games on
     // their list are highlighted, with a word as well as a colour.
     function test_theGamesPageShowsTheChildsList() {
@@ -1084,6 +1159,8 @@ TestCase {
         compare(window.showing, "games");
         keyClick(Qt.Key_Tab);
         tryCompare(findChild(window, "accountTab"), "activeFocus", true);
+        keyClick(Qt.Key_Tab);
+        tryCompare(findChild(window, "noticesTab"), "activeFocus", true);
         keyClick(Qt.Key_Tab);
         tryCompare(choice(window, "ada"), "activeFocus", true);
         keyClick(Qt.Key_Tab);
@@ -1190,7 +1267,7 @@ TestCase {
         verify(findChild(window, "scrollIndicator").visible);
         scroller.contentY = scroller.contentHeight - scroller.height;
         verify(inSight(window, findChild(window, "gamesTab")));
-        findChild(window, "accountTab").forceActiveFocus();
+        findChild(window, "noticesTab").forceActiveFocus();
         keyClick(Qt.Key_Tab);
         tryCompare(choice(window, "ada"), "activeFocus", true);
         verify(inSight(window, choice(window, "ada")));
