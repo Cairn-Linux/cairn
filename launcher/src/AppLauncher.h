@@ -127,8 +127,10 @@ public:
     // ends only when the window closes or a grown-up gives up.
     Q_INVOKABLE void dismiss();
     // The grown-up's give-up key (ADR-0018, ADR-0026): forget the launch and
-    // every window open now, and go back to the tiles.
-    Q_INVOKABLE void giveUp();
+    // every window open now, and go back to the tiles. pressedAt is when the
+    // key was pressed, on the BootClock. A launch the child
+    // started after that is not the one given up on, and goes on (ADR-0055).
+    Q_INVOKABLE void giveUp(qint64 pressedAt);
 
     // What the compositor reports. Whether a window is hidden and which window
     // it belongs to come from the compositor; the app id and title only name
@@ -194,6 +196,9 @@ private:
     QString m_title;
     QString m_launchTitle;
     QStringList m_launchExec;
+    // When the current or last launch began, on the BootClock, the clock
+    // cairn-give-up writes its time by.
+    qint64 m_launchStartedAt = 0;
     QString m_ownAppId;
     bool m_settled = false;
     bool m_gettingReady = false;

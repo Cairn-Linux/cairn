@@ -392,6 +392,8 @@ says and never from a window's name:
 The grown-up's give-up key always brings the tiles back: `cairn-give-up`
 writes `$XDG_RUNTIME_DIR/cairn/give-up` after it has ended the child's
 programs, and `GiveUpWatch` hears it.
+The file holds when the keys were pressed; a launch the child started
+after that goes on (ADR-0055).
 Each launch has its own process, so a program left from an earlier one,
 such as a game that hid its window, never stops the next launch.
 The launcher's own windows carry the app id `cairn-launcher`, the name of

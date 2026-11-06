@@ -61,7 +61,7 @@ Window {
     // The grown-up's give-up key always brings the tiles back (ADR-0026).
     GiveUpWatch {
         path: window.giveUpFile
-        onPressed: launcher.giveUp()
+        onPressed: pressedAt => launcher.giveUp(pressedAt)
     }
 
     AppLauncher {

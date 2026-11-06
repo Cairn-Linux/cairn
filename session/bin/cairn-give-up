@@ -20,56 +20,111 @@ set -ouex pipefail
 # The one child session this runs in; never another user's.
 me="$(id -u)"
 
-# A Flatpak app roots at a process called exactly `bwrap`. Steam's own
-# interface runs in a sandbox called `srt-bwrap`, so the name is matched
-# whole, never as part of a command line (#117).
-flatpak_root='bwrap'
+# When the grown-up pressed the keys, on the clock behind /proc/uptime: time
+# since the computer started, which the network cannot set back. The launcher
+# reads the same clock (ADR-0055). It is kept in milliseconds for the launcher
+# and in the clock ticks /proc/<pid>/stat counts a process's start in.
+read -r uptime _ < /proc/uptime
+hundredths=$((${uptime%.*} * 100 + 10#${uptime#*.}))
+pressed_at=$((hundredths * 10))
+pressed_tick=$((hundredths * $(getconf CLK_TCK) / 100))
 
-# A Steam game roots at Steam's reaper: a process called exactly `reaper`
-# started with the argument `SteamLaunch`. Both are checked, because the
-# reaper's children are ended too and a command line that only mentions
-# those words must never count. The game runs in the container the reaper
-# starts. That container is an `srt-bwrap` like Steam's interface, but only
-# a game's has a reaper for a parent, so it is found as a reaper's child,
-# never by its name (#117). All are found now, before anything is
-# signalled: once a reaper has gone, its children move to another parent.
-mapfile -t named_reaper < <(pgrep --uid "$me" --exact reaper || true)
-reapers=()
-for pid in "${named_reaper[@]}"; do
-    if grep --quiet --line-regexp --null-data SteamLaunch "/proc/$pid/cmdline" 2> /dev/null; then
-        reapers+=("$pid")
-    fi
-done
-containers=()
-for reaper in "${reapers[@]}"; do
-    mapfile -t -O "${#containers[@]}" containers < <(pgrep --uid "$me" --parent "$reaper" || true)
-done
-games=("${containers[@]}" "${reapers[@]}")
+# Whether a process began before the keys were pressed. Its start is field 22
+# of /proc/<pid>/stat, the 20th after the name, which ends at the last `)`
+# and may hold spaces of its own.
+began_before_press() {
+    local stat fields
+    stat="$(cat "/proc/$1/stat" 2> /dev/null)" || return 1
+    read -r -a fields <<< "${stat##*) }"
+    [ "${fields[19]:-}" ] && [ "${fields[19]}" -le "$pressed_tick" ]
+}
 
-# The launcher's scopes, in this user's own systemd. The tests name their own.
-units="${CAIRN_APP_UNITS:-cairn-app-*.scope}"
+# The windows go at the SIGTERM, so the child can tap a tile before the
+# SIGKILL two seconds later. Everything is looked for at the press and again
+# just before the SIGKILL, and only what began before the press is taken:
+# what the child's new tap starts is left alone, and what an app given up on
+# was still starting at the press is caught (#287).
+targets=()
+scopes=()
+
+# The launcher's scopes, in this user's own systemd, and the scope a Flatpak
+# app moves itself into before its sandbox starts. The tests name their own.
+read -r -a unit_patterns <<< "${CAIRN_APP_UNITS:-cairn-app-*.scope app-flatpak-*.scope}"
+
+find_targets() {
+    # A Flatpak app roots at a process called exactly `bwrap`. Steam's own
+    # interface runs in a sandbox called `srt-bwrap`, so the name is matched
+    # whole, never as part of a command line (#117).
+    local flatpak_root='bwrap'
+    local pid found
+    mapfile -t found < <(pgrep --uid "$me" --exact "$flatpak_root" || true)
+    for pid in "${found[@]}"; do
+        if began_before_press "$pid"; then
+            targets+=("$pid")
+        fi
+    done
+
+    # A Steam game roots at Steam's reaper: a process called exactly `reaper`
+    # started with the argument `SteamLaunch`. Both are checked, because the
+    # reaper's children are ended too and a command line that only mentions
+    # those words must never count. The game runs in the container the
+    # reaper starts. That container is an `srt-bwrap` like Steam's
+    # interface, but only a game's has a reaper for a parent, so it is found
+    # as a reaper's child, never by its name (#117). A container is taken
+    # whenever its reaper is, even one started since the press. Once a
+    # reaper has gone its children move to another parent, which is why
+    # what was found at the press is kept for the SIGKILL.
+    mapfile -t found < <(pgrep --uid "$me" --exact reaper || true)
+    for pid in "${found[@]}"; do
+        if grep --quiet --line-regexp --null-data SteamLaunch "/proc/$pid/cmdline" 2> /dev/null &&
+            began_before_press "$pid"; then
+            mapfile -t -O "${#targets[@]}" targets < <(pgrep --uid "$me" --parent "$pid" || true)
+            targets+=("$pid")
+        fi
+    done
+
+    # A scope began when the oldest process in it did.
+    local unit group oldest procs
+    mapfile -t found < <(systemctl --user list-units --type=scope --plain --no-legend "${unit_patterns[@]}" | awk '{ print $1 }' || true)
+    for unit in "${found[@]}"; do
+        group="$(systemctl --user show --property=ControlGroup --value "$unit" || true)"
+        [ -n "$group" ] || continue
+        mapfile -t procs < <(cat /sys/fs/cgroup"$group"/cgroup.procs /sys/fs/cgroup"$group"/*/cgroup.procs 2> /dev/null || true)
+        oldest=no
+        for pid in "${procs[@]}"; do
+            if began_before_press "$pid"; then
+                oldest=yes
+                break
+            fi
+        done
+        if [ "$oldest" = yes ]; then
+            scopes+=("$unit")
+        fi
+    done
+}
+
+find_targets
 
 # The file the launcher watches to hear that this ran (ADR-0026).
 told="${CAIRN_GIVE_UP_FILE:-${XDG_RUNTIME_DIR:-/nonexistent}/cairn/give-up}"
 
 # SIGCONT so a stopped process can receive what follows; SIGTERM as a courtesy
 # in case the app wants to flush; SIGKILL after a moment for anything left.
-pkill --uid "$me" --exact "$flatpak_root" --signal CONT || true
-[ "${#games[@]}" -eq 0 ] || kill -s CONT "${games[@]}" 2> /dev/null || true
-systemctl --user kill --signal CONT "$units" || true
-pkill --uid "$me" --exact "$flatpak_root" --signal TERM || true
-[ "${#games[@]}" -eq 0 ] || kill -s TERM "${games[@]}" 2> /dev/null || true
-systemctl --user kill --signal TERM "$units" || true
+[ "${#targets[@]}" -eq 0 ] || kill -s CONT "${targets[@]}" 2> /dev/null || true
+[ "${#scopes[@]}" -eq 0 ] || systemctl --user kill --signal CONT "${scopes[@]}" || true
+[ "${#targets[@]}" -eq 0 ] || kill -s TERM "${targets[@]}" 2> /dev/null || true
+[ "${#scopes[@]}" -eq 0 ] || systemctl --user kill --signal TERM "${scopes[@]}" || true
 sleep 2
-pkill --uid "$me" --exact "$flatpak_root" --signal KILL || true
-[ "${#games[@]}" -eq 0 ] || kill -s KILL "${games[@]}" 2> /dev/null || true
-systemctl --user kill --signal KILL "$units" || true
+find_targets
+[ "${#targets[@]}" -eq 0 ] || kill -s KILL "${targets[@]}" 2> /dev/null || true
+[ "${#scopes[@]}" -eq 0 ] || systemctl --user kill --signal KILL "${scopes[@]}" || true
 
 # Then tell the launcher, so the tiles come back even if a window it was
 # waiting on never closes. It made the file when it started; none means no
-# launcher is listening.
+# launcher is listening. It is told when the keys were pressed, so a launch
+# the child started since then goes on (#287).
 if [ -f "$told" ]; then
-    date +%s > "$told"
+    echo "$pressed_at" > "$told"
 fi
 
 exit 0

@@ -43,16 +43,43 @@ class GiveUpHelperTest(unittest.TestCase):
     def test_flatpaks_sandbox_is_matched_by_its_whole_name(self):
         # Steam's interface runs in srt-bwrap, which a match inside a command
         # line would catch (#117).
-        for line in self.text.splitlines():
-            if line.startswith("pkill") and "flatpak_root" in line:
-                self.assertIn("--exact", line)
+        finds = [line for line in self.text.splitlines() if "pgrep" in line and "flatpak_root" in line]
+        self.assertEqual(len(finds), 1)
+        self.assertIn("--exact", finds[0])
         self.assertIsNone(re.search(r"--full[^\n]*bwrap", self.text))
 
     def test_continues_a_stopped_process_before_killing_it(self):
         # A stopped process cannot act on TERM or KILL until it is continued,
         # so every CONT comes first, and every KILL after every TERM.
         order = [m.group(1) for m in re.finditer(r"(?:--signal|kill -s) (CONT|TERM|KILL)", self.text)]
-        self.assertEqual(order, ["CONT"] * 3 + ["TERM"] * 3 + ["KILL"] * 3)
+        self.assertEqual(order, ["CONT"] * 2 + ["TERM"] * 2 + ["KILL"] * 2)
+
+    def test_takes_only_what_began_before_the_keys_were_pressed(self):
+        # The child can tap a tile between the SIGTERM and the SIGKILL, so the
+        # search before the SIGKILL takes only what began before the press;
+        # every search is in find_targets, which checks each find (#287).
+        self.assertNotIn("pkill", self.text)
+        start = self.text.index("find_targets() {")
+        end = self.text.index("\n}\n", start)
+        for search in ("pgrep", "list-units"):
+            for found in re.finditer(search, self.text):
+                self.assertTrue(start < found.start() < end, f"{search} outside find_targets")
+        self.assertEqual(self.text.count("began_before_press", start, end), 3,
+                         "bwrap, reaper and scope are each checked")
+        # The time comes first, then a search before any signal, and one more
+        # after the wait and before the SIGKILL.
+        calls = [m.start() for m in re.finditer(r"^find_targets$", self.text, re.MULTILINE)]
+        self.assertEqual(len(calls), 2)
+        self.assertLess(self.text.index("/proc/uptime"), calls[0])
+        self.assertLess(calls[0], self.text.index("kill -s CONT"))
+        self.assertLess(self.text.index("sleep 2"), calls[1])
+        self.assertLess(calls[1], self.text.index("kill -s KILL"))
+
+    def test_the_time_is_on_the_clock_the_network_cannot_set_back(self):
+        # The launcher reads CLOCK_BOOTTIME, the clock behind /proc/uptime
+        # (ADR-0055); a wall-clock time could step back between tap and key.
+        self.assertIn("read -r uptime _ < /proc/uptime", self.text)
+        self.assertNotIn("date +", self.text)
 
     def test_tells_the_launcher_last(self):
         # The launcher goes back to the tiles when this file changes
@@ -65,9 +92,11 @@ class GiveUpHelperTest(unittest.TestCase):
         # Never another user's: --uid on every pkill, and only this user's
         # own systemd manager.
         for line in self.text.splitlines():
-            if line.startswith("pkill"):
-                self.assertIn("--uid", line, f"pkill without --uid: {line.strip()}")
-            if line.startswith("systemctl"):
+            if line.lstrip().startswith("#"):
+                continue
+            if re.search(r"\bpgrep\b", line):
+                self.assertIn("--uid", line, f"pgrep without --uid: {line.strip()}")
+            if re.search(r"\bsystemctl\b", line):
                 self.assertIn("--user", line, f"systemctl without --user: {line.strip()}")
 
 
@@ -152,6 +181,66 @@ done
 """
 
 
+# Like SANDBOXES: a Flatpak app and a Steam game that ignore SIGTERM are up
+# when the keys are pressed, and half a second later, before the SIGKILL, the
+# child taps another of each. Prints whether each is running and the time the
+# helper wrote against the times around the press.
+LATE_TAP = r"""
+set -u
+here="$1"
+printf '#!/bin/bash\ntrap "" TERM\nwhile :; do sleep 0.1; done\n' > "$here/bwrap"
+printf '#!/bin/bash\ntrap "" TERM\n"$(dirname "$0")/bwrap" &\nwhile :; do sleep 0.1; done\n' > "$here/reaper"
+chmod +x "$here/bwrap" "$here/reaper"
+"$here/bwrap" &
+old_flatpak=$!
+"$here/reaper" SteamLaunch AppId=1 &
+old_game=$!
+sleep 0.3
+told="$here/give-up"
+touch "$told"
+now_ms() { read -r up _ < /proc/uptime; echo $(( ${up%.*} * 1000 + 10#${up#*.} * 10 )); }
+before=$(now_ms)
+CAIRN_GIVE_UP_FILE="$told" CAIRN_APP_UNITS=none "$2" > /dev/null 2>&1 &
+helper=$!
+sleep 0.5
+tapped=$(now_ms)
+"$here/bwrap" &
+new_flatpak=$!
+"$here/reaper" SteamLaunch AppId=2 &
+new_game=$!
+wait "$helper"
+sleep 0.3
+for name in old_flatpak old_game new_flatpak new_game; do
+    pid=${!name}
+    state=$(awk '{print $3}' "/proc/$pid/stat" 2> /dev/null || echo gone)
+    if [ "$state" = gone ] || [ "$state" = Z ]; then echo "$name gone"; else echo "$name running"; fi
+done
+pressed=$(cat "$told")
+if [ "$pressed" -ge "$before" ] && [ "$pressed" -lt "$tapped" ]; then echo "told before_the_tap"; else echo "told $pressed"; fi
+"""
+
+
+@unittest.skipUnless(private_pid_namespace_available(), "needs unprivileged user and PID namespaces")
+class GiveUpSparesATapAfterTheKeysTest(unittest.TestCase):
+    def test_a_tile_tapped_before_the_sigkill_starts_and_stays(self):
+        with tempfile.TemporaryDirectory() as here:
+            result = subprocess.run(
+                ["unshare", "--user", "--map-root-user", "--pid", "--fork", "--mount-proc",
+                 "bash", "-c", LATE_TAP, "late-tap", here, str(HELPER)],
+                capture_output=True,
+                text=True,
+                timeout=60,
+                check=False,
+            )
+        states = dict(line.split() for line in result.stdout.splitlines())
+        self.assertEqual(
+            states,
+            {"old_flatpak": "gone", "old_game": "gone", "new_flatpak": "running", "new_game": "running",
+             "told": "before_the_tap"},
+            result.stderr,
+        )
+
+
 @unittest.skipUnless(private_pid_namespace_available(), "needs unprivileged user and PID namespaces")
 class GiveUpSparesSteamsInterfaceTest(unittest.TestCase):
     def test_ends_flatpak_apps_and_steam_games_but_not_steams_interface(self):
@@ -207,6 +296,13 @@ class GiveUpEndsAScopedProgramTest(unittest.TestCase):
                  f"--unit={tag}-app", "--", "sleep", "300"]
             )
             frame = subprocess.Popen(["sleep", "300"])
+            # A program still starting when the keys are pressed: it began
+            # before them, and it is in its scope only a moment later.
+            starting = subprocess.Popen(
+                ["bash", "-c", f"sleep 0.8; exec systemd-run --user --scope --quiet --collect "
+                 f"--unit={tag}-starting -- sleep 300"]
+            )
+            late = frame
             try:
                 self.assertTrue(wait_for(lambda: tag in pathlib.Path(f"/proc/{app.pid}/cgroup").read_text()))
                 os.kill(app.pid, signal.SIGSTOP)
@@ -221,17 +317,30 @@ class GiveUpEndsAScopedProgramTest(unittest.TestCase):
                     CAIRN_APP_UNITS=f"{tag}-*.scope",
                     CAIRN_GIVE_UP_FILE=str(told),
                 )
-                result = subprocess.run(
-                    [str(HELPER)], env=env, capture_output=True, text=True, timeout=30, check=False
+                helper = subprocess.Popen(
+                    [str(HELPER)], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
                 )
-                self.assertEqual(result.returncode, 0, result.stderr)
+                # A tile the child taps before the SIGKILL, in a scope of its
+                # own that matches the same pattern (#287).
+                time.sleep(0.5)
+                late = subprocess.Popen(
+                    ["systemd-run", "--user", "--scope", "--quiet", "--collect",
+                     f"--unit={tag}-late", "--", "sleep", "300"]
+                )
+                _, stderr = helper.communicate(timeout=30)
+                self.assertEqual(helper.returncode, 0, stderr)
                 self.assertTrue(told.read_text().strip().isdigit(), "the launcher is told")
 
                 app.wait(timeout=10)
                 self.assertIn(app.returncode, (-signal.SIGTERM, -signal.SIGKILL))
                 self.assertIsNone(frame.poll(), "a program outside the scopes must keep running")
+                self.assertIsNone(late.poll(), "a launch after the keys must keep running")
+                # A launch from before the keys that only reached its scope
+                # after them, as Flatpak and systemd-run do, is caught.
+                starting.wait(timeout=10)
+                self.assertEqual(starting.returncode, -signal.SIGKILL)
             finally:
-                for process in (app, frame):
+                for process in (app, frame, late, starting):
                     if process.poll() is None:
                         os.kill(process.pid, signal.SIGCONT)
                         process.kill()

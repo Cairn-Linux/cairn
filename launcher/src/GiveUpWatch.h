@@ -10,7 +10,8 @@
 // whatever the child launched, session/bin/cairn-give-up writes to a file in
 // the session's runtime directory; this watches that file, so the launcher can
 // go back to the tiles even when a window it was waiting on never closes
-// (ADR-0026).
+// (ADR-0026). The file holds when the keys were pressed, so a tile the child
+// tapped since then is not given up on too (ADR-0055).
 class GiveUpWatch : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -28,9 +29,12 @@ public:
 signals:
     void pathChanged();
     // The grown-up pressed the key and the helper has done its work.
-    void pressed();
+    // pressedAt is when the key was pressed, on the BootClock.
+    void pressed(qint64 pressedAt);
 
 private:
+    void onFileChanged();
+
     QFileSystemWatcher m_watcher;
     QString m_path;
 };

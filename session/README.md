@@ -56,6 +56,14 @@ What is here:
   app ends and the frame and the Steam client stay up. Then it writes
   `$XDG_RUNTIME_DIR/cairn/give-up`, which the launcher watches, so the tiles
   come back even if a window it was waiting on never closes (ADR-0026).
+  It looks for these when the keys are pressed and again just before
+  the SIGKILL, takes only what began before the press, and writes the
+  time of the press into the file, so a tile the child taps before the
+  SIGKILL two seconds later starts and stays, and an app that was still
+  starting at the press is still ended (ADR-0055, #287).
+  It also ends the `app-flatpak-*.scope` a Flatpak app moves into before
+  its `bwrap` starts. The time is read from `/proc/uptime`, a clock the
+  network cannot set back.
 - `bin/cairn-log-out`: the child's Log out (ADR-0021, #44). The launcher
   runs it when the child confirms. It asks a running Steam client to shut
   down, then ends the child's own account with `loginctl terminate-user`,

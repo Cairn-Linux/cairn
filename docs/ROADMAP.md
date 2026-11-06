@@ -467,6 +467,21 @@ done, and what could sink it. Decisions that change the design get an ADR in
   `sudo systemctl enable --now tailscaled`, then sets the operator once
   with `sudo tailscale set --operator=<name>`. Built and checked in a
   container on 2026-11-03; not yet seen in a VM.
+- **ADR-0055 (2026-11-06, part of #287, proposed): a give-up ends only
+  what was there when the keys were pressed.** On cairn-min, a tile
+  tapped 1 to 2 s after Ctrl-Alt-Home was undone: the helper's SIGKILL at
+  2 s searched again and ended a Flatpak app just started, and its file
+  made the launcher forget a Steam game just tapped, which then opened
+  over the tiles. `cairn-give-up` now notes the time of the press on the
+  clock behind `/proc/uptime`, and its search before the SIGKILL takes
+  only processes and scopes that began before the press, so an app that
+  was still starting at the press, in `app-flatpak-*.scope` or a
+  `cairn-app` scope not yet registered, is still ended; it writes the
+  time, and the launcher keeps a launch begun after it. Built and tested in
+  the release build on 2026-11-06; the VM checks are open. The rest of
+  #287 is open: on the laptop a Proton game started 9 s after a give-up
+  quit by itself, cause unknown, and the starting screen stayed until the
+  grace ran out (#276).
 - **ADR-0054 (2026-11-05, #285 slice 1, accepted): Family tells
   Guardians about wrong passwords.** Nothing told a Guardian, later, that
   wrong passwords were typed for their account or a child's, or that an
