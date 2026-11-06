@@ -6,8 +6,8 @@
 
 # What the screen needs to say an account is locked (ADR-0052), named on
 # its own for the tests.
+# faillock's settings are read by ../accounts, which Family shares (#285).
 set(greeter_lock_sources
-    src/FaillockSettings.h src/FaillockSettings.cpp
     src/TallyFile.h src/TallyFile.cpp
     src/LockRule.h src/LockRule.cpp
     src/AccountLock.h src/AccountLock.cpp
@@ -67,16 +67,8 @@ add_test(NAME familymodel COMMAND tst_familymodel)
 qt_add_executable(tst_failedlogin tests/tst_failedlogin.cpp src/FailedLogin.h src/FailedLogin.cpp
     ${greeter_lock_sources} tests/StandInFaillock.h tests/StandInFaillock.cpp)
 target_include_directories(tst_failedlogin PRIVATE src tests)
-target_link_libraries(tst_failedlogin PRIVATE Qt6::Qml Qt6::Test)
+target_link_libraries(tst_failedlogin PRIVATE Qt6::Qml Qt6::Test cairn-accounts)
 add_test(NAME failedlogin COMMAND tst_failedlogin)
-
-qt_add_executable(tst_faillocksettings tests/tst_faillocksettings.cpp
-    src/FaillockSettings.h src/FaillockSettings.cpp)
-target_include_directories(tst_faillocksettings PRIVATE src)
-target_link_libraries(tst_faillocksettings PRIVATE Qt6::Core Qt6::Test)
-target_compile_definitions(tst_faillocksettings PRIVATE
-    CAIRN_FAILLOCK_CONF="${PROJECT_SOURCE_DIR}/session/security/faillock.conf")
-add_test(NAME faillocksettings COMMAND tst_faillocksettings)
 
 qt_add_executable(tst_tallyfile tests/tst_tallyfile.cpp src/TallyFile.h src/TallyFile.cpp
     tests/StandInFaillock.h tests/StandInFaillock.cpp)
@@ -84,16 +76,15 @@ target_include_directories(tst_tallyfile PRIVATE src tests)
 target_link_libraries(tst_tallyfile PRIVATE Qt6::Core Qt6::Test)
 add_test(NAME tallyfile COMMAND tst_tallyfile)
 
-qt_add_executable(tst_lockrule tests/tst_lockrule.cpp src/LockRule.h src/LockRule.cpp
-    src/FaillockSettings.h)
+qt_add_executable(tst_lockrule tests/tst_lockrule.cpp src/LockRule.h src/LockRule.cpp)
 target_include_directories(tst_lockrule PRIVATE src)
-target_link_libraries(tst_lockrule PRIVATE Qt6::Core Qt6::Test)
+target_link_libraries(tst_lockrule PRIVATE Qt6::Core Qt6::Test cairn-accounts)
 add_test(NAME lockrule COMMAND tst_lockrule)
 
 qt_add_executable(tst_accountlock tests/tst_accountlock.cpp ${greeter_lock_sources}
     tests/StandInFaillock.h tests/StandInFaillock.cpp)
 target_include_directories(tst_accountlock PRIVATE src tests)
-target_link_libraries(tst_accountlock PRIVATE Qt6::Qml Qt6::Test)
+target_link_libraries(tst_accountlock PRIVATE Qt6::Qml Qt6::Test cairn-accounts)
 add_test(NAME accountlock COMMAND tst_accountlock)
 
 # The real theme, loaded from the source tree with a stand-in for SDDM and a
@@ -113,7 +104,7 @@ target_compile_definitions(tst_loginscreen PRIVATE
 )
 add_test(NAME loginscreen COMMAND tst_loginscreen)
 
-set_tests_properties(accountkind familymodel failedlogin faillocksettings tallyfile lockrule
+set_tests_properties(accountkind familymodel failedlogin tallyfile lockrule
     accountlock loginscreen PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QML_IMPORT_PATH=${CMAKE_CURRENT_BINARY_DIR}/tests:${QT_QML_OUTPUT_DIRECTORY}"
 )

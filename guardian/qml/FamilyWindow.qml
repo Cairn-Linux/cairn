@@ -3,19 +3,21 @@ import QtQuick
 import Cairn.Brand
 import Cairn.Family
 
-// The Guardian tool, "Family" in the menu (ADR-0040). Three pages,
-// Children, Games and Your account (ADR-0043), with a switch between them
-// above the page, which stays in place while the page scrolls.
+// The Guardian tool, "Family" in the menu (ADR-0040). Four pages,
+// Children, Games, Your account (ADR-0043) and Notices (ADR-0054), with a
+// switch between them above the page, which stays in place while the page
+// scrolls.
 Window {
     id: window
 
     required property ChildrenPage page
     required property GamesPage gamesPage
     required property AccountPage accountPage
+    required property NoticesPage noticesPage
 
-    // The page that shows: "children", "games" or "account".
+    // The page that shows: "children", "games", "account" or "notices".
     property string showing: "children"
-    readonly property Item shownView: window.showing === "games" ? gamesView : window.showing === "account" ? accountView : childrenView
+    readonly property Item shownView: window.showing === "games" ? gamesView : window.showing === "account" ? accountView : window.showing === "notices" ? noticesView : childrenView
 
     // The item the keyboard is on, kept while another window has it.
     property Item keyboardItem: null
@@ -30,7 +32,8 @@ Window {
     title: qsTr("Family")
     width: Tokens.headingSize * 26
     height: Tokens.headingSize * 34
-    minimumWidth: Tokens.headingSize * 18
+    // Wide enough for the four page buttons on one line.
+    minimumWidth: Tokens.headingSize * 22
     minimumHeight: Tokens.headingSize * 12
     color: Tokens.ground
     visible: true
@@ -44,6 +47,8 @@ Window {
             window.gamesPage.reload();
         if (name === "account")
             window.accountPage.reload();
+        if (name === "notices")
+            window.noticesPage.reload();
         window.showing = name;
         // A card turned just before is on the page left behind.
         window.heldCard = null;
@@ -51,16 +56,22 @@ Window {
     }
 
     // Scrolls just enough that the item shows whole, with a little room
-    // around it; its top wins when it is taller than the window. Only an
-    // item on the page scrolls; the switch above it is always in sight.
+    // around it; its top wins when it is taller than the window, unless it
+    // already fills the window, which a page key may have just scrolled
+    // into. Only an item on the page scrolls; the switch above it is
+    // always in sight.
     function showItem(item) {
         let inPage = item;
         while (inPage && inPage !== flickable.contentItem)
             inPage = inPage.parent;
         if (!inPage || !item.visible)
             return;
+        const itemTop = item.mapToItem(flickable.contentItem, 0, 0).y;
+        if (itemTop <= flickable.contentY &&
+                itemTop + item.height >= flickable.contentY + flickable.height)
+            return;
         const room = Tokens.bodySize;
-        const top = item.mapToItem(flickable.contentItem, 0, 0).y - room;
+        const top = itemTop - room;
         const bottom = top + item.height + room * 2;
         let y = flickable.contentY;
         if (bottom > y + flickable.height)
@@ -120,12 +131,16 @@ Window {
         height: tabs.height + window.margin
         color: Tokens.ground
 
-        Row {
+        // The window's minimum width keeps the four buttons on one line.
+        // Longer words, from a translation or larger text, go on to the
+        // next line rather than out of sight.
+        Flow {
             id: tabs
 
             objectName: "pageSwitch"
             x: window.margin
             y: window.margin / 2
+            width: window.width - window.margin * 2
             spacing: Tokens.bodySize / 2
 
             Accessible.role: Accessible.PageTabList
@@ -172,7 +187,21 @@ Window {
                 Accessible.checkable: true
                 Accessible.checked: window.showing === "account"
                 KeyNavigation.left: gamesTab
+                KeyNavigation.right: noticesTab
                 onActivated: window.show("account")
+            }
+
+            TextButton {
+                id: noticesTab
+
+                objectName: "noticesTab"
+                text: qsTr("Notices")
+                quiet: window.showing !== "notices"
+                Accessible.role: Accessible.PageTab
+                Accessible.checkable: true
+                Accessible.checked: window.showing === "notices"
+                KeyNavigation.left: accountTab
+                onActivated: window.show("notices")
             }
         }
 
@@ -249,6 +278,20 @@ Window {
                 accountView.forceLayout();
                 Qt.callLater(window.showItem, box);
             }
+        }
+
+        NoticesView {
+            id: noticesView
+
+            objectName: "noticesView"
+            x: window.margin
+            y: window.margin
+            width: window.width - window.margin * 2
+            visible: window.showing === "notices"
+            page: window.noticesPage
+            flickable: flickable
+
+            onShowRequested: item => window.showItem(item)
         }
     }
 

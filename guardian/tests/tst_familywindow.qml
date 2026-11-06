@@ -39,6 +39,7 @@ TestCase {
             "page": standIns.page(scenario, given.withChildren !== false, given.withOlderChild === true),
             "gamesPage": standIns.gamesPage(given.withChildren !== false, given.withGames !== false, given.steamStarts !== false, given.gamesScenario === undefined ? "" : given.gamesScenario, given.loggedIn === undefined ? [] : given.loggedIn, given.withOwnSteamGames === true),
             "accountPage": standIns.accountPage(given.wallet === true),
+            "noticesPage": standIns.noticesPage(given.journal === undefined ? "none" : given.journal),
             "height": 1400
         };
         const window = createTemporaryObject(windowComponent, testCase, properties);
@@ -984,6 +985,268 @@ TestCase {
         verify(findChild(window, "childrenView").visible);
     }
 
+    function showNotices(window) {
+        mouseClick(findChild(window, "noticesTab"));
+        compare(window.showing, "notices");
+        tryCompare(window.noticesPage, "state", NoticesPage.Ready);
+        waitForPolish(window);
+    }
+
+    function noticeTexts(window) {
+        const texts = [];
+        const repeater = findChild(window, "noticeRows");
+        for (let i = 0; i < repeater.count; ++i)
+            texts.push(findChild(repeater.itemAt(i), "noticeText").text);
+        return texts;
+    }
+
+    // The fourth page (ADR-0054): each time wrong passwords were typed,
+    // newest first, in plain text. A name typed at su that is no account
+    // is never shown, and never read as markup.
+    function test_theNoticesPage() {
+        const window = makeWindow("done", {
+            "journal": "tries"
+        });
+        compare(findChild(window, "noticesTab").text, "Notices");
+        compare(findChild(window, "noticesTab").Accessible.role, Accessible.PageTab);
+        showNotices(window);
+        verify(findChild(window, "noticesView").visible);
+        verify(!findChild(window, "childrenView").visible);
+        compare(findChild(window, "noticesTab").Accessible.checked, true);
+        compare(findChild(window, "noticesHeading").text, "Wrong passwords in the last 30 days");
+        verify(!findChild(window, "noticesStatus").visible);
+        const texts = noticeTexts(window);
+        compare(texts.length, 2);
+        verify(texts[0].startsWith("The password of a login name that is not an account on this computer was typed wrong once with su, from the login of Ben (ben), on "), texts[0]);
+        verify(texts[1].startsWith("Your password was typed wrong 3 times at the login screen, on "), texts[1]);
+        const repeater = findChild(window, "noticeRows");
+        compare(repeater.itemAt(1).Accessible.name, texts[1]);
+        compare(findChild(repeater.itemAt(0), "noticeText").textFormat, Text.PlainText);
+        verify(findChild(window, "noticesFooter").text.startsWith("3 wrong tries within 15 minutes"));
+        verify(findChild(window, "noticesFooter").text.endsWith("Children do not see this page."));
+        compare(findChild(window, "recordStart").text, "");
+        if (standIns.screenshotPath() !== "") {
+            wait(200);
+            grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-notices.png"));
+        }
+    }
+
+    function test_noWrongPasswords() {
+        const window = makeWindow("done");
+        showNotices(window);
+        compare(noticeTexts(window), []);
+        compare(findChild(window, "noticesStatus").text, "No wrong passwords in the last 30 days.");
+    }
+
+    // Without the wheel group the page says so, never "no wrong passwords".
+    function test_aRecordThisAccountCannotRead() {
+        const window = makeWindow("done", {
+            "journal": "unreadable"
+        });
+        mouseClick(findChild(window, "noticesTab"));
+        tryCompare(window.noticesPage, "state", NoticesPage.Unreadable);
+        compare(noticeTexts(window), []);
+        compare(findChild(window, "noticesStatus").text, "Family cannot read this computer's record of password tries from your account. An account in the wheel group can.");
+    }
+
+    // The keyboard reads a page longer than the window (cairn-min,
+    // 2026-11-05: Tab went back to Children, Page Down did nothing). Tab
+    // goes from the Notices button to each notice in turn, and the page
+    // scrolls to show it; Page Down and Page Up scroll a page and take the
+    // keyboard to a notice in sight; Down and Up go to the next notice and
+    // the one before. A notice keeps its words as its name.
+    function test_theNoticesPageByKeyboard() {
+        const window = makeWindow("done", {
+            "journal": "many"
+        });
+        window.height = Tokens.headingSize * 20;
+        showNotices(window);
+        const scroller = findChild(window, "scroller");
+        const repeater = findChild(window, "noticeRows");
+        compare(repeater.count, 30);
+        verify(scroller.contentHeight > scroller.height * 2);
+        findChild(window, "noticesTab").forceActiveFocus();
+        keyClick(Qt.Key_Tab);
+        tryVerify(() => repeater.itemAt(0).activeFocus);
+        compare(repeater.itemAt(0).Accessible.name, findChild(repeater.itemAt(0), "noticeText").text);
+        compare(repeater.itemAt(0).Accessible.focusable, true);
+        keyClick(Qt.Key_Tab);
+        tryVerify(() => repeater.itemAt(1).activeFocus);
+        keyClick(Qt.Key_Down);
+        tryVerify(() => repeater.itemAt(2).activeFocus);
+        keyClick(Qt.Key_Up);
+        tryVerify(() => repeater.itemAt(1).activeFocus);
+        const before = scroller.contentY;
+        keyClick(Qt.Key_PageDown);
+        verify(scroller.contentY > before);
+        let item = window.activeFocusItem;
+        verify(item.objectName === "noticeCard", item.objectName);
+        verify(inSightOnThePage(window, item));
+        // Far enough down that Tab never leaves the page for Children.
+        for (let i = 0; i < 40; ++i)
+            keyClick(Qt.Key_PageDown);
+        compare(scroller.contentY, scroller.contentHeight - scroller.height);
+        item = window.activeFocusItem;
+        verify(inSightOnThePage(window, item));
+        verify(item.objectName === "noticeCard" || item.objectName === "noticesFooter", item.objectName);
+        keyClick(Qt.Key_PageUp);
+        verify(scroller.contentY < scroller.contentHeight - scroller.height);
+        verify(inSightOnThePage(window, window.activeFocusItem));
+        // Tab from the first notice visits every one, then the words under
+        // them, each in sight, before it goes back to the page buttons.
+        repeater.itemAt(0).forceActiveFocus();
+        for (let i = 1; i < 30; ++i) {
+            keyClick(Qt.Key_Tab);
+            tryVerify(() => repeater.itemAt(i).activeFocus);
+            verify(inSightOnThePage(window, repeater.itemAt(i)));
+        }
+        keyClick(Qt.Key_Tab);
+        tryVerify(() => findChild(window, "noticesFooter").activeFocus);
+        verify(inSightOnThePage(window, findChild(window, "noticesFooter")));
+        keyClick(Qt.Key_Tab);
+        tryVerify(() => findChild(window, "childrenTab").activeFocus);
+        // A notice taller than the window (very large text) can never show
+        // whole; after Page Down the keyboard goes to it, in part in sight,
+        // rather than staying on one that left the window.
+        scroller.contentY = 0;
+        repeater.itemAt(1).height = scroller.height * 3;
+        waitForPolish(window);
+        repeater.itemAt(0).forceActiveFocus();
+        keyClick(Qt.Key_PageDown);
+        tryVerify(() => repeater.itemAt(1).activeFocus);
+    }
+
+    // Notices are often too tall for two to show whole in the window:
+    // on cairn-min (2026-11-06) about 330 pixels in a page 520 tall. After
+    // each Page Down and Page Up the keyboard is on a notice that shows
+    // whole, never on one that left the window, and the page still gets to
+    // either end.
+    function test_pageKeysWithTallNotices() {
+        const window = makeWindow("done", {
+            "journal": "many"
+        });
+        window.height = Tokens.headingSize * 20;
+        showNotices(window);
+        const scroller = findChild(window, "scroller");
+        const repeater = findChild(window, "noticeRows");
+        for (let i = 0; i < repeater.count; ++i)
+            repeater.itemAt(i).height = Math.round(scroller.height * 330 / 520);
+        waitForPolish(window);
+        scroller.contentY = 0;
+        repeater.itemAt(0).forceActiveFocus();
+        const lowest = scroller.contentHeight - scroller.height;
+        for (let i = 0; i < 40 && scroller.contentY < lowest; ++i) {
+            const before = scroller.contentY;
+            keyClick(Qt.Key_PageDown);
+            verify(scroller.contentY > before, "Page Down " + i + " did not move the page");
+            const item = window.activeFocusItem;
+            verify(item.objectName === "noticeCard" || item.objectName === "noticesFooter", item.objectName);
+            verify(inSightOnThePage(window, item), "Page Down " + i + " left the keyboard out of sight");
+        }
+        compare(scroller.contentY, lowest);
+        for (let i = 0; i < 40 && scroller.contentY > 0; ++i) {
+            const before = scroller.contentY;
+            keyClick(Qt.Key_PageUp);
+            verify(scroller.contentY < before, "Page Up " + i + " did not move the page");
+            const item = window.activeFocusItem;
+            verify(item.objectName === "noticeCard" || item.objectName === "noticesFooter", item.objectName);
+            verify(inSightOnThePage(window, item), "Page Up " + i + " left the keyboard out of sight");
+        }
+        compare(scroller.contentY, 0);
+        verify(repeater.itemAt(0).activeFocus);
+        // Down and Up still go to the next notice and the one before.
+        keyClick(Qt.Key_Down);
+        tryVerify(() => repeater.itemAt(1).activeFocus);
+        verify(inSightOnThePage(window, repeater.itemAt(1)));
+        keyClick(Qt.Key_Up);
+        tryVerify(() => repeater.itemAt(0).activeFocus);
+    }
+
+    // A notice taller than the window, among short ones: each Page Down
+    // and Page Up moves the page on, never back the way it came, and the
+    // keyboard stays on a notice that shows whole or, when taller than
+    // the window, fills part of it.
+    function test_pageKeysWithTallAndShortNotices() {
+        const window = makeWindow("done", {
+            "journal": "many"
+        });
+        window.height = Tokens.headingSize * 20;
+        showNotices(window);
+        const scroller = findChild(window, "scroller");
+        const repeater = findChild(window, "noticeRows");
+        for (let i = 0; i < repeater.count; ++i) {
+            const tall = i % 3 === 1;
+            repeater.itemAt(i).height = Math.round(scroller.height * (tall ? 1.4 : 330 / 520));
+        }
+        waitForPolish(window);
+        scroller.contentY = 0;
+        repeater.itemAt(0).forceActiveFocus();
+        const shows = item => {
+            const top = item.mapToItem(scroller, 0, 0).y;
+            if (item.height > scroller.height)
+                return top < scroller.height && top + item.height > 0;
+            return top >= 0 && top + item.height <= scroller.height;
+        };
+        const lowest = scroller.contentHeight - scroller.height;
+        for (let i = 0; i < 60 && scroller.contentY < lowest; ++i) {
+            const before = scroller.contentY;
+            keyClick(Qt.Key_PageDown);
+            verify(scroller.contentY > before, "Page Down " + i + " did not move the page on");
+            verify(shows(window.activeFocusItem), "Page Down " + i + " left the keyboard out of sight");
+        }
+        compare(scroller.contentY, lowest);
+        for (let i = 0; i < 60 && scroller.contentY > 0; ++i) {
+            const before = scroller.contentY;
+            keyClick(Qt.Key_PageUp);
+            verify(scroller.contentY < before, "Page Up " + i + " did not move the page on");
+            verify(shows(window.activeFocusItem), "Page Up " + i + " left the keyboard out of sight");
+        }
+        compare(scroller.contentY, 0);
+    }
+
+    // After Page Down, a notice taller than the window that shows most
+    // but whose top went out of sight is passed over for the notice below
+    // it, so the page is not pulled back to the tall notice's top.
+    function test_pageDownPassesOverATallNoticeCutAtTheTop() {
+        const window = makeWindow("done", {
+            "journal": "many"
+        });
+        window.height = Tokens.headingSize * 20;
+        showNotices(window);
+        const scroller = findChild(window, "scroller");
+        const repeater = findChild(window, "noticeRows");
+        const short = Math.round(scroller.height * 330 / 520);
+        for (let i = 0; i < repeater.count; ++i)
+            repeater.itemAt(i).height = i === 0 ? scroller.height * 3 : short;
+        waitForPolish(window);
+        scroller.contentY = 0;
+        repeater.itemAt(0).forceActiveFocus();
+        keyClick(Qt.Key_PageDown);
+        const page = scroller.contentY;
+        verify(page > 0);
+        repeater.itemAt(0).height = short;
+        repeater.itemAt(1).height = Math.round(scroller.height * 1.4);
+        waitForPolish(window);
+        scroller.contentY = 0;
+        repeater.itemAt(0).forceActiveFocus();
+        const tallTop = repeater.itemAt(1).mapToItem(scroller.contentItem, 0, 0).y;
+        const before = Math.round(tallTop + scroller.height * 0.6 - page);
+        scroller.contentY = before;
+        keyClick(Qt.Key_PageDown);
+        verify(repeater.itemAt(2).activeFocus, "the keyboard is not on the notice below");
+        verify(scroller.contentY >= before + page, "the page went back to the tall notice");
+    }
+
+    // The keyboard reaches the fourth button from the third.
+    function test_theNoticesButtonByKeyboard() {
+        const window = makeWindow("done");
+        findChild(window, "accountTab").forceActiveFocus();
+        keyClick(Qt.Key_Right);
+        verify(findChild(window, "noticesTab").activeFocus);
+        keyClick(Qt.Key_Return);
+        compare(window.showing, "notices");
+    }
+
     // The first child is picked, every shared game shows, and the games on
     // their list are highlighted, with a word as well as a colour.
     function test_theGamesPageShowsTheChildsList() {
@@ -1084,6 +1347,8 @@ TestCase {
         compare(window.showing, "games");
         keyClick(Qt.Key_Tab);
         tryCompare(findChild(window, "accountTab"), "activeFocus", true);
+        keyClick(Qt.Key_Tab);
+        tryCompare(findChild(window, "noticesTab"), "activeFocus", true);
         keyClick(Qt.Key_Tab);
         tryCompare(choice(window, "ada"), "activeFocus", true);
         keyClick(Qt.Key_Tab);
@@ -1190,7 +1455,7 @@ TestCase {
         verify(findChild(window, "scrollIndicator").visible);
         scroller.contentY = scroller.contentHeight - scroller.height;
         verify(inSight(window, findChild(window, "gamesTab")));
-        findChild(window, "accountTab").forceActiveFocus();
+        findChild(window, "noticesTab").forceActiveFocus();
         keyClick(Qt.Key_Tab);
         tryCompare(choice(window, "ada"), "activeFocus", true);
         verify(inSight(window, choice(window, "ada")));
