@@ -6,7 +6,8 @@
 #include <optional>
 
 // The pam_faillock settings the login screen needs to work out a lock the
-// way faillock does (ADR-0052). It reads /etc/security/faillock.conf the way
+// way faillock does (ADR-0052), and Family needs to say how long a lock it
+// reports lasted (ADR-0054). It reads /etc/security/faillock.conf the way
 // linux-pam 1.7.2 does (faillock_config.c), and starts from the same
 // defaults.
 struct FaillockSettings {

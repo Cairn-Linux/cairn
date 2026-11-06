@@ -2,6 +2,7 @@
 #include "AccountPage.h"
 #include "ChildrenPage.h"
 #include "GamesPage.h"
+#include "NoticesPage.h"
 
 #include <QDBusConnection>
 #include <QDir>
@@ -36,11 +37,16 @@ int main(int argc, char* argv[]) {
     accountSetup.walletBus = QDBusConnection::sessionBus();
     AccountPage accountPage(accountSetup);
 
+    NoticesPage::Setup noticesSetup;
+    noticesSetup.uid = getuid();
+    NoticesPage noticesPage(noticesSetup);
+
     QQmlApplicationEngine engine;
     engine.setInitialProperties({
         {QStringLiteral("page"), QVariant::fromValue(&page)},
         {QStringLiteral("gamesPage"), QVariant::fromValue(&gamesPage)},
         {QStringLiteral("accountPage"), QVariant::fromValue(&accountPage)},
+        {QStringLiteral("noticesPage"), QVariant::fromValue(&noticesPage)},
     });
     engine.loadFromModule("Cairn.Family", "FamilyWindow");
     if (engine.rootObjects().isEmpty()) {

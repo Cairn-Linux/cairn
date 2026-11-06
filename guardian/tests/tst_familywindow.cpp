@@ -2,6 +2,7 @@
 #include "AccountPage.h"
 #include "ChildrenPage.h"
 #include "GamesPage.h"
+#include "NoticesPage.h"
 #include "StandInWallet.h"
 
 #include <QColor>
@@ -20,6 +21,7 @@
 #include <QQmlEngine>
 #include <QSet>
 #include <QTemporaryDir>
+#include <QTimeZone>
 #include <QtQuickTest/quicktest.h>
 
 #include <algorithm>
@@ -278,6 +280,74 @@ public:
         writeFile(QDir(m_files.path()).filePath("games.json"), gamesFile(shared));
     }
 
+    // The window's NoticesPage, for the Guardian of page(), over a journal
+    // of its own: "tries" has three wrong passwords at the login screen
+    // that locked the Guardian, and one at su for a name typed with markup
+    // in it, from Ben's login; "many" has 30 notices, more than fit;
+    // "none" has nothing; "unreadable" is a
+    // journal this account may not read. Times are in UTC.
+    Q_INVOKABLE NoticesPage* noticesPage(const QString& journal = QStringLiteral("none")) {
+        const QDir files(m_files.path());
+        const QString id = QStringLiteral("0123456789abcdef0123456789abcdef");
+        files.mkpath("notices/journal/" + id);
+        writeFile(files.filePath("notices/machine-id"), id.toLatin1());
+        const QString journalFile = files.filePath("notices/journal/" + id + "/system.journal");
+        writeFile(journalFile, "LPKSHHRH");
+        QFile::setPermissions(journalFile, journal == "unreadable"
+                                               ? QFile::WriteOwner
+                                               : QFile::ReadOwner | QFile::WriteOwner);
+        QByteArray audit;
+        if (journal == "tries") {
+            const qint64 start = 1793808120LL * 1000000;
+            for (int i = 0; i < 3; ++i) {
+                audit += auditLine(start + i * 60000000LL, "guardian", "/usr/libexec/sddm-helper",
+                                   "4294967295", 100 + i);
+            }
+            audit += auditLine(start + 7200000000LL, "<b>guardian</b>", "/usr/bin/su", "1002", 200);
+        }
+        if (journal == "many") {
+            // A wrong su each 20 minutes: a notice each, more than fit.
+            const qint64 start = 1793808120LL * 1000000;
+            for (int i = 0; i < 30; ++i) {
+                audit +=
+                    auditLine(start + i * 1200000000LL, "guardian", "/usr/bin/su", "1002", 300 + i);
+            }
+        }
+        writeFile(files.filePath("notices/audit"), audit);
+        writeFile(files.filePath("notices/journalctl"),
+                  "#!/bin/bash\ncase \"$*\" in\n  *_AUDIT_TYPE=1100*) cat '" +
+                      files.filePath("notices/audit").toUtf8() + "' ;;\nesac\nexit 0\n");
+        QFile::setPermissions(files.filePath("notices/journalctl"),
+                              QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
+        NoticesPage::Setup setup;
+        setup.reader.journalctl = files.filePath("notices/journalctl");
+        setup.reader.journalFolders = {files.filePath("notices/journal")};
+        setup.reader.machineId = files.filePath("notices/machine-id");
+        const std::vector<Account> accounts = family();
+        setup.reader.lookups.byName = [accounts](const QString& name) -> std::optional<Account> {
+            for (const Account& account : accounts) {
+                if (account.login == name) {
+                    return account;
+                }
+            }
+            return std::nullopt;
+        };
+        setup.reader.lookups.byUid = [accounts](unsigned int uid) -> std::optional<Account> {
+            for (const Account& account : accounts) {
+                if (account.uid == uid) {
+                    return account;
+                }
+            }
+            return std::nullopt;
+        };
+        setup.uid = 1000;
+        setup.faillockConf = QStringLiteral("/nonexistent/faillock.conf");
+        setup.zone = QTimeZone::utc();
+        auto* page = new NoticesPage(setup);
+        QQmlEngine::setObjectOwnership(page, QQmlEngine::JavaScriptOwnership);
+        return page;
+    }
+
     Q_INVOKABLE QStringList startedSteam() const {
         return m_startedSteam;
     }
@@ -289,6 +359,33 @@ public:
     }
 
 private:
+    static std::vector<Account> family() {
+        return {
+            {.uid = 1000,
+             .groups = {"guardian", "wheel", "cairn-guardian"},
+             .login = "guardian",
+             .fullName = "Guardian"},
+            {.uid = 1001, .groups = {"ada", "cairn-l1"}, .login = "ada", .fullName = "Ada"},
+            {.uid = 1002, .groups = {"ben", "cairn-l2"}, .login = "ben", .fullName = "Ben"},
+        };
+    }
+
+    // One failed password check, as journald keeps the audit record.
+    static QByteArray auditLine(qint64 time, const QString& account, const QString& program,
+                                const QString& loginUid, int pid) {
+        return QJsonDocument(QJsonObject{{"__REALTIME_TIMESTAMP", QString::number(time)},
+                                         {"_TRANSPORT", "audit"},
+                                         {"_AUDIT_TYPE", "1100"},
+                                         {"_PID", QString::number(pid)},
+                                         {"_AUDIT_LOGINUID", loginUid},
+                                         {"AUDIT_FIELD_OP", "PAM:authentication"},
+                                         {"AUDIT_FIELD_ACCT", account},
+                                         {"AUDIT_FIELD_EXE", program},
+                                         {"AUDIT_FIELD_RES", "failed"}})
+                   .toJson(QJsonDocument::Compact) +
+               '\n';
+    }
+
     // A home whose own Steam library has games in it, or "" for none.
     QString ownSteamHome(bool withGames) const {
         const QDir files(m_files.path());

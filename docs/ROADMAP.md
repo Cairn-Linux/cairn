@@ -482,6 +482,33 @@ done, and what could sink it. Decisions that change the design get an ADR in
   #287 is open: on the laptop a Proton game started 9 s after a give-up
   quit by itself, cause unknown, and the starting screen stayed until the
   grace ran out (#276).
+- **ADR-0054 (2026-11-05, #285 slice 1, accepted): Family tells
+  Guardians about wrong passwords.** Nothing told a Guardian, later, that
+  wrong passwords were typed for their account or a child's, or that an
+  account locked; the Guardian locked out on 2026-11-04 thought they had
+  forgotten their password. Family has a fourth page, Notices: each time
+  wrong passwords were typed in the last 30 days, for every account,
+  where (login screen, own login, sudo, su, a password box, a text
+  console, or another program by name), from whose login, and whether it
+  locked the account, with tries refused during a lock never called
+  wrong. It reads only the journal's audit records, which a child cannot
+  write, and faillock's line from the lock screen under a uid rule, as the
+  Guardian through systemd's own `wheel` ACL; no helper, no new
+  permission, no copy kept. `FaillockSettings` moved to `accounts/`.
+  The VM checks of 2026-11-05 found the lock screen's line comes from
+  `kscreenlocker_worker` in Plasma 6.8, and that pam_faillock 1.7.2 locks
+  without a record or a line when a lock starts within `fail_interval` of
+  an ended one; the page now reads the worker and works each lock out
+  from the tries with faillock's own rule (`FaillockTally`), and the
+  keyboard scrolls it. The second VM run (2026-11-06, an image with the
+  fix) passed check 4 and four places of check 5; it led to Page Up and
+  Page Down landing on the notice that shows most, and to dropping lock
+  screen locks and tries for level 1 and 2 children, whose kiosk has no
+  lock screen, so such a lock locks nothing. kscreenlocker refusing the
+  right password just after a lock ends is a known limitation in the
+  ADR. Upstream reports for pam and kscreenlocker are drafted, not filed.
+  Next: marking new notices (slice
+  2), a notification at login.
 - **ADR-0053 (2026-11-05, #289, proposed): every count of wrong
   passwords stays in group root.** From L3 a child has `su`. A child's
   wrong `su - <guardian>`, where the Guardian had no count yet, made the

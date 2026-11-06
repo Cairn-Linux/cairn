@@ -98,6 +98,27 @@ target_compile_definitions(cairn-family PRIVATE
 )
 install(TARGETS cairn-family RUNTIME DESTINATION "${CAIRN_LIBEXECDIR}")
 
+# The Notices page's pieces (ADR-0054): the journal's audit records of
+# wrong passwords and faillock's locks, read as the Guardian through
+# journalctl, grouped and put into words.
+set(notices_rule_sources
+    src/PasswordTry.h
+    src/JournalTries.h src/JournalTries.cpp
+    src/FaillockTally.h src/FaillockTally.cpp
+    src/HeldLocks.h src/HeldLocks.cpp
+    src/TryEpisodes.h src/TryEpisodes.cpp
+    src/NoticeList.h src/NoticeList.cpp
+    src/TryNotices.h src/TryNotices.cpp
+)
+set(notices_sources
+    ${notices_rule_sources}
+    src/NoticeTime.h src/NoticeTime.cpp
+    src/NoticeWords.h src/NoticeWords.cpp
+    src/JournalRun.h src/JournalRun.cpp
+    src/TryReader.h src/TryReader.cpp
+    src/NoticesPage.h src/NoticesPage.cpp
+)
+
 # The Guardian tool: its own program and QML module, so the Steam window
 # stays as it is. It shares the Steam window's button, and checks what it
 # asks for with cairn-family's own rule before it asks for a password.
@@ -138,6 +159,7 @@ set(family_window_sources
     src/PictureFile.h src/PictureFile.cpp
     src/WalletPassword.h src/WalletPassword.cpp
     src/AccountPage.h src/AccountPage.cpp
+    ${notices_sources}
 )
 set(family_window_qml_files
     qml/FamilyWindow.qml
@@ -164,6 +186,7 @@ set(family_window_qml_files
     qml/PictureTile.qml
     qml/OutcomeBox.qml
     qml/WalletOffer.qml
+    qml/NoticesView.qml
 )
 foreach(file IN LISTS family_window_qml_files)
     cmake_path(GET file FILENAME name)
@@ -504,6 +527,36 @@ target_link_libraries(tst_walletpassword PRIVATE Qt6::Qml Qt6::DBus Qt6::Test)
 add_test(NAME walletpassword COMMAND "${DBUS_RUN_SESSION}" ${private_session_bus} --
     $<TARGET_FILE:tst_walletpassword>)
 
+# The Notices page (ADR-0054): the trust boundary, the grouping, the words,
+# and the reader with a stand-in journalctl the test writes.
+qt_add_executable(tst_journaltries tests/tst_journaltries.cpp ${notices_rule_sources})
+target_include_directories(tst_journaltries PRIVATE src)
+target_link_libraries(tst_journaltries PRIVATE Qt6::Core Qt6::Test cairn-accounts)
+add_test(NAME journaltries COMMAND tst_journaltries)
+
+qt_add_executable(tst_faillocktally tests/tst_faillocktally.cpp
+    src/FaillockTally.h src/FaillockTally.cpp)
+target_include_directories(tst_faillocktally PRIVATE src)
+target_link_libraries(tst_faillocktally PRIVATE Qt6::Core Qt6::Test cairn-accounts)
+add_test(NAME faillocktally COMMAND tst_faillocktally)
+
+qt_add_executable(tst_trynotices tests/tst_trynotices.cpp ${notices_rule_sources})
+target_include_directories(tst_trynotices PRIVATE src)
+target_link_libraries(tst_trynotices PRIVATE Qt6::Core Qt6::Test cairn-accounts)
+add_test(NAME trynotices COMMAND tst_trynotices)
+
+qt_add_executable(tst_noticewords tests/tst_noticewords.cpp ${notices_rule_sources}
+    src/NoticeTime.h src/NoticeTime.cpp src/NoticeWords.h src/NoticeWords.cpp)
+target_include_directories(tst_noticewords PRIVATE src)
+target_link_libraries(tst_noticewords PRIVATE Qt6::Core Qt6::Test cairn-accounts)
+add_test(NAME noticewords COMMAND tst_noticewords)
+
+qt_add_executable(tst_tryreader tests/tst_tryreader.cpp ${notices_rule_sources}
+    src/JournalRun.h src/JournalRun.cpp src/TryReader.h src/TryReader.cpp)
+target_include_directories(tst_tryreader PRIVATE src)
+target_link_libraries(tst_tryreader PRIVATE Qt6::Core Qt6::Test cairn-accounts)
+add_test(NAME tryreader COMMAND tst_tryreader)
+
 # The image's Kiosk line that hides Plasma's Users page, and its step that
 # leaves only KDE's own pictures in Plasma's picture folder (ADR-0043).
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
@@ -519,6 +572,7 @@ set_tests_properties(steamvisit ownsteam screenlockwatch steamforchild steamwind
     loginname childlist familychange saverun savereport loginsessions loginwatch childlogout
     gamechoices childrenpage
     gamepicture gameshelf keyvalues steammanifest ownsteamgames gamespage familywindow
-    newpassword ownpasswordcommand picturefile accountpage walletpassword PROPERTIES
+    newpassword ownpasswordcommand picturefile accountpage walletpassword
+    journaltries trynotices noticewords tryreader PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QML_IMPORT_PATH=${QT_QML_OUTPUT_DIRECTORY}"
 )
