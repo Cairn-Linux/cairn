@@ -84,9 +84,11 @@ bool fieldIs(const QJsonObject& entry, const QString& field, const QString& valu
     return text(entry, field) == value;
 }
 
-// The login screen lets a level 1 or 2 child in with no password, before
-// the password stack, so faillock's part never runs and their login
-// empties nothing. The same rule as session/sddm/pam.d/sddm.
+// A level 1 or 2 child, whose password is locked (ADR-0023). The login
+// screen lets them in with no password, before the password stack, so
+// faillock's part never runs and their login empties nothing; and their
+// lock screen has no password to count wrong, so it never locks them.
+// The same rule as session/sddm/pam.d/sddm.
 bool logsInWithoutPassword(const Account& account) {
     const QStringList& groups = account.groups;
     return (groups.contains(QStringLiteral("cairn-l1")) ||
@@ -155,6 +157,12 @@ std::optional<PasswordTry> JournalTries::tryFrom(const QJsonObject& entry) const
     found.account = accountNamed(entry, QStringLiteral("AUDIT_FIELD_ACCT"));
     const QString program = text(entry, QStringLiteral("AUDIT_FIELD_EXE")).value_or(QString());
     found.place = placeOf(program);
+    // Such a child can run unix_chkpwd, the lock screen's check, by hand
+    // as often as they like, but no lock can come of it.
+    if (found.place == TryPlace::OwnLogin && found.account &&
+        logsInWithoutPassword(*found.account)) {
+        return std::nullopt;
+    }
     if (found.place == TryPlace::Other) {
         found.program = plainName(program);
     }
@@ -216,6 +224,13 @@ std::optional<LockEvent> JournalTries::lockFrom(const QJsonObject& entry) const 
     // Anyone can write this line, and the lock screen's program runs as
     // the person, so only root, or the account itself, is believed.
     if (!account || (*sender != 0 && account->uid != *sender)) {
+        return std::nullopt;
+    }
+    // The program's path is no proof: in a user namespace a child can run
+    // their own program at the lock screen's path (cairn-min, 2026-11-06).
+    // A child whose password is locked can never be locked at the lock
+    // screen, so a line about one is forged.
+    if (logsInWithoutPassword(*account)) {
         return std::nullopt;
     }
     lock.account = *account;

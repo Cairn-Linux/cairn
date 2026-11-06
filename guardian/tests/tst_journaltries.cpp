@@ -267,12 +267,12 @@ private slots:
         QVERIFY(lock.has_value());
         QCOMPARE(lock->account.uid, 1000U);
         QCOMPARE(int(lock->place), int(TryPlace::OwnLogin));
-        lock = rules().lockFrom(lockScreenLine(lockLine("ada", "kde-fingerprint"), "1001"));
-        QCOMPARE(lock->account.login, QStringLiteral("ada"));
-        QVERIFY(rules().lockFrom(lockScreenLine(lockLine("ada"), "0")).has_value());
+        lock = rules().lockFrom(lockScreenLine(lockLine("ben", "kde-fingerprint"), "1002"));
+        QCOMPARE(lock->account.login, QStringLiteral("ben"));
+        QVERIFY(rules().lockFrom(lockScreenLine(lockLine("ben"), "0")).has_value());
         QVERIFY(
             rules()
-                .lockFrom(lockScreenLine(lockLine("ada"), "1001", "/usr/lib/kscreenlocker_greet"))
+                .lockFrom(lockScreenLine(lockLine("ben"), "1002", "/usr/lib/kscreenlocker_greet"))
                 .has_value());
     }
 
@@ -284,7 +284,8 @@ private slots:
         QVERIFY(lock.has_value());
         QCOMPARE(lock->account.uid, 1000U);
         QCOMPARE(int(lock->place), int(TryPlace::OwnLogin));
-        lock = rules().lockFrom(lockScreenLine(lockLine("ada", "kde-fingerprint"), "1001", worker));
+        lock =
+            rules().lockFrom(lockScreenLine(lockLine("cora", "kde-fingerprint"), "1003", worker));
         QVERIFY(lock.has_value());
     }
 
@@ -358,6 +359,52 @@ private slots:
     void aForgedLockLine() {
         QFETCH(QJsonObject, entry);
         QVERIFY(!rules().lockFrom(entry).has_value());
+    }
+
+    // A level 1 or 2 child's password is locked, so the lock screen can
+    // never lock them. In a user namespace a child can run their own
+    // program at the lock screen's path and write faillock's line about
+    // themselves (cairn-min, 2026-11-06), so that line is dropped, from
+    // root too, and so is their own try through unix_chkpwd. A Guardian
+    // in a level group, and a level 3 child, still count.
+    void aChildWhoseLockScreenCannotLock_data() {
+        QTest::addColumn<QString>("login");
+        QTest::addColumn<QString>("sender");
+        QTest::addColumn<bool>("believed");
+        QTest::newRow("level 1, own") << "ada" << "1001" << false;
+        QTest::newRow("level 1, from root") << "ada" << "0" << false;
+        QTest::newRow("level 3, own") << "ben" << "1002" << true;
+        QTest::newRow("a Guardian at level 2, own") << "cora" << "1003" << true;
+        QTest::newRow("a Guardian, own") << "guardian" << "1000" << true;
+    }
+
+    void aChildWhoseLockScreenCannotLock() {
+        QFETCH(QString, login);
+        QFETCH(QString, sender);
+        QFETCH(bool, believed);
+        const QString worker = QStringLiteral("/usr/libexec/kscreenlocker_worker");
+        for (const QString service : {"kde", "kde-fingerprint"}) {
+            QCOMPARE(rules()
+                         .lockFrom(lockScreenLine(lockLine(login, service), sender, worker))
+                         .has_value(),
+                     believed);
+        }
+        const auto chkpwd =
+            rules().tryFrom(failedAuth(login, "/usr/bin/unix_chkpwd", "PAM:unix_chkpwd", sender));
+        QCOMPARE(chkpwd.has_value(), believed);
+    }
+
+    // At any other prompt a level 1 or 2 child's tries count: a wrong
+    // password at su for them is someone trying their account, and
+    // faillock's own audit lock is real. unix_chkpwd in either folder is
+    // the lock screen's check.
+    void aChildsTriesElsewhere() {
+        QVERIFY(rules().tryFrom(failedAuth("ada", "/usr/bin/su")).has_value());
+        QVERIFY(rules().tryFrom(failedAuth("ada", "/usr/bin/sudo")).has_value());
+        QVERIFY(!rules()
+                     .tryFrom(failedAuth("ada", "/usr/sbin/unix_chkpwd", "PAM:unix_chkpwd"))
+                     .has_value());
+        QVERIFY(rules().lockFrom(auditLock("1001", "/usr/bin/su")).has_value());
     }
 
     // A right password, and the account part after it, which faillock's

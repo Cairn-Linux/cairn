@@ -23,7 +23,10 @@
 //   screen, which runs as the person and cannot write audit, faillock's
 //   own line from the lock screen's program, by its full path, and only
 //   when that program ran as root or as the account it names. A child can
-//   fake that line, but only about their own account.
+//   fake that line, the path too, but only about their own account. A
+//   level 1 or 2 child's password is locked, so the lock screen can never
+//   lock them: a line about one, and their tries through unix_chkpwd, are
+//   dropped.
 // - A right password is an audit USER_AUTH record of a whole PAM check,
 //   never unix_chkpwd's, or a USER_ACCT record, that succeeded, which a
 //   child can cause only with the password. A level 1 or 2 child's login
