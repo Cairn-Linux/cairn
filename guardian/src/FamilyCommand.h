@@ -14,9 +14,10 @@
 #include <optional>
 
 // cairn-family: the root command that makes a child's account, changes a
-// child's level (ADR-0039) and changes a child's name (ADR-0056). A Guardian's window runs it
-// through pkexec; the family's setup runs it as root with sudo. Either way it checks the caller and
-// every value itself, and changes only accounts Cairn made.
+// child's level (ADR-0039) and changes a child's name (ADR-0056). A
+// Guardian's window runs it through pkexec; the family's setup runs it as
+// root with sudo. Either way it checks the caller and every value itself,
+// and changes only accounts Cairn made.
 class FamilyCommand {
 public:
     using LookUp = std::function<std::optional<Account>(const QString&)>;

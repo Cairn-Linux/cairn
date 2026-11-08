@@ -30,8 +30,11 @@ grep -q "\"${action}\"" /usr/share/polkit-1/rules.d/10-cairn-levels.rules
 # chfn, util-linux's, set-uid root, lets an account change its own full
 # name only when CHFN_RESTRICT in login.defs allows it. With no such line
 # it refuses every account but root, before it asks for a password. So no
-# file chfn could read may set it.
-[[ "$(rpm -qf /usr/bin/chfn)" == util-linux-* ]]
+# file chfn could read may set it. With no chfn at all there is nothing to
+# check.
+if [[ -e /usr/bin/chfn ]]; then
+    [[ "$(rpm -qf /usr/bin/chfn)" == util-linux-* ]]
+fi
 for file in /etc/login.defs /usr/etc/login.defs; do
     if [[ -e "${file}" ]]; then
         absent grep -Eq '^[[:space:]]*CHFN_RESTRICT' "${file}"

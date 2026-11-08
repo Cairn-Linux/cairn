@@ -51,10 +51,12 @@ private slots:
         UnfinishedAdd add;
         add.starting(QStringLiteral("cy"), QStringLiteral("Cy"));
         add.answered(QStringLiteral("failed"), true);
-        const std::vector<ListedChild> cy{{.login = "cy", .name = "Cy", .level = 1}};
+        const std::vector<ListedChild> cy{
+            {.login = "cy", .name = "Cy", .fullName = "Cy", .level = 1}};
         QCOMPARE(add.loginFor(QStringLiteral("Cy"), cy, everythingInUse),
                  std::optional<QString>(QStringLiteral("cy")));
-        const std::vector<ListedChild> other{{.login = "cy", .name = "Cy B", .level = 1}};
+        const std::vector<ListedChild> other{
+            {.login = "cy", .name = "Cy B", .fullName = "Cy B", .level = 1}};
         QCOMPARE(add.loginFor(QStringLiteral("Cy"), other, everythingInUse), std::nullopt);
         QCOMPARE(add.loginFor(QStringLiteral("Dee"), {}, nothingInUse), std::nullopt);
     }

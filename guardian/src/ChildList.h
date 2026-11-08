@@ -7,6 +7,7 @@
 #include <QStringList>
 #include <QVariantList>
 
+#include <optional>
 #include <vector>
 
 // One child as the Guardian's Children page shows them.
@@ -15,6 +16,8 @@ struct ListedChild {
     // The full name, or the login name when there is none, as on the login
     // screen.
     QString name;
+    // The full name alone, empty when the account has none.
+    QString fullName;
     // 1 to 4; the lower one for an account in two level groups (#100).
     int level = 0;
 };
@@ -34,7 +37,18 @@ const ListedChild* childWithLogin(const std::vector<ListedChild>& children, cons
 bool sameName(const QString& one, const QString& other);
 
 // The first child among them with this name, by sameName(), or nullptr.
-const ListedChild* childNamed(const std::vector<ListedChild>& children, const QString& name);
+// A child with the login `except` is passed over.
+const ListedChild* childNamed(const std::vector<ListedChild>& children, const QString& name,
+                              const QString& except = {});
+
+// The names the family knows its grown-ups by: every administrator's
+// account among them, a person's, by Account::displayName(), as the login
+// screen shows them.
+QStringList grownUpNamesAmong(const std::vector<Account>& accounts);
+
+// The first of `names` that is `name` by sameName(), as it is written
+// there, or nothing.
+std::optional<QString> nameAmong(const QStringList& names, const QString& name);
 
 // Their logins, in the same order.
 QStringList loginsOf(const std::vector<ListedChild>& children);

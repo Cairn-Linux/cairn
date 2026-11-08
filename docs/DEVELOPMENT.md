@@ -259,10 +259,13 @@ The first lists `mpris-proxy.service` and `bazzite-dynamic-fixes.service`,
 Bazzite's fix for GTK programs on Intel graphics, which runs as the
 account and stays. The second says `not-found`.
 
-A child cannot change their own name, picture or language (ADR-0056).
-Cairn's polkit rule refuses AccountsService's
-`change-own-user-data` to every child, and util-linux's `chfn` refuses
-every account but root while `login.defs` sets no `CHFN_RESTRICT`.
+A child cannot change their own name, nor their picture or language
+through AccountsService (ADR-0056). Cairn's polkit rule refuses
+AccountsService's `change-own-user-data` to every child, and
+util-linux's `chfn` refuses every account but root while `login.defs`
+sets no `CHFN_RESTRICT`. Files in the child's own home, such as
+`~/.face.icon` and `~/.config/plasma-localerc`, can still set a picture
+or language at L3 and L4; the rule does not reach them.
 `build_files/check-own-account-data.sh` stops the build if either could
 stop holding. To look yourself:
 

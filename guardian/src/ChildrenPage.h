@@ -8,6 +8,7 @@
 #include <QObject>
 #include <QQmlEngine>
 #include <QString>
+#include <QStringList>
 #include <QVariantList>
 
 #include <cstdint>
@@ -35,6 +36,9 @@ class ChildrenPage : public QObject {
     // The name the last change of a name asked for, as typed but for spaces
     // at either end.
     Q_PROPERTY(QString newName READ newName NOTIFY stepChanged)
+    // The name, as the family knows it, of the child or grown-up a name the
+    // page refused already belongs to.
+    Q_PROPERTY(QString clash READ clash NOTIFY stepChanged)
     Q_PROPERTY(int level READ level NOTIFY stepChanged)
     Q_PROPERTY(bool busy READ busy NOTIFY stepChanged)
 
@@ -49,7 +53,7 @@ public:
     };
     Q_ENUM(Step)
 
-    // Why nothing changed. The first five the page finds itself; the rest
+    // Why nothing changed. The first six the page finds itself; the rest
     // are cairn-family's own words (ADR-0039) and pkexec's.
     enum class Reason : std::uint8_t {
         None,
@@ -57,6 +61,7 @@ public:
         NoShortName,
         SameName,      // a child on the list has that name already (#212)
         AnotherChilds, // a new name another child on the list has (#212)
+        AGrownUpsName, // a name a grown-up's account has (#292)
         NameAsBefore,  // a new name that is the child's name already
         NotRoot,
         NotAGrownUp,
@@ -89,6 +94,7 @@ public:
     Reason reason() const;
     QString subject() const;
     QString newName() const;
+    QString clash() const;
     int level() const;
     bool busy() const;
 
@@ -110,6 +116,7 @@ signals:
     void stepChanged();
 
 private:
+    bool refusedAsTaken(const ListedChild* other, Reason childs, const QString& name);
     void run(const QStringList& arguments, Step onDone);
     void finished(const QString& answer);
     void setStep(Step step, Reason reason = Reason::None);
@@ -117,10 +124,12 @@ private:
     Setup m_setup;
     FamilyChange* m_change;
     std::vector<ListedChild> m_children;
+    QStringList m_grownUps;
     Step m_step = Step::Ready;
     Reason m_reason = Reason::None;
     QString m_subject;
     QString m_newName;
+    QString m_clash;
     int m_level = 0;
     Step m_onDone = Step::Ready;
     UnfinishedAdd m_unfinished;

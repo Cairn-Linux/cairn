@@ -315,18 +315,24 @@ class KioskScreenAndPowerKeyTest(unittest.TestCase):
 class OwnAccountDataTest(unittest.TestCase):
     """A child's own name, picture and language (ADR-0056): AccountsService
     asks one action for all of them, and the rule refuses it at every level
-    before any prompt. A grown-up, and an account Cairn did not make, keep
-    Fedora's default."""
+    before any prompt. Its other two actions, another account's data and
+    one's own password, are refused too, so no grown-up's password box
+    opens in a child's session. A grown-up, and an account Cairn did not
+    make, keep Fedora's default."""
 
-    ACTION = "org.freedesktop.accounts.change-own-user-data"
+    ACTIONS = ("org.freedesktop.accounts.change-own-user-data",
+               "org.freedesktop.accounts.change-own-password",
+               "org.freedesktop.accounts.user-administration")
 
     def setUp(self):
         self.rules = RULES.read_text()
 
-    def test_it_is_in_the_guardians_list(self):
+    def test_they_are_in_the_guardians_list(self):
         # The Guardian's list, not the kiosk's, so L3 and L4 are refused too.
         [guardian] = re.findall(r"var guardianOnly = \[(.*?)\];", self.rules, re.S)
-        self.assertIn(self.ACTION, quoted_strings(guardian))
+        for action in self.ACTIONS:
+            with self.subTest(action=action):
+                self.assertIn(action, quoted_strings(guardian))
 
     def test_the_rule_itself_answers_so(self):
         node = shutil.which("node")
@@ -342,14 +348,8 @@ class OwnAccountDataTest(unittest.TestCase):
             ("bazzite", "wheel"): "not-handled",
             ("lodger",): "not-handled",
         }
-        # The other two AccountsService actions stay as they were: a child
-        # changing another account, or their own password, already needs a
-        # grown-up's password by Fedora's default.
-        for action in (self.ACTION, "org.freedesktop.accounts.user-administration",
-                       "org.freedesktop.accounts.change-own-password"):
+        for action in self.ACTIONS:
             for groups, answer in cases.items():
-                if action != self.ACTION:
-                    answer = "not-handled"
                 with self.subTest(action=action, groups=groups):
                     given = json.dumps({"rules": str(RULES), "action": action,
                                         "groups": list(groups)})

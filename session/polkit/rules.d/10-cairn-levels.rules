@@ -14,9 +14,13 @@
 // administrator only, so every other account gets NO for them, before
 // polkit asks for any password (ADR-0032).
 //
-// Installed as /etc/polkit-1/rules.d/10-cairn-levels.rules. polkit reads
-// rule files in name order and the first answer wins, so the low number
-// keeps this ahead of anything the base image ships.
+// The image installs it as /usr/share/polkit-1/rules.d/10-cairn-levels.rules,
+// and provisioning as /etc/polkit-1/rules.d/10-cairn-levels.rules. A file
+// of the same name in /etc takes the place of the one in /usr/share. polkit
+// reads rule files in name order and the first answer wins, so the low
+// number keeps this ahead of anything the base image ships. Every rule file
+// runs in one JavaScript context, so a name defined here can be defined
+// again by a file read later.
 
 // An action id "starts with" a prefix. Duktape, polkit's engine, has no
 // String.startsWith, so this is the plain form.
@@ -38,7 +42,11 @@ function startsWithAny(id, prefixes) {
 // left alone: malcontent's Flatpak check runs as the child and needs it.
 // A child's name, picture and language are the Guardian's too (ADR-0056):
 // AccountsService asks change-own-user-data before an account changes any
-// of them on itself, and Fedora's default lets it with no password.
+// of them on itself, and Fedora's default lets it with no password. Its
+// other two actions, for changing another account and one's own password,
+// ask for a grown-up's password by Fedora's default. A child's session has
+// no Cairn screen that uses them, and Cairn never asks for a grown-up's
+// password there (DESIGN §3.2), so they are refused before any box opens.
 var guardianOnly = [
     "org.freedesktop.NetworkManager.",
     "org.freedesktop.Flatpak.",
@@ -50,7 +58,9 @@ var guardianOnly = [
     "org.freedesktop.Malcontent.WebFilter.Change",
     "org.freedesktop.Malcontent.SessionLimits.Extend",
     "org.freedesktop.MalcontentControl.",
-    "org.freedesktop.accounts.change-own-user-data"
+    "org.freedesktop.accounts.change-own-user-data",
+    "org.freedesktop.accounts.change-own-password",
+    "org.freedesktop.accounts.user-administration"
 ];
 
 // The kiosk has nothing on screen that powers off, sleeps or mounts, so

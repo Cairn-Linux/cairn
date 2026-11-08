@@ -52,11 +52,12 @@ The Children page:
 3. **Change name** beside each child, at any level, opens a field under
    the row with the child's name in it, and **Save name** and
    **Cancel**; Enter saves and Escape cancels. A child cannot change
-   their own name, picture or language (ADR-0056), so this is how a name
-   changes. The name the child has already, an empty name, and a name
-   another child on the list has, whatever the case of its letters, are
-   refused before any password, so two children never share a name
-   (#212). Once the name is in place: "Ada is called Ada Lovelace now,
+   their own name (ADR-0056), so this is how a name changes. The full
+   name the child has already, an empty name, and a name another child
+   on the list or a grown-up has, whatever the case of its letters, are
+   refused before any password, so two children never share a name and
+   no child looks like a grown-up (#212, #292). The refusal names the
+   child or grown-up as the list shows them. Once the name is in place: "Ada is called Ada Lovelace now,
    on the login screen and in Family." The child's "Steam for" entry in
    the Guardian's menu takes the new name too. A name a child set for
    themselves before this image stays until it is changed here. Family
@@ -66,7 +67,8 @@ The Children page:
    letters, is refused before any password: "Cy already has an account
    on this computer. To add another child, give them a different name,
    such as one with an initial." Two children with one name would look
-   the same on every screen (#212). The window makes the account's own
+   the same on every screen (#212). A grown-up's name is refused the
+   same way (#292). The window makes the account's own
    short name from the name, such as `zoe` from "Zoë", and asks for one
    only when the name has no letters a to z. If an account or a group
    already has it, it uses `zoe2`, `zoe3` and so on, so it never names
@@ -536,7 +538,7 @@ QML draws, C++ decides (ADR-0002):
 | `src/NoticesPage` | What the Notices page shows: its state, the sentences, how far back the record goes, and the words under the list. Its journalctl, folders, accounts, time zone and clock are in its `Setup`, so a test can replace them. |
 | `qml/NoticesView.qml` | The Notices page. |
 | `src/GamePicture` | A game's picture by its app id, with the launcher's rule: `<folder>/<appid>.jpg` when it is a plain file, not a link. The Games page and `cairn-family` both use it. |
-| `qml/FamilyWindow.qml`, `qml/ChildrenView.qml`, `qml/GamesView.qml` | The Guardian tool's window with its switch between pages, its Children page with the sentence for every answer, and its Games page. |
+| `qml/FamilyWindow.qml`, `qml/ChildrenView.qml`, `qml/ChildrenOutcome.qml`, `qml/GamesView.qml` | The Guardian tool's window with its switch between pages, its Children page, the box there with the sentence for every answer, and its Games page. |
 | `qml/ChildChoice.qml`, `qml/GameCard.qml`, `qml/SaveOutcome.qml`, `qml/SaveResultWords.qml` | A child to pick on the Games page, one game in its grid, the sentences for a Save, and its words for what each child got. |
 | `qml/ChildGames.qml`, `qml/LoggedInCover.qml`, `qml/SaveProgress.qml` | The picked child's Steam, list and games, greyed and blurred while they are logged in; the card over them; and the Save's progress window, with the lid warning and Close. |
 | `qml/ChildRow.qml`, `qml/NameChange.qml`, `qml/AddChildForm.qml`, `qml/LabelledField.qml`, `qml/LevelChoice.qml` | A child on the list, the field for a child's new name, the Add form, a text field with its label, and one level to pick. |

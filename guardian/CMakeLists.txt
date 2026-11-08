@@ -166,6 +166,7 @@ set(family_window_sources
 set(family_window_qml_files
     qml/FamilyWindow.qml
     qml/ChildrenView.qml
+    qml/ChildrenOutcome.qml
     qml/GamesView.qml
     qml/ChildGames.qml
     qml/ChildChoice.qml

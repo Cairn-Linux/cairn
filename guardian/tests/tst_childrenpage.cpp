@@ -178,20 +178,24 @@ private slots:
     // refused before the password is asked for, with the name as typed. A
     // child with no full name is listed, and named on the login screen, by
     // their login. A missing short name is not asked for first.
+    // The clash is the other child's name as the family knows it.
     void aNameAChildHasIsRefused_data() {
         QTest::addColumn<QString>("name");
         QTest::addColumn<QString>("subject");
+        QTest::addColumn<QString>("clash");
 
-        QTest::newRow("the same") << "Ada" << "Ada";
-        QTest::newRow("small letters") << "ada" << "ada";
-        QTest::newRow("capitals and spaces") << "  BEN " << "BEN";
-        QTest::newRow("a login as the name") << "Dee" << "Dee";
-        QTest::newRow("another alphabet") << QStringLiteral("анна") << QStringLiteral("анна");
+        QTest::newRow("the same") << "Ada" << "Ada" << "Ada";
+        QTest::newRow("small letters") << "ada" << "ada" << "Ada";
+        QTest::newRow("capitals and spaces") << "  BEN " << "BEN" << "Ben";
+        QTest::newRow("a login as the name") << "Dee" << "Dee" << "dee";
+        QTest::newRow("another alphabet")
+            << QStringLiteral("анна") << QStringLiteral("анна") << QStringLiteral("Анна");
     }
 
     void aNameAChildHasIsRefused() {
         QFETCH(const QString, name);
         QFETCH(const QString, subject);
+        QFETCH(const QString, clash);
         StandInFamily family(QStringLiteral("done"));
         family.accounts.push_back(
             {.uid = 1005, .groups = {"dee", "cairn-l2"}, .login = "dee", .fullName = {}});
@@ -204,7 +208,32 @@ private slots:
         QCOMPARE(family.page->step(), ChildrenPage::Step::NotChanged);
         QCOMPARE(family.page->reason(), ChildrenPage::Reason::SameName);
         QCOMPARE(family.page->subject(), subject);
+        QCOMPARE(family.page->clash(), clash);
         QVERIFY(!family.page->busy());
+        QVERIFY(family.runs().isEmpty());
+    }
+
+    // A grown-up's name, full name or login when they have none, is refused
+    // too: the child would look like that grown-up on every screen (#292).
+    void aGrownUpsNameIsRefused_data() {
+        QTest::addColumn<QString>("name");
+        QTest::addColumn<QString>("clash");
+
+        QTest::newRow("a Guardian's") << "guardian " << "Guardian";
+        QTest::newRow("an administrator's login") << "Helper" << "helper";
+    }
+
+    void aGrownUpsNameIsRefused() {
+        QFETCH(const QString, name);
+        QFETCH(const QString, clash);
+        StandInFamily family(QStringLiteral("done"));
+        family.page->addChild(name, QString(), 1);
+        QCOMPARE(family.page->reason(), ChildrenPage::Reason::AGrownUpsName);
+        QCOMPARE(family.page->clash(), clash);
+        family.page->changeName(QStringLiteral("ada"), name);
+        QCOMPARE(family.page->step(), ChildrenPage::Step::NotChanged);
+        QCOMPARE(family.page->reason(), ChildrenPage::Reason::AGrownUpsName);
+        QCOMPARE(family.page->clash(), clash);
         QVERIFY(family.runs().isEmpty());
     }
 
@@ -321,6 +350,29 @@ private slots:
         QCOMPARE(family.runs(), QList<QStringList>({{"set-name", "cy", "Cy"}}));
     }
 
+    // A child with no full name is listed by their login, and may be given
+    // it as the full name they never had.
+    void aLoginGivenAsTheName() {
+        StandInFamily family(QStringLiteral("done"));
+        family.accounts.push_back(
+            {.uid = 1005, .groups = {"cy", "cairn-l1"}, .login = "cy", .fullName = {}});
+        family.page->reload();
+        family.page->changeName(QStringLiteral("cy"), QStringLiteral("cy"));
+        QVERIFY(family.waitUntilAnswered());
+        QCOMPARE(family.page->step(), ChildrenPage::Step::NameChanged);
+        QCOMPARE(family.runs(), QList<QStringList>({{"set-name", "cy", "cy"}}));
+    }
+
+    // The name the new one clashes with is the other child's, as the list
+    // shows it, not as it was typed.
+    void anotherChildsNameAsTheListShowsIt() {
+        StandInFamily family(QStringLiteral("done"));
+        family.page->changeName(QStringLiteral("ada"), QStringLiteral(" bEN"));
+        QCOMPARE(family.page->reason(), ChildrenPage::Reason::AnotherChilds);
+        QCOMPARE(family.page->clash(), QStringLiteral("Ben"));
+        QCOMPARE(family.page->newName(), QStringLiteral("bEN"));
+    }
+
     // Refused before the password is asked for: no name, the name the child
     // has, another child's name in any capitals, cairn-family's rule, and
     // anyone the page does not list.
@@ -339,6 +391,9 @@ private slots:
             << "ada" << "ben" << Reason::AnotherChilds << "Ada";
         QTest::newRow("another child's login, their name")
             << "ada" << "Dee" << Reason::AnotherChilds << "Ada";
+        QTest::newRow("a Guardian's") << "ada" << "Guardian" << Reason::AGrownUpsName << "Ada";
+        QTest::newRow("an administrator's login")
+            << "ada" << "helper" << Reason::AGrownUpsName << "Ada";
         QTest::newRow("colon") << "ada" << "Ada: L" << Reason::BadFullName << "Ada";
         QTest::newRow("comma") << "ada" << "Ada, L" << Reason::BadFullName << "Ada";
         QTest::newRow("backslash") << "ada" << "Ada\\L" << Reason::BadFullName << "Ada";

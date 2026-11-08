@@ -63,20 +63,29 @@ before any password, and no wrong try is counted.
 
 ## Decision
 
-**A child, at any level, cannot change their own name, picture,
-language or anything else AccountsService keeps under
-`change-own-user-data`: Cairn's levels rule refuses that action to
-every account in a level group that is not an administrator. chfn
-already refuses every account but root, and a build check keeps it so.
-A Guardian changes a child's name on Family's Children page, with
-Change name, through `cairn-family set-name` behind the Guardian's
-password.**
+**A child, at any level, cannot change their own name, nor their
+picture, language or anything else through AccountsService: Cairn's
+levels rule refuses `change-own-user-data`, and AccountsService's other
+two actions, to every account in a level group that is not an
+administrator. chfn already refuses every account but root, and a build
+check keeps it so. A Guardian changes a child's name on Family's
+Children page, with Change name, through `cairn-family set-name` behind
+the Guardian's password.**
 
 ### The rule
 
 `session/polkit/rules.d/10-cairn-levels.rules` adds
 `org.freedesktop.accounts.change-own-user-data` to the Guardian's list,
 the actions it refuses at every level, L3 and L4 included (DESIGN §3.2).
+It adds `change-own-password` and `user-administration` too. Fedora
+asks for a grown-up's password for those, so a child calling
+`SetRealName` on a sibling's or a Guardian's account would get a
+password box in their own session, and `auth_admin_keep` keeps a
+password typed there for a few minutes. DESIGN §3.2 says Cairn never
+asks for a Guardian's password in a child's session. No Cairn screen in
+a child's session uses either action; a Guardian's own password goes
+through `cairn-family set-own-password` (ADR-0043), and `passwd` in a
+terminal goes through PAM, not polkit.
 
 - An administrator, in `cairn-guardian` or `wheel`, is let through
   first, as for every action (ADR-0023), so a Guardian's own picture on
@@ -134,15 +143,27 @@ it, and **Save name** and **Cancel**. Escape cancels; Enter saves. The
 window refuses, before any password:
 
 - an empty name: "Type the child's name first.";
-- the name the child has, exactly: "Ada is the name already. Type a
-  different one, or press Cancel.";
+- the full name the child has, exactly: "Ada is the name already. Type
+  a different one, or press Cancel.";
 - a name another child on the list has, whatever the case of its
   letters, as Add a child does (#212): "Another child is called Ben
   already. Two children with one name look the same on every screen, so
-  choose a different one, such as one with an initial.";
+  choose a different one, such as one with an initial." The sentence
+  names the other child as the list shows them, not as typed;
+- a grown-up's name, the name the login screen shows for an
+  administrator's account, whatever the case of its letters: "Mum is
+  the name of a grown-up on this computer. A child with a grown-up's
+  name looks like them on every screen, so choose a different one." Add
+  a child refuses it too, with the same sentence;
 - a name the command's rule refuses, with Add a child's sentence.
 
-The same name in other capitals is a change. Once it is in place:
+The same name in other capitals is a change. So is a child's login
+given as a name, for a child whose account has no full name and so is
+listed by their login: the account gains a full name. The window checks
+against the children and grown-ups as it last read them, and
+`set-name` checks for no clash of its own, so a name another window
+gave meanwhile goes through, as with Add a child. A level chosen while
+the field is open closes it. Once it is in place:
 "Ada is called Ada Lovelace now, on the login screen and in Family."
 The field closes and the keyboard goes back to Change name. Every other
 answer has the sentence it has for a level, and a refused name stays in
@@ -155,8 +176,16 @@ the account when the child was removed in the meantime.
 
 ## Consequences
 
-- A child cannot become "Mum" on the login screen or in Family, or
-  change their picture or language, from any program.
+- A child cannot become "Mum" on the login screen or in Family, from
+  any program. Family does not give a child a grown-up's name either.
+- A child cannot change their picture or language through
+  AccountsService. **Files in the child's own home are not covered.**
+  Plasma also takes an account's picture from `~/.face.icon` or
+  `~/.face`, which shows on Plasma's lock screen at L3 and L4 and on any
+  login screen theme that shows faces; Cairn's draws a letter
+  (ADR-0020). Plasma takes the language from `~/.config/plasma-localerc`
+  and `~/.config/environment.d/`. An L3 or L4 child with a file manager
+  or a terminal can change those. Only the full name is locked.
 - **A name, picture or language a child set before this image stays
   until a Guardian changes it.** Family changes the name. Family cannot
   change a child's picture or language yet; Cairn's own screens do not
@@ -200,6 +229,15 @@ old values. A change to the rule has to be tried in place of the image's
 file, not beside it.
 
 ### Not checked yet
+
+- That no rule file sorting before `10-cairn-levels.rules`, in either
+  folder, answers `yes` for these actions first: polkit takes the first
+  answer. The build check confirms that Cairn's rule names the action,
+  not that it answers first. A `pkcheck` run as a child account in the
+  built image would show it. This was so before this change too.
+- `change-own-password` and `user-administration` refused to ada and ben
+  with no password box, in the VM; only `change-own-user-data` was run
+  there.
 
 - An image built from this change: the build check, the rule where the
   image puts it, and checks 1 to 3 again without an overlay.
