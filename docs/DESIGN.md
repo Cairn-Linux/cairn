@@ -611,7 +611,9 @@ Mechanism:
 - Each game is a tile running `steam -applaunch <appid>`. That command
   returns at once while the game loads, so the launcher tracks the game by
   its **window**, not the process: it is "running" while the game's window
-  is up and returns to the tiles when the window closes (issue #42). While
+  is up and returns to the tiles when the window closes (issue #42). A game
+  quit, or ended, while the starting screen is still up brings the tiles
+  back as soon as Steam's own log says its process ended (ADR-0057). While
   Steam is still starting after login, or its `reaper` for the game is
   running, the launcher keeps waiting for that window past its usual 15 s,
   up to two minutes (ADR-0029). While Steam's own log says it is getting the

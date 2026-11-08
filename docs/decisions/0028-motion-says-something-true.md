@@ -4,7 +4,8 @@
 **Date:** 2026-10-07, amended 2026-10-08
 **Closes:** (none) — addresses issue #129; amends ADR-0026
 **Amended by:** ADR-0029 (a Steam game is waited for past the grace while Steam works on it),
-ADR-0030 (a launch that shows nothing ends on the grown-up screen, not the tiles)
+ADR-0030 (a launch that shows nothing ends on the grown-up screen, not the tiles),
+ADR-0057 (a Steam game Steam says has ended ends its launch while it is opening)
 
 ## Context
 
@@ -88,11 +89,15 @@ windows; the game covering them is fine.
   something else opened it. Steam's own windows are hidden by the kiosk's
   rules and never count, and a launch rarely coincides with anything else.
   The window stays the app's after the app is open, as a dialog would.
-- A Steam game that closes itself within 3 s of its window appearing
-  (#133) leaves the stones up until the grace timer ends, then the tiles
-  return; `steam -applaunch` has handed off, so the launcher cannot tell
-  it from a splash. An app the launcher started itself, such as a Flatpak,
-  ends with its window as before.
+- A Steam game that closes within 3 s of its window appearing, because
+  the child quit it or it closed itself (#133), left the stones up until
+  the grace timer ended, and within a minute of login until the extra
+  graces of ADR-0029 ended too, about 60 s after the tap (#276);
+  `steam -applaunch` has handed off, so the launcher could not tell it
+  from a splash. Since ADR-0057, Steam's log says when the game's process
+  ended, and the tiles come back within about a second of its window
+  going. An app the launcher started itself, such as a Flatpak, ends with
+  its window as before.
 - A splash that stays up longer than 3 s still opens the app, and the
   game's own window after it counts as one that opened on its own. Whether
   any of the laptop's games do that is checked there before more is built

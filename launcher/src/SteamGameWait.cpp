@@ -42,6 +42,14 @@ bool SteamGameWait::steamGame() const {
     return !m_appId.isEmpty();
 }
 
+bool SteamGameWait::gameEnded() {
+    if (m_appId.isEmpty()) {
+        return false;
+    }
+    m_log.read(QDateTime::currentDateTime());
+    return m_log.gameEnded();
+}
+
 bool SteamGameWait::stillComing() {
     if (m_appId.isEmpty() || !m_sinceLaunch.isValid()) {
         return false;

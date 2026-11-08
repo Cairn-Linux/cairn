@@ -24,7 +24,10 @@
 // has stayed on the screen for the steady wait, so a splash that comes and
 // goes before the game's own window is part of the start (ADR-0028). Then it
 // is Running, and when the app's last window leaves the screen it returns to
-// Idle (issue #42). A Steam game Steam is still working on is waited for past
+// Idle (issue #42). A Steam game whose window went while it was opening was
+// a splash, unless Steam's log says the game itself has ended since the tap:
+// then the launch is over at once and the tiles come back (ADR-0057). A
+// Steam game Steam is still working on is waited for past
 // the grace, up to a limit (SteamGameWait, ADR-0029); while Steam's log says
 // it is working on the game, the starting screen says it is getting ready
 // (ADR-0036). A tap Steam lost while it updated itself is sent again once the
@@ -176,6 +179,13 @@ private:
     void onErrorOccurred(QProcess* process, QProcess::ProcessError error);
     void onFinished(QProcess* process, int exitCode, QProcess::ExitStatus exitStatus);
     void onLaunchGraceTimeout();
+    // The app's window has been on the screen and is gone while the launch
+    // is still opening and the grace timer runs: a splash, or the app over.
+    bool goneWhileOpening() const;
+    // A Steam game gone while opening, and Steam says it has ended
+    // (ADR-0057). While Steam has not said so, Steam's log is read again
+    // shortly.
+    bool steamGameEnded();
     // Runs the tile's program for the current launch, in a scope of its own
     // when scoped.
     void startProgram(const QStringList& exec);
@@ -188,6 +198,7 @@ private:
     QTimer m_launchGraceTimer;
     QTimer m_exitGraceTimer;
     QTimer m_steadyTimer;
+    QTimer m_steamEndTimer;
     LaunchWindows m_windows;
     SteamGameWait m_steamGame;
     SteamStartup m_steamStartup;

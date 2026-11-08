@@ -78,6 +78,10 @@ public:
     void startLaunch(const QStringList& exec);
     // The tile pressed last is a Steam game.
     bool steamGame() const;
+    // Reads Steam's log now: since the tap, Steam says the game's own
+    // process has ended, so the game is over (ADR-0057). False for anything
+    // but a Steam game.
+    bool gameEnded();
     // True while the game is worth waiting for: a Steam game, and either
     // Steam's logs say it is working on it, or starting or updating itself,
     // or Steam is being started again for it, inside the work limit, or,
