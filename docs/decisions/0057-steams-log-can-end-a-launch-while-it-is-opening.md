@@ -163,3 +163,25 @@ Fish 2 with Ctrl+Q 1 to 2 s after its window comes, once within a minute
 of login and once later: the tiles come back within about a second of the
 window going, and the journal has the "Steam says … ended" line.
 After longer play, the tiles come back with the window as before.
+
+## Record
+
+2026-11-07, cairn-min on `test.20261107-276-292-2c4643a` (main 57bd89a
+with this change at ed16050 and #296 merged; 105 of 105 tests in the
+image build). Freddi Fish 2, child ada, Ctrl+Q sent with `virsh
+send-key`:
+- Quit 1.5 s after the window, 23 s after login: tiles back 0.25 s after
+  the window went, with "Steam says … ended while it was starting, 20 s
+  after the tap".
+- Quit again 39 to 45 s after login: tiles back 0.50 s after; at 76 s
+  after login: 0.29 s after. Both with the journal line.
+- After 30 s of play: the tiles came back with the window, and no "Steam
+  says" line.
+- Ctrl-Alt-Home during a game still ended it, tiles back in 0.07 s.
+The check above has passed. Not tried: a Proton game, a game with a
+splash, a game crashing in its first seconds, and the reaper guard (a
+game given up on just before the tap). Sanitizer builds do not link on
+the dev PC. Seen in the same run, and the same on main: after Steam last
+exited uncleanly, its "Updating Steam" window can stay past the steady
+wait and count as the game's window (#297).
+The ADR stays proposed for the maintainer to accept.
