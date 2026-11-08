@@ -259,6 +259,21 @@ The first lists `mpris-proxy.service` and `bazzite-dynamic-fixes.service`,
 Bazzite's fix for GTK programs on Intel graphics, which runs as the
 account and stays. The second says `not-found`.
 
+A child cannot change their own name, picture or language (ADR-0056).
+Cairn's polkit rule refuses AccountsService's
+`change-own-user-data` to every child, and util-linux's `chfn` refuses
+every account but root while `login.defs` sets no `CHFN_RESTRICT`.
+`build_files/check-own-account-data.sh` stops the build if either could
+stop holding. To look yourself:
+
+```sh
+podman run --rm localhost/cairn:dev grep -n change-own-user-data /usr/share/polkit-1/rules.d/10-cairn-levels.rules
+podman run --rm localhost/cairn:dev grep -n CHFN_RESTRICT /etc/login.defs
+```
+
+The first prints the rule's lines for the action, the second only a line
+that starts with `#`.
+
 The grown-up's start-menu button shows the Cairn mark (#166, first
 step). Valve's look names `distributor-logo-steamdeck`, which slice 5
 leads to the mark. `build_files/guardian-desktop.sh` adds the mark under

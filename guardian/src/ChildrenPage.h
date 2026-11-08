@@ -3,6 +3,7 @@
 
 #include "Account.h"
 #include "ChildList.h"
+#include "UnfinishedAdd.h"
 
 #include <QObject>
 #include <QQmlEngine>
@@ -17,9 +18,9 @@
 class FamilyChange;
 
 // What the Guardian tool's Children page shows, and what its buttons do:
-// the family's children with their levels, adding a child, and moving a
-// child to another level (ADR-0040). Every change is one run of
-// cairn-family through pkexec (ADR-0039).
+// the family's children with their levels, adding a child, moving a child
+// to another level (ADR-0040) and changing a child's name (ADR-0056).
+// Every change is one run of cairn-family through pkexec (ADR-0039).
 class ChildrenPage : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -31,6 +32,9 @@ class ChildrenPage : public QObject {
     Q_PROPERTY(Reason reason READ reason NOTIFY stepChanged)
     // The name of the child the last change was for, and the level it gave.
     Q_PROPERTY(QString subject READ subject NOTIFY stepChanged)
+    // The name the last change of a name asked for, as typed but for spaces
+    // at either end.
+    Q_PROPERTY(QString newName READ newName NOTIFY stepChanged)
     Q_PROPERTY(int level READ level NOTIFY stepChanged)
     Q_PROPERTY(bool busy READ busy NOTIFY stepChanged)
 
@@ -40,17 +44,20 @@ public:
         Asking, // pkexec asks for the password, then the command runs
         Added,
         LevelChanged,
+        NameChanged,
         NotChanged, // see reason()
     };
     Q_ENUM(Step)
 
-    // Why nothing changed. The first three the page finds itself; the rest
+    // Why nothing changed. The first five the page finds itself; the rest
     // are cairn-family's own words (ADR-0039) and pkexec's.
     enum class Reason : std::uint8_t {
         None,
         NoName,
         NoShortName,
-        SameName, // a child on the list has that name already (#212)
+        SameName,      // a child on the list has that name already (#212)
+        AnotherChilds, // a new name another child on the list has (#212)
+        NameAsBefore,  // a new name that is the child's name already
         NotRoot,
         NotAGrownUp,
         Usage,
@@ -81,6 +88,7 @@ public:
     Step step() const;
     Reason reason() const;
     QString subject() const;
+    QString newName() const;
     int level() const;
     bool busy() const;
 
@@ -91,6 +99,7 @@ public:
     Q_INVOKABLE bool needsShortName(const QString& name) const;
     Q_INVOKABLE void addChild(const QString& name, const QString& shortName, int level);
     Q_INVOKABLE void changeLevel(const QString& login, int level);
+    Q_INVOKABLE void changeName(const QString& login, const QString& name);
     // Reads the children again from the account database.
     Q_INVOKABLE void reload();
 
@@ -101,14 +110,6 @@ signals:
     void stepChanged();
 
 private:
-    // An add that may have made the account before it stopped.
-    struct UnfinishedAdd {
-        QString login;
-        QString fullName;
-    };
-
-    std::optional<QString> unfinishedLogin(const QString& fullName) const;
-    void rememberAdd(const QString& answer);
     void run(const QStringList& arguments, Step onDone);
     void finished(const QString& answer);
     void setStep(Step step, Reason reason = Reason::None);
@@ -119,8 +120,8 @@ private:
     Step m_step = Step::Ready;
     Reason m_reason = Reason::None;
     QString m_subject;
+    QString m_newName;
     int m_level = 0;
     Step m_onDone = Step::Ready;
-    UnfinishedAdd m_adding;
-    std::optional<UnfinishedAdd> m_unfinished;
+    UnfinishedAdd m_unfinished;
 };

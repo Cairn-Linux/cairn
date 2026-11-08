@@ -290,6 +290,94 @@ private slots:
         QVERIFY(family.runs().isEmpty());
     }
 
+    // A new name for a listed child, with both names for the sentence.
+    // Spaces at either end go; other capitals are a change (ADR-0056).
+    void changeAName() {
+        StandInFamily family(QStringLiteral("done"));
+        family.page->changeName(QStringLiteral("ben"), QStringLiteral("  Benjamin "));
+        QCOMPARE(family.page->step(), ChildrenPage::Step::Asking);
+        QVERIFY(family.waitUntilAnswered());
+        QCOMPARE(family.page->step(), ChildrenPage::Step::NameChanged);
+        QCOMPARE(family.page->reason(), ChildrenPage::Reason::None);
+        QCOMPARE(family.page->subject(), QStringLiteral("Ben"));
+        QCOMPARE(family.page->newName(), QStringLiteral("Benjamin"));
+        family.page->changeName(QStringLiteral("ada"), QStringLiteral("ADA"));
+        QVERIFY(family.waitUntilAnswered());
+        QCOMPARE(family.page->step(), ChildrenPage::Step::NameChanged);
+        QCOMPARE(family.runs(),
+                 QList<QStringList>({{"set-name", "ben", "Benjamin"}, {"set-name", "ada", "ADA"}}));
+    }
+
+    // A child at level 3 has a name like any other.
+    void anOlderChildsName() {
+        StandInFamily family(QStringLiteral("done"));
+        family.accounts.push_back(
+            {.uid = 1005, .groups = {"cy", "cairn-l3"}, .login = "cy", .fullName = {}});
+        family.page->reload();
+        family.page->changeName(QStringLiteral("cy"), QStringLiteral("Cy"));
+        QVERIFY(family.waitUntilAnswered());
+        QCOMPARE(family.page->step(), ChildrenPage::Step::NameChanged);
+        QCOMPARE(family.page->subject(), QStringLiteral("cy"));
+        QCOMPARE(family.runs(), QList<QStringList>({{"set-name", "cy", "Cy"}}));
+    }
+
+    // Refused before the password is asked for: no name, the name the child
+    // has, another child's name in any capitals, cairn-family's rule, and
+    // anyone the page does not list.
+    void aNameRefusedWithoutRunning_data() {
+        QTest::addColumn<QString>("login");
+        QTest::addColumn<QString>("name");
+        QTest::addColumn<ChildrenPage::Reason>("reason");
+        QTest::addColumn<QString>("subject");
+
+        using Reason = ChildrenPage::Reason;
+        QTest::newRow("empty") << "ada" << QString() << Reason::NoName << "Ada";
+        QTest::newRow("only spaces") << "ada" << "   " << Reason::NoName << "Ada";
+        QTest::newRow("as before") << "ada" << " Ada " << Reason::NameAsBefore << "Ada";
+        QTest::newRow("another child's") << "ada" << "Ben" << Reason::AnotherChilds << "Ada";
+        QTest::newRow("another child's in small letters")
+            << "ada" << "ben" << Reason::AnotherChilds << "Ada";
+        QTest::newRow("another child's login, their name")
+            << "ada" << "Dee" << Reason::AnotherChilds << "Ada";
+        QTest::newRow("colon") << "ada" << "Ada: L" << Reason::BadFullName << "Ada";
+        QTest::newRow("comma") << "ada" << "Ada, L" << Reason::BadFullName << "Ada";
+        QTest::newRow("backslash") << "ada" << "Ada\\L" << Reason::BadFullName << "Ada";
+        QTest::newRow("line break") << "ada" << "Ada\nL" << Reason::BadFullName << "Ada";
+        QTest::newRow("a Guardian") << "guardian" << "Mum" << Reason::NotAChild << "guardian";
+        QTest::newRow("an administrator") << "helper" << "Mum" << Reason::NotAChild << "helper";
+        QTest::newRow("a plain account") << "guest" << "Mum" << Reason::NotAChild << "guest";
+        QTest::newRow("no one") << "nobody-here" << "Mum" << Reason::NotAChild << "nobody-here";
+    }
+
+    void aNameRefusedWithoutRunning() {
+        QFETCH(const QString, login);
+        QFETCH(const QString, name);
+        QFETCH(const ChildrenPage::Reason, reason);
+        QFETCH(const QString, subject);
+        StandInFamily family(QStringLiteral("done"));
+        family.accounts.push_back(
+            {.uid = 1005, .groups = {"dee", "cairn-l2"}, .login = "dee", .fullName = {}});
+        family.page->reload();
+        family.page->changeName(login, name);
+        QCOMPARE(family.page->step(), ChildrenPage::Step::NotChanged);
+        QCOMPARE(family.page->reason(), reason);
+        QCOMPARE(family.page->subject(), subject);
+        QVERIFY(!family.page->busy());
+        QVERIFY(family.runs().isEmpty());
+    }
+
+    // Each of cairn-family's answers reads as for any change, and the list
+    // is read again after it.
+    void aNameRefusedByTheCommand() {
+        StandInFamily family(QStringLiteral("refused-not-a-child"));
+        const QSignalSpy listed(family.page.get(), &ChildrenPage::listedChildrenChanged);
+        family.page->changeName(QStringLiteral("ada"), QStringLiteral("Ada Jones"));
+        QVERIFY(family.waitUntilAnswered());
+        QCOMPARE(family.page->step(), ChildrenPage::Step::NotChanged);
+        QCOMPARE(family.page->reason(), ChildrenPage::Reason::NotAChild);
+        QCOMPARE(listed.size(), 1);
+    }
+
     // An add that failed may have made the account. Adding the same name
     // again finishes that one, with the same login, and makes no second.
     void addingAgainAfterAFailureFinishesTheFirst() {
@@ -453,6 +541,7 @@ private slots:
         QVERIFY(family.page->busy());
         family.page->changeLevel(QStringLiteral("ben"), 1);
         family.page->addChild(QStringLiteral("Cy"), QString(), 1);
+        family.page->changeName(QStringLiteral("ben"), QStringLiteral("Benjamin"));
         QCOMPARE(family.page->step(), ChildrenPage::Step::Asking);
         QCOMPARE(family.page->subject(), QStringLiteral("Ada"));
         QTest::qWait(300);

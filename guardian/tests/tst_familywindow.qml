@@ -422,8 +422,9 @@ TestCase {
         tryCompare(findChild(findChild(window, "childRows").itemAt(1), "moveTo1"), "activeFocus", true);
     }
 
-    // A child at level 3 has two buttons; in a narrow window they go
-    // under the name, which keeps its room.
+    // A child at level 3 has three buttons, two levels and Change name;
+    // in a narrow window they go under the name, which keeps its room, as
+    // many to a line as fit.
     function test_anOlderChildInANarrowWindow() {
         const window = makeWindow("done", {
             "withOlderChild": true,
@@ -440,6 +441,128 @@ TestCase {
         verify(buttons.x + buttons.width <= row.width);
         // The other rows fit side by side.
         verify(findChild(window, "childRows").itemAt(0).sideBySide);
+    }
+
+    // ---- a child's name (ADR-0056) ----
+
+    function childRow(window, index) {
+        return findChild(window, "childRows").itemAt(index);
+    }
+
+    function newNameInput(window, index) {
+        return findChild(findChild(childRow(window, index), "newNameField"), "input");
+    }
+
+    // Selects what the field holds and types over it, key by key.
+    function typeOver(input, text) {
+        input.selectAll();
+        for (let i = 0; i < text.length; ++i)
+            keyClick(text[i]);
+    }
+
+    // Change name opens a field with the name in it, and the keyboard
+    // there. Save name asks for the password, and the sentence names the
+    // child by both names. The field closes once the name is in place.
+    function test_changeAName() {
+        const window = makeWindow("done");
+        const button = findChild(childRow(window, 1), "changeName");
+        compare(button.text, "Change name");
+        compare(button.Accessible.name, "Change the name of Ben");
+        verify(!findChild(childRow(window, 1), "nameChange").visible);
+        mouseClick(button);
+        verify(findChild(childRow(window, 1), "nameChange").visible);
+        verify(!findChild(childRow(window, 0), "nameChange").visible);
+        tryCompare(newNameInput(window, 1), "activeFocus", true);
+        compare(newNameInput(window, 1).text, "Ben");
+        compare(newNameInput(window, 1).Accessible.name, "New name");
+        compare(findChild(childRow(window, 1), "saveName").Accessible.name, "Save the new name for Ben");
+        compare(findChild(childRow(window, 1), "cancelName").Accessible.name, "Cancel, and keep the name Ben");
+        typeOver(newNameInput(window, 1), "Benjamin");
+        mouseClick(findChild(childRow(window, 1), "saveName"));
+        tryCompare(window.page, "step", ChildrenPage.NameChanged);
+        compare(outcome(window), "Ben is called Benjamin now, on the login screen and in Family.");
+        verify(!findChild(childRow(window, 1), "nameChange").visible);
+        tryCompare(findChild(childRow(window, 1), "changeName"), "activeFocus", true);
+    }
+
+    // Enter in the field saves too.
+    function test_changeANameWithTheKeyboard() {
+        const window = makeWindow("done");
+        findChild(childRow(window, 0), "changeName").forceActiveFocus();
+        keyClick(Qt.Key_Space);
+        tryCompare(newNameInput(window, 0), "activeFocus", true);
+        typeOver(newNameInput(window, 0), "Ada L");
+        keyClick(Qt.Key_Return);
+        tryCompare(window.page, "step", ChildrenPage.NameChanged);
+        compare(outcome(window), "Ada is called Ada L now, on the login screen and in Family.");
+    }
+
+    // Another child's name is refused before any password, and the field
+    // keeps what was typed, with the keyboard back in it (#212).
+    function test_anotherChildsNameIsRefused() {
+        const window = makeWindow("asking");
+        mouseClick(findChild(childRow(window, 0), "changeName"));
+        tryCompare(newNameInput(window, 0), "activeFocus", true);
+        typeOver(newNameInput(window, 0), "ben");
+        mouseClick(findChild(childRow(window, 0), "saveName"));
+        compare(window.page.reason, ChildrenPage.AnotherChilds);
+        verify(!window.page.busy);
+        compare(outcome(window), "Another child is called ben already. Two children with one name look the same on every screen, so choose a different one, such as one with an initial.");
+        compare(newNameInput(window, 0).text, "ben");
+        tryCompare(newNameInput(window, 0), "activeFocus", true);
+    }
+
+    function test_theSameNameIsRefused() {
+        const window = makeWindow("asking");
+        mouseClick(findChild(childRow(window, 0), "changeName"));
+        mouseClick(findChild(childRow(window, 0), "saveName"));
+        compare(outcome(window), "Ada is the name already. Type a different one, or press Cancel.");
+        verify(!window.page.busy);
+    }
+
+    // A closed password box reads the list again; the field stays open
+    // with the new name in it, to try again.
+    function test_aRefusedNameStaysToMend() {
+        const window = makeWindow("not-authorized");
+        mouseClick(findChild(childRow(window, 1), "changeName"));
+        tryCompare(newNameInput(window, 1), "activeFocus", true);
+        typeOver(newNameInput(window, 1), "Benjamin");
+        mouseClick(findChild(childRow(window, 1), "saveName"));
+        tryCompare(window.page, "step", ChildrenPage.NotChanged);
+        compare(outcome(window), "Nothing changed. It needs your password: the box was closed, or the password was not accepted.");
+        verify(findChild(childRow(window, 1), "nameChange").visible);
+        compare(newNameInput(window, 1).text, "Benjamin");
+        tryCompare(newNameInput(window, 1), "activeFocus", true);
+    }
+
+    // Cancel, or Escape, closes the field and changes nothing. Opened
+    // again, it holds the name as it is.
+    function test_cancelAName() {
+        const window = makeWindow("done");
+        mouseClick(findChild(childRow(window, 1), "changeName"));
+        tryCompare(newNameInput(window, 1), "activeFocus", true);
+        typeOver(newNameInput(window, 1), "Benj");
+        keyClick(Qt.Key_Escape);
+        verify(!findChild(childRow(window, 1), "nameChange").visible);
+        tryCompare(findChild(childRow(window, 1), "changeName"), "activeFocus", true);
+        compare(window.page.step, ChildrenPage.Ready);
+        mouseClick(findChild(childRow(window, 1), "changeName"));
+        tryCompare(newNameInput(window, 1), "text", "Ben");
+        mouseClick(findChild(childRow(window, 1), "cancelName"));
+        verify(!findChild(childRow(window, 1), "nameChange").visible);
+    }
+
+    // While the password box is open, the field waits too.
+    function test_theNameWaitsWhileItRuns() {
+        const window = makeWindow("asking");
+        mouseClick(findChild(childRow(window, 1), "changeName"));
+        tryCompare(newNameInput(window, 1), "activeFocus", true);
+        typeOver(newNameInput(window, 1), "Benjamin");
+        mouseClick(findChild(childRow(window, 1), "saveName"));
+        compare(window.page.busy, true);
+        verify(!findChild(childRow(window, 1), "saveName").enabled);
+        verify(!newNameInput(window, 1).enabled);
+        verify(!findChild(childRow(window, 0), "changeName").enabled);
     }
 
     // ---- the switch between pages, and the Games page ----

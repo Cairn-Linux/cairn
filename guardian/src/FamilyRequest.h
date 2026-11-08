@@ -13,15 +13,18 @@
 //
 //   create-child LOGIN LEVEL [--full-name NAME]
 //   set-level LOGIN LEVEL
+//   set-name LOGIN NAME
 //
 // Every value is checked here, before anything looks at an account, because
 // each goes into a system tool's arguments or a file name.
 struct FamilyRequest {
-    enum class Action : std::uint8_t { CreateChild, SetLevel };
+    enum class Action : std::uint8_t { CreateChild, SetLevel, SetName };
 
     Action action = Action::CreateChild;
     QString login;
+    // Not set for set-name, which leaves the level as it is.
     int level = 0;
+    // Always set for set-name.
     std::optional<QString> fullName;
     // Set when the arguments are not a request this command takes; then
     // nothing else here may be used.

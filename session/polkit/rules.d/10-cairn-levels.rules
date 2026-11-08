@@ -36,6 +36,9 @@ function startsWithAny(id, prefixes) {
 // The Guardian owns Wi-Fi, updates and parental controls (DESIGN §3.2), at
 // every level of the ladder. Reading one's own parental-control settings is
 // left alone: malcontent's Flatpak check runs as the child and needs it.
+// A child's name, picture and language are the Guardian's too (ADR-0056):
+// AccountsService asks change-own-user-data before an account changes any
+// of them on itself, and Fedora's default lets it with no password.
 var guardianOnly = [
     "org.freedesktop.NetworkManager.",
     "org.freedesktop.Flatpak.",
@@ -46,7 +49,8 @@ var guardianOnly = [
     "com.endlessm.ParentalControls.SessionLimits.Change",
     "org.freedesktop.Malcontent.WebFilter.Change",
     "org.freedesktop.Malcontent.SessionLimits.Extend",
-    "org.freedesktop.MalcontentControl."
+    "org.freedesktop.MalcontentControl.",
+    "org.freedesktop.accounts.change-own-user-data"
 ];
 
 // The kiosk has nothing on screen that powers off, sleeps or mounts, so

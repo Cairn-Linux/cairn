@@ -13,10 +13,10 @@
 #include <functional>
 #include <optional>
 
-// cairn-family: the root command that makes a child's account and changes
-// a child's level (ADR-0039). A Guardian's window runs it through pkexec;
-// the family's setup runs it as root with sudo. Either way it checks the
-// caller and every value itself, and changes only accounts Cairn made.
+// cairn-family: the root command that makes a child's account, changes a
+// child's level (ADR-0039) and changes a child's name (ADR-0056). A Guardian's window runs it
+// through pkexec; the family's setup runs it as root with sudo. Either way it checks the caller and
+// every value itself, and changes only accounts Cairn made.
 class FamilyCommand {
 public:
     using LookUp = std::function<std::optional<Account>(const QString&)>;
@@ -72,6 +72,7 @@ private:
     bool removeOldGames(const QString& login) const;
     std::optional<Refusal> changeChild(const Account& child, const FamilyRequest& request) const;
     std::optional<Refusal> setLevel(const Account& child, int level) const;
+    std::optional<Refusal> setName(const Account& child, const QString& fullName) const;
     std::optional<Refusal> writeEntry(const QString& login, const QString& name) const;
 
     Setup m_setup;
