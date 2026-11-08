@@ -45,6 +45,16 @@ void steamLine(const QString& path, qint64 secondsAgo, const QByteArray& says) {
     log.write('[' + time.toLatin1() + "] " + says + '\n');
 }
 
+// Steam's line when a process of the game 294650 starts ("added ") or ends
+// ("removed"), ending in `ProcID <end>`.
+QByteArray gameProcess(const QByteArray& what, const QByteArray& end) {
+    return "Game process " + what +
+           ": AppID 294650 \"/var/home/child/.local/share/Steam/ubuntu12_32/"
+           "steam-launch-wrapper -- /var/home/child/.local/share/Steam/ubuntu12_32/reaper "
+           "SteamLaunch AppId=294650 -- ...\", ProcID " +
+           end;
+}
+
 // The client's own start command, as the login's `steam -silent` runs it.
 QByteArray ownStart() {
     return "ExecCommandLine: \"'/var/home/child/.local/share/Steam/ubuntu12_32/"
@@ -1228,6 +1238,50 @@ private slots:
         QCOMPARE(wait.lastStep() == SteamLaunchLog::Step::WaitingForAnswer, held);
         QCOMPARE(wait.journalNote(QStringLiteral("Ada's game")).isEmpty(), !held);
         QCOMPARE(wait.logOutWouldHelp(), held);
+    }
+
+    // Steam says the game's process ended, and no reaper started since the
+    // tap runs for it: the game is over (ADR-0057). Steam's lines name
+    // different process ids, as on the kids' laptop (2026-11-06).
+    void theGameEndingIsSeen() {
+        const QTemporaryDir root;
+        const QString log = root.filePath(QStringLiteral("console_log.txt"));
+        SteamGameWait wait(root.path(), log);
+        wait.startLaunch(steamGame());
+        steamLine(log, 0, gameProcess("added ", "3935, IP 0.0.0.0:0"));
+        QVERIFY(!wait.gameEnded());
+        steamLine(log, 0, gameProcess("removed", "4072 "));
+        QVERIFY(wait.gameEnded());
+    }
+
+    // A game given up on just before the tap is still being ended when the
+    // tapped one starts, and Steam says it ended after that (ADR-0055). This
+    // tap's reaper still runs, so this game has not ended until it goes.
+    void anEndWhileThisTapsReaperRunsIsAnEarlierGame() {
+        const QTemporaryDir root;
+        const QString log = root.filePath(QStringLiteral("console_log.txt"));
+        addProcess(root, QStringLiteral("8447"), "reaper",
+                   {"reaper", "SteamLaunch", "AppId=294650"});
+        SteamGameWait wait(root.path(), log);
+        wait.startLaunch(steamGame());
+        addProcess(root, QStringLiteral("9001"), "reaper",
+                   {"reaper", "SteamLaunch", "AppId=294650"});
+        steamLine(log, 0, gameProcess("added ", "9000, IP 0.0.0.0:0"));
+        steamLine(log, 0, gameProcess("removed", "8448 "));
+        QVERIFY(!wait.gameEnded());
+        QVERIFY(QDir(root.filePath(QStringLiteral("9001"))).removeRecursively());
+        QVERIFY(wait.gameEnded());
+    }
+
+    // Steam's line about the game ending says nothing about another tile.
+    void notASteamGameNeverEnds() {
+        const QTemporaryDir root;
+        const QString log = root.filePath(QStringLiteral("console_log.txt"));
+        SteamGameWait wait(root.path(), log);
+        wait.startLaunch({QStringLiteral("tuxpaint")});
+        steamLine(log, 0, gameProcess("added ", "3935, IP 0.0.0.0:0"));
+        steamLine(log, 0, gameProcess("removed", "4072 "));
+        QVERIFY(!wait.gameEnded());
     }
 
     void notASteamGameIsNeverSentAgain() {

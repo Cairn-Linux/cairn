@@ -477,12 +477,23 @@ done, and what could sink it. Decisions that change the design get an ADR in
   0.1 to 0.3 s after the window goes, or before it. `SteamLaunchLog` now
   reads that line and "Game process added", and `AppLauncher` ends a
   Steam launch whose window was seen and has gone while opening once
-  Steam says the game ended, reading the log every 250 ms while it
-  waits. The tiles come back quietly, with a journal line; a splash with
-  the game still running keeps waiting as before. Built and tested in
-  the release build on 2026-11-07; the VM check with the new launcher is
+  Steam says the game ended and no reaper started since the tap still
+  runs, reading the log every 250 ms while it waits. The line's process
+  ids do not pair "added" with "removed" (laptop logs), so the reaper
+  check is what keeps a game given up on just before the tap from ending
+  the new one (ADR-0055). The tiles come back quietly, with a journal
+  line; a splash with the game still running keeps waiting as before.
+  Built and tested with `ctest --preset release` on 2026-11-07; the
+  sanitizer build (`--preset debug`) does not link on the dev PC, so it
+  has not run on this change. The VM check with the new launcher is
   open. #133 (a grown-up screen for a game that closes itself) can use
   the same signal, but Steam's line is the same for Ctrl+Q and a crash.
+  Left for later: a Steam game that ends before any window still waits
+  out the grace, and within a minute of login the extra graces too,
+  then shows the grown-up screen; `SteamGameWait::stillComing()` could
+  stop the wait once Steam says the game ended (#133). `AppLauncher.cpp`
+  is now about 535 lines against the ~200-line guide and wants splitting
+  in a change of its own.
 - **ADR-0055 (2026-11-06, part of #287, proposed): a give-up ends only
   what was there when the keys were pressed.** On cairn-min, a tile
   tapped 1 to 2 s after Ctrl-Alt-Home was undone: the helper's SIGKILL at

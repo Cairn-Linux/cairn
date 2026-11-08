@@ -319,7 +319,7 @@ void AppLauncher::update() {
     // came and went was a splash; keep waiting for the next. Not when the
     // program itself has quit since its window came up, nor when Steam says
     // its game has ended: that is the app ending, and nothing more will come.
-    const bool steamEnded = steamGameEnded();
+    const bool steamEnded = checkSteamGameEnded();
     const bool stillOpening =
         m_windows.opening() && m_launchGraceTimer.isActive() && !m_quitWhileOpening && !steamEnded;
     if (m_windows.launching() && m_windows.appWasOnScreen() && !m_windows.appOnScreen() &&
@@ -365,7 +365,7 @@ bool AppLauncher::goneWhileOpening() const {
            m_launchGraceTimer.isActive();
 }
 
-bool AppLauncher::steamGameEnded() {
+bool AppLauncher::checkSteamGameEnded() {
     if (!m_steamGame.steamGame() || !goneWhileOpening()) {
         m_steamEndTimer.stop();
         return false;
@@ -384,6 +384,10 @@ bool AppLauncher::steamGameEnded() {
                              .arg(m_launchTitle)
                              .arg(seconds);
     return true;
+}
+
+bool AppLauncher::readingSteamLog() const {
+    return m_steamEndTimer.isActive();
 }
 
 void AppLauncher::appIsOpen() {

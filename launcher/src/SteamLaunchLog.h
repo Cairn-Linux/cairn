@@ -34,7 +34,10 @@
 // process added : AppID 294530 "..."` and `Game process removed: AppID
 // 294530 "..."`. The process is Steam's reaper, which holds the whole game,
 // so "removed" comes once, when the game is over, whether the child quit it
-// or it crashed (ADR-0057).
+// or it crashed (ADR-0057). The `ProcID` at the end of the two lines names
+// different processes, Steam's wrapper and then the last one it tracked, so
+// it cannot pair a removal with its start; SteamGameWait checks the reaper
+// is gone too.
 class SteamLaunchLog {
 public:
     enum class Step : std::uint8_t {

@@ -378,8 +378,10 @@ says and never from a window's name:
   game's process ended since the tap (ADR-0057, #276). Then the tiles
   come back at once, and the journal says "Steam says … ended while it was
   starting". While a Steam game's window is gone and its launch is
-  opening, Steam's log is read every 250 ms. After that, a window that belongs to
-  one of the app's, such as a dialog, is the app's too. While one is on the
+  opening, Steam's log is read every 250 ms. Steam's line counts only once
+  no reaper started since the tap still runs for the game. After that, a
+  window that belongs to one of the app's, such as a dialog, is the app's
+  too. While one is on the
   screen the launcher is Running; when the last one leaves, the tiles are
   back.
 - While Steam is updating itself, a window that comes on the screen is its
