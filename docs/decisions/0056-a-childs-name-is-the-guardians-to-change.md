@@ -230,17 +230,45 @@ file, not beside it.
 
 ### Not checked yet
 
-- That no rule file sorting before `10-cairn-levels.rules`, in either
-  folder, answers `yes` for these actions first: polkit takes the first
-  answer. The build check confirms that Cairn's rule names the action,
-  not that it answers first. A `pkcheck` run as a child account in the
-  built image would show it. This was so before this change too.
-- `change-own-password` and `user-administration` refused to ada and ben
-  with no password box, in the VM; only `change-own-user-data` was run
-  there.
+- (Done on the built image, below.) That no rule file sorting before
+  `10-cairn-levels.rules`, in either folder, answers `yes` for these actions
+  first: polkit takes the first answer. The build check confirms that Cairn's
+  rule names the action, not that it answers first. A `pkcheck` run as a child
+  account in the built image would show it. This was so before this change too.
+- (Done on the built image, below.) `change-own-password` and
+  `user-administration` refused to ada and ben with no password box, in the VM;
+  only `change-own-user-data` was run there.
 
-- An image built from this change: the build check, the rule where the
-  image puts it, and checks 1 to 3 again without an overlay.
-- Change name in Family, in the VM, with the real password box: the new
-  name on the login screen and in Family, and the Guardian's "Steam for"
+- (Done, below.) An image built from this change: the build check, the rule
+  where the image puts it, and checks 1 to 3 again without an overlay.
+- (Done, below.) Change name in Family, in the VM, with the real password box:
+  the new name on the login screen and in Family, and the Guardian's "Steam for"
   entry renamed.
+
+### On an image built from this change
+
+In cairn-min on 2026-11-07, on `test.20261107-276-292-2c4643a` (main
+57bd89a with this change at 328f9df and #295 merged; 105 of 105 tests
+and `check-own-account-data.sh` passed in the build):
+- ada (L1) and ben (L2, moved to L3 with a password for the run, then
+  put back) called `SetRealName`, `SetIconFile`, `SetLanguage` and
+  `SetPasswordHint` on themselves, and a rename of the Guardian: each
+  "Not authorized". `pkcheck` for `change-own-user-data`,
+  `change-own-password` and `user-administration` answered no, not a
+  password box, so no earlier rule file answered first. `chfn` was
+  refused by CHFN_RESTRICT. No wrong try was counted.
+- The Guardian renamed ben in Family through the real password box: the
+  account, the login screen and his "Steam for" entry took the new name,
+  and the journal said `set-name ben: done`. A grown-up's name was
+  refused before any password box. Add a child still worked, and the
+  Guardian still changed their own name and picture.
+- The build first failed: the install-tree test still counted five
+  `cairn-family` actions, where this change makes six. Fixed here.
+- Found there and fixed here: Escape after a refused name closed the
+  field but left the refusal on the page.
+
+Not tried: whether Plasma's region page goes through AccountsService
+(the PR's question 2), the `~/.face.icon` and `plasma-localerc` routes
+this ADR names as known limits, and that an account Cairn did not make
+keeps Fedora's answer. Every check this ADR set has passed; acceptance
+is the maintainer's.

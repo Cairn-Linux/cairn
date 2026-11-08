@@ -157,6 +157,12 @@ bool ChildrenPage::refusedAsTaken(const ListedChild* other, Reason childs, const
     return false;
 }
 
+void ChildrenPage::forgetRefusal() {
+    if (m_step == Step::NotChanged) {
+        setStep(Step::Ready);
+    }
+}
+
 void ChildrenPage::reload() {
     const std::vector<Account> accounts = m_setup.accounts();
     m_children = childrenAmong(accounts);

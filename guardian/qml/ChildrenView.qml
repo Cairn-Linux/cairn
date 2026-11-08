@@ -102,7 +102,10 @@ Column {
                 view.changingName = true;
                 view.page.changeName(modelData.login, name);
             }
-            onRenameClosed: view.renaming = ""
+            onRenameClosed: {
+                view.renaming = "";
+                view.page.forgetRefusal();
+            }
         }
     }
 

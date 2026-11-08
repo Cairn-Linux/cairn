@@ -337,6 +337,20 @@ private slots:
                  QList<QStringList>({{"set-name", "ben", "Benjamin"}, {"set-name", "ada", "ADA"}}));
     }
 
+    // Closing the name field forgets a refusal, never a change made.
+    void aRefusalIsForgottenAChangeIsNot() {
+        StandInFamily family(QStringLiteral("done"));
+        family.page->changeName(QStringLiteral("ada"), QStringLiteral("Ada"));
+        QCOMPARE(family.page->reason(), ChildrenPage::Reason::NameAsBefore);
+        family.page->forgetRefusal();
+        QCOMPARE(family.page->step(), ChildrenPage::Step::Ready);
+        QCOMPARE(family.page->reason(), ChildrenPage::Reason::None);
+        family.page->changeName(QStringLiteral("ben"), QStringLiteral("Benjamin"));
+        QVERIFY(family.waitUntilAnswered());
+        family.page->forgetRefusal();
+        QCOMPARE(family.page->step(), ChildrenPage::Step::NameChanged);
+    }
+
     // A child at level 3 has a name like any other.
     void anOlderChildsName() {
         StandInFamily family(QStringLiteral("done"));

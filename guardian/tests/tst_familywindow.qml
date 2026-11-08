@@ -526,6 +526,21 @@ TestCase {
         compare(newNameInput(window, 0).text, "guardian");
     }
 
+    // Escape after a refusal closes the field and the sentence about it.
+    function test_escapeAfterARefusalClearsIt() {
+        const window = makeWindow("asking");
+        mouseClick(findChild(childRow(window, 0), "changeName"));
+        tryCompare(newNameInput(window, 0), "activeFocus", true);
+        typeOver(newNameInput(window, 0), "guardian");
+        mouseClick(findChild(childRow(window, 0), "saveName"));
+        compare(window.page.reason, ChildrenPage.AGrownUpsName);
+        tryCompare(newNameInput(window, 0), "activeFocus", true);
+        keyClick(Qt.Key_Escape);
+        verify(!findChild(childRow(window, 0), "nameChange").visible);
+        compare(window.page.step, ChildrenPage.Ready);
+        compare(outcome(window), "");
+    }
+
     function test_theSameNameIsRefused() {
         const window = makeWindow("asking");
         mouseClick(findChild(childRow(window, 0), "changeName"));

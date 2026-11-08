@@ -106,6 +106,9 @@ public:
     Q_INVOKABLE void addChild(const QString& name, const QString& shortName, int level);
     Q_INVOKABLE void changeLevel(const QString& login, int level);
     Q_INVOKABLE void changeName(const QString& login, const QString& name);
+    // Forgets a refusal once the field it was about has closed, so the page
+    // no longer shows it. A change that went through still shows.
+    Q_INVOKABLE void forgetRefusal();
     // Reads the children again from the account database.
     Q_INVOKABLE void reload();
 
