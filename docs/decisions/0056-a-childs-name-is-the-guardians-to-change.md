@@ -186,6 +186,12 @@ the account when the child was removed in the meantime.
   (ADR-0020). Plasma takes the language from `~/.config/plasma-localerc`
   and `~/.config/environment.d/`. An L3 or L4 child with a file manager
   or a terminal can change those. Only the full name is locked.
+  The maintainer decided on 2026-11-09 that a child may change their
+  own picture, so `~/.face.icon` stays open (AccountsService still
+  refuses it, as one action covers the name too), but that a Guardian picks
+  a child's language: a child who changes it by accident may not be
+  able to read the screens that change it back. Closing the language
+  routes, and a language setting in Family, are #299.
 - **A name, picture or language a child set before this image stays
   until a Guardian changes it.** Family changes the name. Family cannot
   change a child's picture or language yet; Cairn's own screens do not
@@ -271,4 +277,4 @@ Not tried: whether Plasma's region page goes through AccountsService
 (the PR's question 2), the `~/.face.icon` and `plasma-localerc` routes
 this ADR names as known limits, and that an account Cairn did not make
 keeps Fedora's answer. Every check this ADR set has passed; acceptance
-is the maintainer's.
+is the maintainer's. The maintainer will accept it once #296 is merged.
