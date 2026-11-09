@@ -177,7 +177,7 @@ locked icon, nothing to probe.
 
 | Area | Actions |
 |---|---|
-| Accounts | Create, archive, delete child accounts; set name and avatar. A child's name is the Guardian's alone: a child cannot change it at any level, and Family changes it. A child cannot change their picture or language through AccountsService either, though at L3 and L4 a picture or language from files in their own home can still show (ADR-0056) |
+| Accounts | Create, archive, delete child accounts; set name and avatar. A child's name is the Guardian's alone: a child cannot change it at any level, and Family changes it. A child cannot change their picture through AccountsService either, though at L3 and L4 a picture from files in their own home can still show (ADR-0056). A child's language is the Guardian's too: Family sets it, at any level, and an L3 or L4 child's Plasma starts in it and offers no page to change it (ADR-0058) |
 | Levels | Raise or lower any child's level |
 | Permissions | Per-child app allowlist, game allowlist, browser access |
 | Time | Schedules and daily limits |
