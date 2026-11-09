@@ -45,8 +45,9 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/bin/cairn-steam-for" DESTINATION "${C
     PERMISSIONS ${guardian_only})
 
 # cairn-family: no window, only Qt Core, run as root by pkexec or sudo.
-# create-child and set-level change accounts (ADR-0039), and set-name a
-# child's name (ADR-0056); save-games gives children their games, and
+# create-child and set-level change accounts (ADR-0039), set-name a
+# child's name (ADR-0056) and set-language a child's language (ADR-0058);
+# save-games gives children their games, and
 # log-out logs a child out first (ADR-0041).
 # set-own-password changes the grown-up's own password (ADR-0043).
 set(family_sources
@@ -58,6 +59,8 @@ set(family_sources
     src/SteamEntry.h src/SteamEntry.cpp
     src/ReadableFile.h src/ReadableFile.cpp
     src/RootFolder.h src/RootFolder.cpp
+    src/ChildLanguage.h src/ChildLanguage.cpp
+    src/LanguageFile.h src/LanguageFile.cpp
     src/FamilyCommand.h src/FamilyCommand.cpp
     src/NewPassword.h src/NewPassword.cpp
     src/OwnPasswordCommand.h src/OwnPasswordCommand.cpp
@@ -131,6 +134,7 @@ set(family_window_sources
     src/Refusal.h src/Refusal.cpp
     src/FamilyRequest.h src/FamilyRequest.cpp
     src/LoginName.h src/LoginName.cpp
+    src/ChildLanguage.h src/ChildLanguage.cpp
     src/ChildList.h src/ChildList.cpp
     src/PkexecAnswer.h src/PkexecAnswer.cpp
     src/FamilyChange.h src/FamilyChange.cpp
@@ -144,6 +148,7 @@ set(family_window_sources
     src/SystemTool.h src/SystemTool.cpp
     src/ReadableFile.h src/ReadableFile.cpp
     src/RootFolder.h src/RootFolder.cpp
+    src/LanguageFile.h src/LanguageFile.cpp
     src/SteamWindowStart.h src/SteamWindowStart.cpp
     src/SaveRun.h src/SaveRun.cpp
     src/SaveReport.h src/SaveReport.cpp
@@ -177,6 +182,7 @@ set(family_window_qml_files
     qml/LoggedInCover.qml
     qml/ChildRow.qml
     qml/NameChange.qml
+    qml/LanguageChange.qml
     qml/AddChildForm.qml
     qml/LabelledField.qml
     qml/LevelChoice.qml
@@ -375,10 +381,20 @@ target_include_directories(tst_loginname PRIVATE src)
 target_link_libraries(tst_loginname PRIVATE Qt6::Core Qt6::Test)
 add_test(NAME loginname COMMAND tst_loginname)
 
-qt_add_executable(tst_childlist tests/tst_childlist.cpp src/ChildList.h src/ChildList.cpp)
+qt_add_executable(tst_childlist tests/tst_childlist.cpp src/ChildList.h src/ChildList.cpp
+    src/ChildLanguage.h src/ChildLanguage.cpp)
 target_include_directories(tst_childlist PRIVATE src)
 target_link_libraries(tst_childlist PRIVATE Qt6::Core Qt6::Test cairn-accounts)
 add_test(NAME childlist COMMAND tst_childlist)
+
+# The languages Family offers and each child's file (ADR-0058).
+qt_add_executable(tst_childlanguage tests/tst_childlanguage.cpp
+    src/ChildLanguage.h src/ChildLanguage.cpp src/LanguageFile.h src/LanguageFile.cpp
+    src/RootFolder.h src/RootFolder.cpp src/ReadableFile.h src/ReadableFile.cpp
+    src/SystemTool.h src/SystemTool.cpp)
+target_include_directories(tst_childlanguage PRIVATE src)
+target_link_libraries(tst_childlanguage PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME childlanguage COMMAND tst_childlanguage)
 
 qt_add_executable(tst_familychange tests/tst_familychange.cpp
     src/FamilyChange.h src/FamilyChange.cpp src/PkexecAnswer.h src/PkexecAnswer.cpp)
@@ -427,7 +443,8 @@ target_link_libraries(tst_gamechoices PRIVATE Qt6::Core Qt6::Test)
 add_test(NAME gamechoices COMMAND tst_gamechoices)
 
 qt_add_executable(tst_unfinishedadd tests/tst_unfinishedadd.cpp src/UnfinishedAdd.h
-    src/UnfinishedAdd.cpp src/ChildList.h src/ChildList.cpp)
+    src/UnfinishedAdd.cpp src/ChildList.h src/ChildList.cpp src/ChildLanguage.h
+    src/ChildLanguage.cpp)
 target_include_directories(tst_unfinishedadd PRIVATE src)
 target_link_libraries(tst_unfinishedadd PRIVATE Qt6::Core Qt6::Test cairn-accounts)
 add_test(NAME unfinishedadd COMMAND tst_unfinishedadd)

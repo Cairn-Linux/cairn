@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "ChildList.h"
 
+#include "ChildLanguage.h"
 #include "FamilyRole.h"
 
 #include <QLocale>
@@ -18,7 +19,8 @@ std::vector<ListedChild> childrenAmong(std::vector<Account> accounts) {
         children.push_back({.login = account.login,
                             .name = account.displayName(),
                             .fullName = account.fullName,
-                            .level = FamilyRole::fromGroups(account.groups).level.value_or(0)});
+                            .level = FamilyRole::fromGroups(account.groups).level.value_or(0),
+                            .language = {}});
     }
     return children;
 }
@@ -53,11 +55,26 @@ QVariantList loginsNamesAndLevels(const std::vector<ListedChild>& children) {
                 otherLevels.append(level);
             }
         }
+        // Every language but the one chosen, so a child with none chosen
+        // is offered them all.
+        const ChildLanguage::Language* chosen = ChildLanguage::find(child.language);
+        QVariantList otherLanguages;
+        for (const ChildLanguage::Language& language : ChildLanguage::all()) {
+            if (&language != chosen) {
+                otherLanguages.append(QVariantMap{
+                    {QStringLiteral("locale"), QString::fromLatin1(language.locale)},
+                    {QStringLiteral("name"), ChildLanguage::nameOf(language)},
+                });
+            }
+        }
         maps.append(QVariantMap{
             {QStringLiteral("login"), child.login},
             {QStringLiteral("name"), child.name},
             {QStringLiteral("level"), child.level},
             {QStringLiteral("otherLevels"), otherLevels},
+            {QStringLiteral("languageName"),
+             chosen == nullptr ? QString() : ChildLanguage::nameOf(*chosen)},
+            {QStringLiteral("otherLanguages"), otherLanguages},
         });
     }
     return maps;

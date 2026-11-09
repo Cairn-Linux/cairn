@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "ChildrenPage.h"
 
+#include "ChildLanguage.h"
 #include "FamilyChange.h"
 #include "FamilyRequest.h"
 #include "LoginName.h"
@@ -34,6 +35,10 @@ QString ChildrenPage::subject() const {
 
 QString ChildrenPage::newName() const {
     return m_newName;
+}
+
+QString ChildrenPage::newLanguage() const {
+    return m_newLanguage;
 }
 
 QString ChildrenPage::clash() const {
@@ -140,6 +145,27 @@ void ChildrenPage::changeName(const QString& login, const QString& name) {
     }
 }
 
+// A child's language, at any level, refused before any password when it is
+// the one chosen for them already. A language Family does not offer is
+// refused by cairn-family's own rule in run() (ADR-0058).
+void ChildrenPage::changeLanguage(const QString& login, const QString& locale) {
+    if (busy()) {
+        return;
+    }
+    const ListedChild* child = childWithLogin(m_children, login);
+    const ChildLanguage::Language* language = ChildLanguage::find(locale);
+    m_subject = child == nullptr ? login : child->name;
+    m_level = child == nullptr ? 0 : child->level;
+    m_newLanguage = language == nullptr ? locale : ChildLanguage::nameOf(*language);
+    if (child == nullptr) {
+        setStep(Step::NotChanged, Reason::NotAChild);
+    } else if (language != nullptr && locale == child->language) {
+        setStep(Step::NotChanged, Reason::LanguageAsBefore);
+    } else {
+        run({QStringLiteral("set-language"), login, locale}, Step::LanguageChanged);
+    }
+}
+
 // Refuses a name another child, given as `other`, or a grown-up has
 // already, and says whether it did. The list is as last read, so a name
 // given meanwhile from another window goes through, as in Add a child.
@@ -166,6 +192,9 @@ void ChildrenPage::forgetRefusal() {
 void ChildrenPage::reload() {
     const std::vector<Account> accounts = m_setup.accounts();
     m_children = childrenAmong(accounts);
+    for (ListedChild& child : m_children) {
+        child.language = m_setup.languageOf(child.login).value_or(QString());
+    }
     m_grownUps = grownUpNamesAmong(accounts);
     emit listedChildrenChanged();
 }
@@ -178,6 +207,7 @@ ChildrenPage::Reason ChildrenPage::reasonFor(const QString& answer) {
         {QStringLiteral("bad-name"), Reason::BadName},
         {QStringLiteral("bad-full-name"), Reason::BadFullName},
         {QStringLiteral("bad-level"), Reason::BadLevel},
+        {QStringLiteral("bad-language"), Reason::BadLanguage},
         {QStringLiteral("taken"), Reason::Taken},
         {QStringLiteral("not-a-child"), Reason::NotAChild},
         {QStringLiteral("failed"), Reason::Failed},

@@ -5,13 +5,15 @@ The Guardian's side of Cairn (ROADMAP P1-5). So far it has three pieces:
 - **The Guardian tool**, "Family" in a Guardian's application menu
   and in System Settings (ADR-0040, ADR-0043). Its Children page lists
   the family's children with their levels, adds a child, moves a child
-  to another level and changes a child's name (ADR-0056). Its Games page chooses the games on each
+  to another level and changes a child's name (ADR-0056) and language
+  (ADR-0058). Its Games page chooses the games on each
   child's own list (ADR-0041). Its Your account page changes the
   Guardian's own password and picture (ADR-0043). Its Notices page says
   when wrong passwords were typed, and whether an account locked
   (ADR-0054).
 - **`cairn-family`**, the root command under it that makes a child's
-  account, sets a child's level (ADR-0039) and name (ADR-0056) and gives
+  account, sets a child's level (ADR-0039), name (ADR-0056) and language
+  (ADR-0058) and gives
   children their games (ADR-0041). The family's setup on the image runs it too.
 - **Steam for a child**, a small window that opens a child's own Steam
   from the Guardian's own Plasma login, to sign the child in, switch the
@@ -44,7 +46,9 @@ runs the same wrapper.
 The Children page:
 
 1. Lists every child Cairn made, in the order their accounts were made,
-   with their name and level. A child at level 3 or 4 shows that level.
+   with their name, level and language. A child at level 3 or 4 shows
+   that level. A child no language was chosen for shows "Language: the
+   computer's own".
 2. **Move to level N** beside each child, for each level the page can
    give, 1 or 2. Up or down, the button and the sentence after it read
    the same (DESIGN §3). The new level starts the next time the child
@@ -61,8 +65,16 @@ The Children page:
    on the login screen and in Family." The child's "Steam for" entry in
    the Guardian's menu takes the new name too. A name a child set for
    themselves before this image stays until it is changed here. Family
-   cannot change a child's picture or language yet.
-4. **Add a child:** the name for the login tile, and level 1 or 2. A
+   cannot change a child's picture.
+4. **Change language** beside each child, at any level, opens a button
+   under the row for each language Family offers but the child's own,
+   English (US) and English (UK) for now, and **Cancel**; Escape cancels.
+   One name or language field is open at a time. A child cannot change
+   their own language (ADR-0058), so this is how it changes. Once it is
+   in place: "Ada's language is English (UK) now. It starts the next time
+   Ada logs in." A refusal, such as a closed password box, leaves the
+   buttons open to try again.
+5. **Add a child:** the name for the login tile, and level 1 or 2. A
    name a child on the list already has, whatever the case of its
    letters, is refused before any password: "Cy already has an account
    on this computer. To add another child, give them a different name,
@@ -347,6 +359,7 @@ no button and leaves the box in front.
 cairn-family create-child LOGIN LEVEL [--full-name NAME]
 cairn-family set-level LOGIN LEVEL
 cairn-family set-name LOGIN NAME
+cairn-family set-language LOGIN LOCALE
 cairn-family save-games LOGIN=APPID,APPID... [LOGIN=...]
 cairn-family log-out LOGIN
 cairn-family set-own-password    # the new password on standard input
@@ -355,15 +368,15 @@ cairn-family set-own-password    # the new password on standard input
 It is installed as `/usr/libexec/cairn/cairn-family` and runs as root:
 through `pkexec`, behind a polkit action for each subcommand
 (`com.cairnlinux.family.create-child`, `.set-level`, `.set-name`,
-`.save-games`, `.log-out`), each of which asks for an administrator's password for
+`.set-language`, `.save-games`, `.log-out`), each of which asks for an administrator's password for
 every change, and `.set-own-password`, which asks for the caller's own
 password every time (ADR-0043), or
 with `sudo` from `../provision/cairn-family-setup.sh`. Started by
 `pkexec`, it checks again that the account that started it is an
 administrator.
 
-- LEVEL is 1 or 2. L3 and L4 have no child session yet. `set-name`
-  takes no level, and renames a child at any level.
+- LEVEL is 1 or 2. L3 and L4 have no child session yet. `set-name` and
+  `set-language` take no level, and change a child at any level.
 - `create-child` makes a new account with its level group and a locked
   password, with NAME as its full name. Run again for a child Cairn made,
   it locks the password if needed, sets the full name and the level, and
@@ -374,11 +387,22 @@ administrator.
 - `set-name` changes an existing child's full name to NAME, with the
   same rule as create-child's, and only that (ADR-0056). The journal
   gets `set-name LOGIN`, not the name.
+- `set-language` gives an existing child LOCALE, `en_US.UTF-8` or
+  `en_GB.UTF-8`, the table in `src/ChildLanguage.cpp`; any other is
+  `bad-language` (ADR-0058). It writes
+  `/var/lib/cairn/locale/LOGIN/plasma-localerc`, root's and 0644, with
+  `LANG`, every `LC_*` and `LANGUAGE` locked with `[$i]`, renamed into
+  place in folders that must be root's alone and never links, and
+  labels it. `cairn-session` reads it at the child's next login
+  (`../session/`). Nothing is written in the child's home, and
+  AccountsService is not told. `create-child` removes an old account's
+  file of the same login first.
 - An account Cairn did not make is refused, never made a child: an
   administrator, a Guardian, a system account, or one in no level group.
-- All three write the child's "Steam for <child>" entry in
-  `/usr/local/share/applications`, as provisioning does, and relabel it.
-- All three take `/run/lock/cairn-family-accounts` before they read the
+- `create-child`, `set-level` and `set-name` write the child's "Steam
+  for <child>" entry in `/usr/local/share/applications`, as provisioning
+  does, and relabel it.
+- All four take `/run/lock/cairn-family-accounts` before they read the
   account and keep it until the change is made, so two grown-ups'
   changes at once go one after the other, and the second reads the
   groups the first left (#255). Without that, two level changes could
@@ -389,7 +413,7 @@ administrator.
 
 It answers in one line: `done`, or `refused` and one of `not-root`,
 `not-a-grown-up`, `usage`, `bad-name`, `bad-full-name`, `bad-level`,
-`taken`, `not-a-child`, `busy` or `failed`.
+`bad-language`, `taken`, `not-a-child`, `busy` or `failed`.
 
 `save-games` gives children their games, and `log-out` logs a child out
 first (ADR-0041); the Games page runs both. Each argument is one

@@ -5,7 +5,7 @@ import Cairn.Brand
 import Cairn.Family
 
 // The Children page: each child with their level, a way to move a child to
-// another level or change their name, and a way to add one. Raising and
+// another level or change their name or language, and a way to add one. Raising and
 // lowering a level look and read the same (DESIGN §3). One change runs at
 // a time, and every control waits while it does.
 Column {
@@ -14,16 +14,21 @@ Column {
     required property ChildrenPage page
     // The box with what the last change did, for the window to scroll to.
     readonly property alias outcomeBox: outcomeBox
-    // The login of the child whose level or name the parent changed last,
-    // or "" when the last change came from the Add form. Focus goes back
-    // there: to the new name's field or Change name after a name.
+    // The login of the child whose level, name or language the parent
+    // changed last, or "" when the last change came from the Add form.
+    // Focus goes back there: to the new name's field or Change name after a
+    // name, to the languages or Change language after a language.
     property string changing: ""
     property bool changingName: false
+    property bool changingLanguage: false
     // The login of the child whose new name is being typed, or "", and
     // what is typed so far. Kept here, not in the row, because the list is
     // made again after every change, and a refused name stays to mend.
     property string renaming: ""
     property string typedName: ""
+    // The login of the child whose languages are open, or "". One field or
+    // the other is open at a time.
+    property string choosingLanguage: ""
 
     // The outcome has changed, and focus is back where the parent was.
     signal outcomeShown
@@ -84,26 +89,45 @@ Column {
             enabled: !view.page.busy
             renaming: view.renaming === modelData.login
             typedName: view.typedName
+            choosingLanguage: view.choosingLanguage === modelData.login
             onLevelChosen: level => {
-                // A level chosen leaves the name as it is.
+                // A level chosen leaves the name and language as they are.
                 view.renaming = "";
+                view.choosingLanguage = "";
                 view.changing = modelData.login;
                 view.changingName = false;
+                view.changingLanguage = false;
                 view.page.changeLevel(modelData.login, level);
             }
             onRenameOpened: {
                 if (view.renaming !== modelData.login)
                     view.typedName = modelData.name;
                 view.renaming = modelData.login;
+                view.choosingLanguage = "";
             }
             onTypedNameEdited: name => view.typedName = name
             onNameChosen: name => {
                 view.changing = modelData.login;
                 view.changingName = true;
+                view.changingLanguage = false;
                 view.page.changeName(modelData.login, name);
             }
             onRenameClosed: {
                 view.renaming = "";
+                view.page.forgetRefusal();
+            }
+            onLanguageOpened: {
+                view.renaming = "";
+                view.choosingLanguage = modelData.login;
+            }
+            onLanguageChosen: locale => {
+                view.changing = modelData.login;
+                view.changingName = false;
+                view.changingLanguage = true;
+                view.page.changeLanguage(modelData.login, locale);
+            }
+            onLanguageClosed: {
+                view.choosingLanguage = "";
                 view.page.forgetRefusal();
             }
         }
@@ -141,6 +165,10 @@ Column {
                         row.focusNewName();
                     else if (view.changingName)
                         row.focusChangeName();
+                    else if (view.changingLanguage && row.choosingLanguage)
+                        row.focusLanguages();
+                    else if (view.changingLanguage)
+                        row.focusChangeLanguage();
                     else
                         row.takeFocus();
                     view.outcomeShown();
@@ -164,6 +192,8 @@ Column {
             // A name in place closes its field.
             if (view.page.step === ChildrenPage.NameChanged)
                 view.renaming = "";
+            if (view.page.step === ChildrenPage.LanguageChanged)
+                view.choosingLanguage = "";
             // Later, once the controls are enabled again.
             if (view.page.step === ChildrenPage.Asking)
                 Qt.callLater(view.outcomeShown);

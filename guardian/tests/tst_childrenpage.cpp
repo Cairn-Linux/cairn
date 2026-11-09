@@ -2,6 +2,7 @@
 #include "ChildrenPage.h"
 
 #include <QFile>
+#include <QHash>
 #include <QSet>
 #include <QSignalSpy>
 #include <QTemporaryDir>
@@ -46,6 +47,10 @@ public:
             return groups.contains(name) ||
                    std::ranges::any_of(
                        accounts, [&name](const Account& account) { return account.login == name; });
+        };
+        setup.languageOf = [this](const QString& login) -> std::optional<QString> {
+            const auto found = languages.constFind(login);
+            return found == languages.constEnd() ? std::nullopt : std::optional(*found);
         };
         m_setup = setup;
         page = std::make_unique<ChildrenPage>(m_setup);
@@ -98,6 +103,8 @@ public:
 
     std::vector<Account> accounts = family();
     QSet<QString> groups{"wheel", "cairn-l1", "cairn-l2", "cairn-guardian"};
+    // Each child's language file, as LanguageFile::read() gives it.
+    QHash<QString, QString> languages{{"ben", "en_GB.UTF-8"}};
     std::unique_ptr<ChildrenPage> page;
 
 private:
@@ -111,6 +118,16 @@ QStringList loginsOf(const QVariantList& children) {
         logins.append(child.toMap().value(QStringLiteral("login")).toString());
     }
     return logins;
+}
+
+// The locales the page offers a child, from their map.
+QStringList localesOf(const QVariant& child) {
+    QStringList locales;
+    for (const QVariant& language :
+         child.toMap().value(QStringLiteral("otherLanguages")).toList()) {
+        locales.append(language.toMap().value(QStringLiteral("locale")).toString());
+    }
+    return locales;
 }
 
 class ChildrenPageTest : public QObject {
@@ -335,6 +352,78 @@ private slots:
         QCOMPARE(family.page->step(), ChildrenPage::Step::NameChanged);
         QCOMPARE(family.runs(),
                  QList<QStringList>({{"set-name", "ben", "Benjamin"}, {"set-name", "ada", "ADA"}}));
+    }
+
+    // Each child with the language chosen for them, or none, and the
+    // languages the page offers them: every one but theirs (ADR-0058).
+    void eachChildsLanguage() {
+        const StandInFamily family(QStringLiteral("done"));
+        const QVariantList children = family.page->listedChildren();
+        QCOMPARE(children.at(0).toMap().value("languageName").toString(), QString());
+        QCOMPARE(localesOf(children.at(0)), QStringList({"en_US.UTF-8", "en_GB.UTF-8"}));
+        QCOMPARE(children.at(1).toMap().value("languageName").toString(),
+                 QStringLiteral("English (UK)"));
+        QCOMPARE(localesOf(children.at(1)), QStringList({"en_US.UTF-8"}));
+        const QVariantMap offered =
+            children.at(1).toMap().value("otherLanguages").toList().at(0).toMap();
+        QCOMPARE(offered.value("name").toString(), QStringLiteral("English (US)"));
+    }
+
+    // A file with a locale Family does not offer reads as none.
+    void aLanguageNotOfferedIsNone() {
+        StandInFamily family(QStringLiteral("done"));
+        family.languages.insert("ada", "de_DE.UTF-8");
+        family.page->reload();
+        QCOMPARE(family.page->listedChildren().at(0).toMap().value("languageName").toString(),
+                 QString());
+        QCOMPARE(localesOf(family.page->listedChildren().at(0)),
+                 QStringList({"en_US.UTF-8", "en_GB.UTF-8"}));
+    }
+
+    // One run of set-language, with both names for the sentence, and the
+    // list read again after it.
+    void changeALanguage() {
+        StandInFamily family(QStringLiteral("done"));
+        family.page->changeLanguage(QStringLiteral("ada"), QStringLiteral("en_GB.UTF-8"));
+        QCOMPARE(family.page->step(), ChildrenPage::Step::Asking);
+        family.languages.insert("ada", "en_GB.UTF-8");
+        QVERIFY(family.waitUntilAnswered());
+        QCOMPARE(family.page->step(), ChildrenPage::Step::LanguageChanged);
+        QCOMPARE(family.page->subject(), QStringLiteral("Ada"));
+        QCOMPARE(family.page->newLanguage(), QStringLiteral("English (UK)"));
+        QCOMPARE(family.page->listedChildren().at(0).toMap().value("languageName").toString(),
+                 QStringLiteral("English (UK)"));
+        family.page->changeLanguage(QStringLiteral("ben"), QStringLiteral("en_US.UTF-8"));
+        QVERIFY(family.waitUntilAnswered());
+        QCOMPARE(family.page->step(), ChildrenPage::Step::LanguageChanged);
+        QCOMPARE(family.runs(), QList<QStringList>({{"set-language", "ada", "en_GB.UTF-8"},
+                                                    {"set-language", "ben", "en_US.UTF-8"}}));
+    }
+
+    // Refused before any password: the language the child has, one Family
+    // does not offer, and anyone the page does not list.
+    void aLanguageRefusedWithoutRunning_data() {
+        QTest::addColumn<QString>("login");
+        QTest::addColumn<QString>("locale");
+        QTest::addColumn<ChildrenPage::Reason>("reason");
+
+        using Reason = ChildrenPage::Reason;
+        QTest::newRow("as before") << "ben" << "en_GB.UTF-8" << Reason::LanguageAsBefore;
+        QTest::newRow("not offered") << "ada" << "de_DE.UTF-8" << Reason::BadLanguage;
+        QTest::newRow("empty") << "ada" << "" << Reason::BadLanguage;
+        QTest::newRow("a Guardian") << "guardian" << "en_GB.UTF-8" << Reason::NotAChild;
+        QTest::newRow("a plain account") << "guest" << "en_GB.UTF-8" << Reason::NotAChild;
+    }
+
+    void aLanguageRefusedWithoutRunning() {
+        QFETCH(const QString, login);
+        QFETCH(const QString, locale);
+        QFETCH(const ChildrenPage::Reason, reason);
+        StandInFamily family(QStringLiteral("done"));
+        family.page->changeLanguage(login, locale);
+        QCOMPARE(family.page->step(), ChildrenPage::Step::NotChanged);
+        QCOMPARE(family.page->reason(), reason);
+        QVERIFY(family.runs().isEmpty());
     }
 
     // Closing the name field forgets a refusal, never a change made.
@@ -628,6 +717,7 @@ private slots:
         QTest::newRow("bad-name") << "refused-bad-name" << Reason::BadName;
         QTest::newRow("bad-full-name") << "refused-bad-full-name" << Reason::BadFullName;
         QTest::newRow("bad-level") << "refused-bad-level" << Reason::BadLevel;
+        QTest::newRow("bad-language") << "refused-bad-language" << Reason::BadLanguage;
         QTest::newRow("taken") << "refused-taken" << Reason::Taken;
         QTest::newRow("not-a-child") << "refused-not-a-child" << Reason::NotAChild;
         QTest::newRow("failed") << "refused-failed" << Reason::Failed;

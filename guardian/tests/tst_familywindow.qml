@@ -439,8 +439,12 @@ TestCase {
         const buttons = findChild(row, "buttons");
         verify(buttons.y >= level.mapToItem(row, 0, 0).y + level.height);
         verify(buttons.x + buttons.width <= row.width);
-        // The other rows fit side by side.
-        verify(findChild(window, "childRows").itemAt(0).sideBySide);
+        // Every row keeps its buttons inside it.
+        for (let i = 0; i < findChild(window, "childRows").count; ++i) {
+            const each = findChild(window, "childRows").itemAt(i);
+            const flow = findChild(each, "buttons");
+            verify(flow.x + flow.width <= each.width);
+        }
     }
 
     // ---- a child's name (ADR-0056) ----
@@ -634,6 +638,110 @@ TestCase {
         verify(!findChild(childRow(window, 1), "saveName").enabled);
         verify(!newNameInput(window, 1).enabled);
         verify(!findChild(childRow(window, 0), "changeName").enabled);
+    }
+
+    // ---- a child's language (ADR-0058) ----
+
+    function languageButton(window, index, locale) {
+        return findChild(childRow(window, index), "language_" + locale);
+    }
+
+    // Opens the child's languages, and waits for the rows under it to
+    // move down, so a click lands on what it aims at.
+    function openLanguages(window, index) {
+        mouseClick(findChild(childRow(window, index), "changeLanguage"));
+        waitForPolish(window);
+    }
+
+    // Each row says the child's language, or that it is the computer's.
+    function test_eachChildsLanguageShows() {
+        const window = makeWindow("done");
+        compare(findChild(childRow(window, 0), "childLanguage").text, "Language: the computer's own");
+        compare(findChild(childRow(window, 1), "childLanguage").text, "Language: English (UK)");
+        const button = findChild(childRow(window, 1), "changeLanguage");
+        compare(button.text, "Change language");
+        compare(button.Accessible.name, "Change the language of Ben");
+        verify(!findChild(childRow(window, 1), "languageChange").visible);
+    }
+
+    // Change language opens a button for each language but the child's,
+    // with the keyboard on the first. One asks for the password, and the
+    // sentence names the child and the language. The buttons close once it
+    // is in place, and the keyboard goes back to Change language.
+    function test_changeALanguage() {
+        const window = makeWindow("done");
+        openLanguages(window, 0);
+        verify(findChild(childRow(window, 0), "languageChange").visible);
+        verify(!findChild(childRow(window, 1), "languageChange").visible);
+        const us = languageButton(window, 0, "en_US.UTF-8");
+        const uk = languageButton(window, 0, "en_GB.UTF-8");
+        tryCompare(us, "activeFocus", true);
+        compare(us.text, "English (US)");
+        compare(uk.Accessible.name, "Use English (UK) for Ada");
+        compare(findChild(childRow(window, 0), "cancelLanguage").Accessible.name, "Cancel, and keep the language of Ada");
+        mouseClick(uk);
+        tryCompare(window.page, "step", ChildrenPage.LanguageChanged);
+        compare(outcome(window), "Ada's language is English (UK) now. It starts the next time Ada logs in.");
+        verify(!findChild(childRow(window, 0), "languageChange").visible);
+        tryCompare(findChild(childRow(window, 0), "changeLanguage"), "activeFocus", true);
+    }
+
+    // Ben has British English already, so only the other is offered.
+    function test_onlyTheOtherLanguagesAreOffered() {
+        const window = makeWindow("done");
+        openLanguages(window, 1);
+        verify(languageButton(window, 1, "en_US.UTF-8") !== null);
+        verify(languageButton(window, 1, "en_GB.UTF-8") === null);
+    }
+
+    // Cancel, or Escape, closes the buttons and changes nothing.
+    function test_cancelALanguage() {
+        const window = makeWindow("done");
+        openLanguages(window, 1);
+        tryCompare(languageButton(window, 1, "en_US.UTF-8"), "activeFocus", true);
+        keyClick(Qt.Key_Escape);
+        verify(!findChild(childRow(window, 1), "languageChange").visible);
+        tryCompare(findChild(childRow(window, 1), "changeLanguage"), "activeFocus", true);
+        compare(window.page.step, ChildrenPage.Ready);
+        openLanguages(window, 1);
+        mouseClick(findChild(childRow(window, 1), "cancelLanguage"));
+        verify(!findChild(childRow(window, 1), "languageChange").visible);
+        compare(outcome(window), "");
+    }
+
+    // A closed password box leaves the buttons open, to try again.
+    function test_aRefusedLanguageStaysOpen() {
+        const window = makeWindow("not-authorized");
+        openLanguages(window, 0);
+        mouseClick(languageButton(window, 0, "en_GB.UTF-8"));
+        tryCompare(window.page, "step", ChildrenPage.NotChanged);
+        compare(outcome(window), "Nothing changed. It needs your password: the box was closed, or the password was not accepted.");
+        verify(findChild(childRow(window, 0), "languageChange").visible);
+        tryCompare(languageButton(window, 0, "en_US.UTF-8"), "activeFocus", true);
+    }
+
+    // A name and a language are never open at once.
+    function test_aNameAndALanguageOneAtATime() {
+        const window = makeWindow("done");
+        mouseClick(findChild(childRow(window, 1), "changeName"));
+        waitForPolish(window);
+        verify(findChild(childRow(window, 1), "nameChange").visible);
+        openLanguages(window, 1);
+        verify(!findChild(childRow(window, 1), "nameChange").visible);
+        verify(findChild(childRow(window, 1), "languageChange").visible);
+        mouseClick(findChild(childRow(window, 1), "changeName"));
+        verify(findChild(childRow(window, 1), "nameChange").visible);
+        verify(!findChild(childRow(window, 1), "languageChange").visible);
+    }
+
+    // While the password box is open, the buttons wait too.
+    function test_theLanguageWaitsWhileItRuns() {
+        const window = makeWindow("asking");
+        openLanguages(window, 0);
+        mouseClick(languageButton(window, 0, "en_GB.UTF-8"));
+        compare(window.page.busy, true);
+        verify(!languageButton(window, 0, "en_US.UTF-8").enabled);
+        verify(!findChild(childRow(window, 1), "changeLanguage").enabled);
     }
 
     // ---- the switch between pages, and the Games page ----

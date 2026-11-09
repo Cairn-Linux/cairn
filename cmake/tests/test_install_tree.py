@@ -56,6 +56,7 @@ EXPECTED = {
     "usr/libexec/cairn/cairn-steam-for": 0o750,
     "usr/libexec/cairn/cairn-steam-visit": 0o755,
     "usr/libexec/cairn/kidscan.py": 0o644,
+    "usr/share/cairn/child-xdg/kdeglobals": 0o644,
     "usr/share/cairn/labwc/environment": 0o644,
     "usr/share/cairn/labwc/rc.xml": 0o644,
     "usr/share/cairn/manifest.json": 0o644,
@@ -197,7 +198,7 @@ class InstallTree(unittest.TestCase):
         # cairn-family's file has one action for each subcommand.
         actions = {
             "com.cairnlinux.steam-visit": ["/usr/libexec/cairn/cairn-steam-visit"],
-            "com.cairnlinux.family": ["/usr/libexec/cairn/cairn-family"] * 6,
+            "com.cairnlinux.family": ["/usr/libexec/cairn/cairn-family"] * 7,
         }
         for action, programs in actions.items():
             with self.subTest(action=action):
@@ -222,6 +223,12 @@ class InstallTree(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertTrue(path.encode("utf-16-le") in program)
 
+    def test_family_command_and_window_name_the_language_folder(self):
+        # A plain char array, stored as it is written (ADR-0058).
+        for name in ("usr/libexec/cairn/cairn-family", "usr/libexec/cairn/cairn-guardian"):
+            with self.subTest(name=name):
+                self.assertTrue(b"/var/lib/cairn/locale\0" in (self.root / name).read_bytes())
+
     def test_sddm_settings_name_the_image_paths(self):
         settings = self.text("usr/lib/sddm/sddm.conf.d/zz-cairn.conf").splitlines()
         self.assertIn("GreeterEnvironment=QT_WAYLAND_SHELL_INTEGRATION=layer-shell,"
@@ -238,7 +245,12 @@ class InstallTree(unittest.TestCase):
                 self.assertGreater(path.name, "plasma-wayland.conf")
 
     def test_session_and_helper_name_the_image_paths(self):
-        self.assertIn('"${CAIRN_LABWC_CONFIG:-/usr/share/cairn/labwc}"', self.text("usr/bin/cairn-session"))
+        session = self.text("usr/bin/cairn-session")
+        self.assertIn('"${CAIRN_LABWC_CONFIG:-/usr/share/cairn/labwc}"', session)
+        # The Kiosk file for an L3 or L4 child, and their language folder
+        # (ADR-0058).
+        self.assertIn('config_dirs="$config_dirs:/usr/share/cairn/child-xdg"\n', session)
+        self.assertIn('language_dir="/var/lib/cairn/locale/$(id -un)"\n', session)
         helper = self.text("usr/libexec/cairn/cairn-steam-visit")
         self.assertIn("CAGE=/usr/libexec/cairn/cage-visit\n", helper)
         self.assertIn("COPY_GAMES=/usr/libexec/cairn/cairn-copy-games\n", helper)
@@ -260,6 +272,7 @@ class InstallTree(unittest.TestCase):
             "etc/pam.d/sddm": "session/sddm/pam.d/sddm",
             "usr/libexec/cairn/kidscan.py": "tools/kidscan/kidscan.py",
             "usr/share/polkit-1/rules.d/10-cairn-levels.rules": "session/polkit/rules.d/10-cairn-levels.rules",
+            "usr/share/cairn/child-xdg/kdeglobals": "session/child-xdg/kdeglobals",
         }
         for installed, source in pairs.items():
             with self.subTest(name=installed):

@@ -42,7 +42,18 @@ What is here:
   to the journal as `cairn-kiosk`, so it outlasts the next login (#122);
   without a journal the session starts all the same. It leaves `PATH` as
   the login gave it, so Plasma keeps the login's; the kiosk's own comes
-  from labwc's `environment` file (#244).
+  from labwc's `environment` file (#244). A child's language is the one
+  a Guardian chose in Family (ADR-0058, #299): for an L3 or L4 child it
+  adds `child-xdg/`, then the child's own folder in
+  `/var/lib/cairn/locale`, to the end of `XDG_CONFIG_DIRS`, after
+  `/etc/xdg`, so Plasma starts in that language and hides its Region &
+  Language page; for the kiosk it exports the language from the same
+  file. A grown-up and an account Cairn did not make are left alone.
+- `child-xdg/kdeglobals`: KDE Kiosk entries for an L3 or L4 child's
+  Plasma only, installed in `/usr/share/cairn/child-xdg`. Each is locked
+  on its own with `[$i]`, so the base image's locked group in
+  `/etc/xdg/kdeglobals` still applies: no Region & Language page, and no
+  Help > Configure Language in KDE's apps (ADR-0058).
 - `bin/cairn-give-up`: the grown-up's way out of a stuck program
   (ADR-0018, #41). Ctrl-Alt-Home in the kiosk runs it; it SIGCONTs, then
   SIGTERMs, then SIGKILLs the launcher's app scopes (`cairn-app-*.scope`,
@@ -146,8 +157,9 @@ What is here:
   finds by the helper's path, which asks an administrator for a password
   every time, and only at the machine (ADR-0032).
 - `polkit/actions/com.cairnlinux.family.policy`: the same for
-  `cairn-family`, the command that makes children, sets their levels and
-  saves their games (`../guardian/`, ADR-0039, ADR-0041). It has one
+  `cairn-family`, the command that makes children, sets their levels,
+  names and languages and saves their games (`../guardian/`, ADR-0039,
+  ADR-0041, ADR-0056, ADR-0058). It has one
   action for each subcommand, found by the command's path and its first
   argument, so a logout asks "to log a child out". A Save and the Games
   page's Look for new games are both `save-games`, so both ask "to look

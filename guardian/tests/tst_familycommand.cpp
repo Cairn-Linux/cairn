@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
+#include "ChildLanguage.h"
 #include "FamilyCommand.h"
 #include "SteamEntry.h"
 
@@ -66,6 +67,8 @@ public:
         setup.steamFor = QString::fromLatin1(steamFor);
         setup.gamesFolder = m_folder.filePath("games");
         setup.gamesOwner = getuid();
+        setup.localeFolder = m_folder.filePath("locale");
+        setup.localeOwner = getuid();
         setup.euid = 0;
         setup.pkexecUid = std::nullopt;
         setup.lock = m_folder.filePath("lock");
@@ -280,6 +283,20 @@ private slots:
             << Refusal::BadFullName;
         QTest::newRow("an empty full name")
             << QStringList{"create-child", "ben", "1", "--full-name", " "} << Refusal::BadFullName;
+        QTest::newRow("set-language with no locale")
+            << QStringList{"set-language", "ada"} << Refusal::Usage;
+        QTest::newRow("set-language with two locales")
+            << QStringList{"set-language", "ada", "en_GB.UTF-8", "en_US.UTF-8"} << Refusal::Usage;
+        QTest::newRow("set-language with capitals in the login")
+            << QStringList{"set-language", "Ada", "en_GB.UTF-8"} << Refusal::BadName;
+        QTest::newRow("set-language with a locale not offered")
+            << QStringList{"set-language", "ada", "de_DE.UTF-8"} << Refusal::BadLanguage;
+        QTest::newRow("set-language with no encoding")
+            << QStringList{"set-language", "ada", "en_GB"} << Refusal::BadLanguage;
+        QTest::newRow("set-language with a line after")
+            << QStringList{"set-language", "ada", "en_GB.UTF-8\nLC_ALL=C"} << Refusal::BadLanguage;
+        QTest::newRow("set-language with a path")
+            << QStringList{"set-language", "ada", "../../etc/passwd"} << Refusal::BadLanguage;
         QTest::newRow("set-name with no name") << QStringList{"set-name", "ada"} << Refusal::Usage;
         QTest::newRow("set-name with two names")
             << QStringList{"set-name", "ada", "Ada", "Jones"} << Refusal::Usage;
@@ -342,6 +359,19 @@ private slots:
         QCOMPARE(standIns.run({"create-child", "ada", "1"}), std::nullopt);
         QVERIFY(!QFile::exists(standIns.path("games/ada.json")));
         QVERIFY(QFile::exists(standIns.path("games/ben.json")));
+    }
+
+    // Nor with an old account's language (ADR-0058).
+    void aNewChildStartsWithNoOldLanguage() {
+        StandIns standIns;
+        standIns.setAccounts({});
+        for (const QString& name :
+             QStringList{"locale/ada/plasma-localerc", "locale/ben/plasma-localerc"}) {
+            standIns.leave(name);
+        }
+        QCOMPARE(standIns.run({"create-child", "ada", "1"}), std::nullopt);
+        QVERIFY(!QFile::exists(standIns.path("locale/ada/plasma-localerc")));
+        QVERIFY(QFile::exists(standIns.path("locale/ben/plasma-localerc")));
     }
 
     // An old games list that cannot be removed would give its games to the
@@ -453,6 +483,73 @@ private slots:
         QCOMPARE(standIns.calls(),
                  QStringList({"usermod --comment Ada Jones ada", standIns.restorecon("ada")}));
         QVERIFY(standIns.entry("ada").contains("\nName=Steam for Ada Jones\n"));
+    }
+
+    // The child's own file, outside their home, labelled for its folder;
+    // their account, level and password stay as they are (ADR-0058).
+    void setLanguage() {
+        const StandIns standIns;
+        QCOMPARE(standIns.run({"set-language", "ada", "en_GB.UTF-8"}), std::nullopt);
+        const QString file = standIns.path("locale/ada/plasma-localerc");
+        QCOMPARE(standIns.calls(),
+                 QStringList({"restorecon " + standIns.path("locale"),
+                              "restorecon " + standIns.path("locale/ada"), "restorecon " + file}));
+        QFile written(file);
+        QVERIFY(written.open(QIODevice::ReadOnly));
+        QCOMPARE(written.readAll(), ChildLanguage::fileText(*ChildLanguage::find("en_GB.UTF-8")));
+        QCOMPARE(QFile::permissions(file), QFileDevice::ReadOwner | QFileDevice::WriteOwner |
+                                               QFileDevice::ReadUser | QFileDevice::WriteUser |
+                                               QFileDevice::ReadGroup | QFileDevice::ReadOther);
+    }
+
+    // The same language again changes nothing; another replaces it.
+    void setLanguageAgain() {
+        const StandIns standIns;
+        QCOMPARE(standIns.run({"set-language", "ada", "en_GB.UTF-8"}), std::nullopt);
+        const QStringList first = standIns.calls();
+        QCOMPARE(standIns.run({"set-language", "ada", "en_GB.UTF-8"}), std::nullopt);
+        QCOMPARE(standIns.calls(), first);
+        QCOMPARE(standIns.run({"set-language", "ada", "en_US.UTF-8"}), std::nullopt);
+        QCOMPARE(standIns.calls(),
+                 first + QStringList{"restorecon " + standIns.path("locale/ada/plasma-localerc")});
+        QFile written(standIns.path("locale/ada/plasma-localerc"));
+        QVERIFY(written.open(QIODevice::ReadOnly));
+        QCOMPARE(ChildLanguage::localeIn(written.readAll()), std::optional<QString>("en_US.UTF-8"));
+    }
+
+    void setLanguageAtAnyLevel_data() {
+        QTest::addColumn<QString>("group");
+        QTest::newRow("level 1") << "cairn-l1";
+        QTest::newRow("level 3") << "cairn-l3";
+        QTest::newRow("level 4") << "cairn-l4";
+    }
+
+    void setLanguageAtAnyLevel() {
+        QFETCH(const QString, group);
+        StandIns standIns;
+        standIns.setAccounts(familyWith("ben", {"ben", group}));
+        QCOMPARE(standIns.run({"set-language", "ben", "en_US.UTF-8"}), std::nullopt);
+        QVERIFY(QFile::exists(standIns.path("locale/ben/plasma-localerc")));
+    }
+
+    // A link where the child's folder goes is never written through.
+    void setLanguageNeverFollowsALink() {
+        const StandIns standIns;
+        const QTemporaryDir elsewhere;
+        QVERIFY(QDir().mkpath(standIns.path("locale")));
+        QVERIFY(QFile::link(elsewhere.path(), standIns.path("locale/ada")));
+        QCOMPARE(standIns.run({"set-language", "ada", "en_GB.UTF-8"}),
+                 std::optional(Refusal::Failed));
+        QVERIFY(!QFile::exists(QDir(elsewhere.path()).filePath("plasma-localerc")));
+    }
+
+    void setLanguageNeedsAChildThatIsThere() {
+        StandIns standIns;
+        standIns.setAccounts({});
+        QCOMPARE(standIns.run({"set-language", "ada", "en_GB.UTF-8"}),
+                 std::optional(Refusal::NotAChild));
+        QCOMPARE(standIns.calls(), QStringList());
+        QVERIFY(!QDir(standIns.path("locale")).exists());
     }
 
     // At level 3 or 4 too: a name is not a level.
@@ -652,7 +749,10 @@ private slots:
                  std::optional(Refusal::Taken));
         QCOMPARE(standIns.run({"set-level", login, "1"}), std::optional(Refusal::NotAChild));
         QCOMPARE(standIns.run({"set-name", login, "Mum"}), std::optional(Refusal::NotAChild));
+        QCOMPARE(standIns.run({"set-language", login, "en_GB.UTF-8"}),
+                 std::optional(Refusal::NotAChild));
         QCOMPARE(standIns.calls(), QStringList());
+        QVERIFY(!QDir(standIns.path("locale")).exists());
         QVERIFY(!QDir(standIns.applications()).exists());
     }
 
@@ -714,6 +814,8 @@ private slots:
         // A name is the family's own words, so the journal gets only whose.
         QCOMPARE(FamilyCommand(standIns.setup()).run({"set-name", "ada", "Ada Jones"}).asked,
                  QStringLiteral("set-name ada"));
+        QCOMPARE(FamilyCommand(standIns.setup()).run({"set-language", "ada", "en_GB.UTF-8"}).asked,
+                 QStringLiteral("set-language ada en_GB.UTF-8"));
     }
 };
 
