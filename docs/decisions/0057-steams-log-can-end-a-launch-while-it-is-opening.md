@@ -184,4 +184,9 @@ game given up on just before the tap). Sanitizer builds do not link on
 the dev PC. Seen in the same run, and the same on main: after Steam last
 exited uncleanly, its "Updating Steam" window can stay past the steady
 wait and count as the game's window (#297).
-The ADR stays proposed for the maintainer to accept.
+The ADR stays proposed. The maintainer decided on 2026-11-09 to merge
+the change and accept the ADR only after more Proton games have been
+tried on a computer with #295: quick quits of several Windows games
+through Proton, a game with a splash, and the kids' first games. Going
+back to the tiles quietly when a game crashes in its first seconds
+stays until feedback says otherwise (#133).
