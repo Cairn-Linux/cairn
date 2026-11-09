@@ -37,7 +37,7 @@ Column {
         objectName: "languageHint"
         width: change.width
         wrapMode: Text.WordWrap
-        text: qsTr("Their screens are in this language from the next time they log in. Children cannot change it themselves.")
+        text: qsTr("Their screens are in this language from the next time they log in. Children cannot change it in their settings.")
         font.family: Tokens.fontFamily
         font.pixelSize: Tokens.bodySize
         lineHeight: Tokens.bodyLineHeight

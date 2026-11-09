@@ -734,6 +734,33 @@ TestCase {
         verify(!findChild(childRow(window, 1), "languageChange").visible);
     }
 
+    // Change language closes the name field, and a refusal about the name
+    // goes with it (#299).
+    function test_aLanguageClearsANameRefusal() {
+        const window = makeWindow("asking");
+        mouseClick(findChild(childRow(window, 0), "changeName"));
+        tryCompare(newNameInput(window, 0), "activeFocus", true);
+        typeOver(newNameInput(window, 0), "ben");
+        mouseClick(findChild(childRow(window, 0), "saveName"));
+        compare(window.page.reason, ChildrenPage.AnotherChilds);
+        openLanguages(window, 1);
+        verify(!findChild(childRow(window, 0), "nameChange").visible);
+        compare(window.page.step, ChildrenPage.Ready);
+        compare(outcome(window), "");
+    }
+
+    // And Change name closes the languages, with a refusal about them.
+    function test_aNameClearsALanguageRefusal() {
+        const window = makeWindow("not-authorized");
+        openLanguages(window, 0);
+        mouseClick(languageButton(window, 0, "en_GB.UTF-8"));
+        tryCompare(window.page, "step", ChildrenPage.NotChanged);
+        mouseClick(findChild(childRow(window, 0), "changeName"));
+        verify(!findChild(childRow(window, 0), "languageChange").visible);
+        compare(window.page.step, ChildrenPage.Ready);
+        compare(outcome(window), "");
+    }
+
     // While the password box is open, the buttons wait too.
     function test_theLanguageWaitsWhileItRuns() {
         const window = makeWindow("asking");

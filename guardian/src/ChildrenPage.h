@@ -60,7 +60,7 @@ public:
     };
     Q_ENUM(Step)
 
-    // Why nothing changed. The first six the page finds itself; the rest
+    // Why nothing changed. The first seven the page finds itself; the rest
     // are cairn-family's own words (ADR-0039) and pkexec's.
     enum class Reason : std::uint8_t {
         None,
@@ -127,8 +127,6 @@ public:
     Q_INVOKABLE void forgetRefusal();
     // Reads the children again from the account database.
     Q_INVOKABLE void reload();
-
-    static Reason reasonFor(const QString& answer);
 
 signals:
     void listedChildrenChanged();

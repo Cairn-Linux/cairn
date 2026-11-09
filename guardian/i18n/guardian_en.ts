@@ -508,7 +508,7 @@
     </message>
     <message>
         <location filename="../qml/LanguageChange.qml" line="40"/>
-        <source>Their screens are in this language from the next time they log in. Children cannot change it themselves.</source>
+        <source>Their screens are in this language from the next time they log in. Children cannot change it in their settings.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

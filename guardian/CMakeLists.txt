@@ -140,6 +140,7 @@ set(family_window_sources
     src/FamilyChange.h src/FamilyChange.cpp
     src/UnfinishedAdd.h src/UnfinishedAdd.cpp
     src/ChildrenPage.h src/ChildrenPage.cpp
+    src/ChildrenRefusals.h src/ChildrenRefusals.cpp
     src/GameCatalogue.h src/GameCatalogue.cpp
     src/GamePicture.h src/GamePicture.cpp
     src/GameShelf.h src/GameShelf.cpp

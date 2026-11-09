@@ -5,9 +5,9 @@ import Cairn.Brand
 import Cairn.Family
 
 // The Children page: each child with their level, a way to move a child to
-// another level or change their name or language, and a way to add one. Raising and
-// lowering a level look and read the same (DESIGN §3). One change runs at
-// a time, and every control waits while it does.
+// another level or change their name or language, and a way to add one.
+// Raising and lowering a level look and read the same (DESIGN §3). One
+// change runs at a time, and every control waits while it does.
 Column {
     id: view
 
@@ -103,7 +103,11 @@ Column {
                 if (view.renaming !== modelData.login)
                     view.typedName = modelData.name;
                 view.renaming = modelData.login;
-                view.choosingLanguage = "";
+                // Closing the language buttons clears a refusal about them.
+                if (view.choosingLanguage !== "") {
+                    view.choosingLanguage = "";
+                    view.page.forgetRefusal();
+                }
             }
             onTypedNameEdited: name => view.typedName = name
             onNameChosen: name => {
@@ -117,7 +121,11 @@ Column {
                 view.page.forgetRefusal();
             }
             onLanguageOpened: {
-                view.renaming = "";
+                // Closing the name field clears a refusal about it (#292).
+                if (view.renaming !== "") {
+                    view.renaming = "";
+                    view.page.forgetRefusal();
+                }
                 view.choosingLanguage = modelData.login;
             }
             onLanguageChosen: locale => {

@@ -139,8 +139,8 @@ fi
 export XDG_CONFIG_DIRS="$config_dirs"
 ```
 
-where `language_dir` is `/var/lib/cairn/locale/` and the login from
-`id -un`, never from the environment. The default is the list Fedora's
+where `language_dir` is `/var/lib/cairn/locale/` followed by the login,
+taken from `id -un`, never from the environment. The default is the list Fedora's
 `plasma-workspace/env/env.sh` gives when it is unset; startplasma puts
 `~/.config/kdedefaults` in front and keeps the rest, and does not take
 `XDG_*` back from the systemd user manager, so a child's
