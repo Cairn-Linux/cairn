@@ -69,10 +69,11 @@ The Children page:
 4. **Change language** beside each child, at any level, opens a button
    under the row for each language Family offers but the child's own,
    English (US) and English (UK) for now, and **Cancel**; Escape cancels.
-   One name or language field is open at a time. A child cannot change
-   their own language in their settings (ADR-0058), so this is how it
+   One name or language field is open at a time. A child's settings do
+   not offer their own language (ADR-0058), so this is how it
    changes; a program a child with a terminal starts can still be given
-   another. Once it is
+   another, and so can the session of an L3 or L4 child who writes a
+   start-up script. Once it is
    in place: "Ada's language is English (UK) now. It starts the next time
    Ada logs in." A refusal, such as a closed password box, leaves the
    buttons open to try again.

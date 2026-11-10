@@ -53,7 +53,8 @@ What is here:
   Plasma only, installed in `/usr/share/cairn/child-xdg`. Each is locked
   on its own with `[$i]`, so the base image's locked group in
   `/etc/xdg/kdeglobals` still applies: no Region & Language page, and no
-  Help > Configure Language in KDE's apps (ADR-0058).
+  Configure Language in the menus of KDE's apps. It is a hide, not a
+  wall (ADR-0058, Known limits).
 - `bin/cairn-give-up`: the grown-up's way out of a stuck program
   (ADR-0018, #41). Ctrl-Alt-Home in the kiosk runs it; it SIGCONTs, then
   SIGTERMs, then SIGKILLs the launcher's app scopes (`cairn-app-*.scope`,

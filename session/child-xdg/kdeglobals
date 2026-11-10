@@ -10,8 +10,13 @@
 # A child's language is the Guardian's, set in Family. These hide the ways
 # a child could change it by accident: System Settings' Region & Language
 # page, from its list, its search, KRunner, kcmshell6 and its own entry,
-# and Help > Configure Language in KDE's apps. The key is action/, as
+# and Configure Language in KDE's apps, which is under Settings in KWrite
+# and under Configure in Dolphin's hamburger menu. The key is action/, as
 # KAuthorized reads it.
+#
+# This is a hide, not a wall. A start-up script in the child's own home
+# can take this folder out of XDG_CONFIG_DIRS for their session (ADR-0058,
+# Known limits).
 
 [KDE Control Module Restrictions]
 kcm_regionandlang[$i]=false
