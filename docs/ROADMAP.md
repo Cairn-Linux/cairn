@@ -484,8 +484,11 @@ done, and what could sink it. Decisions that change the design get an ADR in
   password, refusing another child's or a grown-up's name before any
   password (#212). A
   name a child set before stays until a Guardian changes it. The rule was
-  checked on cairn-min on 2026-11-07 in place of the image's; an image
-  built from it, and Change name in the VM, are still to be checked.
+  checked on cairn-min on 2026-11-07 in place of the image's, and with
+  Change name on images built from it that day and on 2026-11-09, for an
+  L1 and an L3 child. Still to be checked: an L2 child's session on such
+  an image, the refusals tried by a child by hand, and a name put back
+  through Family.
 - **ADR-0055 (2026-11-06, part of #287, proposed): a give-up ends only
   what was there when the keys were pressed.** On cairn-min, a tile
   tapped 1 to 2 s after Ctrl-Alt-Home was undone: the helper's SIGKILL at

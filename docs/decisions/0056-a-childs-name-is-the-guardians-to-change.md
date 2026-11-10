@@ -236,20 +236,20 @@ file, not beside it.
 
 ### Not checked yet
 
-- (Done on the built image, below.) That no rule file sorting before
-  `10-cairn-levels.rules`, in either folder, answers `yes` for these actions
-  first: polkit takes the first answer. The build check confirms that Cairn's
-  rule names the action, not that it answers first. A `pkcheck` run as a child
-  account in the built image would show it. This was so before this change too.
-- (Done on the built image, below.) `change-own-password` and
-  `user-administration` refused to ada and ben with no password box, in the VM;
-  only `change-own-user-data` was run there.
+What this ADR first listed here was seen on built images, for an L1 and
+an L3 child, as the two sections below say. Still open after the
+re-check of 2026-11-09:
 
-- (Done, below.) An image built from this change: the build check, the rule
-  where the image puts it, and checks 1 to 3 again without an overlay.
-- (Done, below.) Change name in Family, in the VM, with the real password box:
-  the new name on the login screen and in Family, and the Guardian's "Steam for"
-  entry renamed.
+- An L2 child's session on an image built from this change. ben was at
+  L2 only in the overlay run above. On both built images he was moved to
+  L3 before the probes. The rule's own test covers every level, but it
+  runs the rule outside polkit.
+- The same refusals when a child acts inside their session by hand. On
+  both built images each probe was started from a root shell and dropped
+  to the child's user inside the child's session. No command was typed
+  in a child's session.
+- A name put back through Family. After the re-check a script run as
+  root put ben's name back, not Family.
 
 ### On an image built from this change
 
@@ -276,5 +276,54 @@ and `check-own-account-data.sh` passed in the build):
 Not tried: whether Plasma's region page goes through AccountsService
 (the PR's question 2), the `~/.face.icon` and `plasma-localerc` routes
 this ADR names as known limits, and that an account Cairn did not make
-keeps Fedora's answer. Every check this ADR set has passed; acceptance
-is the maintainer's. The maintainer will accept it once #296 is merged.
+keeps Fedora's answer.
+
+### Checked again on 2026-11-09
+
+In cairn-min on 2026-11-09, on `test.20261109-295-296-300-4a5f38d`
+(main 57bd89a with this change at 73e519e, #295 at b254364 and #300 at
+a782c4a; 106 of 106 tests and `check-own-account-data.sh` passed in the
+build). The rule in the image differs from this change's in one comment,
+which #300 rewords. The build has no node, so the rule's tests skipped
+the three cases that run the rule itself. They passed on the dev PC from
+the same tree. The run's record was audited against its evidence
+afterwards, and what follows keeps to what the audit found shown.
+
+How the probes were made: ada (L1) and ben (L2, moved to L3 with a
+password for the run, then put back) each logged in at the login screen.
+Each probe was then started from a root shell, moved into the cgroup of
+the child's session and dropped to the child's user and groups. No
+command was typed inside either session. The run of 2026-11-07 on a
+built image made its probes the same way.
+
+- For both children, `SetRealName`, `SetIconFile`, `SetLanguage` and
+  `SetPasswordHint` on their own account, and a rename of the Guardian,
+  were each refused with "Not authorized". `chfn` was refused by
+  CHFN_RESTRICT. Each child's line in the account database, and their
+  name, picture and language in AccountsService, were the same before
+  and after. No wrong try was counted.
+- `pkcheck` answered no for `change-own-user-data`,
+  `change-own-password` and `user-administration`, for both children, so
+  no earlier rule file answered `yes` first. It was run without its
+  interactive flag, so it could not have opened a password box. That no
+  box opened rests on the bus calls, and on one screenshot of each
+  child's session taken after the probes.
+- In Family a grown-up's name was refused before any password, and no
+  `pkexec` was started. Escape then cleared the refusal, which is the
+  fix made after the run of 2026-11-07. Opening #300's Change language
+  in the same row cleared it too. That code is #300's.
+- The Guardian renamed ben in Family through the real password box:
+  `pkexec` ran `cairn-family set-name`, the journal said `set-name ben:
+  done`, the account, his "Steam for" entry and the login screen took
+  the new name, and no wrong try was counted. Family was opened by a
+  helper that starts its menu entry, and its buttons were pressed with
+  keys sent to the VM.
+
+Not tried this time: an L2 child's session, a command typed inside a
+child's session, and the Guardian's own name and picture. ben's name was
+put back afterwards by a script run as root, not through Family. The
+three things not tried on 2026-11-07 were not tried here either. No
+fault was found in this change.
+
+What is still open is under "Not checked yet" above. Acceptance is the
+maintainer's. The maintainer will accept it once #296 is merged.
