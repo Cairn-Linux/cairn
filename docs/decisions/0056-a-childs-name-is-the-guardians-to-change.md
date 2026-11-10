@@ -193,9 +193,9 @@ the account when the child was removed in the meantime.
   able to read the screens that change it back. Closing the language
   routes, and a language setting in Family, are #299 (ADR-0058).
 - **A name, picture or language a child set before this image stays
-  until a Guardian changes it.** Family changes the name. Family cannot
-  change a child's picture or language yet; Cairn's own screens do not
-  show a child's picture.
+  until a Guardian changes it.** Family changes the name, and since #300
+  the language (ADR-0058). Family cannot change a child's picture yet;
+  Cairn's own screens do not show a child's picture.
 - ADR-0054's login name beside every full name stays: names set before
   stay, and a Guardian may give any name.
 - AccountsService's other changes to one's own account, such as the
