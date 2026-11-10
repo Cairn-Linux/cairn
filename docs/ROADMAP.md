@@ -491,9 +491,10 @@ done, and what could sink it. Decisions that change the design get an ADR in
   in `~/.config/plasma-workspace/env/` that replaced
   `XDG_CONFIG_DIRS` gave a session in the child's language with
   Region & Language back. No code changed for it; the ADR now calls
-  the Kiosk lock a hide, not a wall (§7), and lists what was not
-  tried, an L2 login and L4 among it. A child with a terminal can
-  still set the variables for what they start, which is out of scope.
+  the Kiosk lock a hide, not a wall (a risk in §7 below), and lists
+  what was not tried, an L2 login with a language file and L4 among
+  it. A child with a terminal can still set the variables for what
+  they start, which is out of scope.
 - **ADR-0056 (2026-11-07, #292, proposed): a child's name is the
   Guardian's to change.** Fedora lets any account change its own full
   name, picture and language over AccountsService with no password, and
@@ -1096,7 +1097,7 @@ first-boot wizard, quick-actions overlay, signed image, CI, ISO.
 |---|---|---|
 | C++ is new to the maintainer and most code is AI-written | Bugs that can't be read; crashes without messages | Conventions in `CLAUDE.md`; sanitizers on in Debug; tiny classes; tests from the first commit; the trust boundaries get the most tests and the plainest code. |
 | malcontent doesn't work cleanly on Plasma | P0-7 | Revisit §4.5/§9.1 before Phase 2; KDE Kiosk alone may suffice for app gating. |
-| KDE Kiosk is a hide, not a wall, at L3 and L4 | ADR-0058's image run of 2026-11-09: one start-up file in an L3 child's home took Cairn's Kiosk folder out of that child's session | Anything a level must enforce gets a wall outside the session (polkit, file permissions, malcontent); Kiosk is kept for what a child should not meet by accident (DESIGN §9.1). Decide lock by lock when Phase 2 builds the L3 Kiosk profile. |
+| A Kiosk folder Cairn adds to an L3 or L4 child's session is a hide, not a wall | ADR-0058's image run of 2026-11-09: one start-up file in an L3 child's home took Cairn's Kiosk folder out of that child's session. L4, and a list without `/etc/xdg`, were not tried | What a level must enforce should not rest on Kiosk alone (DESIGN §9.1); Kiosk is kept for what a child should not meet by accident. Decide lock by lock when Phase 2 builds the L3 Kiosk profile. |
 | Kiosk escape via VT switch or forced windows | P0-4, P0-10 | logind `HandleXXX` and compositor config; labwc window rules plus foreign-toplevel detection (D3, ADR-0004); logind's `chvt` refused at L1 and L2 (ADR-0049). A program can still switch VTs through its controlling terminal until launched apps get a session of their own (ADR-0049). |
 | Steam client in every child's session | P0-10 RSS on the 4 GB floor; client UI changes under us | Measured 2026-09-08: about 800 MB proportional idle signed out and 1.4 GB signed in, in the VM. The child role in a Steam Family as defence in depth (Family View is gone); the launcher's grown-up screen is the universal fallback. |
 | Steam changes client behaviour under us | Phase 1 onward | Detection + graceful failure, never rely on a quiet client. |

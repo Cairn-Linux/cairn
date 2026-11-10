@@ -755,12 +755,11 @@ ADR-0035, proposed), and the launch-timeout handling described in §8.3.
   ratings, installation permissions. Originated at Endless; integrates with
   Flatpak. A D-Bus service and library rather than a GNOME-only component.
 - **KDE Kiosk** — desktop-level control. Which UI elements exist at all, via
-  immutable configuration keys. Kiosk hides; it is not a wall against a child
-  who can write files in their own home. On 2026-11-09 one start-up file in an
-  L3 child's home took Cairn's Kiosk folder out of that child's session
-  (ADR-0058). Anything a level must enforce therefore needs a wall outside the
-  session (polkit, file permissions, malcontent), and Kiosk is kept for what a
-  child should not meet by accident.
+  immutable configuration keys. A Kiosk folder Cairn adds to a child's
+  session is a hide, not a wall: one start-up file in an L3 child's home
+  took it out of that child's session, and whether the locks in `/etc/xdg`
+  can be dropped the same way was not tried (ADR-0058). What a level must
+  enforce should not rest on Kiosk alone.
 
 These solve different problems and the design wants both. **Verify early that
 malcontent works cleanly on Plasma** — if it doesn't, the L3/L4 desktop choice

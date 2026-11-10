@@ -246,9 +246,10 @@ child's home and a fresh login, with English (UK) set in Family.
   a child's own session is the child's to write. A name has a wall
   outside the session, polkit (ADR-0056); a language has none. The lock
   was asked for to stop a change by accident, and it still does that:
-  a session started the usual way has no page and no menu entry. It
-  does not stop a child who writes a start-up file on purpose, and that
-  child can take the file away again.
+  in a session started the usual way the page was not listed or found,
+  and Configure Language was not in the two apps' menus that were
+  opened. It does not stop a child who writes a start-up file on
+  purpose, and that child can take the file away again.
 - **A start-up script that replaces `XDG_CONFIG_DIRS` drops the lock
   for the whole session.** One file in the child's
   `~/.config/plasma-workspace/env/` exported `XDG_CONFIG_DIRS` as
@@ -257,7 +258,9 @@ child's home and a fresh login, with English (UK) set in Family.
   right list, and startplasma's own environment kept it. startplasma
   runs these scripts (Context), and everything it started had the
   child's list. The session was German, the Region & Language page
-  opened, and Configure Language was back in KWrite.
+  opened, and Configure Language was back in KWrite. The child's own
+  `plasma-localerc` was written at that login too, with the German
+  `LANG`.
   `kcm_users` and `kcm_updates` still read false; the child's list had
   kept `/etc/xdg`, where those two are locked. A list without
   `/etc/xdg` was not tried. No way to close this from inside the
@@ -292,9 +295,13 @@ child's home and a fresh login, with English (UK) set in Family.
   the date nor the messages, and adding `LC_TIME` did not change the
   date either. `LC_ALL=de_DE.UTF-8` changed the date, and `LC_ALL` with
   `LANGUAGE=de` changed the messages. `LANGUAGE` alone was not tried.
+  No terminal was opened for these: a helper ran them with the
+  session's environment, as a terminal would give it, and the `LANG`
+  one also in a new interactive shell.
   `XDG_CONFIG_DIRS` can be set the same way: with the Kiosk folder left
-  out for one program, `kcmshell6` opened the Region & Language page.
-  That is on purpose, not by accident, and out of scope.
+  out for one program, `kcmshell6`, which a helper started, opened the
+  Region & Language page. That is on purpose, not by accident, and out
+  of scope.
 - Apps with their own language setting, such as Steam and Firefox, keep
   it. A keyboard layout (`kcm_keyboard`) is not the display language and
   stays open.
@@ -352,16 +359,20 @@ with `cairn-family set-language`, Family's Change language, and
 
 In cairn-min on 2026-11-09, on `test.20261109-295-296-300-4a5f38d`
 (main 57bd89a with this change at a782c4a, which holds #296, and #295
-merged; 106 of 106 tests, `install_tree` among them, passed in the
-build). The build has no node, so the three cases that run the polkit
-rule were skipped there; they passed on the development PC from the
-same tree. The image was built from a782c4a. Later commits on this
-branch change words only: this ADR, the comment in the Kiosk file, and
-lines in DESIGN.md, ROADMAP.md and the session and guardian READMEs.
+merged). 106 of 106 tests, `install_tree` among them, passed in the
+build. Nine of them skipped some of their cases there. One of those
+matters here: the build has no node, so the three cases that run the
+polkit rule were skipped; they passed on the development PC from the
+same tree. The image holds this change as it stood at a782c4a. Later
+commits on this branch change words only: this ADR, the comment in the
+Kiosk file, and lines in DESIGN.md, ROADMAP.md and the session and
+guardian READMEs.
 The test accounts were ada (L1), ben (L2, moved to L3 for the Plasma
 checks), cy (added and removed) and guardian. The language files,
-ben's level and every file put in ben's home were taken back
-afterwards.
+ben's level and every test file put in ben's home were taken back
+afterwards. Some files his sessions wrote were left: under
+`~/.local/state` and `~/.cache`, flatpak overrides and
+kactivitymanagerd's backups.
 
 - **The image.** `/var/lib/cairn/locale` was there after boot, 0755
   root. The Kiosk file was in `/usr/share/cairn/child-xdg`, 0644 root,
@@ -374,8 +385,9 @@ afterwards.
   change that was cancelled left no file and no journal line.
 - **Refusals.** From a root shell, `cairn-family set-language` refused
   the Guardian, an account in `wheel`, root and a login that does not
-  exist (`not-a-child`), a locale not in the table (`bad-language`), a
-  login with a path in it (`bad-name`) and a caller that is a child
+  exist (`not-a-child`), a locale not in the table (`bad-language`) and
+  a login with a path in it (`bad-name`). With `PKEXEC_UID` set to a
+  child's uid, as pkexec would set it, it refused the caller as a child
   (`not-a-grown-up`). In ada's session at L1 and ben's at L2 and at L3,
   polkit answered no for the action, `pkexec` said "Not authorized"
   with no password box, a write into the folder was refused, and
@@ -436,6 +448,9 @@ afterwards.
   he had one.
 - L4.
 - Konsole's menu, with the lock or without.
+- Kickoff's search and the page's own menu entry, which the Decision
+  names. The run tried System Settings' list and search, KRunner,
+  `kcmshell6` and `systemsettings kcm_regionandlang`.
 - What the Region & Language page does when a child picks something
   while the values are locked.
 - A greeter login of an account in neither `wheel` nor a Cairn group.

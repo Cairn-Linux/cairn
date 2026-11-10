@@ -69,14 +69,14 @@ The Children page:
 4. **Change language** beside each child, at any level, opens a button
    under the row for each language Family offers but the child's own,
    English (US) and English (UK) for now, and **Cancel**; Escape cancels.
-   One name or language field is open at a time. A child's settings do
-   not offer their own language (ADR-0058), so this is how it
-   changes; a program a child with a terminal starts can still be given
-   another, and so can the session of an L3 or L4 child who writes a
-   start-up script. Once it is
-   in place: "Ada's language is English (UK) now. It starts the next time
-   Ada logs in." A refusal, such as a closed password box, leaves the
-   buttons open to try again.
+   One name or language field is open at a time. A child's settings
+   show no way to change their language (ADR-0058), so a Guardian
+   changes it here. A program a child with a terminal starts can still
+   be given another, and so can the session of an L3 child who writes
+   a start-up script; L4 was not tried. Once it is in place: "Ada's
+   language is English (UK) now. It starts the next time Ada logs in."
+   A refusal, such as a closed password box, leaves the buttons open
+   to try again.
 5. **Add a child:** the name for the login tile, and level 1 or 2. A
    name a child on the list already has, whatever the case of its
    letters, is refused before any password: "Cy already has an account
