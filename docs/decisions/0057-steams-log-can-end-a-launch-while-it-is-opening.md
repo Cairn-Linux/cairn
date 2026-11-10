@@ -184,6 +184,71 @@ game given up on just before the tap). Sanitizer builds do not link on
 the dev PC. Seen in the same run, and the same on main: after Steam last
 exited uncleanly, its "Updating Steam" window can stay past the steady
 wait and count as the game's window (#297).
+
+2026-11-09, cairn-min again, on `test.20261109-295-296-300-4a5f38d`
+(main 57bd89a with this change at b254364 and #300 at a782c4a, which
+holds #296 at 73e519e; 106 of 106 tests in the image build). The same
+game, child and keys, in two logins: the first with no language file,
+the second with #300's language file for ada (en_GB):
+- First login, quit 1.5 s after the window, 34 s after login: tiles
+  back 0.32 s after the window went, with "Steam says … ended while it
+  was starting, 31 s after the tap".
+- First login, quit again 81 s after login: tiles back 0.54 s after,
+  with the journal line.
+- Second login, quit 1.5 s after the window, 23 s after login: tiles
+  back 0.30 s after, with the journal line.
+- After 30 s of play, once in each login: the tiles came back with the
+  window, 0.08 s and 0.09 s after it went, and the launcher wrote no
+  line.
+- Ctrl-Alt-Home 5 s after the window, first login only: the window
+  went 0.50 s after the keys and the tiles came back with it (0.09 s).
+  No reaper and no ScummVM process was left, and the launcher, labwc
+  and Steam were still running.
+
+The check above passed again on this image, for one child and one game.
+Steam wrote "removed" about 0.16 s and 0.27 s after the window went in
+the first login's two quick quits, once the 0.06 to 0.07 s that the
+VM's clock runs ahead of the dev PC's is taken off.
+In the second login the game's processes had `LANG=en_GB.UTF-8`, and
+`LC_ALL=C` as in the first; that shows the environment only, not a
+game in another language.
+No Steam update window is in any saved frame of the three quick quits.
+The recorder keeps a frame only when one of three sampled points on the
+screen changes, and in the first run it kept none from 14.4 s to 28.9 s
+after the tap, so that is true of the saved frames only.
+ada's login, the Log out button, the Guardian's login and Family still
+worked.
+The last three were checked less than fully: Steam had been shut down
+by script before the Log out button was used, so it found no Steam
+client to close; the Guardian's login was counted from a `plasmashell`
+process and a screenshot that names no account; and Family was started
+by command from its menu entry, not by a click.
+
+Seen in the same run and not explained: in the first login the game's
+window came 28.9 s after the tap, against 18.2 s in the second.
+Steam's log gave its own start-up as 14.37 s the first time and 10.06 s
+the second.
+In the first login only, the launcher wrote "Steam is getting … ready
+before it starts." and the starting screen added "Getting it ready.
+This can take a few minutes." about 14 s after the tap (ADR-0036).
+Why Steam was slower that time was not found.
+The quick quit ended the same way both times.
+
+Not checked yet:
+- More than one child, one game and these six runs: three quick quits,
+  two long plays and one Ctrl-Alt-Home.
+- A Proton game, which is what the ADR waits on. Freddi Fish 2 runs
+  through ScummVM.
+- A game with a splash, a game crashing in its first seconds, and the
+  reaper guard, as on 2026-11-07.
+- The #297 case. Steam had ended cleanly before both logins, so its
+  update window after an unclean exit did not come up.
+- The later quit and Ctrl-Alt-Home in a login with a language file.
+- The Log out button while Steam is running, which is how a child logs
+  out.
+- Whether anything is faster or slower than on 2026-11-07. That was
+  another image, and its figures were not read again for this run.
+
 The ADR stays proposed. The maintainer decided on 2026-11-09 to merge
 the change and accept the ADR only after more Proton games have been
 tried on a computer with #295: quick quits of several Windows games
