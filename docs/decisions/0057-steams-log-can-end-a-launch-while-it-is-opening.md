@@ -212,6 +212,8 @@ VM's clock runs ahead of the dev PC's is taken off.
 In the second login the game's processes had `LANG=en_GB.UTF-8`, and
 `LC_ALL=C` as in the first; that shows the environment only, not a
 game in another language.
+The language file was made by the image's `cairn-family` run as root,
+not through Family.
 No Steam update window is in any saved frame of the three quick quits.
 The recorder keeps a frame only when one of three sampled points on the
 screen changes, and in the first run it kept none from 14.4 s to 28.9 s
@@ -224,21 +226,25 @@ client to close; the Guardian's login was counted from a `plasmashell`
 process and a screenshot that names no account; and Family was started
 by command from its menu entry, not by a click.
 
-Seen in the same run and not explained: in the first login the game's
-window came 28.9 s after the tap, against 18.2 s in the second.
-Steam's log gave its own start-up as 14.37 s the first time and 10.06 s
-the second.
-In the first login only, the launcher wrote "Steam is getting … ready
-before it starts." and the starting screen added "Getting it ready.
-This can take a few minutes." about 14 s after the tap (ADR-0036).
+Seen in the same run and not explained: on the first start after the
+first login the game's window came 28.9 s after the tap, against 18.2 s
+on the first start after the second.
+The three later starts in the first login took 3.2 to 3.7 s, and the
+one later start in the second took 2.8 s.
+Steam's log gave its own start-up as 14.37 s in the first login and
+10.06 s in the second.
+On the first login's first start only, the launcher wrote "Steam is
+getting … ready before it starts." and the starting screen added
+"Getting it ready. This can take a few minutes." about 14 s after the
+tap (ADR-0036).
 Why Steam was slower that time was not found.
 The quick quit ended the same way both times.
 
 Not checked yet:
-- More than one child, one game and these six runs: three quick quits,
-  two long plays and one Ctrl-Alt-Home.
-- A Proton game, which is what the ADR waits on. Freddi Fish 2 runs
-  through ScummVM.
+- Anything beyond one child, one game and these six runs: three quick
+  quits, two long plays and one Ctrl-Alt-Home.
+- A Proton game, one of the things the ADR waits on. Freddi Fish 2
+  runs through ScummVM.
 - A game with a splash, a game crashing in its first seconds, and the
   reaper guard, as on 2026-11-07.
 - The #297 case. Steam had ended cleanly before both logins, so its
