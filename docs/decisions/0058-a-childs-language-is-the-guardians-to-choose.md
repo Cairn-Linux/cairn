@@ -249,7 +249,10 @@ child's home and a fresh login, with English (UK) set in Family.
   in a session started the usual way the page was not listed or found,
   and Configure Language was not in the two apps' menus that were
   opened. It does not stop a child who writes a start-up file on
-  purpose, and that child can take the file away again.
+  purpose, and that child can take the file away again. The maintainer
+  accepted this limit on 2026-11-10: the lock is there for accidents.
+  Family's sentence to the Guardian now says the way to change the
+  language is hidden from children, not that children cannot change it.
 - **A start-up script that replaces `XDG_CONFIG_DIRS` drops the lock
   for the whole session.** One file in the child's
   `~/.config/plasma-workspace/env/` exported `XDG_CONFIG_DIRS` as
@@ -364,9 +367,11 @@ build. Nine of them skipped some of their cases there. One of those
 matters here: the build has no node, so the three cases that run the
 polkit rule were skipped; they passed on the development PC from the
 same tree. The image holds this change as it stood at a782c4a. Later
-commits on this branch change words only: this ADR, the comment in the
-Kiosk file, and lines in DESIGN.md, ROADMAP.md and the session and
-guardian READMEs.
+commits on this branch change words only: this ADR, lines in DESIGN.md,
+ROADMAP.md, DEVELOPMENT.md and the session and guardian READMEs, the
+sentence Family shows above the language buttons, and comments in the
+Kiosk file, `cairn-session` and the provisioning script. Family with
+the new sentence has not been run on an image.
 The test accounts were ada (L1), ben (L2, moved to L3 for the Plasma
 checks), cy (added and removed) and guardian. The language files,
 ben's level and every test file put in ben's home were taken back

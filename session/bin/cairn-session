@@ -12,8 +12,10 @@
 # the desktop levels, then accounts Cairn did not make.
 #
 # A child's language is the Guardian's (ADR-0058): a child's session takes
-# the one Family wrote, and an L3 or L4 child's Plasma does not offer its
-# language settings.
+# the one Family wrote, and an L3 or L4 child's Plasma hides its language
+# settings. That is a hide, not a wall: a start-up script in the child's
+# own home can replace the list this script hands on (ADR-0058, Known
+# limits).
 #
 # This is a trust boundary (CLAUDE.md), so it stays short: the tests in
 # ../tests/test_cairn_session.py run it with stand-ins for `id`, `labwc`,

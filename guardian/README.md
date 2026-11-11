@@ -69,7 +69,9 @@ The Children page:
 4. **Change language** beside each child, at any level, opens a button
    under the row for each language Family offers but the child's own,
    English (US) and English (UK) for now, and **Cancel**; Escape cancels.
-   One name or language field is open at a time. A child's settings
+   One name or language field is open at a time. Above the buttons:
+   "Their screens are in this language from the next time they log in.
+   The way to change it is hidden from children." A child's settings
    show no way to change their language (ADR-0058), so a Guardian
    changes it here. A program a child with a terminal starts can still
    be given another, and so can the session of an L3 child who writes

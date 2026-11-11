@@ -490,11 +490,14 @@ done, and what could sink it. Decisions that change the design get an ADR in
   language and the hidden page alone. One did not: a start-up script
   in `~/.config/plasma-workspace/env/` that replaced
   `XDG_CONFIG_DIRS` gave a session in the child's language with
-  Region & Language back. No code changed for it; the ADR now calls
-  the Kiosk lock a hide, not a wall (a risk in §7 below), and lists
-  what was not tried, an L2 login with a language file and L4 among
-  it. A child with a terminal can still set the variables for what
-  they start, which is out of scope.
+  Region & Language back. The maintainer accepted that limit on
+  2026-11-10, since the lock is there for accidents. No logic changed
+  for it: the ADR now calls the Kiosk lock a hide, not a wall (a risk
+  in §7 below), Family tells the Guardian the way to change the
+  language is hidden from children, and the ADR lists what was not
+  tried, an L2 login with a language file and L4 among it. A child
+  with a terminal can still set the variables for what they start,
+  which is out of scope.
 - **ADR-0056 (2026-11-07, #292, proposed): a child's name is the
   Guardian's to change.** Fedora lets any account change its own full
   name, picture and language over AccountsService with no password, and
