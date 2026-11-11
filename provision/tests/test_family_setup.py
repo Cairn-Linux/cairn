@@ -759,10 +759,26 @@ class ImageFoldersTest(unittest.TestCase):
         # su runs with the caller's group, so without setgid a child's su
         # would make another account's count the child's to write (#289).
         # The image's build runs the real lines (check-faillock-owner.py).
-        tmpfiles = (HERE.parent / "system_files/usr/lib/tmpfiles.d/cairn.conf").read_text()
+        system_files = HERE.parent / "system_files"
+        tmpfiles = (system_files / "usr/lib/tmpfiles.d/cairn.conf").read_text()
         lines = [line.split() for line in tmpfiles.splitlines() if line and not line.startswith("#")]
         self.assertIn(["d", "/var/lib/faillock", "2755", "root", "root", "-"], lines)
-        self.assertIn(["z", "/var/lib/faillock/*", "0660", "-", "root", "-"], lines)
+        self.assertFalse([line for line in lines if line[1:2] == ["/var/lib/faillock/*"]])
+
+        helper = system_files / "usr/libexec/cairn/cairn-reconcile-faillock"
+        service = system_files / "usr/lib/systemd/system/cairn-reconcile-faillock.service"
+        dependency = system_files / "usr/lib/systemd/system/sddm.service.d/10-cairn-faillock.conf"
+        self.assertTrue(helper.is_file())
+        self.assertTrue(service.is_file())
+        service_text = service.read_text()
+        self.assertIn("ExecStart=/usr/libexec/cairn/cairn-reconcile-faillock", service_text)
+        self.assertIn("ExecStart=/usr/sbin/restorecon -R /var/lib/faillock", service_text)
+        self.assertIn("Requires=cairn-reconcile-faillock.service", dependency.read_text())
+
+        guardrail = (HERE.parent / "build_files/check-faillock-owner.py").read_text()
+        self.assertIn('ATTACKER = "daemon"', guardrail)
+        self.assertIn("os.setuid(attacker.pw_uid)", guardrail)
+        self.assertIn("os.O_WRONLY | os.O_TRUNC", guardrail)
 
 
 if __name__ == "__main__":

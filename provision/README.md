@@ -69,7 +69,7 @@ What it leaves on the machine:
 | `/etc/polkit-1/rules.d/10-cairn-levels.rules` | What a child's session may ask the system to do, keyed off the level groups (`../session/polkit/`, #35) |
 | `/etc/sddm.conf.d/`, `/etc/pam.d/sddm` | Only Cairn's session directory offered, the Cairn theme, no autologin, the greeter-only passwordless rule for L1 and L2, and the refusal of a child whose Steam a grown-up has open (ADR-0032). A `20-cairn-guardians.conf` from an earlier run, which hid the Guardians, is removed (ADR-0020) |
 | `/usr/local/share/cairn/sddm/themes/cairn/`, `/usr/local/lib64/cairn/qml/` | The login screen from `../greeter/theme/`, and the `Cairn.Brand` and `Cairn.Greeter` QML modules it imports (ADR-0020) |
-| `/etc/security/faillock.conf`, `/var/lib/faillock`, `/etc/pam.d/kde-fingerprint` | A lockout after wrong passwords for every account that has one: `authselect`'s `with-faillock`, with its count kept where a reboot does not clear it, and an SELinux rule labelling that directory `faillog_t` (ADR-0020), and that directory setgid with each count in group root, so a child with `su` cannot write another account's (ADR-0053); and the image's lock-screen fingerprint service, which does not count a missing reader as a wrong try (ADR-0051) |
+| `/etc/security/faillock.conf`, `/var/lib/faillock`, `/usr/local/libexec/cairn/cairn-reconcile-faillock`, `/etc/pam.d/kde-fingerprint` | A lockout after wrong passwords for every account that has one: `authselect`'s `with-faillock`, with its count kept where a reboot does not clear it, and an SELinux rule labelling that directory `faillog_t` (ADR-0020). The directory is setgid so new counts start in group root, and the shared no-follow helper reconciles every old count's account owner, root group, mode 0660 and exact access ACL on each run (#301, ADR-0053). The image's lock-screen fingerprint service does not count a missing reader as a wrong try (ADR-0051) |
 | `/usr/local/libexec/cairn/cairn-steam-visit`, `/usr/local/libexec/cairn/cage-visit`, `/etc/pam.d/cairn-steam-visit`, `/etc/pam.d/login`, `/etc/polkit-1/actions/com.cairnlinux.steam-visit.policy`, an SELinux rule for `/run/cairn` | A grown-up's way into a child's Steam from their own login (ADR-0032, `../session/`): the root helper; a copy of the image's cage the child may run but not read (mode 0711), made again when the image's cage changes; the visit's PAM session; Fedora's console `login` with the refusal line; the polkit action, naming the helper's real path under `/var/usrlocal`, with polkit restarted when it changes; and the `etc_t` label that lets the login screen read the list of children on a visit |
 | `/usr/local/bin/cairn-steam-for`, `/usr/local/libexec/cairn/cairn-steam-for`, `/usr/local/share/applications/cairn-steam-for-CHILD.desktop` | The Guardian's window for a child's Steam (ADR-0032, `../guardian/`), and a "Steam for <child>" menu entry for every child account in a level group. The program and its wrapper are `root:cairn-guardian`, mode 0750: Plasma's menu leaves out an entry whose `TryExec` the account cannot run, so only a Guardian sees the entries. An entry whose account is no longer a child is removed. The window writes to the journal under `cairn-steam-for` |
 | `/var/lib/cairn/steam-library/`, `/var/lib/cairn/steam-library/steamapps/` | The folder a Guardian's Steam installs the children's games into (ADR-0033). Both are `root:cairn-guardian`, mode 2775, with the group in the access ACL and the default ACL `d:u::rwx,d:g::rwx,d:g:cairn-guardian:rwx,d:m::rwx,d:o::r-x`, so only Guardians can change what is in it and every account can read it. Only these two folders are set; the games inside are never walked. A link in place of either is refused |
@@ -457,10 +457,10 @@ own groups.
    Its entries replace provisioning's, which named `/usr/local/bin`,
    for every child, named on that run or not.
 10. Restart, so the login screen reads the image's settings, not the
-    copies step 4 removed.
-    Then `ls -ln /var/lib/faillock` shows group 0 on every count: the
-    image's tmpfiles put back any count a child's `su` made in their own
-    group (ADR-0053).
+    copies step 4 removed. Then `ls -ln /var/lib/faillock` shows each
+    current account's number as owner and group 0 on every count: the
+    image's reconciliation service repairs migrated ownership and exact
+    access before SDDM starts (#301, ADR-0053).
 11. Give each child their games again on Family's Games page, then Save.
     On the image each child's tiles come from their own list, so after
     the move no child has a game tile, though every copy and save is

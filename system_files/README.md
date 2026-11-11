@@ -16,8 +16,11 @@ Only a file the image needs and provisioning does not belongs here:
   from here too, and a computer with this file runs the image.
 - `usr/lib/tmpfiles.d/cairn.conf`: `/var/lib/cairn`, its folders,
   among them the tools folder a Save copies Steam's tools into
-  (ADR-0046), `/var/lib/faillock`, setgid so every count stays in group
-  root (ADR-0053), and the folder for the family's menu entries.
+  (ADR-0046), `/var/lib/faillock`, setgid so every new count stays in
+  group root (ADR-0053), and the folder for the family's menu entries.
+- `usr/libexec/cairn/cairn-reconcile-faillock` and its systemd unit:
+  descriptor-safe boot repair of old tally ownership, mode and exact ACL
+  before SDDM starts (#301).
 - `usr/lib/systemd/system-preset/40-cairn.preset`: SDDM, not Plasma Login
   Manager, after a first boot's presets.
 - `etc/xdg/kcm-about-distrorc`: empty, so System Settings' About page

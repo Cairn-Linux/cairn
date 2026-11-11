@@ -19,6 +19,9 @@ find_package(Python3 REQUIRED COMPONENTS Interpreter)
 add_test(NAME provision
     COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_provision.py"
 )
+add_test(NAME faillock_reconcile
+    COMMAND Python3::Interpreter "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_faillock_reconcile.py"
+)
 # The family's setup on a computer that runs the image, and the renumbering
 # of cairn-guardian before a computer set up by hand moves to it (ADR-0038).
 add_test(NAME family_setup

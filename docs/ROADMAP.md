@@ -516,13 +516,17 @@ done, and what could sink it. Decisions that change the design get an ADR in
   empty it between guesses or fill it to lock the Guardian out.
   pam_faillock sets each count's owner but keeps the group it was made
   with. `/var/lib/faillock` is now setgid, group root, so every count is
-  `<login>:root 0660` from the first try, and tmpfiles puts an older
-  count back to group root at every boot; provisioning does the same.
-  New accounts need nothing. A build check runs the image's tmpfiles
-  lines and its real pam_faillock as `su` does. Built and checked in a
-  container on 2026-11-05, and on cairn-min the same day with the new
-  tmpfiles file laid over the image; the checks on a built image and on
-  the kids' laptop are open.
+  `<login>:root 0660` from the first try. Since #301, one descriptor-safe
+  helper shared by boot and provisioning also resolves each old tally's
+  current account owner, sets mode 0660 and group root, and replaces its
+  access ACL with only read-only `sddm` as a named user. SDDM cannot start
+  if that fail-closed repair refuses an unsafe entry. The build check
+  plants a wrong-owner tally with a child `rw` ACL, then drops to that
+  distinct child identity and proves truncation is denied. Built and
+  checked in a container on 2026-11-05, and on cairn-min the same day with
+  the original tmpfiles fix laid over the image; the revised helper and
+  denial check still need a built-image run, and the kids' laptop checks
+  remain open.
 - **ADR-0052 (2026-11-05, #284, proposed): the login screen says when an
   account is locked.** On the kids' laptop the Guardian, locked out by
   faillock, was told "That password did not work" for the right

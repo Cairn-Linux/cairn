@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""A child with su must never be able to write another account's faillock
-count (#289, ADR-0053).
+"""Prove faillock tallies resist a distinct unprivileged attacker (#301).
 
-Runs the image's own tmpfiles lines for /var/lib/faillock into a copy of
-the folder in /tmp, then the image's real pam_faillock through libpam, as
-su runs it: as root, with the effective group of whoever typed su. The
-account nobody, and nobody's group, stand in for both accounts. Nothing in
-the image changes. A run in a folder without setgid comes first, to show
-the check can see the caller's group at all.
+The image's tmpfiles rules make the setgid directory and its default ACL. The
+shared reconciliation helper repairs a migrated wrong-owner tally and replaces
+its access ACL. The real pam_faillock then exercises new counts, successful
+authentication, and administrative reset independently.
 """
 
 import ctypes
@@ -21,8 +18,10 @@ import tempfile
 
 PAM_SUCCESS = 0
 TMPFILES = pathlib.Path("/usr/lib/tmpfiles.d/cairn.conf")
+RECONCILER = pathlib.Path("/usr/libexec/cairn/cairn-reconcile-faillock")
 FOLDER = "var/lib/faillock"
 USER = "nobody"
+ATTACKER = "daemon"
 
 pam = ctypes.CDLL("libpam.so.0")
 
@@ -32,14 +31,17 @@ class Conversation(ctypes.Structure):
 
 
 def run_pam(confdir, line, caller_group):
-    """Runs a one-line auth stack for USER with `caller_group` as the
-    effective group, as su does. PAM's answer, or None if it would not
-    start."""
+    """Run one pam_faillock line for USER with su's caller-group shape."""
     (confdir / "cairn-check").write_text(f"auth required pam_faillock.so {line}\n")
     handle = ctypes.c_void_p()
     conversation = Conversation(None, None)
-    started = pam.pam_start_confdir(b"cairn-check", USER.encode(), ctypes.byref(conversation),
-                                    str(confdir).encode(), ctypes.byref(handle))
+    started = pam.pam_start_confdir(
+        b"cairn-check",
+        USER.encode(),
+        ctypes.byref(conversation),
+        str(confdir).encode(),
+        ctypes.byref(handle),
+    )
     if started != PAM_SUCCESS:
         return None
     os.setegid(caller_group)
@@ -52,21 +54,62 @@ def run_pam(confdir, line, caller_group):
 
 
 def owner(path):
-    """user:group:mode, as stat --format=%U:%G:%a gives it."""
-    return subprocess.run(["stat", "--format=%U:%G:%a", "--", str(path)],
-                          capture_output=True, text=True, check=True).stdout.strip()
+    """Return user:group:mode, as stat --format does."""
+    return subprocess.run(
+        ["stat", "--format=%U:%G:%a", "--", str(path)],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+
+
+def acl(path):
+    return subprocess.run(
+        ["getfacl", "--omit-header", "--absolute-names", "--", str(path)],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.splitlines()
+
+
+def attacker_truncate_result(path, attacker):
+    """Return 0 for denied, 1 for opened, or 2 for another OS failure."""
+    pid = os.fork()
+    if pid == 0:
+        try:
+            os.setgroups([])
+            os.setgid(attacker.pw_gid)
+            os.setuid(attacker.pw_uid)
+            descriptor = os.open(path, os.O_WRONLY | os.O_TRUNC)
+            os.close(descriptor)
+        except PermissionError:
+            os._exit(0)
+        except OSError:
+            os._exit(2)
+        os._exit(1)
+    _, status = os.waitpid(pid, 0)
+    return os.waitstatus_to_exitcode(status)
+
+
+def check_tally(path, failures, label):
+    expected = f"{USER}:root:660"
+    if not path.exists() or owner(path) != expected:
+        failures.append(f"{label} is {owner(path) if path.exists() else 'missing'}, not {expected}")
 
 
 def main():
     failures = []
     account = pwd.getpwnam(USER)
-    with tempfile.TemporaryDirectory() as work:
-        work = pathlib.Path(work)
+    attacker = pwd.getpwnam(ATTACKER)
+    if account.pw_uid == attacker.pw_uid:
+        print("target and attacker identities are not distinct", file=sys.stderr)
+        return 1
+
+    with tempfile.TemporaryDirectory() as temporary:
+        work = pathlib.Path(temporary)
+        os.chmod(work, 0o755)
         root, confdir, plain = work / "root", work / "pam.d", work / "plain"
         confdir.mkdir()
-        # The image's accounts, for the ACL line that names sddm: tmpfiles
-        # with --root reads only the root's /etc. Only the folder's own
-        # lines, since the groups Cairn adds come at first boot.
         (root / "etc").mkdir(parents=True)
         with open(root / "etc/passwd", "w") as passwd, open(root / "etc/group", "w") as group:
             for name in ("/etc/passwd", "/usr/lib/passwd"):
@@ -76,52 +119,78 @@ def main():
                 if os.path.exists(name):
                     group.write(pathlib.Path(name).read_text())
 
-        # Without setgid, a count su makes takes the caller's group.
+        # Negative control: without setgid, pam_faillock keeps the caller group.
         plain.mkdir(mode=0o755)
-        made = run_pam(confdir, f"authfail dir={plain}", account.pw_gid)
+        made = run_pam(confdir, f"authfail dir={plain}", attacker.pw_gid)
         if made is None or not (plain / USER).exists():
-            print(f"pam_faillock made no count in a plain folder (PAM answered {made}), "
-                  "so this check cannot run", file=sys.stderr)
+            print(
+                f"pam_faillock made no count in a plain folder (PAM answered {made}), so this check cannot run",
+                file=sys.stderr,
+            )
             return 1
-        if os.stat(plain / USER).st_gid != account.pw_gid:
-            failures.append("a count made without setgid did not take the caller's group, "
-                            "so this check proves nothing")
+        if os.stat(plain / USER).st_gid != attacker.pw_gid:
+            failures.append("the negative control did not take the attacker's group")
 
-        # A count su made before this change, with the caller's group.
         faillock = root / FOLDER
         faillock.mkdir(parents=True)
-        old = faillock / USER
-        old.write_bytes(b"")
-        os.chown(old, account.pw_uid, account.pw_gid)
-        os.chmod(old, 0o660)
-        lines = [line for line in TMPFILES.read_text().splitlines()
-                 if line[:1] != "#" and line.split()[1:2] in ([f"/{FOLDER}"], [f"/{FOLDER}/*"])]
-        (work / "faillock.conf").write_text("\n".join(lines) + "\n")
-        subprocess.run(["systemd-tmpfiles", "--create", f"--root={root}", str(work / "faillock.conf")],
-                       check=True)
+        lines = [
+            line
+            for line in TMPFILES.read_text().splitlines()
+            if line[:1] != "#" and line.split()[1:2] == [f"/{FOLDER}"]
+        ]
+        config = work / "faillock.conf"
+        config.write_text("\n".join(lines) + "\n")
+        subprocess.run(
+            ["systemd-tmpfiles", "--create", f"--root={root}", str(config)],
+            check=True,
+        )
         if owner(faillock) != "root:root:2755":
             failures.append(f"tmpfiles leaves {FOLDER} {owner(faillock)}, not root:root:2755")
-        if owner(old) != f"{USER}:root:660":
-            failures.append(f"tmpfiles leaves a count with the caller's group {owner(old)}, "
-                            f"not {USER}:root:660")
 
-        # A count su makes from now on.
-        old.unlink()
-        run_pam(confdir, f"authfail dir={faillock}", account.pw_gid)
-        if not old.exists() or owner(old) != f"{USER}:root:660":
-            failures.append("a count made by su in the image's folder is "
-                            f"{owner(old) if old.exists() else 'missing'}, not {USER}:root:660")
+        # Migrated state: Guardian-named, child-owned, and explicitly writable
+        # by that child. The helper must replace every part of this policy.
+        tally = faillock / USER
+        tally.write_bytes(b"migrated count")
+        os.chown(tally, attacker.pw_uid, attacker.pw_gid)
+        os.chmod(tally, 0o660)
+        subprocess.run(["setfacl", "-m", f"u:{ATTACKER}:rw", "--", str(tally)], check=True)
+        subprocess.run([str(RECONCILER), str(faillock)], check=True)
+        check_tally(tally, failures, "the repaired migrated tally")
+        repaired_acl = acl(tally)
+        if "user:sddm:r--" not in repaired_acl or f"user:{ATTACKER}:rw-" in repaired_acl:
+            failures.append(f"the repaired tally has the wrong access ACL: {repaired_acl}")
+        truncate_result = attacker_truncate_result(tally, attacker)
+        if truncate_result == 1:
+            failures.append("the distinct unprivileged attacker could truncate the repaired tally")
+        elif truncate_result != 0:
+            failures.append("the distinct unprivileged write-denial check failed unexpectedly")
+
+        # New count through the image's real PAM path.
+        tally.unlink()
+        run_pam(confdir, f"authfail dir={faillock}", attacker.pw_gid)
+        check_tally(tally, failures, "a new tally")
+        if not tally.exists() or tally.stat().st_size == 0:
+            failures.append("pam_faillock made no non-empty tally for authsucc")
         else:
-            acl = subprocess.run(["getfacl", "--omit-header", "--absolute-names", "--", str(old)],
-                                 capture_output=True, text=True, check=True).stdout.splitlines()
-            if "user:sddm:r--" not in acl or "group::rw-" not in acl:
-                failures.append(f"a new count lost the login screen's read entry: {acl}")
-            # A good login and faillock --reset empty it and keep the group.
-            run_pam(confdir, f"authsucc dir={faillock}", account.pw_gid)
-            subprocess.run(["faillock", "--dir", str(faillock), "--user", USER, "--reset"], check=True)
-            if owner(old) != f"{USER}:root:660" or old.stat().st_size != 0:
-                failures.append(f"after a good login and a reset the count is {owner(old)}, "
-                                f"{old.stat().st_size} bytes")
+            run_pam(confdir, f"authsucc dir={faillock}", attacker.pw_gid)
+            check_tally(tally, failures, "the tally after authsucc")
+            if tally.stat().st_size != 0:
+                failures.append("successful authentication did not clear the tally")
+
+        # Administrative reset gets a fresh non-empty record so authsucc cannot
+        # mask a broken reset.
+        run_pam(confdir, f"authfail dir={faillock}", attacker.pw_gid)
+        if not tally.exists() or tally.stat().st_size == 0:
+            failures.append("pam_faillock made no non-empty tally for reset")
+        else:
+            subprocess.run(
+                ["faillock", "--dir", str(faillock), "--user", USER, "--reset"],
+                check=True,
+            )
+            check_tally(tally, failures, "the tally after administrative reset")
+            if tally.stat().st_size != 0:
+                failures.append("administrative reset did not clear the tally")
+
     for failure in failures:
         print(failure, file=sys.stderr)
     return 1 if failures else 0

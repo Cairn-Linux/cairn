@@ -1,0 +1,145 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
+"""Repair every faillock tally through a no-follow file descriptor (#301)."""
+
+import argparse
+import errno
+import os
+import pathlib
+import pwd
+import stat
+import subprocess
+import sys
+
+MODE = 0o660
+ROOT_GID = 0
+
+
+def access_acl(sddm_uid):
+    """Return the one permitted access ACL, using a numeric named-user id."""
+    return f"u::rw-,u:{sddm_uid}:r--,g::rw-,m::rw-,o::---"
+
+
+def read_acl(fd):
+    """Read the access ACL from the already-open tally descriptor."""
+    command = [
+        "getfacl",
+        "--omit-header",
+        "--numeric",
+        "--absolute-names",
+        "--",
+        f"/proc/self/fd/{fd}",
+    ]
+    result = subprocess.run(
+        command,
+        check=True,
+        capture_output=True,
+        text=True,
+        pass_fds=(fd,),
+    )
+    return {line for line in result.stdout.splitlines() if line and not line.startswith("#")}
+
+
+def set_acl(fd, sddm_uid):
+    """Replace, rather than extend, the open tally's access ACL."""
+    subprocess.run(
+        ["setfacl", f"--set={access_acl(sddm_uid)}", "--", f"/proc/self/fd/{fd}"],
+        check=True,
+        pass_fds=(fd,),
+    )
+
+
+def expected_acl(sddm_uid):
+    return {
+        "user::rw-",
+        f"user:{sddm_uid}:r--",
+        "group::rw-",
+        "mask::rw-",
+        "other::---",
+    }
+
+
+def same_file(left, right):
+    return (left.st_dev, left.st_ino) == (right.st_dev, right.st_ino)
+
+
+def reconcile_entry(directory_fd, name, sddm_uid):
+    """Reconcile one directory entry and return whether anything changed."""
+    try:
+        account = pwd.getpwnam(name)
+    except KeyError as error:
+        raise ValueError(f"{name}: no local account") from error
+
+    flags = os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW | os.O_NONBLOCK
+    try:
+        fd = os.open(name, flags, dir_fd=directory_fd)
+    except OSError as error:
+        if error.errno == errno.ELOOP:
+            raise ValueError(f"{name}: symlink refused") from error
+        raise
+
+    try:
+        opened = os.fstat(fd)
+        if not stat.S_ISREG(opened.st_mode):
+            raise ValueError(f"{name}: not a regular file")
+        named = os.stat(name, dir_fd=directory_fd, follow_symlinks=False)
+        if not same_file(opened, named):
+            raise ValueError(f"{name}: pathname was replaced")
+
+        changed = False
+        if opened.st_uid != account.pw_uid or opened.st_gid != ROOT_GID:
+            os.fchown(fd, account.pw_uid, ROOT_GID)
+            changed = True
+        if stat.S_IMODE(opened.st_mode) != MODE:
+            os.fchmod(fd, MODE)
+            changed = True
+        if read_acl(fd) != expected_acl(sddm_uid):
+            set_acl(fd, sddm_uid)
+            changed = True
+
+        named_after = os.stat(name, dir_fd=directory_fd, follow_symlinks=False)
+        if not same_file(opened, named_after):
+            raise ValueError(f"{name}: pathname was replaced during repair")
+        return changed
+    finally:
+        os.close(fd)
+
+
+def reconcile(folder):
+    """Repair all entries in folder, returning fail-closed error messages."""
+    errors = []
+    try:
+        sddm_uid = pwd.getpwnam("sddm").pw_uid
+    except KeyError:
+        return ["sddm: no local account"]
+
+    flags = os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW | os.O_DIRECTORY
+    try:
+        directory_fd = os.open(folder, flags)
+    except OSError as error:
+        return [f"{folder}: {error.strerror}"]
+
+    try:
+        names = sorted(entry.name for entry in os.scandir(directory_fd))
+        for name in names:
+            try:
+                reconcile_entry(directory_fd, name, sddm_uid)
+            except (OSError, ValueError, subprocess.SubprocessError) as error:
+                errors.append(f"{name}: {error}")
+    finally:
+        os.close(directory_fd)
+    return errors
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("folder", nargs="?", type=pathlib.Path, default=pathlib.Path("/var/lib/faillock"))
+    args = parser.parse_args()
+    errors = reconcile(args.folder)
+    for error in errors:
+        print(f"cairn-reconcile-faillock: {error}", file=sys.stderr)
+    return 1 if errors else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

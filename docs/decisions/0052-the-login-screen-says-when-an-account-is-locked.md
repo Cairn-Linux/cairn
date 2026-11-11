@@ -36,9 +36,10 @@ PAM stays the gate; nothing in any PAM stack changes.
 
 **The read permission.**
 systemd-tmpfiles puts a default ACL on `/var/lib/faillock`:
-`d:u::rw,d:u:sddm:r,d:g::rw,d:m::rw,d:o::-`, and `u:sddm:r` on the
-files already there (`system_files/usr/lib/tmpfiles.d/cairn.conf`).
-Provisioning does the same with `setfacl`.
+`d:u::rw,d:u:sddm:r,d:g::rw,d:m::rw,d:o::-`. The boot reconciliation
+helper gives files already there the exact matching access ACL before
+SDDM starts (`system_files/usr/lib/tmpfiles.d/cairn.conf`, #301).
+Provisioning installs and runs the same helper.
 - Every file faillock makes from then on has a read entry for `sddm`
   and nothing else new.
 - The default entries keep group root's write, which faillock gives each
