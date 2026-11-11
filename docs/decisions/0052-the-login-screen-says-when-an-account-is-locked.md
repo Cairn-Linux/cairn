@@ -6,8 +6,8 @@ next image update.
 **Date:** 2026-11-05
 **Closes:** (none) — issue #284. Amends ADR-0020 (the login screen) and
 ADR-0049 (check 5's words).
-**Amended by:** ADR-0053, proposed (the folder is setgid, so every count
-is in group root, and tmpfiles puts a count back to group root)
+**Amended by:** ADR-0053, proposed (the folder is setgid, so every new
+count is in group root, and the boot reconciler repairs older counts)
 
 ## Context
 
