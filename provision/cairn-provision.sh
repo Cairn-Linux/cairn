@@ -501,7 +501,6 @@ protect_guardians() {
         chmod 2755 "$FAILLOCK"
         changed "$FAILLOCK owned by root, mode 2755"
     fi
-    restorecon -R "$FAILLOCK"
     # The login screen, as sddm, may read each count to say when an account
     # is locked (ADR-0052), as the image's tmpfiles.d/cairn.conf gives it.
     # Only the default ACL: the folder's mode already lets sddm in.
@@ -514,6 +513,7 @@ protect_guardians() {
     # helper reports unsafe entries and exits with failure, so provisioning
     # cannot continue after an incomplete repair (#301).
     "$FAILLOCK_RECONCILER" "$FAILLOCK"
+    restorecon -R "$FAILLOCK"
     if ! authselect current | grep -qx -- '- with-faillock'; then
         authselect enable-feature with-faillock
         changed "authselect with-faillock"

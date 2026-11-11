@@ -180,10 +180,10 @@ On cairn-min after an image update with this change, then on the kids'
 laptop:
 1. `getfacl /var/lib/faillock /var/lib/faillock/*` shows
    `default:user:sddm:r--` and `default:group::rw-` on the folder, and on
-   each file `user:sddm:r--`, `group::rw-` and `mask::rw-`. A count made
-   by three new wrong tries shows the same. `systemd-tmpfiles --create`
-   leaves each file's owner and mode 0660 as they were; since ADR-0053 it
-   puts the group back to root.
+   each file `user:sddm:r--`, `group::rw-` and `mask::rw-`, with no
+   other named entry. A count made by three new wrong tries shows the
+   same. Starting `cairn-reconcile-faillock.service` leaves every tally
+   owned by its current account in group root and mode 0660.
 2. `ps -eZ | grep sddm-greeter` shows `xdm_t`, `ls -Z /var/lib/faillock`
    shows `faillog_t`, and `journalctl -b | grep 'AVC avc'` shows no new
    denial after a locked tile is chosen. (`ausearch` sees no AVCs on the

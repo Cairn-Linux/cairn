@@ -92,9 +92,22 @@ def attacker_truncate_result(path, attacker):
 
 
 def check_tally(path, failures, label):
-    expected = f"{USER}:root:660"
-    if not path.exists() or owner(path) != expected:
-        failures.append(f"{label} is {owner(path) if path.exists() else 'missing'}, not {expected}")
+    expected_owner = f"{USER}:root:660"
+    if not path.exists() or owner(path) != expected_owner:
+        failures.append(
+            f"{label} is {owner(path) if path.exists() else 'missing'}, not {expected_owner}"
+        )
+        return
+    expected_acl = {
+        "user::rw-",
+        "user:sddm:r--",
+        "group::rw-",
+        "mask::rw-",
+        "other::---",
+    }
+    observed_acl = set(acl(path))
+    if observed_acl != expected_acl:
+        failures.append(f"{label} has ACL {sorted(observed_acl)}, not {sorted(expected_acl)}")
 
 
 def main():
@@ -156,9 +169,6 @@ def main():
         subprocess.run(["setfacl", "-m", f"u:{ATTACKER}:rw", "--", str(tally)], check=True)
         subprocess.run([str(RECONCILER), str(faillock)], check=True)
         check_tally(tally, failures, "the repaired migrated tally")
-        repaired_acl = acl(tally)
-        if "user:sddm:r--" not in repaired_acl or f"user:{ATTACKER}:rw-" in repaired_acl:
-            failures.append(f"the repaired tally has the wrong access ACL: {repaired_acl}")
         truncate_result = attacker_truncate_result(tally, attacker)
         if truncate_result == 1:
             failures.append("the distinct unprivileged attacker could truncate the repaired tally")
