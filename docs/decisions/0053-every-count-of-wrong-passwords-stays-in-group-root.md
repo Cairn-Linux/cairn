@@ -45,32 +45,32 @@ whatever program made it.
 This is the kernel's rule, and pam_faillock does not change the group
 afterwards.
 
-A count made before, or brought by a moved computer, is put back to
-group root and mode 0660 at every boot.
-At boot its owner is left alone: pam_faillock sets it at each try, and
-no one tmpfiles line can name each account's owner.
-That leaves one gap on a moved computer whose account numbers changed:
-a Guardian's count, say, could belong to a child's number, and so be the
-child's to write, until the Guardian's next try sets it again.
-Provisioning closes it: each count named after an account that exists
-is given that account as its owner.
+A count made before, or brought by a moved computer, is reconciled at
+boot before SDDM starts. A small helper opens the faillock directory and
+each tally with `O_NOFOLLOW`, verifies the pathname still names the open
+regular file, resolves the filename to its current local account, and
+sets `<account>:root 0660`. It replaces the access ACL with exactly the
+owner and root-group write access plus read-only `sddm`; an old named
+user cannot keep write access. A symlink, non-regular file, missing
+account, pathname replacement or failed ownership/ACL operation stops
+the service, and SDDM requires that service.
 
-- **On the image:** two lines in
-  `system_files/usr/lib/tmpfiles.d/cairn.conf`:
-  `d /var/lib/faillock 2755 root root` and
-  `z /var/lib/faillock/* 0660 - root`.
+- **On the image:** `system_files/usr/lib/tmpfiles.d/cairn.conf` makes
+  `/var/lib/faillock` setgid and gives new counts the default `sddm` ACL.
+  `cairn-reconcile-faillock.service` runs the shared helper after
+  tmpfiles and requires it before SDDM, then restores SELinux labels.
 - **On a computer set up by hand:** `provision/cairn-provision.sh` makes
-  the folder 2755 and puts each count back the same way, on every run,
-  and gives each count its account as owner.
+  the folder 2755, installs the same helper, and runs it on every pass.
 - **New accounts:** nothing. The Family app's `useradd` and the family's
   setup make no count; the folder gives the first one its group.
-- **The image's build** runs the real lines: `systemd-tmpfiles --root`
-  over a copy of the folder, then the image's own pam_faillock through
-  libpam, as root with another group, as `su` runs it
-  (`build_files/check-faillock-owner.py`). It also checks that the new
-  count keeps ADR-0052's read entry for `sddm`, and that a good login and
-  `faillock --reset` leave the group alone. A run in a folder without
-  setgid comes first, to show the check sees the caller's group at all.
+- **The image's build** runs the real tmpfiles lines and shared helper
+  over a migrated tally owned by a distinct attacker with a named write
+  ACL, then permanently drops a child process to that attacker and
+  proves open-for-write with truncation is denied. It separately runs
+  the image's pam_faillock through libpam, as root with another group,
+  as `su` does (`build_files/check-faillock-owner.py`). Successful
+  authentication and `faillock --reset` each get their own non-empty
+  tally and assertion, so one cannot hide a failure in the other.
 
 Set aside:
 - **A count made ahead for each account,** at boot or when an account is
@@ -91,15 +91,14 @@ Set aside:
 - A child with `su` can no longer empty or fill another account's count.
   Each count's owner can still write their own, as before: that is
   upstream's choice, and only the account itself can use it.
-- At most the first boot after this change, a count made by `su` earlier
-  is still in the child's group until tmpfiles runs, which is before the
-  login screen starts.
+- At most the first boot after this change, an older count is unsafe until
+  the reconciliation service runs; SDDM cannot start if repair fails.
 - Setgid on the folder changes nothing else: faillock makes only files
   there, and only root can make anything there.
-- ADR-0052's check 1 now expects tmpfiles to put back group root, not
-  to leave the group as it was.
-- No SELinux change: the label comes from the path, not the group, and
-  `restorecon` and tmpfiles' `z` keep `faillog_t`.
+- ADR-0052's check 1 now expects reconciliation to restore the exact
+  owner, root group, mode and read-only `sddm` access.
+- No SELinux change: the label comes from the path, and the service runs
+  `restorecon` after reconciliation as provisioning already does.
 - If a later pam renamed counts into place, or changed their group, the
   build's check fails, and this needs a new look.
 
@@ -112,11 +111,12 @@ laptop:
    account>` with a wrong password where that account has no count: the
    count is `<login>:root`, mode 0660, with `user:sddm:r--` in
    `getfacl`.
-3. A count put in the caller's group by hand
-   (`chgrp <caller> /var/lib/faillock/<login>`) is back in group root
-   after `systemd-tmpfiles --create`, with its owner and ACL kept.
-4. A good login and `faillock --user <login> --reset` leave the count in
-   group root.
+3. A Guardian-named count planted with a child's numeric owner and named
+   `rw` ACL is back to `<guardian>:root 0660` after starting
+   `cairn-reconcile-faillock.service`; its only named access entry is
+   `user:sddm:r--`, and the child cannot truncate it.
+4. A good login and `faillock --user <login> --reset` each clear a fresh
+   non-empty count independently and leave it in group root.
 5. On the kids' laptop, after its image update, `ls -ln /var/lib/faillock`
    shows group 0 on every count.
 

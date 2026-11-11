@@ -44,6 +44,8 @@ GAME_LISTS=/var/lib/cairn/games
 # pam_faillock's count of wrong passwords for each account (ADR-0020), in
 # session/security/faillock.conf.
 FAILLOCK=/var/lib/faillock
+# The image and provisioning share this descriptor-safe repair policy (#301).
+FAILLOCK_RECONCILER="$PREFIX/libexec/cairn/cairn-reconcile-faillock"
 # What stays when that file is not made again, for make_game_tiles' notes.
 # The family's setup says it its own way: on the image each child's tiles
 # come from the list a Guardian saved, not from this file (ADR-0041).
@@ -478,6 +480,8 @@ protect_guardians() {
     # fingerprint check would count a missing reader as a wrong try (#283,
     # ADR-0051). The image's copy ends that check first.
     install_file 644 "$REPO/session/pam.d/kde-fingerprint" /etc/pam.d/kde-fingerprint
+    install_file 755 "$REPO/system_files/usr/libexec/cairn/cairn-reconcile-faillock" \
+        "$FAILLOCK_RECONCILER"
     # Only the local rules, read to the end: grep -q would stop at the first
     # match, semanage would die of SIGPIPE, and pipefail would call it a miss.
     if ! semanage fcontext -l -C | grep -F '/var/lib/faillock(/.*)?' > /dev/null; then
@@ -497,7 +501,6 @@ protect_guardians() {
         chmod 2755 "$FAILLOCK"
         changed "$FAILLOCK owned by root, mode 2755"
     fi
-    restorecon -R "$FAILLOCK"
     # The login screen, as sddm, may read each count to say when an account
     # is locked (ADR-0052), as the image's tmpfiles.d/cairn.conf gives it.
     # Only the default ACL: the folder's mode already lets sddm in.
@@ -506,31 +509,11 @@ protect_guardians() {
         setfacl -m 'd:u::rw,d:u:sddm:r,d:g::rw,d:m::rw,d:o::-' -- "$FAILLOCK"
         changed "$FAILLOCK readable by the login screen"
     fi
-    local count name owner group mode
-    for count in "$FAILLOCK"/*; do
-        [ -f "$count" ] && [ ! -L "$count" ] || continue
-        IFS=: read -r owner group mode < <(stat --format=%U:%G:%a -- "$count")
-        # Each count is named after its account. On a moved computer the
-        # numbers may have changed, so a Guardian's count could belong to a
-        # child until the Guardian's next try. A count with no account
-        # keeps its owner (ADR-0053).
-        name="$(basename -- "$count")"
-        if [ "$owner" != "$name" ] && getent passwd "$name" > /dev/null; then
-            chown -- "$name" "$count"
-            changed "$count owned by $name"
-        fi
-        # A count made before, perhaps by su with a child's group.
-        if [ "$group:$mode" != root:660 ]; then
-            chgrp root "$count"
-            chmod 660 "$count"
-            changed "$count in group root, mode 660"
-        fi
-        if ! getfacl --omit-header --absolute-names -- "$count" |
-            grep -x 'user:sddm:r--' > /dev/null; then
-            setfacl -m u:sddm:r -- "$count"
-            changed "$count readable by the login screen"
-        fi
-    done
+    # Existing counts are repaired through open, no-follow descriptors. The
+    # helper reports unsafe entries and exits with failure, so provisioning
+    # cannot continue after an incomplete repair (#301).
+    "$FAILLOCK_RECONCILER" "$FAILLOCK"
+    restorecon -R "$FAILLOCK"
     if ! authselect current | grep -qx -- '- with-faillock'; then
         authselect enable-feature with-faillock
         changed "authselect with-faillock"
