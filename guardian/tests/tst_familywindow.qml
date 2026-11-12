@@ -396,6 +396,439 @@ TestCase {
         verify(inSightOnThePage(window, input));
     }
 
+    // ---- the family changed outside Family ----
+
+    // Family comes back to the front with nothing known to have the
+    // keyboard yet.
+    function backToTheFront(window) {
+        window.requestActivate();
+        tryCompare(window, "active", true);
+    }
+
+    // A child removed in a terminal while Family is open. When Family
+    // comes back to the front their row is gone, and Add a child takes
+    // their name, where it used to say the name was taken.
+    function test_aChildRemovedOutsideIsGoneWhenFamilyComesBack() {
+        const window = makeWindow("done");
+        const input = findChild(nameField(window), "input");
+        input.forceActiveFocus();
+        tryCompare(input, "activeFocus", true);
+        toTheBack(window);
+        standIns.removeAccount("ben");
+        compare(rows(window), ["Ada, Level 1", "Ben, Level 2"]);
+        toTheFront(window, input);
+        compare(rows(window), ["Ada, Level 1"]);
+        nameField(window).text = "Ben";
+        mouseClick(findChild(window, "addButton"));
+        tryCompare(window.page, "step", ChildrenPage.Added);
+        compare(outcome(window), "Ben can log in now, at level 1. Ben starts with no games: choose them on the Games page.");
+    }
+
+    // The page switch shows the Children page too.
+    function test_aChildRemovedOutsideIsGoneWhenThePageIsShown() {
+        const window = makeWindow("done");
+        showGames(window);
+        standIns.removeAccount("ben");
+        mouseClick(findChild(window, "childrenTab"));
+        compare(window.showing, "children");
+        compare(rows(window), ["Ada, Level 1"]);
+    }
+
+    // With Family in front all along, nothing told the page. Add a child
+    // looks at the accounts itself, so the name is still free, and the
+    // row goes as the password is asked for.
+    function test_addTakesANameFreedOutside() {
+        const window = makeWindow("asking");
+        standIns.removeAccount("ben");
+        compare(rows(window), ["Ada, Level 1", "Ben, Level 2"]);
+        nameField(window).text = "Ben";
+        mouseClick(findChild(window, "addButton"));
+        compare(window.page.busy, true);
+        compare(rows(window), ["Ada, Level 1"]);
+    }
+
+    // A button on the row of a child who is gone asks for no password. It
+    // says so, by the name the row showed, the row goes, and the keyboard
+    // goes to the form, as for any row that is no longer there.
+    function test_aButtonOnARowOfAChildRemovedOutside() {
+        const window = makeWindow("asking");
+        standIns.removeAccount("ben");
+        mouseClick(findChild(childRow(window, 1), "moveTo1"));
+        compare(window.page.reason, ChildrenPage.NotAChild);
+        verify(!window.page.busy);
+        compare(outcome(window), "Ben is not a child's account on this computer. The list shows the children there are now.");
+        compare(rows(window), ["Ada, Level 1"]);
+        tryCompare(findChild(nameField(window), "input"), "activeFocus", true);
+    }
+
+    // The family as it was: when Family comes back to the front, every
+    // row is the one it was, with the keyboard on the same button, and
+    // the page has not moved.
+    function test_nothingMovesWhenTheFamilyIsAsItWas() {
+        const window = makeWindow("done", {
+            "smallest": true
+        });
+        const row = childRow(window, 1);
+        const button = findChild(row, "changeName");
+        button.forceActiveFocus();
+        tryCompare(button, "activeFocus", true);
+        const scroller = findChild(window, "scroller");
+        const before = scroller.contentY;
+        toTheBack(window);
+        toTheFront(window, button);
+        verify(childRow(window, 1) === row);
+        compare(scroller.contentY, before);
+    }
+
+    // A name half typed, when the family changed outside meanwhile: the
+    // rows are made again, the field is still open with what was typed and
+    // the keyboard in it, and Save name saves it.
+    function test_anOpenNameStaysWhenTheFamilyChangedOutside() {
+        const window = makeWindow("done");
+        mouseClick(findChild(childRow(window, 0), "changeName"));
+        tryCompare(newNameInput(window, 0), "activeFocus", true);
+        typeOver(newNameInput(window, 0), "Ada L");
+        toTheBack(window);
+        standIns.removeAccount("ben");
+        backToTheFront(window);
+        compare(rows(window), ["Ada, Level 1"]);
+        verify(findChild(childRow(window, 0), "nameChange").visible);
+        compare(newNameInput(window, 0).text, "Ada L");
+        tryCompare(newNameInput(window, 0), "activeFocus", true);
+        mouseClick(findChild(childRow(window, 0), "saveName"));
+        tryCompare(window.page, "step", ChildrenPage.NameChanged);
+        compare(outcome(window), "Ada is called Ada L now, on the login screen and in Family.");
+    }
+
+    // Open languages stay open too, with the keyboard on the first.
+    function test_openLanguagesStayWhenTheFamilyChangedOutside() {
+        const window = makeWindow("done");
+        openLanguages(window, 1);
+        tryCompare(languageButton(window, 1, "en_US.UTF-8"), "activeFocus", true);
+        toTheBack(window);
+        standIns.removeAccount("ada");
+        backToTheFront(window);
+        compare(rows(window), ["Ben, Level 2"]);
+        verify(findChild(childRow(window, 0), "languageChange").visible);
+        tryCompare(languageButton(window, 0, "en_US.UTF-8"), "activeFocus", true);
+    }
+
+    // The keyboard stays with its child when the rows are made again, and
+    // with the window when that child is the one who is gone. What the
+    // last change did stays said.
+    function test_theKeyboardStaysWithItsChildWhenTheFamilyChangedOutside() {
+        const window = makeWindow("done", {
+            "withOlderChild": true
+        });
+        mouseClick(findChild(childRow(window, 1), "moveTo1"));
+        tryCompare(window.page, "step", ChildrenPage.LevelChanged);
+        const said = outcome(window);
+        tryCompare(findChild(childRow(window, 1), "moveTo1"), "activeFocus", true);
+        toTheBack(window);
+        standIns.removeAccount("ada");
+        backToTheFront(window);
+        compare(rows(window), ["Ben, Level 2", "A child with a long name, Level 3"]);
+        tryCompare(findChild(childRow(window, 0), "moveTo1"), "activeFocus", true);
+        compare(outcome(window), said);
+        toTheBack(window);
+        standIns.removeAccount("ben");
+        backToTheFront(window);
+        compare(rows(window), ["A child with a long name, Level 3"]);
+        // Once the view has looked for the row to give the keyboard to.
+        tryCompare(findChild(window, "childrenView").keyboard, "login", "");
+        verify(window.activeFocusItem === window.contentItem);
+        compare(outcome(window), said);
+    }
+
+    // The password box takes the front and gives it back. Nothing is read
+    // while the change waits, so the rows stay until its answer comes.
+    function test_aWaitingChangeStaysWhenFamilyComesBack() {
+        const window = makeWindow("asking");
+        mouseClick(findChild(childRow(window, 0), "moveTo2"));
+        compare(window.page.busy, true);
+        const row = childRow(window, 0);
+        toTheBack(window);
+        standIns.removeAccount("ben");
+        backToTheFront(window);
+        compare(window.page.busy, true);
+        verify(childRow(window, 0) === row);
+        compare(rows(window), ["Ada, Level 1", "Ben, Level 2"]);
+        compare(outcome(window), "Confirm with your password, or your fingerprint, in the box that opened.");
+    }
+
+    // The keyboard goes back to the control it was on. The row's first
+    // button would send another change at the next Space or Enter.
+    function test_theKeyboardStaysOnItsControl_data() {
+        return [
+            {
+                "tag": "Change name",
+                "open": "",
+                "control": "changeName"
+            },
+            {
+                "tag": "Change language",
+                "open": "",
+                "control": "changeLanguage"
+            },
+            {
+                "tag": "Save name",
+                "open": "changeName",
+                "control": "saveName"
+            },
+            {
+                "tag": "Cancel beside a name",
+                "open": "changeName",
+                "control": "cancelName"
+            },
+            {
+                "tag": "Cancel beside the languages",
+                "open": "changeLanguage",
+                "control": "cancelLanguage"
+            }
+        ];
+    }
+
+    function test_theKeyboardStaysOnItsControl(data) {
+        const window = makeWindow("done");
+        if (data.open === "changeName") {
+            mouseClick(findChild(childRow(window, 1), "changeName"));
+            tryCompare(newNameInput(window, 1), "activeFocus", true);
+            typeOver(newNameInput(window, 1), "Benny");
+        }
+        if (data.open === "changeLanguage") {
+            openLanguages(window, 1);
+            tryCompare(languageButton(window, 1, "en_US.UTF-8"), "activeFocus", true);
+        }
+        const control = findChild(childRow(window, 1), data.control);
+        control.forceActiveFocus();
+        tryCompare(control, "activeFocus", true);
+        toTheBack(window);
+        standIns.removeAccount("ada");
+        backToTheFront(window);
+        compare(rows(window), ["Ben, Level 2"]);
+        tryCompare(findChild(childRow(window, 0), data.control), "activeFocus", true);
+        if (data.open === "changeName")
+            compare(newNameInput(window, 0).text, "Benny");
+    }
+
+    // A child moved to another level outside has other buttons. The one
+    // the keyboard was on is gone, so the keyboard stays with the window.
+    function test_theKeyboardStaysWithTheWindowWhenItsButtonIsGone() {
+        const window = makeWindow("done");
+        const button = findChild(childRow(window, 1), "moveTo1");
+        button.forceActiveFocus();
+        tryCompare(button, "activeFocus", true);
+        toTheBack(window);
+        standIns.putAccount("ben", "Ben", 1);
+        backToTheFront(window);
+        compare(rows(window), ["Ada, Level 1", "Ben, Level 1"]);
+        tryCompare(findChild(window, "childrenView").keyboard, "login", "");
+        verify(window.activeFocusItem === window.contentItem);
+    }
+
+    // In a short window, with the keyboard low on the page, a row above
+    // goes. What has the keyboard is still in sight, and the page has
+    // moved no further than the rows did.
+    function test_theKeyboardsControlStaysInSight_data() {
+        return [
+            {
+                "tag": "a button",
+                "nameOpen": false
+            },
+            {
+                "tag": "an open name",
+                "nameOpen": true
+            }
+        ];
+    }
+
+    function test_theKeyboardsControlStaysInSight(data) {
+        const window = makeWindow("done", {
+            "withOlderChild": true,
+            "smallest": true
+        });
+        let control = findChild(childRow(window, 2), "changeName");
+        control.forceActiveFocus();
+        tryCompare(control, "activeFocus", true);
+        if (data.nameOpen) {
+            keyClick(Qt.Key_Space);
+            control = newNameInput(window, 2);
+            tryCompare(control, "activeFocus", true);
+            typeOver(control, "Cy L");
+        }
+        verify(inSightOnThePage(window, control));
+        const scroller = findChild(window, "scroller");
+        const before = scroller.contentY;
+        const moved = childRow(window, 0).height + Tokens.bodySize * 2;
+        toTheBack(window);
+        standIns.removeAccount("ada");
+        backToTheFront(window);
+        compare(rows(window), ["Ben, Level 2", "A child with a long name, Level 3"]);
+        const again = data.nameOpen ? newNameInput(window, 1) : findChild(childRow(window, 1), "changeName");
+        tryCompare(again, "activeFocus", true);
+        verify(inSightOnThePage(window, again));
+        verify(Math.abs(scroller.contentY - before) <= moved, scroller.contentY + " from " + before);
+        if (data.nameOpen)
+            compare(again.text, "Cy L");
+    }
+
+    // The keyboard in Add a child, under the rows. When rows above it go
+    // or come, the field is still in sight, with what was typed.
+    function test_theAddFormStaysInSight_data() {
+        return [
+            {
+                "tag": "a child removed",
+                "removed": true
+            },
+            {
+                "tag": "two children made",
+                "removed": false
+            }
+        ];
+    }
+
+    function test_theAddFormStaysInSight(data) {
+        const window = makeWindow("done", {
+            "smallest": true
+        });
+        const input = findChild(nameField(window), "input");
+        input.forceActiveFocus();
+        tryCompare(input, "activeFocus", true);
+        keyClick("C");
+        keyClick("y");
+        verify(inSightOnThePage(window, input));
+        toTheBack(window);
+        if (data.removed) {
+            standIns.removeAccount("ada");
+        } else {
+            standIns.putAccount("di", "Di", 1);
+            standIns.putAccount("ed", "Ed", 2);
+        }
+        toTheFront(window, input);
+        compare(rows(window).length, data.removed ? 1 : 4);
+        // Once the rows are in their places: until then the field is
+        // where it was.
+        waitForPolish(window);
+        tryVerify(() => inSightOnThePage(window, input));
+        compare(nameField(window).text, "Cy");
+    }
+
+    // Clicks Add a child's button where it is now. The rows above it are
+    // put in their places first; an open name field or open languages
+    // push it under a window this tall, so it is scrolled into sight.
+    function clickAdd(window) {
+        const add = findChild(window, "addButton");
+        waitForPolish(window);
+        window.showItem(add);
+        mouseClick(add);
+    }
+
+    // An open name field, or open languages, go with their child. A child
+    // added afterwards with that login is another child: their row is
+    // closed, and Change name starts from their own name.
+    function test_anOpenFormGoesWithItsChild_data() {
+        return [
+            {
+                "tag": "a name",
+                "name": true
+            },
+            {
+                "tag": "languages",
+                "name": false
+            }
+        ];
+    }
+
+    function test_anOpenFormGoesWithItsChild(data) {
+        const window = makeWindow("done");
+        if (data.name) {
+            mouseClick(findChild(childRow(window, 1), "changeName"));
+            tryCompare(newNameInput(window, 1), "activeFocus", true);
+            typeOver(newNameInput(window, 1), "Benny");
+        } else {
+            openLanguages(window, 1);
+            tryCompare(languageButton(window, 1, "en_US.UTF-8"), "activeFocus", true);
+        }
+        toTheBack(window);
+        standIns.removeAccount("ben");
+        backToTheFront(window);
+        compare(rows(window), ["Ada, Level 1"]);
+        // The stand-in command makes no account, so the test puts it in
+        // the table before the answer comes.
+        nameField(window).text = "Ben";
+        clickAdd(window);
+        standIns.putAccount("ben", "Ben", 1);
+        tryCompare(window.page, "step", ChildrenPage.Added);
+        compare(rows(window), ["Ada, Level 1", "Ben, Level 1"]);
+        waitForPolish(window);
+        verify(!findChild(childRow(window, 1), "nameChange").visible);
+        verify(!findChild(childRow(window, 1), "languageChange").visible);
+        mouseClick(findChild(childRow(window, 1), "changeName"));
+        tryCompare(newNameInput(window, 1), "text", "Ben");
+    }
+
+    // A refusal about a name being typed goes with its child as well: its
+    // sentence asks for a Cancel that is no longer there.
+    function test_aRefusalGoesWithItsChild() {
+        const window = makeWindow("asking");
+        mouseClick(findChild(childRow(window, 1), "changeName"));
+        tryCompare(newNameInput(window, 1), "activeFocus", true);
+        mouseClick(findChild(childRow(window, 1), "saveName"));
+        compare(outcome(window), "Ben is the name already. Type a different one, or press Cancel.");
+        tryCompare(newNameInput(window, 1), "activeFocus", true);
+        toTheBack(window);
+        standIns.removeAccount("ben");
+        backToTheFront(window);
+        compare(rows(window), ["Ada, Level 1"]);
+        compare(window.page.step, ChildrenPage.Ready);
+        compare(outcome(window), "");
+    }
+
+    // A sentence about something else stays: a refused Add, and the one
+    // for a button pressed in the open languages of a child who is gone.
+    function test_aSentenceAboutSomethingElseStays() {
+        const window = makeWindow("asking");
+        mouseClick(findChild(childRow(window, 1), "changeName"));
+        tryCompare(newNameInput(window, 1), "activeFocus", true);
+        clickAdd(window);
+        compare(outcome(window), "Type the child's name first.");
+        tryCompare(findChild(nameField(window), "input"), "activeFocus", true);
+        toTheBack(window);
+        standIns.removeAccount("ben");
+        backToTheFront(window);
+        compare(rows(window), ["Ada, Level 1"]);
+        compare(outcome(window), "Type the child's name first.");
+
+        openLanguages(window, 0);
+        tryCompare(languageButton(window, 0, "en_US.UTF-8"), "activeFocus", true);
+        standIns.removeAccount("ada");
+        mouseClick(languageButton(window, 0, "en_US.UTF-8"));
+        compare(rows(window), []);
+        tryCompare(findChild(nameField(window), "input"), "activeFocus", true);
+        compare(outcome(window), "Ada is not a child's account on this computer. The list shows the children there are now.");
+    }
+
+    // Only the Children page in front reads the accounts: not Family
+    // going to the back, and not Family coming back with another page
+    // showing. That page's button reads them when it is pressed.
+    function test_onlyTheChildrenPageInFrontReads() {
+        const window = makeWindow("done");
+        const atFirst = standIns.accountReads();
+        toTheBack(window);
+        compare(standIns.accountReads(), atFirst);
+        backToTheFront(window);
+        compare(standIns.accountReads(), atFirst + 1);
+        showGames(window);
+        toTheBack(window);
+        standIns.removeAccount("ben");
+        backToTheFront(window);
+        compare(standIns.accountReads(), atFirst + 1);
+        compare(window.page.listedChildren.length, 2);
+        mouseClick(findChild(window, "childrenTab"));
+        compare(standIns.accountReads(), atFirst + 2);
+        compare(rows(window), ["Ada, Level 1"]);
+    }
+
     // After a refusal, focus is back in the name field to try again.
     function test_focusReturnsAfterARefusal() {
         const window = makeWindow("not-authorized");

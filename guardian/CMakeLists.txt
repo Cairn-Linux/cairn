@@ -182,6 +182,7 @@ set(family_window_qml_files
     qml/SaveProgress.qml
     qml/LoggedInCover.qml
     qml/ChildRow.qml
+    qml/RowKeyboard.qml
     qml/NameChange.qml
     qml/LanguageChange.qml
     qml/AddChildForm.qml

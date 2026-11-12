@@ -48,7 +48,16 @@ The Children page:
 1. Lists every child Cairn made, in the order their accounts were made,
    with their name, level and language. A child at level 3 or 4 shows
    that level. A child no language was chosen for shows "Language: the
-   computer's own".
+   computer's own". The page reads the accounts again each time it is
+   shown, each time Family comes back to the front, and before each
+   change, so a child removed in a terminal while Family was open is
+   off the list and no longer holds their name. That read leaves an
+   open name field, open languages, the Add a child form and the
+   sentence for the last change as they were, puts the keyboard back
+   on the control it was on and keeps that control in sight, and does
+   not happen while a change waits for its password. A child who is
+   gone from the list takes their open name field or languages with
+   them, and the refusal of a name or language last tried there.
 2. **Move to level N** beside each child, for each level the page can
    give, 1 or 2. Up or down, the button and the sentence after it read
    the same (DESIGN §3). The new level starts the next time the child
@@ -533,7 +542,7 @@ QML draws, C++ decides (ADR-0002):
 | `src/LoginName` | The account's login name, made from the name a parent types, and the first free one when it is taken. |
 | `src/ChildList` | The family's children among the accounts, in the order they were made, each with their name and level, as maps for the pages' QML; and the rule for when two names are one, whatever the case of their letters. |
 | `src/FamilyChange` | Runs `pkexec` with `cairn-family`, one change at a time, and reads its one-line answer, or pkexec's own exit code. |
-| `src/ChildrenPage` | What the Children page shows and what its buttons do: the list, the checks before a change, and why a change was refused. Its account database is in its `Setup`, so a test can replace it. |
+| `src/ChildrenPage` | What the Children page shows and what its buttons do: the list and when it is read again, the checks before a change, and why a change was refused. Its account database is in its `Setup`, so a test can replace it. |
 | `src/UnfinishedAdd` | The Children page's memory of an add that may have made the account before it stopped, so adding that name again finishes it. |
 | `src/GamesPage` | What the Games page shows and does: the children, the one picked, the games with each marked when it is on that child's list as saved and as wanted, turning a game, Save, a logged-in child's greyed games, and opening a child's Steam window. Its files, accounts, commands, program start and logind reader are in its `Setup`, so a test can replace them. |
 | `src/LoginSessions` | Who is logged in, from systemd-logind's `ListSessions` on the system bus through Qt D-Bus, without root, counted by the visit helper's own rule. |
@@ -570,7 +579,7 @@ QML draws, C++ decides (ADR-0002):
 | `qml/FamilyWindow.qml`, `qml/ChildrenView.qml`, `qml/ChildrenOutcome.qml`, `qml/GamesView.qml` | The Guardian tool's window with its switch between pages, its Children page, the box there with the sentence for every answer, and its Games page. |
 | `qml/ChildChoice.qml`, `qml/GameCard.qml`, `qml/SaveOutcome.qml`, `qml/SaveResultWords.qml` | A child to pick on the Games page, one game in its grid, the sentences for a Save, and its words for what each child got. |
 | `qml/ChildGames.qml`, `qml/LoggedInCover.qml`, `qml/SaveProgress.qml` | The picked child's Steam, list and games, greyed and blurred while they are logged in; the card over them; and the Save's progress window, with the lid warning and Close. |
-| `qml/ChildRow.qml`, `qml/NameChange.qml`, `qml/AddChildForm.qml`, `qml/LabelledField.qml`, `qml/LevelChoice.qml` | A child on the list, the field for a child's new name, the Add form, a text field with its label, and one level to pick. |
+| `qml/ChildRow.qml`, `qml/RowKeyboard.qml`, `qml/NameChange.qml`, `qml/AddChildForm.qml`, `qml/LabelledField.qml`, `qml/LevelChoice.qml` | A child on the list, where the keyboard was among the rows while the list is made again, the field for a child's new name, the Add form, a text field with its label, and one level to pick. |
 | `qml/TextButton.qml`, `qml/ScrollMark.qml`, `qml/ScrollKeys.qml` | The button both windows use; the thin bar beside a part that scrolls, which shows where it is; and the arrow and page keys a button under that part passes on to it. |
 | `src/FamilyCommand` | `cairn-family create-child` and `set-level`: which accounts it may change, and the steps for each. Everything it reads from or does to the machine is in its `Setup`, so a test can replace it. |
 | `src/Caller` | Who started `cairn-family`: root, and through pkexec an administrator, with their home from the account database. |

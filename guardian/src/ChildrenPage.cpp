@@ -64,10 +64,15 @@ bool ChildrenPage::needsShortName(const QString& name) const {
 // from the short name when the name gives none, and is never one an
 // account or group already has: given an existing child's login,
 // create-child would change that child instead.
+// Like every change, it reads the accounts first, so what it refuses
+// before any password is refused for the family as it is now: a child
+// removed in a terminal while the window was open no longer holds their
+// name.
 void ChildrenPage::addChild(const QString& name, const QString& shortName, int level) {
     if (busy()) {
         return;
     }
+    readAgain();
     const QString fullName = name.trimmed();
     m_subject = fullName;
     m_level = level;
@@ -109,8 +114,7 @@ void ChildrenPage::changeLevel(const QString& login, int level) {
     if (busy()) {
         return;
     }
-    const ListedChild* child = childWithLogin(m_children, login);
-    m_subject = child == nullptr ? login : child->name;
+    const ListedChild* child = childToChange(login);
     m_level = level;
     if (child == nullptr) {
         setStep(Step::NotChanged, Reason::NotAChild);
@@ -126,8 +130,7 @@ void ChildrenPage::changeName(const QString& login, const QString& name) {
     if (busy()) {
         return;
     }
-    const ListedChild* child = childWithLogin(m_children, login);
-    m_subject = child == nullptr ? login : child->name;
+    const ListedChild* child = childToChange(login);
     m_newName = name.trimmed();
     m_level = child == nullptr ? 0 : child->level;
     m_clash.clear();
@@ -146,9 +149,8 @@ void ChildrenPage::changeLanguage(const QString& login, const QString& locale) {
     if (busy()) {
         return;
     }
-    const ListedChild* child = childWithLogin(m_children, login);
+    const ListedChild* child = childToChange(login);
     const ChildLanguage::Language* language = ChildLanguage::find(locale);
-    m_subject = child == nullptr ? login : child->name;
     m_level = child == nullptr ? 0 : child->level;
     m_newLanguage = language == nullptr ? locale : ChildLanguage::nameOf(*language);
     if (const std::optional<Reason> refusal = ChildrenRefusals::languageRefusal(child, locale)) {
@@ -156,6 +158,20 @@ void ChildrenPage::changeLanguage(const QString& login, const QString& locale) {
     } else {
         run({QStringLiteral("set-language"), login, locale}, Step::LanguageChanged);
     }
+}
+
+// The child with this login in the family as it is now, read again, or
+// none. The subject is their name: the one their row showed when they are
+// gone, and the login for an account that was never on the list.
+const ListedChild* ChildrenPage::childToChange(const QString& login) {
+    const ListedChild* child = childWithLogin(m_children, login);
+    m_subject = child == nullptr ? login : child->name;
+    readAgain();
+    child = childWithLogin(m_children, login);
+    if (child != nullptr) {
+        m_subject = child->name;
+    }
+    return child;
 }
 
 // Refuses a name another child, given as `other`, or a grown-up has
@@ -177,13 +193,36 @@ void ChildrenPage::forgetRefusal() {
 }
 
 void ChildrenPage::reload() {
+    read();
+    emit listedChildrenChanged();
+}
+
+// Nothing is read while a change waits for its answer: the answer reads the
+// accounts itself, and a read part-way could list a child half made.
+void ChildrenPage::shown() {
+    if (!busy()) {
+        readAgain();
+    }
+}
+
+void ChildrenPage::read() {
     const std::vector<Account> accounts = m_setup.accounts();
     m_children = childrenAmong(accounts);
     for (ListedChild& child : m_children) {
         child.language = m_setup.languageOf(child.login).value_or(QString());
     }
     m_grownUps = grownUpNamesAmong(accounts);
-    emit listedChildrenChanged();
+}
+
+// When the list changes, the window makes its rows again, which takes the
+// keyboard off a row, and has the Games page read its files again. So a
+// read that finds the family as it was says nothing.
+void ChildrenPage::readAgain() {
+    const QVariantList before = listedChildren();
+    read();
+    if (listedChildren() != before) {
+        emit listedChildrenChanged();
+    }
 }
 
 // The window checks every value with cairn-family's own rule before it

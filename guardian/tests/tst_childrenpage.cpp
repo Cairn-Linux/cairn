@@ -42,7 +42,10 @@ public:
             setup.pkexec = QStringLiteral(FIXTURES "/pkexec-family");
             setup.command = QStringLiteral(FIXTURES "/cairn-family");
         }
-        setup.accounts = [this] { return accounts; };
+        setup.accounts = [this] {
+            ++reads;
+            return accounts;
+        };
         setup.nameInUse = [this](const QString& name) {
             return groups.contains(name) ||
                    std::ranges::any_of(
@@ -105,12 +108,19 @@ public:
     QSet<QString> groups{"wheel", "cairn-l1", "cairn-l2", "cairn-guardian"};
     // Each child's language file, as LanguageFile::read() gives it.
     QHash<QString, QString> languages{{"ben", "en_GB.UTF-8"}};
+    // How many times the page has read the accounts.
+    int reads = 0;
     std::unique_ptr<ChildrenPage> page;
 
 private:
     QTemporaryDir m_folder;
     ChildrenPage::Setup m_setup;
 };
+
+// The account is gone, as after `userdel` in a terminal.
+void removeAccount(std::vector<Account>& accounts, const QString& login) {
+    std::erase_if(accounts, [&login](const Account& account) { return account.login == login; });
+}
 
 QStringList loginsOf(const QVariantList& children) {
     QStringList logins;
@@ -704,6 +714,218 @@ private slots:
         QCOMPARE(family.page->subject(), QStringLiteral("Ada"));
         QTest::qWait(300);
         QCOMPARE(family.runs(), QList<QStringList>({{"set-level", "ada", "2"}}));
+    }
+
+    // A child removed outside Family, in a terminal, while the window is
+    // open. Their row goes when the page is shown again, and their name and
+    // login are free for a new child. Add a child reads the accounts
+    // itself, so they are free even when nothing showed the page first.
+    void aChildRemovedOutsideNoLongerHoldsTheirName_data() {
+        QTest::addColumn<bool>("shownFirst");
+
+        QTest::newRow("the page shown again first") << true;
+        QTest::newRow("straight to Add a child") << false;
+    }
+
+    void aChildRemovedOutsideNoLongerHoldsTheirName() {
+        QFETCH(const bool, shownFirst);
+        StandInFamily family(QStringLiteral("done"));
+        family.accounts.push_back(
+            {.uid = 1005, .groups = {"cy", "cairn-l1"}, .login = "cy", .fullName = "Cy"});
+        family.reopen();
+        QCOMPARE(loginsOf(family.page->listedChildren()), QStringList({"ada", "ben", "cy"}));
+        const QSignalSpy listed(family.page.get(), &ChildrenPage::listedChildrenChanged);
+        const QSignalSpy stepped(family.page.get(), &ChildrenPage::stepChanged);
+        removeAccount(family.accounts, QStringLiteral("cy"));
+        if (shownFirst) {
+            family.page->shown();
+            QCOMPARE(stepped.size(), 0);
+        }
+        family.page->addChild(QStringLiteral("Cy"), QString(), 1);
+        QCOMPARE(family.page->step(), ChildrenPage::Step::Asking);
+        // The row went once, before the password was asked for.
+        QCOMPARE(loginsOf(family.page->listedChildren()), QStringList({"ada", "ben"}));
+        QCOMPARE(listed.size(), 1);
+        QVERIFY(family.waitUntilAnswered());
+        QCOMPARE(family.page->step(), ChildrenPage::Step::Added);
+        QCOMPARE(family.runs(),
+                 QList<QStringList>({{"create-child", "cy", "1", "--full-name", "Cy"}}));
+    }
+
+    // Shown again with the family as it was, the page reads the accounts
+    // and says nothing, so the window leaves every row as it is.
+    void theSameFamilyIsNotListedAgain() {
+        StandInFamily family(QStringLiteral("done"));
+        const QSignalSpy listed(family.page.get(), &ChildrenPage::listedChildrenChanged);
+        const QSignalSpy stepped(family.page.get(), &ChildrenPage::stepChanged);
+        const int before = family.reads;
+        family.page->shown();
+        QCOMPARE(family.reads, before + 1);
+        QCOMPARE(listed.size(), 0);
+        QCOMPARE(stepped.size(), 0);
+        QCOMPARE(family.page->step(), ChildrenPage::Step::Ready);
+    }
+
+    // Anything a row shows, changed outside Family, makes the list again,
+    // once.
+    void eachChangeOutsideIsListedOnce() {
+        StandInFamily family(QStringLiteral("done"));
+        const QSignalSpy listed(family.page.get(), &ChildrenPage::listedChildrenChanged);
+        family.accounts.push_back(
+            {.uid = 1005, .groups = {"cy", "cairn-l1"}, .login = "cy", .fullName = "Cy"});
+        family.page->shown();
+        QCOMPARE(listed.size(), 1);
+        family.accounts.back().groups = QStringList({"cy", "cairn-l2"});
+        family.page->shown();
+        QCOMPARE(listed.size(), 2);
+        family.accounts.back().fullName = QStringLiteral("Cyrus");
+        family.page->shown();
+        QCOMPARE(listed.size(), 3);
+        family.languages.insert("cy", "en_US.UTF-8");
+        family.page->shown();
+        QCOMPARE(listed.size(), 4);
+        family.page->shown();
+        QCOMPARE(listed.size(), 4);
+        const QVariantMap cy = family.page->listedChildren().at(2).toMap();
+        QCOMPARE(cy.value("name").toString(), QStringLiteral("Cyrus"));
+        QCOMPARE(cy.value("level").toInt(), 2);
+        QCOMPARE(cy.value("languageName").toString(), QStringLiteral("English (US)"));
+    }
+
+    // While a change waits for its password or its answer, showing the page
+    // reads nothing: the answer reads the accounts itself.
+    void aWaitingChangeIsNotDisturbed() {
+        StandInFamily family(QStringLiteral("asking"));
+        family.page->changeLevel(QStringLiteral("ada"), 2);
+        QVERIFY(family.page->busy());
+        const QSignalSpy listed(family.page.get(), &ChildrenPage::listedChildrenChanged);
+        const QSignalSpy stepped(family.page.get(), &ChildrenPage::stepChanged);
+        const int before = family.reads;
+        removeAccount(family.accounts, QStringLiteral("ben"));
+        family.page->shown();
+        QCOMPARE(family.reads, before);
+        QCOMPARE(listed.size(), 0);
+        QCOMPARE(stepped.size(), 0);
+        QCOMPARE(family.page->step(), ChildrenPage::Step::Asking);
+        QCOMPARE(family.page->subject(), QStringLiteral("Ada"));
+        QCOMPARE(loginsOf(family.page->listedChildren()), QStringList({"ada", "ben"}));
+    }
+
+    // What the last change did, or why it did nothing, stays said when the
+    // page is shown again, even when the list is made again.
+    void anOutcomeStaysWhenThePageIsShown() {
+        StandInFamily family(QStringLiteral("done"));
+        family.page->changeLevel(QStringLiteral("ada"), 2);
+        QVERIFY(family.waitUntilAnswered());
+        const QSignalSpy stepped(family.page.get(), &ChildrenPage::stepChanged);
+        removeAccount(family.accounts, QStringLiteral("ben"));
+        family.page->shown();
+        QCOMPARE(loginsOf(family.page->listedChildren()), QStringList({"ada"}));
+        QCOMPARE(family.page->step(), ChildrenPage::Step::LevelChanged);
+        QCOMPARE(family.page->subject(), QStringLiteral("Ada"));
+        QCOMPARE(family.page->level(), 2);
+        QCOMPARE(stepped.size(), 0);
+
+        family.page->addChild(QStringLiteral("ada"), QString(), 1);
+        QCOMPARE(family.page->reason(), ChildrenPage::Reason::SameName);
+        family.accounts.push_back(
+            {.uid = 1005, .groups = {"cy", "cairn-l1"}, .login = "cy", .fullName = "Cy"});
+        family.page->shown();
+        QCOMPARE(loginsOf(family.page->listedChildren()), QStringList({"ada", "cy"}));
+        QCOMPARE(family.page->step(), ChildrenPage::Step::NotChanged);
+        QCOMPARE(family.page->reason(), ChildrenPage::Reason::SameName);
+        QCOMPARE(family.page->subject(), QStringLiteral("ada"));
+        QCOMPARE(family.page->clash(), QStringLiteral("Ada"));
+        QCOMPARE(stepped.size(), 1);
+    }
+
+    // Each change reads the accounts before it decides, so what the page
+    // refuses before any password is refused for the family as it is now.
+    // A name a child got outside Family is taken, for a new child and for
+    // a new name.
+    void aNameAChildGotOutsideIsRefused() {
+        StandInFamily family(QStringLiteral("done"));
+        family.accounts.push_back(
+            {.uid = 1005, .groups = {"cy", "cairn-l1"}, .login = "cy", .fullName = "Cy"});
+        family.page->addChild(QStringLiteral("cy"), QString(), 1);
+        QCOMPARE(family.page->step(), ChildrenPage::Step::NotChanged);
+        QCOMPARE(family.page->reason(), ChildrenPage::Reason::SameName);
+        QCOMPARE(family.page->clash(), QStringLiteral("Cy"));
+        QCOMPARE(loginsOf(family.page->listedChildren()), QStringList({"ada", "ben", "cy"}));
+        family.accounts.back().fullName = QStringLiteral("Cyrus");
+        family.page->changeName(QStringLiteral("ada"), QStringLiteral("cyrus"));
+        QCOMPARE(family.page->reason(), ChildrenPage::Reason::AnotherChilds);
+        QCOMPARE(family.page->clash(), QStringLiteral("Cyrus"));
+        QVERIFY(family.runs().isEmpty());
+    }
+
+    // A name freed outside Family may be given.
+    void aNameFreedOutsideMayBeGiven() {
+        StandInFamily family(QStringLiteral("done"));
+        removeAccount(family.accounts, QStringLiteral("ben"));
+        family.page->changeName(QStringLiteral("ada"), QStringLiteral("Ben"));
+        QVERIFY(family.waitUntilAnswered());
+        QCOMPARE(family.page->step(), ChildrenPage::Step::NameChanged);
+        QCOMPARE(family.runs(), QList<QStringList>({{"set-name", "ada", "Ben"}}));
+    }
+
+    // A grown-up added outside Family is on no row, so the list is not made
+    // again, but their name is theirs.
+    void aGrownUpAddedOutsideKeepsTheirName() {
+        StandInFamily family(QStringLiteral("done"));
+        const QSignalSpy listed(family.page.get(), &ChildrenPage::listedChildrenChanged);
+        family.accounts.push_back({.uid = 1005,
+                                   .groups = {"gran", "cairn-guardian"},
+                                   .login = "gran",
+                                   .fullName = "Gran"});
+        family.page->changeName(QStringLiteral("ada"), QStringLiteral("Gran"));
+        QCOMPARE(family.page->reason(), ChildrenPage::Reason::AGrownUpsName);
+        family.page->addChild(QStringLiteral("gran"), QString(), 1);
+        QCOMPARE(family.page->reason(), ChildrenPage::Reason::AGrownUpsName);
+        QCOMPARE(family.page->clash(), QStringLiteral("Gran"));
+        QCOMPARE(listed.size(), 0);
+        QVERIFY(family.runs().isEmpty());
+    }
+
+    // A child removed outside Family is no child to change, and their row
+    // goes without a password asked for. The sentence still has the name
+    // their row showed; once the row is gone, only their login is known.
+    void aChildRemovedOutsideIsNotChanged() {
+        StandInFamily family(QStringLiteral("done"));
+        const QSignalSpy listed(family.page.get(), &ChildrenPage::listedChildrenChanged);
+        removeAccount(family.accounts, QStringLiteral("ben"));
+        family.page->changeLevel(QStringLiteral("ben"), 1);
+        QCOMPARE(family.page->step(), ChildrenPage::Step::NotChanged);
+        QCOMPARE(family.page->reason(), ChildrenPage::Reason::NotAChild);
+        QCOMPARE(family.page->subject(), QStringLiteral("Ben"));
+        QCOMPARE(loginsOf(family.page->listedChildren()), QStringList({"ada"}));
+        QCOMPARE(listed.size(), 1);
+        family.page->changeLanguage(QStringLiteral("ben"), QStringLiteral("en_US.UTF-8"));
+        QCOMPARE(family.page->reason(), ChildrenPage::Reason::NotAChild);
+        QCOMPARE(family.page->subject(), QStringLiteral("ben"));
+        QVERIFY(family.runs().isEmpty());
+    }
+
+    // A child given another name outside Family is named by it.
+    void aChildRenamedOutsideHasTheNewName() {
+        StandInFamily family(QStringLiteral("done"));
+        family.accounts.front().fullName = QStringLiteral("Benjamin");
+        family.page->changeLevel(QStringLiteral("ben"), 1);
+        QCOMPARE(family.page->subject(), QStringLiteral("Benjamin"));
+        QVERIFY(family.waitUntilAnswered());
+        QCOMPARE(family.page->step(), ChildrenPage::Step::LevelChanged);
+    }
+
+    // A language chosen for a child outside Family is the one they have.
+    void aLanguageChosenOutsideIsAsBefore() {
+        StandInFamily family(QStringLiteral("done"));
+        family.languages.insert("ada", "en_US.UTF-8");
+        family.page->changeLanguage(QStringLiteral("ada"), QStringLiteral("en_US.UTF-8"));
+        QCOMPARE(family.page->step(), ChildrenPage::Step::NotChanged);
+        QCOMPARE(family.page->reason(), ChildrenPage::Reason::LanguageAsBefore);
+        QCOMPARE(family.page->listedChildren().at(0).toMap().value("languageName").toString(),
+                 QStringLiteral("English (US)"));
+        QVERIFY(family.runs().isEmpty());
     }
 
     void eachAnswerHasAReason_data() {

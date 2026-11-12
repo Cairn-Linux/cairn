@@ -29,9 +29,14 @@ Column {
     // The login of the child whose languages are open, or "". One field or
     // the other is open at a time.
     property string choosingLanguage: ""
+    // Where the keyboard was among the rows when the list was made again.
+    readonly property RowKeyboard keyboard: RowKeyboard {}
 
     // The outcome has changed, and focus is back where the parent was.
     signal outcomeShown
+    // The list was made again, its rows are in their places, and the
+    // keyboard is back with the row it was in.
+    signal rowsMadeAgain
 
     spacing: Tokens.bodySize
 
@@ -80,6 +85,8 @@ Column {
 
         objectName: "childRows"
         model: view.page.listedChildren
+        // A row that goes with the keyboard in it says whose it was.
+        onItemRemoved: (index, item) => view.keyboard.note(item, (item as ChildRow).child.login, view.Window.activeFocusItem)
 
         ChildRow {
             required property var modelData
@@ -191,8 +198,52 @@ Column {
         view.outcomeShown();
     }
 
+    // Whether the list has a child with this login.
+    function lists(login) {
+        for (let i = 0; i < view.page.listedChildren.length; ++i) {
+            if (view.page.listedChildren[i].login === login)
+                return true;
+        }
+        return false;
+    }
+
+    // A child who has left the list takes their open name field or
+    // languages along, and a refusal still on the page about them. A
+    // child added later with that login is another child.
+    function closeFormOfAChildWhoLeft() {
+        const open = view.renaming !== "" ? view.renaming : view.choosingLanguage;
+        if (open === "" || view.lists(open))
+            return;
+        view.renaming = "";
+        view.choosingLanguage = "";
+        if (view.changing === open)
+            view.page.forgetRefusal();
+    }
+
+    // Once the list has been made again. The rows are put in their
+    // places first, so the window scrolls to where they are. Then the
+    // keyboard goes back to the row of the child it was with; when that
+    // child is gone, it stays with the window.
+    function keepKeyboard() {
+        view.forceLayout();
+        for (let i = 0; i < rows.count; ++i) {
+            const row = rows.itemAt(i) as ChildRow;
+            if (row && row.child.login === view.keyboard.login)
+                view.keyboard.giveBack(row);
+        }
+        view.keyboard.forget();
+        view.rowsMadeAgain();
+    }
+
     Connections {
         target: view.page
+
+        // Now for the open forms, and later, once the rows are made, for
+        // the keyboard.
+        function onListedChildrenChanged() {
+            view.closeFormOfAChildWhoLeft();
+            Qt.callLater(view.keepKeyboard);
+        }
 
         function onStepChanged() {
             if (view.page.step === ChildrenPage.Added)

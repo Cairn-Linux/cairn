@@ -159,11 +159,11 @@ window refuses, before any password:
 
 The same name in other capitals is a change. So is a child's login
 given as a name, for a child whose account has no full name and so is
-listed by their login: the account gains a full name. The window checks
-against the children and grown-ups as it last read them, and
-`set-name` checks for no clash of its own, so a name another window
-gave meanwhile goes through, as with Add a child. A level chosen while
-the field is open closes it. Once it is in place:
+listed by their login: the account gains a full name. The window reads
+the children and grown-ups again just before it checks, and `set-name`
+checks for no clash of its own, so only a name given elsewhere while
+the password is asked for goes through, as with Add a child. A level
+chosen while the field is open closes it. Once it is in place:
 "Ada is called Ada Lovelace now, on the login screen and in Family."
 The field closes and the keyboard goes back to Change name. Every other
 answer has the sentence it has for a level, and a refused name stays in

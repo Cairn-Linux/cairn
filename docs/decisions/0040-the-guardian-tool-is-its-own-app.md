@@ -12,7 +12,10 @@ switch between them and a read-only Games page landed 2026-10-28, and
 highlighting games and Save the same day); ADR-0043, proposed (a third page, Your account,
 with the Guardian's own password and picture, and "Family" in System
 Settings in place of Plasma's hidden Users page); the section "A name a
-child on the list already has" below (2026-10-31, #212)
+child on the list already has" below (2026-10-31, #212); the sentences
+dated 2026-11-12 under "The Children page" and in that section's
+consequences (the page reads the accounts again when it is shown, when
+Family comes back to the front, and before each change)
 
 ## Context
 
@@ -104,9 +107,11 @@ step 4, and ADR-0041 says how they work.
 
 - Every Cairn child, in the order their accounts were made, as on the
   login screen (ADR-0020), with their name and level. The list comes from
-  the account database through NSS, read again after every change. A
-  child is the same as `cairn-family`'s: a person's account in a level
-  group, and no administrator. The rule lives in `accounts/` for both.
+  the account database through NSS, read again after every change.
+  Since 2026-11-12 it is also read each time the page is shown, each
+  time Family comes back to the front, and before each change. A child
+  is the same as `cairn-family`'s: a person's account in a level group,
+  and no administrator. The rule lives in `accounts/` for both.
 - **Add a child:** the name the login tile will show, and level 1 or 2,
   each with one sentence from DESIGN §3. The window makes the account's
   login name from the name, in C++: lower case, accents dropped, only a
@@ -229,14 +234,17 @@ whatever the case of its letters, before the password is asked for.**
 ### Consequences
 
 - The form can no longer make two children with one name, as long as no
-  child is made outside Family while it is open. A family with two
-  children of one name gives one of them an initial, as the sentence
-  says.
-- The window compares the name with the children as it last read them:
-  when it opened, and after each change. A child made in a terminal
-  since then is not compared. A retry is not compared at all, so a child
-  of that name made elsewhere between a failed add and its retry does
-  not stop it.
+  child is made outside Family while it asks for the password. A family
+  with two children of one name gives one of them an initial, as the
+  sentence says.
+- The window compares the name with the children as it reads them just
+  before it asks for the password. Until 2026-11-12 it compared them as
+  it last read them, when it opened and after each change, so a child
+  removed in a terminal kept their row and their name until the next
+  change was answered or Family was closed. A child made elsewhere while
+  the password is asked for is still not compared. A retry is not
+  compared at all, so a child of that name made elsewhere between a
+  failed add and its retry does not stop it.
 - Only children are compared. A child may still get a grown-up's name;
   a grown-up's tile asks for a password, so a child cannot land in that
   account with a tap.

@@ -321,17 +321,17 @@
 <context>
     <name>ChildrenView</name>
     <message>
-        <location filename="../qml/ChildrenView.qml" line="42"/>
+        <location filename="../qml/ChildrenView.qml" line="47"/>
         <source>Children</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/ChildrenView.qml" line="55"/>
+        <location filename="../qml/ChildrenView.qml" line="60"/>
         <source>Each child has their own login and their own level. A level can go up or down at any time, whatever fits now. Every change asks for your password.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/ChildrenView.qml" line="69"/>
+        <location filename="../qml/ChildrenView.qml" line="74"/>
         <source>No children yet. Add one below.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -344,27 +344,27 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="147"/>
+        <location filename="../qml/FamilyWindow.qml" line="159"/>
         <source>Pages</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="157"/>
+        <location filename="../qml/FamilyWindow.qml" line="169"/>
         <source>Children</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="170"/>
+        <location filename="../qml/FamilyWindow.qml" line="182"/>
         <source>Games</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="184"/>
+        <location filename="../qml/FamilyWindow.qml" line="196"/>
         <source>Your account</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/FamilyWindow.qml" line="198"/>
+        <location filename="../qml/FamilyWindow.qml" line="210"/>
         <source>Notices</source>
         <translation type="unfinished"></translation>
     </message>
