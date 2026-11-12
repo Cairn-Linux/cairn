@@ -18,6 +18,13 @@
 // rule files in name order and the first answer wins, so the low number
 // keeps this ahead of anything the base image ships.
 
+// polkit runs every rule file in one JavaScript context, so a function or
+// a list named at the top of one file is replaced by one of the same name
+// in a file read later, and the rule below would then use the later one.
+// Everything from here on is inside one function, which keeps its names to
+// this file. The lines inside are not indented, so the file reads as before.
+(function () {
+
 // An action id "starts with" a prefix. Duktape, polkit's engine, has no
 // String.startsWith, so this is the plain form.
 function startsWith(id, prefix) {
@@ -27,6 +34,16 @@ function startsWith(id, prefix) {
 function startsWithAny(id, prefixes) {
     for (var i = 0; i < prefixes.length; i++) {
         if (startsWith(id, prefixes[i])) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// A name is one of a list: the whole name, never a prefix.
+function isOneOf(name, names) {
+    for (var i = 0; i < names.length; i++) {
+        if (name === names[i]) {
             return true;
         }
     }
@@ -47,6 +64,28 @@ var guardianOnly = [
     "org.freedesktop.Malcontent.WebFilter.Change",
     "org.freedesktop.Malcontent.SessionLimits.Extend",
     "org.freedesktop.MalcontentControl."
+];
+
+// The base image's updater, uupd, is three systemd units: uupd.service,
+// which uupd.timer starts every night, uupd-manual.service, which starts
+// when an update is asked for by hand, and the timer. systemd has one
+// action for every unit, manage-units, and tells polkit which unit and what
+// is asked of it, the verb. For most units the answer is a grown-up's
+// password, but Universal Blue's own rule file, uupd.rules, says yes for
+// the two services to any account, whatever the verb (#265). Updates are
+// the Guardian's, so a child is refused here first, for every verb:
+// stopping an update half-way is the Guardian's as much as starting one,
+// and a rule that does not read the verb cannot miss one systemd adds
+// later. The timer is listed with them, so that stopping the nightly update
+// is a plain no for a child and not a password box. The timer still starts
+// uupd.service by itself, since systemd does that without asking polkit.
+// Every other unit keeps systemd's default, and so does turning a unit off
+// for good, which is another action, manage-unit-files, and names no unit.
+var manageUnits = "org.freedesktop.systemd1.manage-units";
+var updaterUnits = [
+    "uupd.service",
+    "uupd-manual.service",
+    "uupd.timer"
 ];
 
 // The kiosk has nothing on screen that powers off, sleeps or mounts, so
@@ -94,8 +133,14 @@ polkit.addRule(function (action, subject) {
     if (startsWithAny(action.id, guardianOnly)) {
         return polkit.Result.NO;
     }
+    if (action.id === manageUnits &&
+            isOneOf(action.lookup("unit"), updaterUnits)) {
+        return polkit.Result.NO;
+    }
     if (kiosk && startsWithAny(action.id, notInTheKiosk)) {
         return polkit.Result.NO;
     }
     return polkit.Result.NOT_HANDLED;
 });
+
+}());

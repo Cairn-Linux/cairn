@@ -97,6 +97,7 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=tmpfs,dst=/tmp \
     /ctx/build.sh
 
+# A child must not be able to start or stop the system updater (#265).
 # The image must say Cairn, not Bazzite or Fedora (slice 5), from the
 # boot screen on (#165) to the Guardian's start-menu button (#166), and
 # the Bazzite extras the build takes out must stay out (#261). The lock
@@ -109,6 +110,7 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     /ctx/check-boot-screen.sh && \
     /ctx/check-guardian-desktop.sh && \
     /ctx/check-bazzite-extras.sh && \
+    /ctx/check-updater-rule.sh && \
     python3 -I /ctx/check-lock-screen-pam.py && \
     python3 -I /ctx/check-faillock-owner.py
 

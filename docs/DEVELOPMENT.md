@@ -243,6 +243,28 @@ and the 23 pictures in them as missing, because the build removes them
 (below). Leave out `--nomtime` and `rpm -V` lists hundreds of files whose
 times the base changed.
 
+A child cannot start or stop the system updater (#265). Universal Blue's
+`uupd.rules` lets any account start and stop the updater's two services
+with no password, and Cairn's polkit rule, which polkit reads first,
+refuses a child for them and for the updater's timer.
+One limit stays: a program in a child's session that a grown-up has
+just typed their password into, for some other unit, can start or stop
+the updater while polkit keeps that password
+(`docs/research/kiosk-containment.md`).
+`build_files/check-updater-rule.sh` stops the build if another rule file
+would be read before Cairn's, if the image no longer has a unit the rule
+names, or if another rule file answers for one of systemd's units that
+the rule does not name. To look yourself:
+
+```sh
+podman run --rm localhost/cairn:dev find /etc/polkit-1/rules.d /usr/share/polkit-1/rules.d -name '*.rules' -printf '%f\n' | LC_ALL=C sort | head -n 3
+podman run --rm localhost/cairn:dev cat /usr/share/polkit-1/rules.d/uupd.rules
+```
+
+The first prints the three rule files polkit reads first, with
+`10-cairn-levels.rules` at the top. The second names `uupd.service` and
+`uupd-manual.service` and no other unit.
+
 Bazzite's first-login step is out of the image (#261). Every account's
 own systemd started it at login, and it ran a root step that polkit let
 any account run without a password. `build_files/bazzite-extras.sh`
@@ -399,7 +421,7 @@ copy by reflink need a folder that can reflink (btrfs or XFS), one
 `provision` test reads `sysusers.d` and
 `build_files/`, which the build stage does not copy, the
 `hideuserspage` and `kdepictures` tests run scripts from `build_files/`,
-and one `polkit_rules` test runs the
+and the `polkit_rules` tests that run the
 levels rule with `node`, which the build stage does not install. The build log lists every skip under
 "Tests skipped in the build stage". Run `ctest` on the host before
 building an image; it is the only place those tests run.
