@@ -247,6 +247,10 @@ A child cannot start or stop the system updater (#265). Universal Blue's
 `uupd.rules` lets any account start and stop the updater's two services
 with no password, and Cairn's polkit rule, which polkit reads first,
 refuses a child for them and for the updater's timer.
+One limit stays: a program in a child's session that a grown-up has
+just typed their password into, for some other unit, can start or stop
+the updater while polkit keeps that password
+(`docs/research/kiosk-containment.md`).
 `build_files/check-updater-rule.sh` stops the build if another rule file
 would be read before Cairn's, if the image no longer has a unit the rule
 names, or if another rule file answers for one of systemd's units that
