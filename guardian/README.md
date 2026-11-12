@@ -52,12 +52,31 @@ The Children page:
    shown, each time Family comes back to the front, and before each
    change, so a child removed in a terminal while Family was open is
    off the list and no longer holds their name. That read leaves an
-   open name field, open languages, the Add a child form and the
-   sentence for the last change as they were, puts the keyboard back
-   on the control it was on and keeps that control in sight, and does
-   not happen while a change waits for its password. A child who is
-   gone from the list takes their open name field or languages with
-   them, and the refusal of a name or language last tried there.
+   open name field, open languages and the Add a child form as they
+   were, puts the keyboard back on the control it was on and keeps
+   that control in sight, and does not happen while a change waits
+   for its password. A child who is gone from the list takes their
+   open name field or languages with them.
+   The sentence under the rows, for the last change, stays while each
+   child it is about is as the list showed them when it was written,
+   whatever else changed in the family. It goes, and the box with it,
+   once a read finds one of them gone from the list, back on it, or
+   there with another name, level or language. So "Cy can log in now"
+   goes when Cy's account is removed in a terminal, and "Cy is not a
+   child's account on this computer" goes when Cy is added again. A
+   sentence is about the child whose row's button was pressed, or the
+   child Add a child made or asked the password to make, and about a
+   child it names as having the name already. The read that follows a
+   change's answer writes that change's sentence and never takes it
+   away. A sentence about no child is taken away by no read: "Type the
+   child's name first.", or a name Add a child refuses before any
+   password because it holds a colon. A grown-up's name refused, for a
+   new child or for a child's new name, stays even when that grown-up's
+   account is removed or renamed in a terminal meanwhile; pressing Add
+   or Save name again reads the accounts and answers for the family as
+   it is. When a terminal has given two children one name, a refusal
+   of that name follows the first of them on the list, and goes when
+   that one changes, though the other still has the name.
 2. **Move to level N** beside each child, for each level the page can
    give, 1 or 2. Up or down, the button and the sentence after it read
    the same (DESIGN §3). The new level starts the next time the child
@@ -548,10 +567,11 @@ QML draws, C++ decides (ADR-0002):
 | `qml/Main.qml` | The Steam window. |
 | `qml/SteamForWords.qml` | The Steam window's words for each step. |
 | `src/LoginName` | The account's login name, made from the name a parent types, and the first free one when it is taken. |
-| `src/ChildList` | The family's children among the accounts, in the order they were made, each with their name and level, as maps for the pages' QML; and the rule for when two names are one, whatever the case of their letters. |
+| `src/ChildList` | The family's children among the accounts, in the order they were made, each with their name and level, as maps for the pages' QML; the rule for when two names are one, whatever the case of their letters; and when the Children page shows two children the same. |
 | `src/FamilyChange` | Runs `pkexec` with `cairn-family`, one change at a time, and reads its one-line answer, or pkexec's own exit code. |
 | `src/ChildrenPage` | What the Children page shows and what its buttons do: the list and when it is read again, the checks before a change, and why a change was refused. Its account database is in its `Setup`, so a test can replace it. |
 | `src/UnfinishedAdd` | The Children page's memory of an add that may have made the account before it stopped, so adding that name again finishes it. |
+| `src/OutcomeChildren` | The children the Children page's sentence for the last change is about, each as the list showed them when it was written, and whether a later read finds one of them gone, back or changed, which is when the page takes the sentence away. |
 | `src/GamesPage` | What the Games page shows and does: the children, the one picked, the games with each marked when it is on that child's list as saved and as wanted, turning a game, Save, a logged-in child's greyed games, and opening a child's Steam window. Its files, accounts, commands, program start and logind reader are in its `Setup`, so a test can replace them. |
 | `src/LoginSessions` | Who is logged in, from systemd-logind's `ListSessions` on the system bus through Qt D-Bus, without root, counted by the visit helper's own rule. |
 | `src/LoginWatch` | Keeps who is logged in up to date, reading again on logind's `SessionNew` and `SessionRemoved`. |
@@ -624,12 +644,12 @@ journalctl -t cairn-steam-for -t cairn-steam-visit --since today
 
 ## Tests
 
-CTest runs forty-four here, among them `steamvisit`, `ownsteam`,
+CTest runs forty-eight here, among them `steamvisit`, `ownsteam`,
 `screenlockwatch`,
 `steamforchild`, `steamwindow` (the real window in Qt Quick Test),
 `familycommand`, `steamentry`, and for the Guardian tool `loginname`,
 `childlist`, `familychange`, `saverun`, `savereport`, `loginwatch`,
-`childlogout`, `gamechoices`,
+`childlogout`, `gamechoices`, `outcomechildren`,
 `childrenpage`, `gamepicture`, `gameshelf`, `gamespage` and
 `familywindow` (the real window in Qt Quick Test, all four pages and
 the switch), and for a grown-up's own password and picture

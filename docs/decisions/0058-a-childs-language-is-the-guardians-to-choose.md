@@ -387,7 +387,9 @@ commits on this branch change words only: this ADR, lines in DESIGN.md,
 ROADMAP.md, DEVELOPMENT.md and the session and guardian READMEs, the
 sentence Family shows above the language buttons, and comments in the
 Kiosk file, `cairn-session` and the provisioning script. Family with
-the new sentence has not been run on an image.
+the new sentence was not run on this image. The sentence was seen on
+2026-11-12 on a later test image, which holds this change and others
+merged together (below).
 The test accounts were ada (L1), ben (L2, moved to L3 for the Plasma
 checks), cy (added and removed) and guardian. The language files,
 ben's level and every test file put in ben's home were taken back
@@ -414,7 +416,9 @@ kactivitymanagerd's backups.
   with no password box, a write into the folder was refused, and
   faillock stayed at 0. Those probes were started from a root shell,
   moved into the child's session and dropped to the child's user; they
-  were not typed in the session.
+  were not typed in the session. On 2026-11-12 the `pkexec` one was
+  typed once at L3 (below). The others, and all of them at L1 and L2,
+  have still only been started from a root shell.
 - **L1 kiosk.** At ada's next login, labwc, the launcher, the Steam
   client and `systemctl --user show-environment` had `en_GB.UTF-8` in
   `LANG` and every `LC_` key. Tux Paint said "Colours"; that was the
@@ -517,7 +521,59 @@ ADR-0056 has what the same run saw of a child's name.
 - **Not seen in this run.** No Steam client ran in ben's session, so
   its environment at L2 with a language file was not recorded. Family
   on this image still has the older sentence above the language
-  buttons; the new one has still not been run on an image.
+  buttons, so the new one was not seen in this run. It was seen on
+  2026-11-12 on a later test image, which holds this change and others
+  merged together (below).
+
+### On a test image with other changes merged in, on 2026-11-12
+
+In cairn-min on 2026-11-12, on `test.20261112-combined-8e15d47`, a test
+image built on the development PC: main 57bd89a with this change at
+f2423c4 and #295, #296, #303, #304 and #306 merged together. It is not
+an image of this change alone, and it has neither #302 nor #307. It was
+one run, so each line is one try. The run's record was audited against
+its evidence afterwards, and what follows keeps to what the audit found
+shown. Little of the run was about language.
+
+- **Family's sentence above the language buttons.** The Guardian
+  logged in at the login screen with keys and opened Family from the
+  start menu with keys, so Family ran in the Guardian's own session.
+  On the Children page, Change language on ben's row (L2) was pressed
+  with keys. Above English (US), English (UK) and Cancel it said:
+  "Their screens are in this language from the next time they log in.
+  The way to change it is hidden from children." The screenshot of it
+  does not show whose row it is; the key log does. It was closed with
+  Escape, and nothing was changed.
+- **The `pkexec` refusal, typed once at L3.** ben was moved to L3 for
+  the run and logged in at the login screen. This was typed with keys
+  in a terminal window on his screen:
+  `pkexec /usr/libexec/cairn/cairn-family set-language ben en_GB.UTF-8`.
+  It answered "Error executing command as another user: Not
+  authorized", and no password box is in the screenshot taken 5
+  seconds later. No language file was written: the folder for them was
+  empty before and after. It was typed once, through `p`, a one-line
+  function typed in the same window first, which keeps a copy of the
+  answer. ben was put back at L2 afterwards.
+- **The Steam client at L1, with no language picked.** In ada's L1
+  session her Steam client started by itself. Nothing was started in
+  her session for this: a root shell read what the running programs
+  held. The launcher, the Steam start script, the client and three of
+  its helper processes each had the computer's language
+  (`LANG=en_US.UTF-8`) and no `LANGUAGE` or `LC_` value. No language
+  had been picked for ada, so this is the case where none is picked.
+  It does not go against the L1 line of 2026-11-09 above. It says
+  nothing about a picked language reaching Steam, or about the seven
+  processes under Known limits.
+- **Not tried in this run.** No language was picked in Family, so the
+  password box, the file and a child's next login were not tried on
+  this image. The sentence was not looked at on a row other than
+  ben's, or for a child at L3 or L4. The line was not typed at L1, L2
+  or L4, and a write into the language folder was not tried from a
+  child's session. No Steam client ran in ben's session, so nothing is
+  known from this run about the language values a Steam client gets
+  at L2 or L3. Of the lines under "Not checked yet", none from L4
+  down was tried. For the list's first line this part holds nothing:
+  the Steam reading above says nothing about the seven processes.
 
 ### Not checked yet
 

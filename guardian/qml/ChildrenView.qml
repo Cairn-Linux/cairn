@@ -208,16 +208,15 @@ Column {
     }
 
     // A child who has left the list takes their open name field or
-    // languages along, and a refusal still on the page about them. A
-    // child added later with that login is another child.
+    // languages along. A child added later with that login is another
+    // child. The page itself takes away a sentence about a child who
+    // left.
     function closeFormOfAChildWhoLeft() {
         const open = view.renaming !== "" ? view.renaming : view.choosingLanguage;
         if (open === "" || view.lists(open))
             return;
         view.renaming = "";
         view.choosingLanguage = "";
-        if (view.changing === open)
-            view.page.forgetRefusal();
     }
 
     // Once the list has been made again. The rows are put in their
@@ -253,8 +252,12 @@ Column {
                 view.renaming = "";
             if (view.page.step === ChildrenPage.LanguageChanged)
                 view.choosingLanguage = "";
-            // Later, once the controls are enabled again.
-            if (view.page.step === ChildrenPage.Asking)
+            // Later, once the controls are enabled again. When the
+            // sentence has gone, no control was waiting, so the keyboard
+            // stays where it is: the page took the sentence away because
+            // the family changed outside Family, or a field closed, which
+            // moves the keyboard itself.
+            if (view.page.step === ChildrenPage.Asking || view.page.step === ChildrenPage.Ready)
                 Qt.callLater(view.outcomeShown);
             else
                 Qt.callLater(view.restoreFocus);
