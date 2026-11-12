@@ -91,10 +91,12 @@ Entry 13 is a proposal.
 
 - **Wait for:** the screen that says "Something needs a grown-up.", names
   what did not start, and has a Back button.
-- **Counts as seen:** the child gets back to the tiles with no help.
-  Back, Escape and Super+Q all do it.
-- **Write down:** what the child did first, what they said, whether they
-  fetched you, and any other line on the screen.
+- **Counts as seen:** the child presses Back and is at the tiles again,
+  with no help.
+  Escape and Super+Q leave the screen too. They do not count as Back.
+- **Write down:** which way the child left (Back, Escape or Super+Q),
+  what the child did first, what they said, whether they fetched you,
+  and any other line on the screen.
   Count on the child's sheet how many times the screen came up.
 - Seen / not seen: __________  Notes: ______________________________
 
@@ -178,9 +180,11 @@ Entry 13 is a proposal.
   afterwards.
 - Seen / not seen: __________  Notes: ______________________________
 
-#### 11. No way from a child's login to the grown-up's desktop
+#### 11. Nothing of the grown-up's desktop on a child's screen
 
 - **Wait for:** nothing. Watch every turn.
+  This only watches. Nobody tries to find a way in this test, so it
+  cannot show that there is none.
 - **Counts as seen:** the test ends and no child's screen has shown the
   grown-up's desktop, its panel, its menu or its lock screen.
 - **Write down:** the time of anything else from outside the tiles and
@@ -472,7 +476,7 @@ Only the maintainer can answer these. None has an answer on this page.
 | 8. A child at the tiles with the battery low | P1-17; ADR-0034, which also says "Not tried on real hardware running down" |
 | 9. Whether a child who cannot read notices the battery's fill | P1-17; ADR-0034 |
 | 10. A sibling at the login screen and the grown-up's tile | P1-17, "the Guardian tile"; #8; ADR-0020; ADR-0054 |
-| 11. No way from a child's login to the grown-up's desktop | P1-17, "no path from a child's session to Plasma"; #8; ADR-0049; #275 for the flash; `child-test-01.md`, "Against the exit criterion" |
+| 11. Nothing of the grown-up's desktop on a child's screen | P1-17, "no path from a child's session to Plasma"; #8; ADR-0049; #275 for the flash; `child-test-01.md`, "Against the exit criterion" |
 | 12. A laptop with 4 GB of memory, if the project has one | P1-17, "a Minimum-tier laptop"; ADR-0031; ADR-0003; `child-test-01.md` |
 | 13. Proposal: whether a young child misses block coding | No doc names this test. ADR-0010; ADR-0031, "Consequences" |
 | 14. A ScummVM game scanned, launched, quit and launched again | P1-17; #8 |
