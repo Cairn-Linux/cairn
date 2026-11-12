@@ -249,12 +249,23 @@ run of 2026-11-11 tried each. The sections below say what was seen and
 how. Still open after it:
 
 - The same refusals when a child acts inside their session by hand. In
-  every run on a built image each probe was started from a root shell,
-  moved into the cgroup of the child's session and dropped to the
-  child's user. On 2026-11-11 two lines were typed with keys into an L2
-  child's Terminal, and the Terminal answered both itself. No command
-  that reaches polkit, AccountsService or `cairn-family` has been typed
-  inside a child's session, at any level.
+  the runs on a built image up to 2026-11-11 each probe was started
+  from a root shell, moved into the cgroup of the child's session and
+  dropped to the child's user. On 2026-11-11 two lines were typed with
+  keys into an L2 child's Terminal, and the Terminal answered both
+  itself. Up to then no command that reaches polkit, AccountsService or
+  `cairn-family` had been typed inside a child's session, at any level.
+  On 2026-11-12 lines were typed with keys in a terminal window in an
+  L3 child's session, in one login: `busctl` calls to AccountsService,
+  `chfn`, `usermod`, and `cairn-family set-name` with `pkexec` and
+  without it. Each was typed once, and two of them a second time. Each
+  was refused, and no password box is in the screenshots taken after
+  them. That run was on a test image built from main with this change
+  and five others merged in, and no child was at the computer
+  ("Checked on 2026-11-12", below). Still not tried by hand: a child at
+  L4. At L1 and L2 the Terminal answered the typed lines itself: two
+  lines at L2 on 2026-11-11, and lines about the updater (#304) at L1
+  and L2 on 2026-11-12.
 
 The maintainer decided on 2026-11-11 that this stays listed and does not
 hold the label (Status).
@@ -385,7 +396,9 @@ shown.
   Terminal's help lists six words (`ls`, `cd`, `open`, `cat`, `help`,
   `exit`), and none of the kiosk's key bindings opens another terminal.
   `open` was not tried. So no command that reaches polkit was typed by
-  hand, and that item stays open.
+  hand in this run, and that item stayed open after it. It was tried
+  in an L3 child's session on 2026-11-12: see "Checked on 2026-11-12",
+  below.
 - **A name put back through Family.** The Guardian renamed ben to
   "Ben B" in Family through the real password box: the account
   database, AccountsService and his "Steam for" entry took the name, and
@@ -404,4 +417,92 @@ shown.
 
 Not tried in this run: a command typed inside an L3 child's session,
 where there is a real shell, the Guardian's own name and picture, and
-the three things left untried on 2026-11-07.
+the three things left untried on 2026-11-07. The first of these was
+tried on 2026-11-12: see "Checked on 2026-11-12", below. The Guardian's
+own name and picture, the PR's question 2, the `~/.face.icon` route and
+an account Cairn did not make were not tried then either.
+
+### Checked on 2026-11-12
+
+In cairn-min on 2026-11-12, on a test image built on the dev PC from
+main (57bd89a) with this change at 4a950d6 and #295 (0df14bf), #300
+(f2423c4), #303 (5cbb741), #304 (728d184) and #306 (05bc05a) merged
+together (`test.20261112-combined-8e15d47`). It has neither #302 nor
+#307. So each result is for this change with the other five merged in,
+not for an image built from this change alone. The levels rule in the
+image is this change's, with one comment reworded by #300 and 45 lines
+added by #304. Family's Children page is as #300 and #306 carry it.
+This is a record of one run. Each thing below was tried once, or twice
+where it says so. The run's record was audited against its evidence
+afterwards, and what follows keeps to what the audit found shown.
+
+The run tried the item still listed under "Not checked yet": the same
+refusals when the commands are typed by hand inside a child's session.
+It was tried at L3 only.
+
+How the lines were typed: ben was moved to L3 from a root shell and
+given a password for the run. He was logged in at the login screen with
+keys, and a terminal window (Konsole) was opened on his screen with
+keys. Each line in the list below was typed with keys in that window. A
+screenshot was taken a few seconds after each, and no password box is in
+them. "Typed with keys" means the tester sent keys to the VM's keyboard,
+as a person at the computer would press them. No child was at the
+computer. Most lines were typed through a one-line shell function, typed
+first in the same window, that also copies each answer to a file in
+ben's home. `SetRealName` and the `pkexec` line for `set-name` were also
+typed without it, with the same answers.
+
+- **AccountsService, his own account.** `busctl` calls to change his
+  own name, picture, language and password hint (`SetRealName`,
+  `SetIconFile`, `SetLanguage` and `SetPasswordHint`) each answered
+  "Call failed: Not authorized".
+- **AccountsService, the Guardian's account.** A `busctl` call to
+  change the Guardian's name answered "Call failed: Not authorized".
+- **chfn.** `chfn -f Mum` printed "chfn: /etc/login.defs: CHFN_RESTRICT
+  does not allow any changes".
+- **usermod.** The first line that `usermod -c Mum ben` printed was
+  "usermod: Permission denied."
+- **`cairn-family set-name`.** The line
+  `pkexec /usr/libexec/cairn/cairn-family set-name ben Mum` printed
+  "Error executing command as another user: Not authorized". Without
+  `pkexec`, `set-name` printed "refused not-root".
+- **The Users page.** `kcmshell6 kcm_users`, which asks for the
+  desktop's Users page, was typed in the same window. A window opened
+  and said "The module kcm_users is disabled. The module has been
+  disabled by the system administrator."
+
+Read from a root shell before and after those lines: ben's and the
+Guardian's account lines, stored account values, language files and
+wrong-password counts were the same.
+
+A password box can open in that session. In the same run a start of the
+Bluetooth service, which the rule does not name, brought one, and it
+was cancelled with nothing typed. That check is #304's.
+
+Saving an empty name in Family was tried on the Guardian's screen, with
+keys. The Guardian was logged in at the login screen and Family was
+opened from the start menu. On ben's row Change name was opened, the
+field was emptied and Enter was pressed. The page said "Type the
+child's name first." No password box is in the screenshots taken 2 and
+5 seconds later. The field stayed open and empty. Escape closed it, and
+ben's account was unchanged.
+
+Afterwards ben was put back at L2, and the VM was put back to the
+snapshot made after the image was installed.
+
+Not tried in this run:
+
+- A name command typed at L1 or L2. The lines typed into the Terminal
+  there in this run were about the updater (#304), and the Terminal
+  answered them itself. On 2026-11-11, above, `chfn -f mum` and
+  `pkexec` were typed into an L2 Terminal, which answered both itself.
+- A child at L4.
+- The Users page reached by clicks in System Settings. It was asked for
+  by name from the terminal window only.
+- A change of password (`passwd`, `SetPassword`).
+- In Family: a name saved through the password box, and the Save name
+  button with an empty field. Enter was pressed, as on 2026-11-11.
+- A second L3 login, or another child at L3.
+- As before: the Guardian's own name and picture, the PR's question 2,
+  the `~/.face.icon` route and an account Cairn did not make.
+- An image built from this change alone, and a real computer.

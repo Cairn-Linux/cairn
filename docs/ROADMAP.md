@@ -524,9 +524,18 @@ done, and what could sink it. Decisions that change the design get an ADR in
   built from it that day and on 2026-11-09 it was checked for an L1 and
   an L3 child, and the Guardian renamed one child with Change name. On
   2026-11-11 it was checked for an L2 child on the second image, and a
-  name was put back through Family. Still to be checked: the refusals
-  tried by a child by hand, with a command that reaches polkit. The
-  maintainer decided on 2026-11-11 that this does not hold the label.
+  name was put back through Family. After that run one thing was still
+  to be checked: the refusals tried by a child by hand, with a command
+  that reaches polkit. The maintainer decided on 2026-11-11 that this
+  does not hold the label. On 2026-11-12 it was tried once, at level 3
+  only, on a test image built from main with this ADR's change and five
+  others merged in. Calls to AccountsService, `chfn`, `usermod` and
+  `cairn-family set-name` were typed in a terminal window in an L3
+  child's session, with keys sent to the VM's keyboard. No child was at
+  the computer. Each was refused, and no password box is in the
+  screenshots taken after them. Still not tried by hand: level 4. At
+  levels 1 and 2 the Terminal answered the typed lines itself (level 2
+  on 2026-11-11; levels 1 and 2, updater lines only, on 2026-11-12).
 - **ADR-0055 (2026-11-06, part of #287, proposed): a give-up ends only
   what was there when the keys were pressed.** On cairn-min, a tile
   tapped 1 to 2 s after Ctrl-Alt-Home was undone: the helper's SIGKILL at
