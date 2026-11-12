@@ -106,6 +106,22 @@ Column {
         onChosen: form.level = 2
     }
 
+    // Levels 3 and 4 are not made yet (ADR-0040). A parent reads what
+    // each will be, and cannot pick one.
+    PlannedLevel {
+        objectName: "level3"
+        width: form.width
+        level: 3
+        description: qsTr("A desktop with limits, and a real terminal.")
+    }
+
+    PlannedLevel {
+        objectName: "level4"
+        width: form.width
+        level: 4
+        description: qsTr("The full desktop and terminal, with a grown-up's controls still in place.")
+    }
+
     TextButton {
         objectName: "addButton"
         text: qsTr("Add")

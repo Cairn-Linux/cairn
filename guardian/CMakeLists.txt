@@ -188,6 +188,7 @@ set(family_window_qml_files
     qml/AddChildForm.qml
     qml/LabelledField.qml
     qml/LevelChoice.qml
+    qml/PlannedLevel.qml
     qml/TextButton.qml
     qml/ScrollMark.qml
     qml/ScrollKeys.qml
