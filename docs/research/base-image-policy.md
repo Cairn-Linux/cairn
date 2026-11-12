@@ -120,14 +120,23 @@ with non-Fedora or modified Fedora Materials"):
   before the change, with the new build lines run in it: as root and as
   another account, each in bash, fish and sh, and as root in tmux. The
   new lines, the whole check and `bootc container lint` then ran as steps
-  of a build on top of that image. No whole image has been built from it
-  yet, and it has not been seen in a Guardian's own terminal window. A
+  of a build on top of that image. No image has been built from this change
+  alone. On 2026-11-12 one test image, built from main with this change and
+  the branches of #295, #296, #300, #304 and #306, ran on the test VM.
+  There a plain `fastfetch` was typed once in the test Guardian's terminal
+  window and once in a level 3 test child's. Both windows were Konsole.
+  Each time it printed its lines and drew no logo. In that run it was not
+  typed at level 1, 2 or 4, or in a terminal window other than Konsole.
+  The change has not been tried on a real computer. A
   logo asked for by name, as in `fastfetch --logo linux`, is drawn as
   before. The names of the lines are still blue, as fastfetch's own
   `--logo none` leaves them. A person's own fastfetch config is read in
   place of Cairn's. One that says nothing about the logo, which is what
   `fastfetch --gen-config` writes, gets fastfetch's pick, which is
-  Fedora's. So does `fastfetch --config none`.
+  Fedora's. So does `fastfetch --config none`. On the test VM on
+  2026-11-12 `fastfetch --config none` was typed once in the Guardian's
+  terminal window, and Fedora's logo, told by its shape, was drawn beside
+  "OS: Cairn Linux"; a config of a person's own was not tried in that run.
 - [ ] **Display the Fedora notice** where the OS identifies itself (About
   screen, website download page, docs): not provided or supported by the
   Fedora Project; official Fedora is at https://fedoraproject.org/.
