@@ -117,11 +117,13 @@ XDG_CACHE_HOME=/tmp/fastfetch-cache fastfetch | grep -c '^OS: Cairn Linux'
 # No alias or function gives the word another meaning, as Bazzite's did,
 # in these places: what bash, sh and fish read at start for every
 # account, the folders fish takes functions from, and what a new account
-# is given. grep must answer 1, which is "looked in every place and
-# found nothing". For a place that is missing it answers 2 even when the
-# word is in another, and absent would take that for "not found".
+# is given. -R reads the files that links there point at too, such as
+# systemd's two in /etc/profile.d. grep must answer 1, which is "looked
+# in every place and found nothing". For a place that is missing it
+# answers 2 even when the word is in another, and absent would take that
+# for "not found".
 status=0
-grep -rIlw fastfetch /etc/profile /etc/profile.d /etc/bashrc /etc/skel \
+grep -RIlw fastfetch /etc/profile /etc/profile.d /etc/bashrc /etc/skel \
     /etc/fish /usr/share/fish/vendor_conf.d \
     /usr/share/fish/vendor_functions.d || status=$?
 [[ "${status}" == 1 ]]
