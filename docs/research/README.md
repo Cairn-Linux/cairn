@@ -12,6 +12,11 @@ Files:
   notes cover the kids' laptop: two children at L1 on 2026-10-10, and the
   younger one alone on 2026-10-11, with a table of those evenings against
   the exit criterion. Phase 0 ended on those evenings (ADR-0031).
+- `child-test-02.md` — a draft plan and blank notes sheet for P1-17, the
+  second test with children, written 2026-11-11 and not yet run: a first
+  page for the grown-up on the day, what to look for, a sheet per child,
+  the grown-up's steps for Steam, what is decided and what only the
+  maintainer can answer, and where each line comes from.
 - `base-image-policy.md` — 2026-09-03 review of Bazzite, Universal Blue and
   Fedora trademark and licence terms for building Cairn on Bazzite. No
   blocker; compliance checklist for Phase 1.
