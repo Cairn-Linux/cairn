@@ -87,6 +87,22 @@ rm /etc/xdg/autostart/bazzite-announcement.desktop
 rm /usr/share/applications/bazzite-documentation.desktop
 rm /etc/skel/.config/autostart/bazzite-portal.desktop
 
+# A plain fastfetch draws no logo. It has none for ID=cairn, so it drew
+# Fedora's, from ID_LIKE, beside "OS: Cairn Linux", and a remix may not
+# show Fedora's logo as its own (docs/research/base-image-policy.md).
+# What Cairn's mark looks like in a terminal is not decided. fastfetch
+# reads this file after the ones in an account's own folder, so a
+# person's own config still wins. "none" is the logo's source here, as
+# in `fastfetch --logo none`, and not its type: with the type set, a
+# logo a person asks for by name, as in `fastfetch --logo linux`, was
+# not drawn either. A config that names no lines prints none, so the
+# file names them too: the list fastfetch itself writes for its
+# default, with no config read.
+fastfetch --config none --gen-config - |
+    jq '{logo: {source: "none"}, modules: .modules}' >/tmp/fastfetch.jsonc
+install -d -m 0755 /etc/xdg/fastfetch
+install -m 0644 /tmp/fastfetch.jsonc /etc/xdg/fastfetch/config.jsonc
+
 # Every file in the image has the same time once deployed, so programs
 # never see that the icons changed. They look a new name up in this
 # cache, which must list it.

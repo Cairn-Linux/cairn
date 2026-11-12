@@ -110,9 +110,24 @@ with non-Fedora or modified Fedora Materials"):
   rather than removing the package, and record that choice in the ADR.
   *Done 2026-10-21 (ADR-0038, slice 5)* with `generic-logos`, which stays
   registered in rpm. `fedora-release-notes` is not in the base.
-  *Still open, seen 2026-11-02:* a plain `fastfetch` draws its own copy
-  of Fedora's logo beside "OS: Cairn Linux", because it picks a logo from
-  `ID_LIKE=fedora` when it has none for `ID=cairn`.
+  *In the build since 2026-11-12:* a plain `fastfetch` draws no logo.
+  It drew its own copy of Fedora's beside "OS: Cairn Linux" (seen
+  2026-11-02), because it picks a logo from `ID_LIKE=fedora` when it has
+  none for `ID=cairn`. The build now writes
+  `/etc/xdg/fastfetch/config.jsonc`, which asks for no logo and names the
+  lines fastfetch prints by default. `check-name-and-logos.sh` stops the
+  build if a logo comes back. Checked in a container from an image built
+  before the change, with the new build lines run in it: as root and as
+  another account, each in bash, fish and sh, and as root in tmux. The
+  new lines, the whole check and `bootc container lint` then ran as steps
+  of a build on top of that image. No whole image has been built from it
+  yet, and it has not been seen in a Guardian's own terminal window. A
+  logo asked for by name, as in `fastfetch --logo linux`, is drawn as
+  before. The names of the lines are still blue, as fastfetch's own
+  `--logo none` leaves them. A person's own fastfetch config is read in
+  place of Cairn's. One that says nothing about the logo, which is what
+  `fastfetch --gen-config` writes, gets fastfetch's pick, which is
+  Fedora's. So does `fastfetch --config none`.
 - [ ] **Display the Fedora notice** where the OS identifies itself (About
   screen, website download page, docs): not provided or supported by the
   Fedora Project; official Fedora is at https://fedoraproject.org/.
