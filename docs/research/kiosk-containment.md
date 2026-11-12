@@ -22,7 +22,12 @@ headless; the check in a child's session on the VM is still to do. On
 2026-11-11 the polkit rule gained the system updater's units (#265):
 Universal Blue's own rule let any account start or stop an update, and
 a child is now refused, checked with polkit and systemd running in a
-container; the check from a child's login in the VM is still to do.
+container. The check from a child's login in the VM ran once, on
+2026-11-12, on a test image with this change and five others merged
+together. Typed at L3, start and stop of the updater's two services
+were refused. At L1 and L2 the same commands were refused when started
+from a root shell into the child's session. Parts of that check are
+still to do.
 
 ## How it was run
 
@@ -250,7 +255,8 @@ the no stands, and `pkcheck` exits 1. Third, `systemctl disable` and
 `mask` ask about `manage-unit-files` with no unit named, so the rule
 does not answer them: turning the timer off for good is still an admin
 password. Not checked there: a child's login at the console, where a
-password box can open. That is the row under "Remaining rows" below.
+password box can open. That is the row under "Remaining rows" below;
+part of it has been run since, in the VM run further down.
 
 A review of the change the same night found four more things, each seen
 in the same container. First, a verb the table does not have: systemd
@@ -308,8 +314,55 @@ unit in `uupd.rules`, for a rule file that sorts first in `/usr/share`
 or in `/etc`, for another file that answers for all of systemd's
 actions, and for a unit on the rule's list that the image does not
 have. On 2026-11-12 it also ran, and passed, as a step of a build on top
-of that image with this rule copied in. No whole image has been built
-with it yet.
+of that image with this rule copied in. No image has been built from
+this change alone. One whole image has been built with it: the test
+image of the VM run of 2026-11-12, below, made from main with this
+change and five others merged together. The check ran as a step of
+that build, and the build went on to its end; both were read in the
+build's log.
+
+Checked once on 2026-11-12 in the VM, from a child's login and from a
+Guardian's. The image was a test image built on the dev PC from main
+(57bd89a) with this change (#304) and the branches of #295, #296, #300,
+#303 and #306 merged together, version label
+`test.20261112-combined-8e15d47`. The real updater did not run. A root
+shell first changed both updater services to run a stand-in that only
+waits five minutes, and took the change out afterwards. Where a stop
+was tried as a child, a root shell had started the service first. The
+timer's stop was tried twice for each child: once with the timer off,
+once after a root shell had started it.
+
+| As, and how the command was given | Asked | Seen |
+|---|---|---|
+| `ada` at L1, typed with keys in the Terminal on her screen | `systemctl start uupd.service`, and the helper `/usr/libexec/uupd-update` | The Terminal's own answers: "systemctl takes one name at a time." and 'I don't know "/usr/libexec/uupd-update". Type help to see what I know.' No password box in the screenshot about three seconds after each line. |
+| `ben` at L2, typed the same way in his Terminal | Three lines | The Terminal's own answers. |
+| `ada` at L1 and `ben` at L2, started from a root shell into the child's session and run as the child, because the Terminal there runs no such command | `start` and `stop` of both services, `stop` of the timer, and the helper | For the services and the timer, "Access denied", exit code 4, each time. The helper printed the same refusal. No program that asks for a password was running, and the child's count of wrong passwords stayed 0. |
+| `ben`, moved to L3 for the run and back afterwards, typed with keys in a terminal window on his screen | `start` and `stop` of both services, `stop` of the timer, and the helper | For the services and the timer, "Access denied", exit code 4, each time, and no password box in the screenshot a few seconds after each. The units kept their state. The helper printed the refusal and started nothing. |
+| `ben` at L3, typed in the same window, for comparison | `systemctl start bluetooth.service` | A password box, asking for the account the installer made. It was cancelled with nothing typed, and the service stayed off. |
+| `guardian`, typed with keys in a terminal window on the Guardian's screen, without sudo | `start` and `stop` of `uupd.service` | Both went through with no password box. This does not show the rule at work: the test Guardian is also in the group `wheel`, and the base image's own file says yes to anyone for the two services. |
+| `guardian`, typed in the same window | `systemctl stop uupd.timer`, twice | A password box both times, naming `guardian`. Each was cancelled with nothing typed, and the timer was as before. |
+
+The installed rule file was read from a root shell: one copy, with the
+same checksum as in the merged source and in the built image. By file
+name it sorts first, and the base image's updater file last. This
+alone does not show it at work.
+
+What the run does not show. For the commands started from a root shell
+at L1 and L2, "no password box" rests on a list of the running
+programs and on one screenshot per child after all the commands, not
+on a look at the screen after each. Whether the units stayed as they
+were at L1 and L2 was not shown: the tester's own start of the timer
+set off the stand-in once during `ada`'s checks. Whether a password
+box can open for a child at L1 or L2 was not shown either. Not tried
+in this run: a real computer; L4; an account Cairn did not make; at L1
+and L2, any of these commands run by the child's own keys (the
+Terminal itself answered the lines typed there); a start of the timer,
+or `restart`, `enable`, `disable` or `mask`, by a child; a Guardian's
+start of `uupd-manual.service`; a Guardian who is not in `wheel`; a
+password typed into any of these boxes, and so the limit of the kept
+password, above; the real updater and the nightly update; the base
+image's updater app. What is still to check is in the row under
+"Remaining rows" below.
 
 ### Hung or trapped apps (#41), and the way out (ADR-0018)
 
@@ -699,7 +752,7 @@ How it was checked:
 |---|---|---|
 | A game cannot open ScummVM's own menu (#215) | A real computer, in a child's session, keys from its own keyboard | Ctrl+F5 in a ScummVM game shows nothing and the game goes on, as it did in the VM. The decision on #215 asked for this try on real hardware. |
 | The kiosk finds its programs only in the system's folders (#244) | The VM, in a child's session, keys from the VM's own keyboard | labwc's `PATH` is `/usr/bin:/usr/bin:/bin`. Ctrl-Alt-Home ends a stuck app and the tiles come back. The volume keys change the volume and stop at 100%. A Steam game starts from its tile. The Terminal opens and `open` starts an app. The decision on #244 asked for this check. |
-| A child cannot start or stop the system updater (#265) | The VM, on an image with the rule, while a child is logged in, and from a Guardian's login | As a child at L1 or L2, and at L3, `systemctl start uupd.service`, `systemctl stop uupd.service` and `systemctl start uupd-manual.service` each answer "Access denied", no password box opens and the unit is left as it was. As the L3 child, `systemctl start bluetooth.service` still asks for a grown-up's password. As a Guardian, `systemctl start uupd-manual.service` starts an update with no password, as before. `systemctl list-timers uupd.timer` still shows the nightly update waiting, and the morning after, the journal shows it ran. `journalctl -b -u polkit` has no "Error compiling script" line. For the known limit: does a password box open at all for a child at L1 or L2, and, at L3, can one program that a grown-up typed a password into for `bluetooth.service` then start `uupd.service`. |
+| A child cannot start or stop the system updater (#265) | The VM, on an image with the rule, while a child is logged in, and from a Guardian's login | Run once, in part, on 2026-11-12; the record is under "The rule (#35)" above. Seen then at L3, typed with keys in a terminal window on the child's screen: `systemctl start uupd.service`, `systemctl stop uupd.service` and `systemctl start uupd-manual.service` each answered "Access denied", no password box was in the screenshot a few seconds after each, and the unit was left as it was; `systemctl start bluetooth.service` brought a password box, asking for the account the installer made. At L1 and L2 the Terminal runs no such command, and lines typed there got the Terminal's own answers. The refusals at those levels were seen only from commands started from a root shell into the child's session; that the unit was left as it was is not shown there. Still to do: as a Guardian, `systemctl start uupd-manual.service` starts an update with no password, as before. `systemctl list-timers uupd.timer` still shows the nightly update waiting, and the morning after, the journal shows it ran. `journalctl -b -u polkit` has no "Error compiling script" line. For the known limit: does a password box open at all for a child at L1 or L2, and, at L3, can one program that a grown-up typed a password into for `bluetooth.service` then start `uupd.service`. |
 
 Screenshots and logs from the run are in the maintainer's work area, not the
 repository.
