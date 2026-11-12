@@ -158,9 +158,11 @@ class InstallTree(unittest.TestCase):
         entry = self.text("usr/share/applications/cairn-guardian.desktop").splitlines()
         settings = self.text("usr/share/plasma/systemsettings/externalmodules/"
                              "cairn-guardian-settings.desktop").splitlines()
-        self.assertIn("GenericName=Children, games, your account and notices", entry)
-        self.assertIn("Keywords=children;child;level;games;Steam;password;picture;account;notices;locked;", entry)
-        comment = "Comment=The children, their levels and games, your own password and picture, and wrong passwords typed"
+        self.assertIn("GenericName=Children, games, your account, notices and about", entry)
+        self.assertIn("Keywords=children;child;level;games;Steam;password;picture;account;notices;locked;"
+                      "about;version;licence;license;", entry)
+        comment = ("Comment=The children, their levels and games, your own password and picture, "
+                   "and wrong passwords typed, and what Cairn Linux is")
         self.assertIn(comment, entry)
         self.assertIn(comment, settings)
 

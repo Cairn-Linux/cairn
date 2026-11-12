@@ -40,6 +40,7 @@ TestCase {
             "gamesPage": standIns.gamesPage(given.withChildren !== false, given.withGames !== false, given.steamStarts !== false, given.gamesScenario === undefined ? "" : given.gamesScenario, given.loggedIn === undefined ? [] : given.loggedIn, given.withOwnSteamGames === true),
             "accountPage": standIns.accountPage(given.wallet === true),
             "noticesPage": standIns.noticesPage(given.journal === undefined ? "none" : given.journal),
+            "aboutPage": standIns.aboutPage(given.about === undefined ? "image" : given.about),
             "height": 1700
         };
         const window = createTemporaryObject(windowComponent, testCase, properties);
@@ -1977,7 +1978,8 @@ TestCase {
         const repeater = findChild(window, "noticeRows");
         compare(repeater.count, 30);
         verify(scroller.contentHeight > scroller.height * 2);
-        findChild(window, "noticesTab").forceActiveFocus();
+        // About is the last page button, so the page comes after it.
+        findChild(window, "aboutTab").forceActiveFocus();
         keyClick(Qt.Key_Tab);
         tryVerify(() => repeater.itemAt(0).activeFocus);
         compare(repeater.itemAt(0).Accessible.name, findChild(repeater.itemAt(0), "noticeText").text);
@@ -2159,6 +2161,544 @@ TestCase {
         compare(window.showing, "notices");
     }
 
+    // ---- the About page (ADR-0040) ----
+
+    function showAbout(window) {
+        mouseClick(findChild(window, "aboutTab"));
+        compare(window.showing, "about");
+        waitForPolish(window);
+    }
+
+    // The names of the About page's headings, blocks of words and buttons
+    // that show, top to bottom.
+    function aboutParts(window) {
+        const names = [];
+        const view = findChild(window, "aboutView");
+        for (let i = 0; i < view.children.length; ++i) {
+            if (view.children[i].visible)
+                names.push(view.children[i].objectName);
+        }
+        return names;
+    }
+
+    // Every Text in an item, a button's word too, shown or not.
+    function textsIn(item) {
+        let texts = item.textFormat === undefined ? [] : [item];
+        for (let i = 0; i < item.children.length; ++i)
+            texts = texts.concat(textsIn(item.children[i]));
+        return texts;
+    }
+
+    // Everything the About page says that shows, top to bottom, as one
+    // run of words.
+    function aboutWords(window) {
+        return aboutParts(window).map(name => findChild(window, name).text).join(" ");
+    }
+
+    // The fifth page (ADR-0040): what Cairn Linux is, what it is built on
+    // with Fedora's notice whole, and where the licences are, in plain
+    // text. This is the image as it is built today, which does not say
+    // which version it is.
+    function test_theAboutPage() {
+        const window = makeWindow("done");
+        const about = findChild(window, "aboutTab");
+        compare(about.text, "About");
+        compare(about.Accessible.role, Accessible.PageTab);
+        compare(about.Accessible.checked, false);
+        showAbout(window);
+        compare(findChild(window, "scroller").contentY, 0);
+        const view = findChild(window, "aboutView");
+        verify(view.visible);
+        verify(!findChild(window, "childrenView").visible);
+        compare(about.Accessible.checked, true);
+        for (const other of ["childrenTab", "gamesTab", "accountTab", "noticesTab"])
+            compare(findChild(window, other).Accessible.checked, false);
+        const folder = window.aboutPage.licenceFolder;
+        verify(folder !== "");
+        const page = [
+            {
+                name: "aboutHeading",
+                role: Accessible.Heading,
+                text: "About Cairn Linux"
+            },
+            {
+                name: "aboutWhatItIs",
+                role: Accessible.StaticText,
+                text: "Cairn Linux is the system on this computer. It is made for children, with a grown-up in charge."
+            },
+            {
+                name: "aboutVersion",
+                role: Accessible.StaticText,
+                text: "This copy of Cairn Linux does not say which version it is."
+            },
+            {
+                name: "builtOnHeading",
+                role: Accessible.Heading,
+                text: "What it is built on"
+            },
+            {
+                name: "aboutLineage",
+                role: Accessible.StaticText,
+                text: "Cairn Linux is built on Bazzite, a Universal Blue image derived from Fedora® Linux. Cairn Linux is not affiliated with, endorsed by, or supported by Bazzite, Universal Blue, Red Hat or the Fedora Project."
+            },
+            {
+                name: "aboutNotice",
+                role: Accessible.StaticText,
+                text: "The software Cairn Linux provides is not provided or supported by the Fedora Project. Official Fedora Materials are available through the Fedora Project website at https://fedoraproject.org/."
+            },
+            {
+                name: "openFedora",
+                role: Accessible.Button,
+                text: "Open fedoraproject.org in your web browser"
+            },
+            {
+                name: "aboutFedoraRelease",
+                role: Accessible.StaticText,
+                text: "This copy is derived from Fedora Linux 45."
+            },
+            {
+                name: "aboutAttribution",
+                role: Accessible.StaticText,
+                text: "Fedora is a trademark or registered trademark of Red Hat, Inc., or its subsidiaries in the United States and other countries."
+            },
+            {
+                name: "licencesHeading",
+                role: Accessible.Heading,
+                text: "Licences"
+            },
+            {
+                name: "aboutLicences",
+                role: Accessible.StaticText,
+                text: "Cairn Linux's own code is licensed under the Apache License 2.0. Its documentation and brand assets, including the stacked-stones artwork, are licensed under CC BY-SA 4.0. Those copyright licences do not grant trademark rights in the name \"Cairn Linux\" or the stacked-stones mark."
+            },
+            {
+                name: "aboutFullTexts",
+                role: Accessible.StaticText,
+                text: "The full texts are on this computer, in the folder " + folder + ". LICENSE is the Apache License 2.0. LICENSE-CC-BY-SA-4.0 is the CC BY-SA 4.0 licence. NOTICE says whose work Cairn Linux is built on. TRADEMARKS.md says how the name and the mark may be used."
+            },
+            {
+                name: "openFolder",
+                role: Accessible.Button,
+                text: "Open the folder with the full texts"
+            },
+            {
+                name: "aboutOtherSoftware",
+                role: Accessible.StaticText,
+                text: "The rest of the system is software from other projects, each under its own licence. The licences of its packages are in the folder /usr/share/licenses."
+            }
+        ];
+        compare(aboutParts(window), page.map(part => part.name));
+        let above = -1;
+        for (const part of page) {
+            const item = findChild(window, part.name);
+            compare(item.text, part.text);
+            compare(item.Accessible.name, part.text);
+            compare(item.Accessible.role, part.role, part.name);
+            verify(item.y > above, part.name + " is not under the part before it");
+            above = item.y;
+        }
+        // Each block of words, the two that show only after a press that
+        // opened nothing as well, is plain text whose name for a screen
+        // reader is all of its words.
+        let blocks = 0;
+        for (let i = 0; i < view.children.length; ++i) {
+            const block = view.children[i];
+            if (block.textFormat === undefined)
+                continue;
+            ++blocks;
+            compare(block.textFormat, Text.PlainText, block.objectName);
+            compare(block.Accessible.name, block.text);
+            verify(block.text !== "", block.objectName);
+        }
+        compare(blocks, 14);
+        verify(!findChild(window, "fedoraNotOpened").visible);
+        verify(!findChild(window, "folderNotOpened").visible);
+        if (standIns.screenshotPath() !== "") {
+            wait(200);
+            grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-about.png"));
+        }
+    }
+
+    // Fedora's trademark guidelines ask for the ® on the first place the
+    // page names Fedora, whatever else the page shows.
+    function test_theAboutPageNamesFedoraFirstWithItsMark_data() {
+        return [
+            {
+                tag: "the image",
+                about: "image"
+            },
+            {
+                tag: "with its version",
+                about: "with-version"
+            },
+            {
+                tag: "another system's file",
+                about: "not-cairn"
+            },
+            {
+                tag: "no full texts",
+                about: "no-licences"
+            }
+        ];
+    }
+
+    function test_theAboutPageNamesFedoraFirstWithItsMark(data) {
+        const window = makeWindow("done", {
+            "about": data.about
+        });
+        showAbout(window);
+        const words = aboutWords(window);
+        const first = words.indexOf("Fedora");
+        verify(first >= 0);
+        compare(words.substring(first, first + 7), "Fedora®");
+    }
+
+    // The notice is said as large and as dark as the rest of the page,
+    // never as small print, and nothing on the page is smaller than a
+    // grown-up's smallest text.
+    function test_theAboutPageSaysTheNoticeAtFullSize() {
+        const window = makeWindow("done");
+        showAbout(window);
+        const first = findChild(window, "aboutWhatItIs");
+        compare(first.font.pixelSize, Tokens.bodySize);
+        compare(first.color, Tokens.text);
+        for (const name of ["aboutLineage", "aboutNotice", "aboutAttribution", "aboutFedoraRelease"]) {
+            const words = findChild(window, name);
+            compare(words.font.pixelSize, first.font.pixelSize, name);
+            compare(words.font.weight, first.font.weight, name);
+            compare(words.color, first.color, name);
+        }
+        const texts = textsIn(findChild(window, "aboutView"));
+        // The fourteen blocks of words and the two buttons' words.
+        compare(texts.length, 16);
+        for (const text of texts)
+            verify(text.font.pixelSize >= Tokens.minGuardian, text.text);
+    }
+
+    // The version is Cairn's own, from the image, and only when the image
+    // says. Fedora's release number is only ever said as Fedora's, and a
+    // file that is not Cairn's gives neither.
+    function test_theAboutPageVersion_data() {
+        return [
+            {
+                tag: "the image as it is built",
+                about: "image",
+                version: "This copy of Cairn Linux does not say which version it is.",
+                fedoraRelease: true
+            },
+            {
+                tag: "an image that says its version",
+                about: "with-version",
+                version: "Version: dev.20261112-0a1b2c3",
+                fedoraRelease: true
+            },
+            {
+                tag: "another system's file",
+                about: "not-cairn",
+                version: "This copy of Cairn Linux does not say which version it is.",
+                fedoraRelease: false
+            }
+        ];
+    }
+
+    function test_theAboutPageVersion(data) {
+        const window = makeWindow("done", {
+            "about": data.about
+        });
+        showAbout(window);
+        compare(findChild(window, "aboutVersion").text, data.version);
+        const words = aboutWords(window);
+        compare(words.includes("Version:"), data.version.startsWith("Version:"));
+        compare(words.includes("does not say which version"), !data.version.startsWith("Version:"));
+        const fedoraRelease = findChild(window, "aboutFedoraRelease");
+        compare(fedoraRelease.visible, data.fedoraRelease);
+        compare(words.includes("This copy is derived from Fedora Linux"), data.fedoraRelease);
+        if (data.fedoraRelease)
+            compare(fedoraRelease.text, "This copy is derived from Fedora Linux 45.");
+        // Fedora's number is in that one sentence and nowhere else. The
+        // folder's path is the test's own, so it is left out of the look.
+        const others = aboutParts(window).filter(name => name !== "aboutFedoraRelease" && name !== "aboutFullTexts");
+        for (const name of others)
+            verify(!findChild(window, name).text.includes("45"), name);
+        // Everything that does not come from the file still shows.
+        const fixed = ["aboutHeading", "aboutWhatItIs", "aboutVersion", "builtOnHeading", "aboutLineage", "aboutNotice", "openFedora", "aboutAttribution", "licencesHeading", "aboutLicences", "aboutFullTexts", "openFolder", "aboutOtherSoftware"];
+        compare(aboutParts(window).filter(name => name !== "aboutFedoraRelease"), fixed);
+    }
+
+    // Nothing phones home: showing the page opens nothing. Each button
+    // asks the desktop for its one address, once for each press, and a
+    // held key is one press.
+    function test_theAboutButtonsOpenOnlyWhenPressed() {
+        const window = makeWindow("done");
+        compare(standIns.opened(), []);
+        showAbout(window);
+        wait(200);
+        compare(standIns.opened(), []);
+        const buttons = [
+            {
+                name: "openFedora",
+                address: "https://fedoraproject.org/"
+            },
+            {
+                name: "openFolder",
+                address: "file://" + window.aboutPage.licenceFolder
+            }
+        ];
+        const asked = [];
+        for (const each of buttons) {
+            const button = findChild(window, each.name);
+            mouseClick(button);
+            asked.push(each.address);
+            compare(standIns.opened(), asked);
+            verify(button.activeFocus);
+            for (const key of [Qt.Key_Return, Qt.Key_Enter, Qt.Key_Space]) {
+                keyClick(key);
+                asked.push(each.address);
+                compare(standIns.opened(), asked);
+            }
+            keyPress(Qt.Key_Return);
+            for (let i = 0; i < 5; ++i)
+                heldKey.repeat(window, Qt.Key_Return);
+            keyRelease(Qt.Key_Return);
+            asked.push(each.address);
+            compare(standIns.opened(), asked);
+            // Tab only moves on.
+            keyClick(Qt.Key_Tab);
+            compare(standIns.opened(), asked);
+        }
+        compare(asked.length, 10);
+        compare(window.aboutPage.notOpened, AboutPage.None);
+        verify(!findChild(window, "fedoraNotOpened").visible);
+        verify(!findChild(window, "folderNotOpened").visible);
+    }
+
+    // When the desktop answers that nothing opened, the page says so
+    // under the button that was pressed, in sight, and says where the
+    // address or the path is written.
+    function test_theAboutPageWhenNothingOpens_data() {
+        return [
+            {
+                tag: "Fedora's website",
+                button: "openFedora",
+                sentence: "fedoraNotOpened",
+                words: "No web browser opened. The address above works in any browser, on this computer or on a phone.",
+                other: "folderNotOpened"
+            },
+            {
+                tag: "the folder",
+                button: "openFolder",
+                sentence: "folderNotOpened",
+                words: "The folder did not open. Its path is written above.",
+                other: "fedoraNotOpened"
+            }
+        ];
+    }
+
+    function test_theAboutPageWhenNothingOpens(data) {
+        const window = makeWindow("done", {
+            "about": "nothing-opens",
+            "smallest": true
+        });
+        showAbout(window);
+        const button = findChild(window, data.button);
+        const sentence = findChild(window, data.sentence);
+        verify(!sentence.visible);
+        // The keyboard brings the button into sight, with no room left
+        // under it for the sentence.
+        button.forceActiveFocus();
+        tryVerify(() => inSightOnThePage(window, button));
+        verify(!inSightOnThePage(window, sentence));
+        keyClick(Qt.Key_Return);
+        compare(standIns.opened().length, 1);
+        verify(sentence.visible);
+        compare(sentence.text, data.words);
+        compare(sentence.Accessible.name, data.words);
+        compare(sentence.Accessible.role, Accessible.AlertMessage);
+        // Laid out under its button at once, so the window scrolls to
+        // where the sentence is.
+        fuzzyCompare(sentence.y, button.y + button.height + findChild(window, "aboutView").spacing, 1);
+        tryVerify(() => inSightOnThePage(window, sentence));
+        verify(button.activeFocus);
+        verify(!findChild(window, data.other).visible);
+        // The other button's press moves the sentence to under it.
+        const otherButton = findChild(window, data.other === "folderNotOpened" ? "openFolder" : "openFedora");
+        otherButton.forceActiveFocus();
+        keyClick(Qt.Key_Space);
+        verify(!sentence.visible);
+        verify(findChild(window, data.other).visible);
+        tryVerify(() => inSightOnThePage(window, findChild(window, data.other)));
+    }
+
+    // A computer without the four full texts, such as a developer's own:
+    // the page says they could not be found, and offers no folder.
+    function test_theAboutPageWithoutTheFullTexts() {
+        const window = makeWindow("done", {
+            "about": "no-licences"
+        });
+        showAbout(window);
+        compare(window.aboutPage.licenceFolder, "");
+        compare(findChild(window, "aboutFullTexts").text, "The full texts could not be found on this computer.");
+        verify(!findChild(window, "openFolder").visible);
+        verify(!findChild(window, "folderNotOpened").visible);
+        const words = aboutWords(window);
+        verify(!words.includes("The full texts are on this computer"));
+        verify(!words.includes("Open the folder"));
+        compare(aboutParts(window), ["aboutHeading", "aboutWhatItIs", "aboutVersion", "builtOnHeading", "aboutLineage", "aboutNotice", "openFedora", "aboutFedoraRelease", "aboutAttribution", "licencesHeading", "aboutLicences", "aboutFullTexts", "aboutOtherSoftware"]);
+        // Tab passes over the button that does not show.
+        findChild(window, "aboutFullTexts").forceActiveFocus();
+        keyClick(Qt.Key_Tab);
+        tryCompare(findChild(window, "aboutOtherSoftware"), "activeFocus", true);
+        compare(standIns.opened(), []);
+    }
+
+    // The keyboard alone, in the smallest window: Right reaches the fifth
+    // button, Tab stops on each block of words and each button from top to
+    // bottom, with its top in sight, and Page Down and Page Up read the
+    // page from end to end.
+    function test_theAboutPageByKeyboard() {
+        const window = makeWindow("done", {
+            "smallest": true
+        });
+        const notices = findChild(window, "noticesTab");
+        const about = findChild(window, "aboutTab");
+        notices.forceActiveFocus();
+        keyClick(Qt.Key_Right);
+        verify(about.activeFocus);
+        keyClick(Qt.Key_Left);
+        verify(notices.activeFocus);
+        keyClick(Qt.Key_Right);
+        // About is the last button: Right goes no further.
+        keyClick(Qt.Key_Right);
+        verify(about.activeFocus);
+        keyClick(Qt.Key_Return);
+        compare(window.showing, "about");
+        waitForPolish(window);
+        const scroller = findChild(window, "scroller");
+        compare(scroller.contentY, 0);
+        verify(scroller.contentHeight > scroller.height * 2);
+        const ring = Tokens.focusOffset + Tokens.focusWidth;
+        const stops = ["aboutWhatItIs", "aboutVersion", "aboutLineage", "aboutNotice", "openFedora", "aboutFedoraRelease", "aboutAttribution", "aboutLicences", "aboutFullTexts", "openFolder", "aboutOtherSoftware"];
+        for (const name of stops) {
+            const stop = findChild(window, name);
+            keyClick(Qt.Key_Tab);
+            tryCompare(stop, "activeFocus", true);
+            compare(stop.Accessible.focusable, true);
+            const top = stop.mapToItem(scroller, 0, 0).y;
+            verify(top >= ring && top < scroller.height, name + " starts at " + top + " in a page " + scroller.height + " tall");
+            // One that fits shows whole, with its ring. How many fit
+            // depends on the font, so a paragraph taller than so small a
+            // page is only read on with Down or Page Down.
+            if (stop.height + ring * 2 <= scroller.height)
+                verify(top + stop.height + ring <= scroller.height + 1, name + " is cut off at the bottom");
+        }
+        keyClick(Qt.Key_Tab);
+        tryCompare(findChild(window, "childrenTab"), "activeFocus", true);
+        // Back from the first block of words is the page's own button.
+        const first = findChild(window, "aboutWhatItIs");
+        first.forceActiveFocus();
+        keyClick(Qt.Key_Backtab, Qt.ShiftModifier);
+        tryCompare(about, "activeFocus", true);
+        keyClick(Qt.Key_Tab);
+        tryCompare(first, "activeFocus", true);
+        // Down and Up move a line, from a block of words or a button.
+        const start = scroller.contentY;
+        keyClick(Qt.Key_Down);
+        verify(scroller.contentY > start);
+        keyClick(Qt.Key_Up);
+        compare(scroller.contentY, start);
+        // Page Down reads to the end of the last paragraph and stops.
+        const end = scroller.contentHeight - scroller.height;
+        let presses = 0;
+        while (scroller.contentY < end && presses < 40) {
+            const before = scroller.contentY;
+            keyClick(Qt.Key_PageDown);
+            verify(scroller.contentY > before);
+            // Less than a page each time, so no line is passed over.
+            verify(scroller.contentY - before < scroller.height);
+            ++presses;
+        }
+        compare(scroller.contentY, end);
+        verify(presses > 2);
+        const last = findChild(window, "aboutOtherSoftware");
+        verify(last.mapToItem(scroller, 0, 0).y + last.height <= scroller.height, "The end of the last paragraph is out of sight");
+        keyClick(Qt.Key_PageDown);
+        compare(scroller.contentY, end);
+        // The keys work from a button as well.
+        findChild(window, "openFolder").forceActiveFocus();
+        tryVerify(() => inSightOnThePage(window, findChild(window, "openFolder")));
+        presses = 0;
+        while (scroller.contentY > 0 && presses < 40) {
+            const before = scroller.contentY;
+            keyClick(Qt.Key_PageUp);
+            verify(scroller.contentY < before);
+            ++presses;
+        }
+        compare(scroller.contentY, 0);
+        keyClick(Qt.Key_PageUp);
+        compare(scroller.contentY, 0);
+        verify(inSightOnThePage(window, findChild(window, "aboutHeading")));
+        compare(standIns.opened(), []);
+        // Another page and back: About starts at its top again.
+        scroller.contentY = end;
+        mouseClick(findChild(window, "childrenTab"));
+        compare(window.showing, "children");
+        mouseClick(about);
+        compare(window.showing, "about");
+        compare(scroller.contentY, 0);
+    }
+
+    // The window at its narrowest has room for four page buttons on a
+    // line. About goes on to a second line under them, the page starts
+    // under both lines, and nothing on the About page runs out of the
+    // window.
+    function test_fiveButtonsInANarrowWindow() {
+        const window = makeWindow("done", {
+            "smallest": true
+        });
+        const places = [];
+        for (const name of ["childrenTab", "gamesTab", "accountTab", "noticesTab", "aboutTab"]) {
+            const tab = findChild(window, name);
+            const corner = tab.mapToItem(window.contentItem, 0, 0);
+            verify(corner.x >= 0 && corner.x + tab.width <= window.width, name + " runs out of the window");
+            places.push({
+                "name": name,
+                "left": corner.x,
+                "right": corner.x + tab.width,
+                "top": corner.y,
+                "bottom": corner.y + tab.height
+            });
+        }
+        for (let i = 0; i < places.length; ++i) {
+            for (let j = i + 1; j < places.length; ++j) {
+                const a = places[i];
+                const b = places[j];
+                verify(a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top, a.name + " and " + b.name + " overlap");
+            }
+        }
+        // The first four share a line, and About is under it.
+        for (let i = 1; i < 4; ++i)
+            compare(places[i].top, places[0].top, places[i].name);
+        verify(places[4].top >= places[0].bottom, "About is not on a line of its own");
+        const bar = findChild(window, "pageSwitch").parent;
+        const scroller = findChild(window, "scroller");
+        verify(bar.height >= places[4].bottom);
+        compare(scroller.y, bar.height);
+        compare(scroller.height, window.height - bar.height);
+        showAbout(window);
+        const view = findChild(window, "aboutView");
+        const left = view.mapToItem(window.contentItem, 0, 0).x;
+        compare(view.width, window.width - left * 2);
+        for (let i = 0; i < view.children.length; ++i) {
+            const part = view.children[i];
+            if (!part.visible)
+                continue;
+            verify(part.x >= 0 && part.x + part.width <= view.width, part.objectName + " is wider than the page");
+            // Its words break rather than run past its own edge.
+            if (part.textFormat !== undefined)
+                verify(part.contentWidth <= part.width + 1, part.objectName + " has a line wider than the page");
+        }
+    }
+
     // The first child is picked, every shared game shows, and the games on
     // their list are highlighted, with a word as well as a colour.
     function test_theGamesPageShowsTheChildsList() {
@@ -2261,6 +2801,8 @@ TestCase {
         tryCompare(findChild(window, "accountTab"), "activeFocus", true);
         keyClick(Qt.Key_Tab);
         tryCompare(findChild(window, "noticesTab"), "activeFocus", true);
+        keyClick(Qt.Key_Tab);
+        tryCompare(findChild(window, "aboutTab"), "activeFocus", true);
         keyClick(Qt.Key_Tab);
         tryCompare(choice(window, "ada"), "activeFocus", true);
         keyClick(Qt.Key_Tab);
@@ -2367,7 +2909,7 @@ TestCase {
         verify(findChild(window, "scrollIndicator").visible);
         scroller.contentY = scroller.contentHeight - scroller.height;
         verify(inSight(window, findChild(window, "gamesTab")));
-        findChild(window, "noticesTab").forceActiveFocus();
+        findChild(window, "aboutTab").forceActiveFocus();
         keyClick(Qt.Key_Tab);
         tryCompare(choice(window, "ada"), "activeFocus", true);
         verify(inSight(window, choice(window, "ada")));
@@ -2593,15 +3135,38 @@ TestCase {
     }
 
     // The keyboard's focus turns nothing, so it still scrolls a card cut
-    // off at the page's edge into full view, with room around it.
-    function test_theKeyboardBringsACardIntoFullView() {
+    // off at the page's edge into full view, with room around it. In the
+    // smallest window About is on a second line, and the page under the
+    // buttons is a few pixels too short for a card with that room above
+    // it and below it: there the card and its ring show whole, with the
+    // room above.
+    function test_theKeyboardBringsACardIntoFullView_data() {
+        return [
+            {
+                tag: "the smallest window",
+                taller: 0,
+                room: Tokens.focusOffset + Tokens.focusWidth
+            },
+            {
+                tag: "a little taller",
+                taller: Tokens.bodySize,
+                room: Tokens.bodySize
+            }
+        ];
+    }
+
+    function test_theKeyboardBringsACardIntoFullView(data) {
         const window = makeWindow("done", {
             "smallest": true
         });
         showGames(window);
         waitForPolish(window);
         const scroller = findChild(window, "scroller");
+        const smallest = scroller.height;
+        window.height += data.taller;
+        tryCompare(scroller, "height", smallest + data.taller);
         const pajama = card(window, 2);
+        compare(pajama.height + Tokens.bodySize * 2 <= scroller.height, data.taller > 0);
         card(window, 1).forceActiveFocus();
         // Pajama Sam starts the next row, a third of it under the page's
         // bottom edge.
@@ -2613,7 +3178,9 @@ TestCase {
         compare(pajama.onList, true);
         verify(!findChild(window, "unsavedSentence").visible);
         waitForPolish(window);
-        verify(shownWhole(window, pajama, Tokens.bodySize), "The card with the focus is not in full view");
+        verify(shownWhole(window, pajama, data.room), "The card with the focus is not in full view");
+        if (data.taller === 0)
+            fuzzyCompare(pajama.mapToItem(scroller, 0, 0).y, Tokens.bodySize, 1);
     }
 
     // A card turned, then another page opened before the window draws

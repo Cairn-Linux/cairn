@@ -88,9 +88,10 @@ with non-Fedora or modified Fedora Materials"):
 - [ ] **Say plainly that Cairn is not affiliated with or supported by**
   Bazzite, Universal Blue, Red Hat or the Fedora Project. Put it in the
   README, the website footer, the About screen, and `NOTICE`.
-  *In `NOTICE` since 2026-09-03 and the README since 2026-11-02.* The
-  website footer (`cairn-site`) and the About screen (#167) are still to
-  do.
+  *In `NOTICE` since 2026-09-03 and the README since 2026-11-02.*
+  *On the About screen since 2026-11-12:* Family's About page says it
+  (ADR-0040, "The About page"); tested, not yet seen on the VM or on an
+  image. The website footer (`cairn-site`) is still to do.
 - [ ] **Own support channels only.** Cairn's docs and UI never point users at
   Bazzite's or Universal Blue's Discord, forums or issue trackers. This was
   the substance of the GPD complaint.
@@ -116,11 +117,17 @@ with non-Fedora or modified Fedora Materials"):
 - [ ] **Display the Fedora notice** where the OS identifies itself (About
   screen, website download page, docs): not provided or supported by the
   Fedora Project; official Fedora is at https://fedoraproject.org/.
-  *Still open:* the About screen's notice goes on the Guardian tool's
-  About page (#167, ADR-0038 slice 5).
+  *On the About screen since 2026-11-12:* Family's About page has the
+  notice in the README's words, with the address written out, a button
+  that asks the desktop to open it when a parent presses it, the ® after
+  the first "Fedora" and the attribution statement (ADR-0040, "The About
+  page"); tested, not yet seen on the VM or on an image.
   *In the README since 2026-11-02,* in the guidelines' own words, with the
   attribution statement in its footer; `NOTICE` uses the same words. The
   website's download page (`cairn-site`) is still to do.
+  The notice now lives in three places, `README.md`, `NOTICE` and
+  `guardian/qml/AboutView.qml`. Nothing compares them, so they change
+  together.
 - [ ] **Installer branding.** Bazzite issue #1104 shows the installer can
   carry Fedora imagery unless replaced. Cairn's ISO (P1-4) must ship its own
   installer artwork.

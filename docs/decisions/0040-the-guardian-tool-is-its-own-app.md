@@ -17,7 +17,8 @@ dated 2026-11-12 under "The Children page" and in that section's
 consequences (the page reads the accounts again when it is shown, when
 Family comes back to the front, and before each change); the sentences
 dated 2026-11-12 under "Add a child" there (the form shows levels 3 and
-4 as planned, and neither can be chosen)
+4 as planned, and neither can be chosen); the section "The About page"
+below (2026-11-12, P1-14: a fifth page with Fedora's notice)
 
 ## Context
 
@@ -208,7 +209,7 @@ step 4, and ADR-0041 says how they work.
   System Settings and the Kiosk hide of Plasma's Users page, with the
   Guardian's own password and picture reachable from the tool first
   (#113); the Games page; the links to Plasma's own pages for Wi-Fi,
-  printers and updates; the About page with Fedora's notice (P1-14).
+  printers and updates.
 - Dependencies: Qt only. pkexec through `QProcess` adds no library.
 
 ## A name a child on the list already has (2026-10-31, #212)
@@ -284,3 +285,177 @@ whatever the case of its letters, before the password is asked for.**
   2026-10-31, beside its two children named Cy, `cy` and `cy2`. "Cy"
   and " cy " were refused before any password box, and "Cy B" was added
   after the password, with the login `cyb`.
+
+## The About page (2026-11-12, P1-14)
+
+Fedora's trademark guidelines ask for a prominently displayed notice;
+ADR-0038 reads that as where the system names itself. ADR-0038 put it on
+this tool's About page, because KDE's own About page can hold no link
+and no translation of Cairn's own, and P1-14 blocks publishing on it.
+Until now Family had no such page.
+
+**Family has a fifth page, About. It says what Cairn Linux is, which
+version the computer runs when the image says, what Cairn Linux is built
+on, with Fedora's notice in full, and where the licences are. It reads
+one file and one folder on the computer, and starts nothing until a
+parent presses a button.**
+
+### What the page shows
+
+In this order, under three headings:
+
+- **About Cairn Linux.** Two sentences on what it is: the system on this
+  computer, made for children, with a grown-up in charge. Then the
+  version.
+- **What it is built on.** The lineage sentence, with ® after the first
+  "Fedora", and the not-affiliated sentence, both as the README has
+  them. Fedora's notice, with the address https://fedoraproject.org/
+  written out. A button, "Open fedoraproject.org in your web browser".
+  "This copy is derived from Fedora Linux 45.", with the number the
+  image gives. Fedora's attribution statement.
+- **Licences.** The licence sentences, after the README's. The folder
+  that holds the full texts, `/usr/share/licenses/cairn`, and what each
+  of its four files is. A button, "Open the folder with the full texts".
+  Two sentences that the rest of the system is other projects' software,
+  with its packages' licences in `/usr/share/licenses`.
+
+Every block is plain text, never rich text. The version, Fedora's
+release, the address and the folder's path are put into their sentences
+by the program. So nothing read from a file is ever markup, and a
+translation cannot change the notice's address or the folder's path.
+The web button's label and the last sentence name `fedoraproject.org`
+and `/usr/share/licenses` in their own words, with a note that asks the
+translator to keep each as it is.
+
+Not on the page: any other address, a support address, the maintainer's
+name, the Linux trademark sentences, Bazzite's build number and a logo.
+`NOTICE` and `TRADEMARKS.md`, which the page points to, carry the marks.
+
+### The version
+
+The version is `IMAGE_VERSION` from `/usr/lib/os-release`, and nothing
+else. The page shows "Version: " and the value only when the file's `ID`
+is `cairn` and the value is 1 to 64 letters, digits, dots, dashes and
+underscores. Otherwise it says "This copy of Cairn Linux does not say
+which version it is."
+
+No image writes that key today. `build_files/name-and-logos.sh` writes
+fourteen keys and none is Cairn's own version, which exists only as a
+label on the image (ADR-0038, "Labels"). So every computer shows the
+second sentence until the build writes the key. That is a change to the
+image, of its own, and the maintainer has not said yes to it. It is not
+made here.
+
+Fedora's number is never shown as Cairn's version. `VERSION_ID` is the
+Fedora release of the base, 45 today. "Cairn Linux 45" would read as
+Cairn's 45th version, and would change by itself when the base moves to
+Fedora 46. The number appears once, lower down, named as Fedora's, and
+only when `ID` is `cairn` and the value is 1 to 4 digits. On a computer
+that does not run Cairn's image, such as the dev PC, the page says it
+does not say which version it is, and leaves the Fedora line out.
+
+### Fedora's address, and the two buttons
+
+The address is written out inside the notice, so the notice is whole on
+a computer with no web browser and no network. The guidelines also say
+"linking to", and a page of plain text has no link. So one button under
+the notice asks the desktop to open https://fedoraproject.org/ in the
+parent's own browser. It is the only thing in Family that starts a web
+browser. The second button asks the desktop to open the licence folder
+in the parent's file manager. It shows only when the folder holds all
+four files as plain files; otherwise the page says "The full texts could
+not be found on this computer."
+
+This is not phoning home (DESIGN §2, principle 6). Family makes no
+network call itself. Nothing is looked up, fetched or checked when
+Family starts or when the page is shown, not even whether a browser is
+installed. The address is fixed in the program, and the page can ask
+for no other. A browser starts only when the parent presses the button,
+as with `HOME_URL` in `os-release`: "A link a person clicks; nothing
+fetches it" (ADR-0038).
+
+When Qt answers that it could start nothing, one sentence appears under
+that button and the window scrolls to it: "No web browser opened. The
+address above works in any browser, on this computer or on a phone.", or
+"The folder did not open. Its path is written above."
+
+Qt's answer does not always say what happened. Under Wayland, which the
+image uses, Qt 6.11 answers yes at once, whatever happens next. On the
+dev PC on 2026-11-12 it did so with no launcher to find, and with a
+launcher that started and failed. Under X11 it answered no with no
+launcher to find, and yes with the one that failed. None of this was
+tried on an image. So on the image neither sentence is expected to show,
+and a press that opens nothing leaves the page as it was.
+
+The maintainer has not yet said yes to the web button. It is one block
+in `guardian/qml/AboutView.qml`, and the notice reads the same without
+it.
+
+### The fifth button
+
+The window opens at the size it had, and its smallest size is the same.
+A wider window would give the Games page a fourth column of cards.
+Measured from the brand font's file, the five buttons need about 645 px
+of the 672 px row in the window as it opens, so they are on one line
+there. In a narrower window, the smallest one or one tiled to half of a
+1366 px screen, About goes on to a second line. The bar above the page
+is then 64.5 px taller, and every page has that much less room.
+
+In the smallest window that costs one thing the tests could measure. A
+game card needs 191 px to show with the full room the window keeps
+above and below it, and the page there is 187.5 px tall. The keyboard
+still brings the whole card and its ring into sight, with the full room
+above it and a little less below.
+
+About is a page tab like the other four. Tab and Shift+Tab pass through
+it, and Left and Right move between it and Notices.
+
+On the page, Tab stops on each block of words and each button in turn,
+and the window scrolls to show it. So the page can be read with the
+keyboard alone, and each block has a name and a role for a screen reader
+(not yet tried with Orca). Up, Down, Page Up and Page Down scroll the
+page from any of them.
+
+### Consequences
+
+- The About-screen part of P1-14 is built. The website still needs the
+  same sentences, so the two boxes in
+  `docs/research/base-image-policy.md` stay open.
+- The notice now lives in three places: `README.md`, `NOTICE` and
+  `guardian/qml/AboutView.qml`. Nothing compares them, because the build
+  stage that runs the tests is given neither of the first two. The
+  window test holds the page's English sentences, and the three change
+  together.
+- The notice is a translatable string like every other (ADR-0007). A
+  note to the translator asks for its meaning and every name in it to be
+  kept. Whether the English stays on screen beside a translation is a
+  question for the first translation.
+- The page's two notice sentences and the attribution rest on this
+  repository's quote of Fedora's guidelines
+  (`docs/research/base-image-policy.md`). They were compared with
+  Fedora's own source again on 2026-11-12. The guidelines' file was last
+  changed at `fedora-legal-docs` a7507b7, the revision the quote was
+  taken from, and the sentences match.
+- Nothing in the repository shows that a web browser is on the image,
+  and under Wayland Qt answers that an address opened whatever happened.
+  So the button may do nothing useful, and on the image its sentence is
+  not expected to show. The written-out address is the part that always
+  works.
+- The two buttons are the first place Cairn's own code asks the desktop
+  to open an address or a folder. The Guardian audit (#86) should have
+  them on its list.
+- After Page Down, the ring around the block that has the keyboard can
+  be out of sight until the next Tab. That Tab goes to the block after
+  the one that had the keyboard, and the window scrolls back up to it.
+- Dependencies: Qt only. `QDesktopServices` is part of Qt GUI, which
+  Family already uses.
+- Tested in C++, in `tst_osrelease` and `tst_aboutpage`, and in the real
+  window, in `tst_familywindow`. Not yet seen on the VM or on an image.
+  Still to check by hand there, as a Guardian: the five buttons in the
+  brand font, on one line as the window opens and with About on a
+  second line in a window tiled to half of a 1366 x 768 screen; the page
+  read with the keyboard alone, and by Orca; whether "What it is built
+  on" starts in the first screenful on a 768 px tall screen; each button
+  with the network on and off, and whether the image has a web browser
+  at all; `NOTICE` opened from the folder; and, as a child, that Family
+  still cannot be started.

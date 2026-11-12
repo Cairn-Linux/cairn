@@ -168,6 +168,8 @@ set(family_window_sources
     src/WalletPassword.h src/WalletPassword.cpp
     src/AccountPage.h src/AccountPage.cpp
     ${notices_sources}
+    src/OsRelease.h src/OsRelease.cpp
+    src/AboutPage.h src/AboutPage.cpp
 )
 set(family_window_qml_files
     qml/FamilyWindow.qml
@@ -200,6 +202,9 @@ set(family_window_qml_files
     qml/OutcomeBox.qml
     qml/WalletOffer.qml
     qml/NoticesView.qml
+    qml/AboutView.qml
+    qml/AboutHeading.qml
+    qml/AboutWords.qml
 )
 foreach(file IN LISTS family_window_qml_files)
     cmake_path(GET file FILENAME name)
@@ -587,6 +592,22 @@ target_include_directories(tst_tryreader PRIVATE src)
 target_link_libraries(tst_tryreader PRIVATE Qt6::Core Qt6::Test cairn-accounts)
 add_test(NAME tryreader COMMAND tst_tryreader)
 
+# The About page (ADR-0040): os-release as the image build writes it, read
+# from a fixture, and what the page shows and opens, with a stand-in for
+# the desktop so that no test starts a web browser.
+qt_add_executable(tst_osrelease tests/tst_osrelease.cpp src/OsRelease.h src/OsRelease.cpp)
+target_include_directories(tst_osrelease PRIVATE src)
+target_link_libraries(tst_osrelease PRIVATE Qt6::Core Qt6::Test)
+target_compile_definitions(tst_osrelease PRIVATE FIXTURES="${guardian_fixtures}")
+add_test(NAME osrelease COMMAND tst_osrelease)
+
+qt_add_executable(tst_aboutpage tests/tst_aboutpage.cpp src/AboutPage.h src/AboutPage.cpp
+    src/OsRelease.h src/OsRelease.cpp)
+target_include_directories(tst_aboutpage PRIVATE src)
+target_link_libraries(tst_aboutpage PRIVATE Qt6::Core Qt6::Qml Qt6::Test)
+target_compile_definitions(tst_aboutpage PRIVATE FIXTURES="${guardian_fixtures}")
+add_test(NAME aboutpage COMMAND tst_aboutpage)
+
 # The image's Kiosk line that hides Plasma's Users page, and its step that
 # leaves only KDE's own pictures in Plasma's picture folder (ADR-0043).
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
@@ -603,6 +624,6 @@ set_tests_properties(steamvisit ownsteam screenlockwatch steamforchild steamwind
     gamechoices childrenpage
     gamepicture gameshelf keyvalues steammanifest ownsteamgames gamespage familywindow
     newpassword ownpasswordcommand picturefile accountpage walletpassword
-    journaltries trynotices noticewords tryreader PROPERTIES
+    journaltries trynotices noticewords tryreader osrelease aboutpage PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QML_IMPORT_PATH=${QT_QML_OUTPUT_DIRECTORY}"
 )

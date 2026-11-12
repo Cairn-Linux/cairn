@@ -10,7 +10,8 @@ The Guardian's side of Cairn (ROADMAP P1-5). So far it has three pieces:
   child's own list (ADR-0041). Its Your account page changes the
   Guardian's own password and picture (ADR-0043). Its Notices page says
   when wrong passwords were typed, and whether an account locked
-  (ADR-0054).
+  (ADR-0054). Its About page says what Cairn Linux is and what it is
+  built on, with Fedora's notice, and where the licences are (ADR-0040).
 - **`cairn-family`**, the root command under it that makes a child's
   account, sets a child's level (ADR-0039), name (ADR-0056) and language
   (ADR-0058) and gives
@@ -25,14 +26,18 @@ The Guardian's side of Cairn (ROADMAP P1-5). So far it has three pieces:
 Steam window, only the `cairn-guardian` group may run it, and the entry
 names it as its `TryExec`, so no one else's menu shows it. It is on the
 image only: hand provisioning installs neither it nor `cairn-family`.
-The entry's words name every page, "Children, games, your account and
-notices",
+The entry's words name every page, "Children, games, your account,
+notices and about",
 and its keywords include games and Steam, so a search in the menu for
 either finds it.
 
-Four buttons above the page, **Children**, **Games**, **Your
-account** and **Notices**, move between its pages; in a narrow window
-the last ones go on to a second line. The window opens on Children, with
+Five buttons above the page, **Children**, **Games**, **Your
+account**, **Notices** and **About**, move between its pages. The
+window as it opens has room for the five on one line: in the brand font
+they need about 645 px of its 672 px row, measured from the font's file
+and not yet seen on an image. In a narrower window, the smallest one
+too, About goes on to a second line, and the page below has that much
+less room. The window opens on Children, with
 the keyboard on its button, so Tab and Shift+Tab start there (#242).
 
 System Settings lists it too, as "Family" under System, where Plasma's
@@ -319,6 +324,51 @@ from the lock screen's program running as root or as the account it
 names. Family keeps no copy, and nothing leaves the computer. Children
 never see the page.
 
+The About page (ADR-0040, "The About page"):
+
+1. Says what Cairn Linux is, in two sentences: the system on this
+   computer, made for children, with a grown-up in charge.
+2. Shows "Version: " and Cairn's own version when the image's
+   `/usr/lib/os-release` has `IMAGE_VERSION` and its `ID` is `cairn`.
+   No image writes that key yet, so today every computer reads "This
+   copy of Cairn Linux does not say which version it is." Fedora's
+   number is never shown as Cairn's version.
+3. Under "What it is built on": that Cairn Linux is built on Bazzite, a
+   Universal Blue image derived from Fedora® Linux, and is not
+   affiliated with, endorsed by, or supported by Bazzite, Universal
+   Blue, Red Hat or the Fedora Project. Then Fedora's notice in the
+   README's words, with https://fedoraproject.org/ written out. Then
+   "This copy is derived from Fedora Linux 45.", with `VERSION_ID` from
+   the same file, when `ID` is `cairn` and the value is 1 to 4 digits.
+   Then Fedora's attribution statement.
+4. Under "Licences": the licence sentences, after the README's. Then
+   the folder with the full texts, `/usr/share/licenses/cairn`, and what
+   each of its four files is, when all four are there as plain files;
+   otherwise "The full texts could not be found on this computer." Then
+   that the rest of the system is other projects' software, with its
+   packages' licences in `/usr/share/licenses`.
+5. Has two buttons. "Open fedoraproject.org in your web browser" asks
+   the desktop to open Fedora's address in the parent's own browser.
+   "Open the folder with the full texts" asks it to open the licence
+   folder, and shows only when the folder was found. Each does so only
+   when a parent presses it. When Qt answers that it could start
+   nothing, one sentence under that button says so, and the window
+   scrolls to it. Under Wayland, which the image uses, Qt answers yes
+   whatever happened, so on the image that sentence is not expected to
+   show (ADR-0040, "Fedora's address, and the two buttons").
+6. The keyboard reads it: Tab stops on each block of words and each
+   button from top to bottom, scrolling each into sight, and Up, Down,
+   Page Up and Page Down scroll the page from any of them.
+
+It reads `os-release` and looks at the licence folder once, when Family
+starts; neither changes until the computer starts another image. Nothing
+is looked up, fetched or checked before a button is pressed, not even
+whether a web browser is installed, and Family itself makes no network
+call. Every block is plain text, and the version, the number, the
+address and the path are put into their sentences by the program, so
+nothing read from a file is ever markup. Children never see the page.
+It is tested, and not yet seen on the VM or on an image.
+
 The window's notes and the error output of `cairn-family`'s tools go to
 the journal:
 
@@ -583,6 +633,9 @@ QML draws, C++ decides (ADR-0002):
 | `src/TryReader` | Checks that this account can read the system journal, then runs journalctl three times: the oldest entry, the lock screen's locks from every file (each user's own too, which `wheel` reads through systemd's default ACL), the audit records of password checks and locks. |
 | `src/NoticesPage` | What the Notices page shows: its state, the sentences, how far back the record goes, and the words under the list. Its journalctl, folders, accounts, time zone and clock are in its `Setup`, so a test can replace them. |
 | `qml/NoticesView.qml` | The Notices page. |
+| `src/OsRelease` | The `KEY=value` lines of an os-release file as plain values: bare, single-quoted and double-quoted values, nothing expanded, and the last line for a key wins. Nothing for a file that is missing, not a plain file or over 64 KiB, and no value with a control character, a quote that never closes or more than 200 characters, because values go on screen. It knows nothing about Cairn. |
+| `src/AboutPage` | What the About page shows: Cairn's version from `IMAGE_VERSION` and Fedora's release from `VERSION_ID`, each only when `ID` is `cairn` and the value is plain; the licence folder when it holds all four files; Fedora's fixed address; what each button asks the desktop to open, and which press the opener answered opened nothing. Its os-release, folder and opener are in its `Setup`, so a test can replace them, and with no opener nothing opens. |
+| `qml/AboutView.qml`, `qml/AboutHeading.qml`, `qml/AboutWords.qml` | The About page; one of its headings, which is marked as a heading for a screen reader; and one of its blocks of words, plain text that Tab stops on. |
 | `src/GamePicture` | A game's picture by its app id, with the launcher's rule: `<folder>/<appid>.jpg` when it is a plain file, not a link. The Games page and `cairn-family` both use it. |
 | `qml/FamilyWindow.qml`, `qml/ChildrenView.qml`, `qml/ChildrenOutcome.qml`, `qml/GamesView.qml` | The Guardian tool's window with its switch between pages, its Children page, the box there with the sentence for every answer, and its Games page. |
 | `qml/ChildChoice.qml`, `qml/GameCard.qml`, `qml/SaveOutcome.qml`, `qml/SaveResultWords.qml` | A child to pick on the Games page, one game in its grid, the sentences for a Save, and its words for what each child got. |
@@ -624,14 +677,14 @@ journalctl -t cairn-steam-for -t cairn-steam-visit --since today
 
 ## Tests
 
-CTest runs forty-four here, among them `steamvisit`, `ownsteam`,
+CTest runs forty-nine here, among them `steamvisit`, `ownsteam`,
 `screenlockwatch`,
 `steamforchild`, `steamwindow` (the real window in Qt Quick Test),
 `familycommand`, `steamentry`, and for the Guardian tool `loginname`,
 `childlist`, `familychange`, `saverun`, `savereport`, `loginwatch`,
 `childlogout`, `gamechoices`,
 `childrenpage`, `gamepicture`, `gameshelf`, `gamespage` and
-`familywindow` (the real window in Qt Quick Test, all four pages and
+`familywindow` (the real window in Qt Quick Test, all five pages and
 the switch), and for a grown-up's own password and picture
 `newpassword`, `ownpasswordcommand`, `picturefile`, `accountpage`,
 `walletpassword`, `hideuserspage` and `kdepictures`, and for the
@@ -643,7 +696,12 @@ down, `faillock --reset` out of sight, a lock-screen file not read, a
 flood of 100,000 tries),
 `noticewords` and `tryreader`, with a stand-in journalctl each test
 writes, a journal or a user's file this account cannot read and a flood with an
-over-long line. They use stand-ins
+over-long line, and for the About page `osrelease` (the fourteen lines
+the image writes, quotes and comments, a file that is missing, a folder
+or too large, and values that cannot go on screen) and `aboutpage`
+(Cairn's version only from Cairn's own file, Fedora's number only as
+Fedora's, the four licence files, and an opener that is called only
+when a button asks, with the one address that button has). They use stand-ins
 in `tests/fixtures/` for `pkexec` with the helper behind it, which takes
 a scenario where the helper's path goes, and for the Guardian's Steam
 client, over a stand-in process list. `pkexec-family` stands in for
@@ -694,6 +752,21 @@ tests check that Add a child shows four levels, that a planned one is
 on the screen and not faded, that it offers a screen reader nothing to
 press, that no click, touch, key or such press or toggle picks it, and
 that Tab stops on it on the way from level 2 to Add.
+The About page's tests give the page an os-release and a licence
+folder in the test's temporary folder, and an opener that writes down
+the address it was asked for and opens nothing. They check every
+sentence against its English words, the lineage, Fedora's notice and
+the attribution character for character; that the first "Fedora" on the
+page has its ®; that the notice is as large and as dark as the first
+paragraph; the version line with and without `IMAGE_VERSION`, and
+neither it nor Fedora's number from a file that is not Cairn's; that
+showing the page asks for nothing, that a click, Return, Enter and
+Space on each button each ask for its one address once, and a held key
+once; the sentence under a button whose press opened nothing, in sight
+in the smallest window; the page without the licence folder; every Tab
+stop from top to bottom in the smallest window; and that at the
+smallest width all five buttons are inside the window, with About on a
+second line.
 `loginsessions` checks the rule for a login, and asks the test machine's
 own logind when it has one;
 `loginwatch` sends logind's signals on a bus of its own.
