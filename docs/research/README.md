@@ -65,5 +65,15 @@ Files:
   about 235 MB, leaving 2.9 GB of the 4 GB floor; first frame 0.2 s after
   exec, tiles 1.75 s after Enter at the greeter, Tux Paint 6 to 7 s from
   tile to a usable screen under llvmpipe. The laptop run is still owed.
+- `network-activity.md` — 2026-11-12, issue #36 and P1-1: what the image
+  built from main at 57bd89a contacts without a person asking, read from
+  the image's files with no network, with what the test VM's journal has
+  shown. It finds a count of computers sent to Fedora and Terra that
+  names Cairn, a connectivity check every five minutes, time servers,
+  the nightly updater (system, Flatpak apps, Homebrew), a daily key
+  check, and Steam at each desktop login; Cairn's build changes none of
+  them. It ends with one proposal for each, the sentences in the
+  project's documents this changes, and the capture on a running system
+  that is still to do. Nothing was captured on the wire.
 
 Write what happened, not what should have happened.
