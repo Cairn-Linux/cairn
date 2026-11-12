@@ -1,7 +1,10 @@
 # ADR-0057: Steam's log can end a launch while it is opening
 
-**Status:** proposed. It becomes accepted when the check under "Check in
-the VM" has passed on cairn-min with this change installed.
+**Status:** proposed. The check under "Check in the VM" passed on
+cairn-min on 2026-11-07 and again on 2026-11-09 (Record). It becomes
+accepted after more Proton games have been tried with this change on the
+kids' laptop, as the maintainer decided on 2026-11-09 and confirmed on
+2026-11-11; the end of the Record says which games.
 **Date:** 2026-11-07
 **Closes:** (none) — addresses issue #276; amends ADR-0028's consequence
 about a Steam game that closes within 3 s of its window.
