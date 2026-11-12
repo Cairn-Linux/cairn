@@ -226,7 +226,8 @@ update's download are measured again then.
 The image calls itself Cairn Linux and carries the Cairn mark (slice 5).
 `build_files/check-name-and-logos.sh` runs as its own step before the
 lint and stops the build if a Bazzite logo, welcome file or support link
-it does not know about appears. To look yourself:
+it does not know about appears, or if a plain `fastfetch` draws a logo.
+To look yourself:
 
 ```sh
 podman run --rm localhost/cairn:dev cat /etc/os-release
