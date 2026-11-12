@@ -666,7 +666,8 @@ TestCase {
 
     // The keyboard stays with its child when the rows are made again, and
     // with the window when that child is the one who is gone. What the
-    // last change did stays said.
+    // last change did for Ben stays said while Ben is as he was, and goes
+    // with him.
     function test_theKeyboardStaysWithItsChildWhenTheFamilyChangedOutside() {
         const window = makeWindow("done", {
             "withOlderChild": true
@@ -688,7 +689,7 @@ TestCase {
         // Once the view has looked for the row to give the keyboard to.
         tryCompare(findChild(window, "childrenView").keyboard, "login", "");
         verify(window.activeFocusItem === window.contentItem);
-        compare(outcome(window), said);
+        compare(outcome(window), "");
     }
 
     // The password box takes the front and gives it back. Nothing is read
@@ -933,6 +934,73 @@ TestCase {
         compare(rows(window), ["Ada, Level 1"]);
         compare(window.page.step, ChildrenPage.Ready);
         compare(outcome(window), "");
+    }
+
+    // "Cy can log in now" is under the rows, and then Cy's account is
+    // removed in a terminal. When Family comes back to the front Cy's row
+    // is gone and so is the box with the sentence. The keyboard stays on
+    // the button it was on.
+    function test_theSentenceGoesWithTheChildItNames() {
+        const window = makeWindow("done");
+        nameField(window).text = "Cy";
+        clickAdd(window);
+        standIns.putAccount("cy", "Cy", 1);
+        tryCompare(window.page, "step", ChildrenPage.Added);
+        const box = findChild(window, "childrenView").outcomeBox;
+        compare(outcome(window), "Cy can log in now, at level 1. Cy starts with no games: choose them on the Games page.");
+        verify(box.visible);
+        compare(rows(window), ["Ada, Level 1", "Ben, Level 2", "Cy, Level 1"]);
+        tryCompare(findChild(nameField(window), "input"), "activeFocus", true);
+        const button = findChild(childRow(window, 0), "changeName");
+        button.forceActiveFocus();
+        tryCompare(button, "activeFocus", true);
+
+        // The family as it was: the sentence is still so, and stays.
+        toTheBack(window);
+        toTheFront(window, button);
+        compare(outcome(window), "Cy can log in now, at level 1. Cy starts with no games: choose them on the Games page.");
+        verify(box.visible);
+
+        toTheBack(window);
+        standIns.removeAccount("cy");
+        backToTheFront(window);
+        compare(rows(window), ["Ada, Level 1", "Ben, Level 2"]);
+        compare(window.page.step, ChildrenPage.Ready);
+        compare(outcome(window), "");
+        verify(!box.visible);
+        tryCompare(findChild(childRow(window, 0), "changeName"), "activeFocus", true);
+        // Once anything the sentence's going left for later has run.
+        wait(0);
+        verify(findChild(childRow(window, 0), "changeName").activeFocus);
+    }
+
+    // "Ben is not a child's account on this computer" is under the rows,
+    // and then Ben is added again in a terminal. When Family comes back
+    // to the front Ben's row is there again and the box is gone.
+    function test_theSentenceGoesWhenTheChildItNamesIsBack() {
+        const window = makeWindow("asking");
+        standIns.removeAccount("ben");
+        mouseClick(findChild(childRow(window, 1), "moveTo1"));
+        const box = findChild(window, "childrenView").outcomeBox;
+        const said = "Ben is not a child's account on this computer. The list shows the children there are now.";
+        compare(outcome(window), said);
+        verify(box.visible);
+        const input = findChild(nameField(window), "input");
+        tryCompare(input, "activeFocus", true);
+
+        // Ben still away: the sentence is still so, and stays.
+        toTheBack(window);
+        toTheFront(window, input);
+        compare(outcome(window), said);
+        verify(box.visible);
+
+        toTheBack(window);
+        standIns.putAccount("ben", "Ben", 2);
+        toTheFront(window, input);
+        compare(rows(window), ["Ada, Level 1", "Ben, Level 2"]);
+        compare(window.page.step, ChildrenPage.Ready);
+        compare(outcome(window), "");
+        verify(!box.visible);
     }
 
     // A sentence about something else stays: a refused Add, and the one
