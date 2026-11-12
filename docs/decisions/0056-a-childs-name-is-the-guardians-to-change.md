@@ -1,7 +1,9 @@
 # ADR-0056: A child's name is the Guardian's to change
 
-**Status:** proposed. It becomes accepted when the checks under "Not
-checked yet" pass on an image built from this change.
+**Status:** accepted. The maintainer decided on 2026-11-11 that it is
+accepted when this change merges (#296): the checks on two built images
+passed (Checked, below), and what is under "Not checked yet" stays
+listed without holding the label.
 **Date:** 2026-11-07
 **Closes:** issue #292. Amends ADR-0043 (polkit's answer for an
 account's own data). Adds a subcommand to ADR-0039's `cairn-family` and
@@ -240,19 +242,22 @@ This ADR first listed four things here: that no earlier rule file
 answers `yes` first, the other two actions refused with no password box,
 an image built from this change, and Change name through the real
 password box. Each was checked on built images, the rule for an L1 and
-an L3 child and Change name for one child. The two sections below say
-what was seen and how. Still open after the re-check of 2026-11-09:
+an L3 child and Change name for one child. The re-check of 2026-11-09
+left three more: an L2 child's session on a built image, a child acting
+inside their session by hand, and a name put back through Family. The
+run of 2026-11-11 tried each. The sections below say what was seen and
+how. Still open after it:
 
-- An L2 child's session on an image built from this change. This ADR's
-  probes ran for ben at L2 only in the overlay run above. On both built
-  images they ran after he was moved to L3. The rule's own test covers
-  every level, but it runs the rule outside polkit.
-- The same refusals when a child acts inside their session by hand. On
-  both built images each probe was started from a root shell, moved into
-  the cgroup of the child's session and dropped to the child's user. No
-  command was typed in a child's session.
-- A name put back through Family. After the re-check a script run as
-  root put ben's name back, not Family.
+- The same refusals when a child acts inside their session by hand. In
+  every run on a built image each probe was started from a root shell,
+  moved into the cgroup of the child's session and dropped to the
+  child's user. On 2026-11-11 two lines were typed with keys into an L2
+  child's Terminal, and the Terminal answered both itself. No command
+  that reaches polkit, AccountsService or `cairn-family` has been typed
+  inside a child's session, at any level.
+
+The maintainer decided on 2026-11-11 that this stays listed and does not
+hold the label (Status).
 
 ### On an image built from this change
 
@@ -338,9 +343,65 @@ tried here either. A child's own `plasma-localerc` was tried in the same
 run, but only against #300's lock, so that result is #300's to record.
 No fault was found in this change.
 
-What is still open is under "Not checked yet" above. The Status line
-points at that list, so as written this ADR now waits for those three.
-They were not on its first list. They come from the audit of this run.
-Whether they must pass before acceptance is the maintainer's to say.
-Before this re-check the maintainer meant to accept it once #296 is
-merged.
+The audit of this run left three things open that were not on this
+ADR's first list: an L2 child's session on a built image, a child acting
+inside their session by hand, and a name put back through Family. The
+run of 2026-11-11, below, tried each. On 2026-11-11 the maintainer
+decided that what is still under "Not checked yet" stays listed without
+holding the label.
+
+### Checked on 2026-11-11
+
+In cairn-min on 2026-11-11, on the image of the re-check
+(`test.20261109-295-296-300-4a5f38d`), started from the snapshot taken
+after that re-check and reverted to it afterwards. The run was made for
+#300, and ADR-0058 has what it saw of a child's language. ben stayed at
+L2 throughout. One login of his was made, so each line about his
+session is one sample. The run's record was audited against its
+evidence afterwards, and what follows keeps to what the audit found
+shown.
+
+- **An L2 child's session on a built image.** ben logged in at the
+  login screen and got the kiosk's launcher. The probes were then run as
+  ben from a root shell placed in the cgroup of that session, with no
+  terminal and with root's environment. `SetRealName`, `SetIconFile`,
+  `SetLanguage` and `SetPasswordHint` on his own account, and a rename
+  of the Guardian, were each refused with "Not authorized". `chfn` was
+  refused by CHFN_RESTRICT. `pkcheck`, without its interactive flag,
+  answered no for `change-own-user-data`, `change-own-password` and
+  `user-administration`. His line in the account database, and his
+  name, picture and language in AccountsService, were the same before
+  and after. No wrong try was counted. A screenshot taken straight
+  after shows the launcher and no password box, and no process of his
+  with a name that begins `polkit` was found, so no box could have
+  opened.
+- **Typed by hand at L2.** Two lines were typed with keys into ben's
+  Terminal. `chfn -f mum` got "chfn takes one name at a time." and
+  `pkexec` got "I don't know "pkexec". Type help to see what I know."
+  A look 16 to 19 seconds later found no `chfn` or `pkexec` process and
+  no journal line from either, and his line in the account database
+  unchanged. That look could miss a process that ran and ended at
+  once; the journal and the unchanged line are the stronger signs. The
+  Terminal's help lists six words (`ls`, `cd`, `open`, `cat`, `help`,
+  `exit`), and none of the kiosk's key bindings opens another terminal.
+  `open` was not tried. So no command that reaches polkit was typed by
+  hand, and that item stays open.
+- **A name put back through Family.** The Guardian renamed ben to
+  "Ben B" in Family through the real password box: the account
+  database, AccountsService and his "Steam for" entry took the name, and
+  the journal said `set-name ben: done`. Family was opened from a root
+  shell that starts its menu entry, and its buttons were pressed with
+  keys sent to the VM. Putting the name back did not give the same line
+  as before. ben had no name in the account database before the rename,
+  and Family showed his login, "ben", in the name field. With the field
+  emptied and Enter pressed, Family said "Type the child's name first."
+  and opened no password box. So the name was set to "ben" through
+  Family, with the password box and a second `set-name ben: done`, and
+  his line then held the name "ben" where it had been empty. The login
+  screen read "ben" before and after. Only Enter in the emptied field
+  was tried, not the Save name button. A child added in Family always
+  has a name, so only an account made another way starts without one.
+
+Not tried in this run: a command typed inside an L3 child's session,
+where there is a real shell, the Guardian's own name and picture, and
+the three things left untried on 2026-11-07.

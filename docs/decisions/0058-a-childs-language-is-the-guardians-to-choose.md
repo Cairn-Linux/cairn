@@ -1,7 +1,12 @@
 # ADR-0058: A child's language is the Guardian's to choose
 
-**Status:** proposed. It becomes accepted when the checks under "Not
-checked yet" pass on an image built from this change.
+**Status:** accepted. The maintainer decided on 2026-11-11 that it is
+accepted when this change merges (#300), once an L2 child's login with
+a language file had been checked on a built image. That login was made
+on 2026-11-11: labwc, the launcher and Tux Paint had the chosen
+language (Checked, below). Seven background processes of the session
+did not, which is under Known limits. What is under "Not checked yet"
+stays listed without holding the label.
 **Date:** 2026-11-09
 **Closes:** issue #299. Follows ADR-0056 (a child's name is the
 Guardian's), which named the language files as a known limit. Adds a
@@ -313,6 +318,17 @@ child's home and a fresh login, with English (UK) set in Family.
   language set in Family reaches any Steam game was not shown.
 - At L1 and L2 the values come from `cairn-session`, not Plasma, and
   KDE Kiosk does not apply; the kiosk offers no settings to change them.
+- **At L1 and L2, what starts before `cairn-session` reads the file
+  keeps the computer's own language.** In the L2 login of 2026-11-11
+  seven of the child's processes had `en_US.UTF-8` and no `LC_` key:
+  the user's systemd, dbus-broker-launch, dbus-broker, mpris-proxy,
+  pipewire, wireplumber and pipewire-pulse. The session script's trace
+  shows it starting pipewire-pulse before it reads the file. For the
+  other six the order is not in the trace; it is read from their
+  values. One more, the helper beside the user's systemd, had no
+  language value at all. Whether anything a child sees or hears comes
+  from those seven, the name of a sound device for example, was not
+  looked at. Both languages in the table today are English.
 - KDE Kiosk is read by KDE's programs. A GTK or Qt app that is not KDE's
   follows only the environment, which this sets.
 
@@ -403,7 +419,8 @@ kactivitymanagerd's backups.
   client and `systemctl --user show-environment` had `en_GB.UTF-8` in
   `LANG` and every `LC_` key. Tux Paint said "Colours"; that was the
   only change seen on screen. PipeWire, which `cairn-session` starts
-  before it reads the file, kept `en_US.UTF-8`.
+  before it reads the file, kept `en_US.UTF-8`. The L2 login of
+  2026-11-11, below, found more processes that do.
 - **L3 Plasma.** ben, at L3, logged in through the Cairn greeter with a
   typed password. plasmashell, kwin and
   `systemctl --user show-environment` had `en_GB.UTF-8`, with both
@@ -447,10 +464,67 @@ kactivitymanagerd's backups.
   1.29 s and 1.12 s without. That shows no large slowdown and nothing
   finer.
 
+### An L2 child's login, on 2026-11-11
+
+In cairn-min on 2026-11-11, on the same image
+(`test.20261109-295-296-300-4a5f38d`), started from the snapshot taken
+after the run above and reverted to it afterwards. ben stayed at L2
+throughout. One login of his was made, so each line about his session
+is one sample. The run's record was audited against its evidence
+afterwards, and what follows keeps to what the audit found shown.
+ADR-0056 has what the same run saw of a child's name.
+
+- **Family, with the real password box.** English (UK) was chosen for
+  ben with keys in the Family window, in the Guardian's desktop
+  session, and the Guardian's password was typed into the box Plasma
+  opened. The Family window was opened from a root shell that starts
+  its menu entry, not from the menu. The file was root-owned, 0644,
+  491 bytes, with `LANG`, 13 `LC_` keys and `LANGUAGE`, all for
+  `en_GB`. ben could read it and could not write it or its folder. The
+  journal had `set-language ben en_GB.UTF-8: done`.
+- **The login.** ben logged in at the Cairn greeter and got the kiosk's
+  launcher, with its six tiles and Log out.
+- **The session's language.** labwc and the launcher had
+  `LANG=en_GB.UTF-8`, `LANGUAGE=en_GB:en` and 13 `LC_` keys, each
+  `en_GB.UTF-8`. `systemctl --user show-environment`, run as ben on
+  his bus, listed the same 15 values. The session script's trace for
+  the login shows it finding his file and exporting them. The kiosk's
+  journal does not name the language.
+- **Seven processes kept the computer's own language**, `en_US.UTF-8`
+  with no `LC_` key. Known limits names them. The user's systemd was
+  one of them: its own process was started with `en_US.UTF-8`, while
+  its `show-environment` listed the chosen values.
+- **Tux Paint**, opened from the Draw tile, showed "Colours" and "Pick
+  a colour and a brush shape to draw with.", and its process had the 15
+  values. The environment of three of its helper processes was not
+  captured. The launcher showed Draw, Music, Build, Story, Practice,
+  Terminal and Log out; whether any of its words changes with the
+  language was not checked.
+- **Refusals at L2, with a language file.** These were run as ben from
+  a root shell placed in the cgroup of his session, with no terminal
+  and with root's environment; they were not typed in the session.
+  polkit answered no for four of Family's seven actions
+  (`set-language`, `set-name`, `set-level`, `create-child`). `pkexec`
+  of `set-language` was refused at once. The helper run directly said
+  `refused not-root`. ben could not write to his language file, and
+  the file was unchanged. Making a new file in his folder was not
+  tried in this session. A screenshot taken a second later shows the
+  launcher and no password box, and no polkit agent was running in his
+  session, so no box could have opened.
+- **Login time.** One sample: 1.17 s from Enter to the first 0.25 s
+  poll that found the launcher's process. That does not say when the
+  tiles were drawn.
+- **Not seen in this run.** No Steam client ran in ben's session, so
+  its environment at L2 with a language file was not recorded. Family
+  on this image still has the older sentence above the language
+  buttons; the new one has still not been run on an image.
+
 ### Not checked yet
 
-- An L2 child's login with a language file. ben was at L3 by the time
-  he had one.
+- What a child sees or hears from the seven processes that keep the
+  computer's own language at L1 and L2 (Known limits).
+- The Steam client's environment in an L2 child's session with a
+  language file. At L1 it had the chosen language.
 - L4.
 - Konsole's menu, with the lock or without.
 - Kickoff's search and the page's own menu entry, which the Decision
