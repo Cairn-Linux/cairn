@@ -4,6 +4,7 @@
 #include "Account.h"
 #include "ChildList.h"
 #include "LanguageFile.h"
+#include "OutcomeChildren.h"
 #include "UnfinishedAdd.h"
 
 #include <QObject>
@@ -125,12 +126,15 @@ public:
     // Forgets a refusal once the field it was about has closed, so the page
     // no longer shows it. A change that went through still shows.
     Q_INVOKABLE void forgetRefusal();
-    // Reads the children again from the account database.
+    // Reads the children again from the account database, and takes away
+    // the sentence for the last change as shown() does.
     Q_INVOKABLE void reload();
     // The Children page is in front of the Guardian again: the page switch
     // showed it, or the Family window came back to the front. The family
     // may have been changed outside Family meanwhile, in a terminal or
-    // another Family window, so the accounts are read again.
+    // another Family window, so the accounts are read again. What the last
+    // change did, or why it did nothing, is no longer said once a child it
+    // is about is not as they were then (see OutcomeChildren).
     Q_INVOKABLE void shown();
 
 signals:
@@ -142,6 +146,11 @@ private:
     void read();
     // Reads the accounts, and says the list changed only when it did.
     void readAgain();
+    // Back to Ready when the last read changed a child the outcome is about.
+    // Not while a change waits: the read after its answer comes just before
+    // its outcome is noted, in setStep(). Nor after the reads a change
+    // starts with, which a new outcome always follows.
+    void forgetAnOutcomeNoLongerSo();
     const ListedChild* childToChange(const QString& login);
     bool refusedAsTaken(const ListedChild* other, Reason childs, const QString& name);
     void run(const QStringList& arguments, Step onDone);
@@ -160,5 +169,6 @@ private:
     QString m_clash;
     int m_level = 0;
     Step m_onDone = Step::Ready;
+    OutcomeChildren m_outcomeChildren;
     UnfinishedAdd m_unfinished;
 };

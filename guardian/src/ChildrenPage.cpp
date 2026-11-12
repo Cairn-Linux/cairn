@@ -77,6 +77,7 @@ void ChildrenPage::addChild(const QString& name, const QString& shortName, int l
     m_subject = fullName;
     m_level = level;
     m_clash.clear();
+    m_outcomeChildren.clear();
     if (fullName.isEmpty()) {
         setStep(Step::NotChanged, Reason::NoName);
         return;
@@ -104,6 +105,7 @@ void ChildrenPage::addChild(const QString& name, const QString& shortName, int l
         return;
     }
     m_unfinished.starting(*free, fullName);
+    m_outcomeChildren.add(*free);
     run({QStringLiteral("create-child"), *free, QString::number(level),
          QStringLiteral("--full-name"), fullName},
         Step::Added);
@@ -162,10 +164,13 @@ void ChildrenPage::changeLanguage(const QString& login, const QString& locale) {
 
 // The child with this login in the family as it is now, read again, or
 // none. The subject is their name: the one their row showed when they are
-// gone, and the login for an account that was never on the list.
+// gone, and the login for an account that was never on the list. Whatever
+// the change comes to, its outcome is about this account.
 const ListedChild* ChildrenPage::childToChange(const QString& login) {
     const ListedChild* child = childWithLogin(m_children, login);
     m_subject = child == nullptr ? login : child->name;
+    m_outcomeChildren.clear();
+    m_outcomeChildren.add(login);
     readAgain();
     child = childWithLogin(m_children, login);
     if (child != nullptr) {
@@ -175,12 +180,16 @@ const ListedChild* ChildrenPage::childToChange(const QString& login) {
 }
 
 // Refuses a name another child, given as `other`, or a grown-up has
-// already, and says whether it did.
+// already, and says whether it did. The refusal names that child, so it is
+// about them too.
 bool ChildrenPage::refusedAsTaken(const ListedChild* other, Reason childs, const QString& name) {
     const std::optional<ChildrenRefusals::Taken> taken =
         ChildrenRefusals::takenBy(other, childs, m_grownUps, name);
     if (taken) {
         m_clash = taken->clash;
+        if (other != nullptr) {
+            m_outcomeChildren.add(other->login);
+        }
         setStep(Step::NotChanged, taken->reason);
     }
     return taken.has_value();
@@ -195,6 +204,7 @@ void ChildrenPage::forgetRefusal() {
 void ChildrenPage::reload() {
     read();
     emit listedChildrenChanged();
+    forgetAnOutcomeNoLongerSo();
 }
 
 // Nothing is read while a change waits for its answer: the answer reads the
@@ -202,6 +212,16 @@ void ChildrenPage::reload() {
 void ChildrenPage::shown() {
     if (!busy()) {
         readAgain();
+        forgetAnOutcomeNoLongerSo();
+    }
+}
+
+// "Cy can log in now" is not so once Cy's account is gone, nor "Cy is not
+// a child's account" once it is back.
+void ChildrenPage::forgetAnOutcomeNoLongerSo() {
+    const bool saysWhatAChangeDid = m_step != Step::Ready && !busy();
+    if (saysWhatAChangeDid && m_outcomeChildren.changedIn(m_children)) {
+        setStep(Step::Ready);
     }
 }
 
@@ -227,10 +247,14 @@ void ChildrenPage::readAgain() {
 
 // The window checks every value with cairn-family's own rule before it
 // asks for a password, so a value the command would refuse is refused here
-// without one.
+// without one. Refused for Add a child, it is the name as typed, which
+// names no child.
 void ChildrenPage::run(const QStringList& arguments, Step onDone) {
     const FamilyRequest request = FamilyRequest::fromArguments(arguments);
     if (request.refusal) {
+        if (onDone == Step::Added) {
+            m_outcomeChildren.clear();
+        }
         setStep(Step::NotChanged, ChildrenRefusals::reasonFor(refusalWord(*request.refusal)));
         return;
     }
@@ -259,8 +283,11 @@ void ChildrenPage::finished(const QString& answer) {
     }
 }
 
+// Every outcome is set just after a read of the accounts, so the children
+// it is about are noted as the list shows them now.
 void ChildrenPage::setStep(Step step, Reason reason) {
     m_step = step;
     m_reason = reason;
+    m_outcomeChildren.noteAsListed(m_children);
     emit stepChanged();
 }
