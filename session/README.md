@@ -137,7 +137,19 @@ What is here:
   which moves the screen to another session, and for logind's lock on the
   power key, which stops the power button's five-second hold (ADR-0049).
   L3 and L4 keep Fedora's defaults for power and removable media, since
-  Plasma's menu offers them. An administrator
+  Plasma's menu offers them. Also NO at every level for systemd's
+  `manage-units` when the unit is one of the system updater's,
+  `uupd.service`, `uupd-manual.service` or `uupd.timer`, whatever is
+  asked of the unit: Universal Blue's own `uupd.rules` says yes for the
+  two services to any account, and updates are the Guardian's (#265).
+  Every other unit keeps systemd's default, and the timer still starts
+  the nightly update by itself. One limit is known: polkit keeps a
+  password that a grown-up types in a child's session for another unit,
+  for the program that asked and for a while, and that program can then
+  manage these units too (`docs/research/kiosk-containment.md`). The
+  image's build stops if another rule file would be read before this
+  one, or answers for a unit of systemd's that this one does not name
+  (`build_files/check-updater-rule.sh`). An administrator
   (`cairn-guardian` or `wheel`) is checked first and always falls through,
   even from a level group (ADR-0023). Cairn's own actions
   (`com.cairnlinux.`) are refused to every other account, before any

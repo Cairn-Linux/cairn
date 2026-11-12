@@ -18,7 +18,11 @@ plain F5 in SCUMM games, and F5 held down before Ctrl, still reach the
 menu. On 2026-11-03 a row for the kiosk's `PATH` was added (#244):
 labwc found the programs its keys run through a `PATH` that began in
 the child's own home, and now has the system's folders only, checked
-headless; the check in a child's session on the VM is still to do.
+headless; the check in a child's session on the VM is still to do. On
+2026-11-11 the polkit rule gained the system updater's units (#265):
+Universal Blue's own rule let any account start or stop an update, and
+a child is now refused, checked with polkit and systemd running in a
+container; the check from a child's login in the VM is still to do.
 
 ## How it was run
 
@@ -195,6 +199,117 @@ Provisioning now writes every file beside its target and renames it,
 which shortens the window but did not remove the line entirely. The
 file never changes while a child is logged in, so the line is a
 provisioning-time curiosity, not a hole.
+
+On 2026-11-11 the rule gained one more refusal, the system updater's
+units (#265). systemd has one polkit action for every unit,
+`org.freedesktop.systemd1.manage-units`, and sends polkit the unit's
+name and what is asked of it, the verb, as details. Its default is an
+admin password. Universal Blue's `uupd.rules`, which comes with the
+updater, says yes for `uupd.service` and `uupd-manual.service` to any
+account, whatever the verb. So a child could start an update, or stop
+one half-way, with no password. The levels rule now says no to a child
+at every level when the unit is one of the three the `uupd` package
+ships: the two services and `uupd.timer`, which starts the nightly
+update. It does not read the verb. An administrator, an account Cairn
+did not make and every other unit are left as they were. On the image
+the file is `/usr/share/polkit-1/rules.d/10-cairn-levels.rules`, first
+by name of the 19 rule files there; `uupd.rules` is last.
+
+Checked that night with polkit 127 and systemd 262 running in a
+container made from a Cairn test image (`uupd` 1.5.7), first with the
+image's own copy of the rule and then with this one in its place, as
+`ada`, `ben` and `cy` at L1, L2 and L3, `cy` again at L4, `guardian` in
+`wheel` and `cairn-guardian`, and an account in no Cairn group. The two
+services were changed there to run `sleep`, never the updater. The
+container has no login session and nothing to type a password into, so
+"admin password" below is systemd saying one is needed:
+
+| Asked of systemd | Before | After |
+|---|---|---|
+| `start` and `stop` of `uupd.service` and of `uupd-manual.service`, as a child at each level | done, no password | "Access denied", and the unit is left as it was |
+| `restart`, `try-restart`, `kill`, `reset-failed` and `set-property` on `uupd.service`, as a child at L1 and at L3 | done, no password | "Access denied" |
+| `stop` of `uupd.timer`, as a child at each level | admin password | "Access denied" |
+| `start` of `bluetooth.service`, as a child at each level | admin password | admin password (untouched) |
+| `start` and `stop` of the two services, as `guardian`, also when added to `cairn-l1`, and as the account in no Cairn group | done, no password | done, no password (untouched) |
+| `stop` of `uupd.timer`, as `guardian` | admin password | admin password (untouched) |
+| `pkcheck` by root for a process of `ada`'s, `manage-units` with each of the three units | yes, yes, admin password | no, no, no |
+
+With the rule in place and the timer set to five seconds from then, the
+timer started `uupd.service` by itself and polkit was not asked.
+`/usr/libexec/uupd-update`, which the base image's updater app is set to
+run, printed systemd's "Access denied" line when `ada` ran it, and
+started nothing.
+
+Three things the run taught. First, the verbs are more than start and
+stop: systemd also sent `ref`, for `systemctl freeze`, `thaw` and
+`clean`, which is one reason the rule reads no verb. Second, after the
+rule's no, polkit asks every rule again about `manage-unit-files`, with
+the same unit, because systemd's policy says that action implies
+`manage-units`. Nothing on the image says yes to that for a child, so
+the no stands, and `pkcheck` exits 1. Third, `systemctl disable` and
+`mask` ask about `manage-unit-files` with no unit named, so the rule
+does not answer them: turning the timer off for good is still an admin
+password. Not checked there: a child's login at the console, where a
+password box can open. That is the row under "Remaining rows" below.
+
+A review of the change the same night found four more things, each seen
+in the same container. First, a verb the table does not have: systemd
+also listens on a socket of its own, `/run/systemd/io.systemd.Manager`,
+which any account can open, and a request there to cancel a job of
+`uupd.service` reaches polkit as `manage-units` with the verb `cancel`.
+`ada` was refused, and the job went on.
+
+Second, polkit runs every rule file in one JavaScript context. A
+function or a list named at the top of one file is replaced by one of
+the same name in a file read later. With a scratch file after Cairn's
+that named a function of its own `isOneOf`, as the rule's is named,
+`ada` started the updater. No rule file on the image names anything at
+the top but Cairn's. The rule's names are now inside one function, and
+with two scratch files after it that named its functions and its lists,
+`ada`, `ben` and `cy` were still refused.
+
+Third, polkit drops a rule file it cannot read, and every refusal in
+the file goes with it. With one line of newer JavaScript added to the
+rule (`let`), polkit, started as the image starts it, wrote "Error
+compiling script" with the file's name to its journal, and `ada`
+started the updater. The tests run the rule with node, which reads
+newer JavaScript than polkit's engine does, Duktape 2.7 on the image.
+The engine refused an arrow function, `let`, a template string, `for`
+with `of`, a default argument and `includes` on a list. It took
+`const`, and `includes` and `startsWith` on a string. A test now reads
+the rule's text for the forms it refused, and the VM row looks for that
+line in the journal.
+
+Fourth, a limit that this change does not close. At the console,
+systemd's answer for any other unit is a grown-up's password that
+polkit keeps for a while for the program that asked. polkit keeps it
+for the action, and `manage-units` is one action for every unit, and a
+kept password won over the rule's no. With a scratch rule that gave
+systemd's console answer, one program of `ada`'s was refused
+`uupd.service`, was given `guardian`'s password once for another unit,
+and then started `uupd.service` and stopped `uupd.timer` with no more
+asked. It started a third unit the same way, which is what keeping
+the password is for. A new program of `ada`'s was refused again. So a
+program in a child's session that a grown-up has just typed a password
+into, for some other unit, can start or stop the updater while that
+password is kept. Cairn does not ask for a Guardian's password in a
+child's session (DESIGN §3.2), and whether the kiosk at L1 and L2 can
+show polkit's password box at all is not known. How long polkit keeps
+the password was not measured. Closing this means a new answer for
+every unit, not only the updater's, so it waits on a decision (#265).
+
+The image's build now checks what the rule leans on
+(`build_files/check-updater-rule.sh`): that no other rule file would be
+read before Cairn's, that the image still has each unit the rule names,
+and that no other rule file names more of systemd's units than the rule
+refuses. Run by hand inside the test image with this rule in place, the
+script passed. It stopped for the rule as it was before, for a third
+unit in `uupd.rules`, for a rule file that sorts first in `/usr/share`
+or in `/etc`, for another file that answers for all of systemd's
+actions, and for a unit on the rule's list that the image does not
+have. On 2026-11-12 it also ran, and passed, as a step of a build on top
+of that image with this rule copied in. No whole image has been built
+with it yet.
 
 ### Hung or trapped apps (#41), and the way out (ADR-0018)
 
@@ -584,6 +699,7 @@ How it was checked:
 |---|---|---|
 | A game cannot open ScummVM's own menu (#215) | A real computer, in a child's session, keys from its own keyboard | Ctrl+F5 in a ScummVM game shows nothing and the game goes on, as it did in the VM. The decision on #215 asked for this try on real hardware. |
 | The kiosk finds its programs only in the system's folders (#244) | The VM, in a child's session, keys from the VM's own keyboard | labwc's `PATH` is `/usr/bin:/usr/bin:/bin`. Ctrl-Alt-Home ends a stuck app and the tiles come back. The volume keys change the volume and stop at 100%. A Steam game starts from its tile. The Terminal opens and `open` starts an app. The decision on #244 asked for this check. |
+| A child cannot start or stop the system updater (#265) | The VM, on an image with the rule, while a child is logged in, and from a Guardian's login | As a child at L1 or L2, and at L3, `systemctl start uupd.service`, `systemctl stop uupd.service` and `systemctl start uupd-manual.service` each answer "Access denied", no password box opens and the unit is left as it was. As the L3 child, `systemctl start bluetooth.service` still asks for a grown-up's password. As a Guardian, `systemctl start uupd-manual.service` starts an update with no password, as before. `systemctl list-timers uupd.timer` still shows the nightly update waiting, and the morning after, the journal shows it ran. `journalctl -b -u polkit` has no "Error compiling script" line. For the known limit: does a password box open at all for a child at L1 or L2, and, at L3, can one program that a grown-up typed a password into for `bluetooth.service` then start `uupd.service`. |
 
 Screenshots and logs from the run are in the maintainer's work area, not the
 repository.
