@@ -259,6 +259,37 @@ The first lists `mpris-proxy.service` and `bazzite-dynamic-fixes.service`,
 Bazzite's fix for GTK programs on Intel graphics, which runs as the
 account and stays. The second says `not-found`.
 
+rpm-ostree's "count me" report is off (#36).
+Fedora's presets turn on `rpm-ostree-countme.timer`.
+Every few days its service sent a request naming the system and its
+release to each repository whose file says `countme=1`, today Fedora's
+and Terra's.
+`build_files/no-countme.sh` removes the timer's link and masks the timer
+and its service, the opt-out rpm-ostree's own page gives.
+It also sets `countme=0` in every repository file, so neither
+`rpm-ostree countme` run by hand nor a metadata download asks for the
+count.
+`build_files/check-no-countme.sh` stops the build unless both units are
+masked in `/etc/systemd/system`, the timer's link is gone, and no
+repository file asks for the count.
+To look yourself:
+
+```sh
+podman run --rm localhost/cairn:dev systemctl is-enabled \
+    rpm-ostree-countme.timer rpm-ostree-countme.service
+podman run --rm localhost/cairn:dev grep -r countme /usr/share/dnf5/repos.d
+```
+
+The first prints `masked` twice.
+The second prints only `countme=0` lines.
+An update brings the image's `/etc` wherever a computer did not change
+it, so a computer that already runs the image should get the masks.
+They take effect at the first start after the update; until then the
+timer keeps running.
+The repository files with the count are in `/usr`, which an update
+replaces whole.
+That has not yet been seen on a computer.
+
 The grown-up's start-menu button shows the Cairn mark (#166, first
 step). Valve's look names `distributor-logo-steamdeck`, which slice 5
 leads to the mark. `build_files/guardian-desktop.sh` adds the mark under

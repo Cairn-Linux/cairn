@@ -102,13 +102,15 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
 # the Bazzite extras the build takes out must stay out (#261). The lock
 # screen's fingerprint check must not count a missing reader as a wrong
 # try (#283), and a child with su must not be able to write another
-# account's count of wrong passwords (#289).
+# account's count of wrong passwords (#289). rpm-ostree's "count me"
+# report must stay off (#36).
 RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=tmpfs,dst=/tmp \
     /ctx/check-name-and-logos.sh && \
     /ctx/check-boot-screen.sh && \
     /ctx/check-guardian-desktop.sh && \
     /ctx/check-bazzite-extras.sh && \
+    /ctx/check-no-countme.sh && \
     python3 -I /ctx/check-lock-screen-pam.py && \
     python3 -I /ctx/check-faillock-owner.py
 
