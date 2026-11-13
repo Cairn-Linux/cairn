@@ -280,7 +280,8 @@ and `check-own-account-data.sh` passed in the build):
   `SetPasswordHint` on themselves, and a rename of the Guardian: each
   "Not authorized". `pkcheck` for `change-own-user-data`,
   `change-own-password` and `user-administration` answered no, not a
-  password box, so no earlier rule file answered first. `chfn` was
+  password box, so no earlier rule file answered `yes` first for these
+  two accounts. A no does not show which rule gave it. `chfn` was
   refused by CHFN_RESTRICT. No wrong try was counted.
 - The Guardian renamed ben in Family through the real password box: the
   account, the login screen and his "Steam for" entry took the new name,
@@ -327,7 +328,7 @@ built image made its probes the same way.
   and after. No wrong try was counted.
 - `pkcheck` answered no for `change-own-user-data`,
   `change-own-password` and `user-administration`, for both children, so
-  no earlier rule file answered `yes` first. It was run without its
+  no earlier rule file answered `yes` first for them. It was run without its
   interactive flag, so it could not have opened a password box. That no
   box opened rests on the bus calls, and on one screenshot of each
   child's session taken after the probes. A polkit agent was found in
