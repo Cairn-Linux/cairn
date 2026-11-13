@@ -158,12 +158,12 @@ process.stdout.write(rules[0]({id: input.action}, subject));
 
 class FamilyActionTest(unittest.TestCase):
     """cairn-family's actions, one per subcommand (ADR-0039, ADR-0041,
-    ADR-0043, ADR-0056): the levels rule refuses each to a child and lets an
+    ADR-0043, ADR-0056, ADR-0058): the levels rule refuses each to a child and lets an
     administrator through to the password prompt, with no change of its
     own."""
 
-    SUBCOMMANDS = {"create-child", "set-level", "set-name", "save-games", "log-out",
-                   "set-own-password"}
+    SUBCOMMANDS = {"create-child", "set-level", "set-name", "set-language", "save-games",
+                   "log-out", "set-own-password"}
     # Asks for the grown-up's own password, the one being changed.
     OWN = {"set-own-password"}
 
@@ -211,7 +211,7 @@ class FamilyActionTest(unittest.TestCase):
                          "Look for new games, or change which games a child has")
         # Logging a child out is its own password, never folded into a Save.
         self.assertEqual(messages["log-out"], "A grown-up's password is needed to log a child out.")
-        for subcommand in ("create-child", "set-level", "set-name"):
+        for subcommand in ("create-child", "set-level", "set-name", "set-language"):
             self.assertEqual(messages[subcommand],
                              "A grown-up's password is needed to change a child's account.")
         self.assertEqual(messages["set-own-password"], "Type the password you use now to change it.")

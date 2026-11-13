@@ -11,6 +11,12 @@
 # administrator (cairn-guardian or wheel) first, then the kiosk levels, then
 # the desktop levels, then accounts Cairn did not make.
 #
+# A child's language is the Guardian's (ADR-0058): a child's session takes
+# the one Family wrote, and an L3 or L4 child's Plasma hides its language
+# settings. That is a hide, not a wall: a start-up script in the child's
+# own home can replace the list this script hands on (ADR-0058, Known
+# limits).
+#
 # This is a trust boundary (CLAUDE.md), so it stays short: the tests in
 # ../tests/test_cairn_session.py run it with stand-ins for `id`, `labwc`,
 # `startplasma-wayland` and `systemctl` and check which one it chose.
@@ -26,6 +32,35 @@ groups="$(id -nG | tr ' ' '\n')"
 
 in_group() {
     grep -qx -- "$1" <<< "$groups"
+}
+
+# The child's language folder, which only root writes: cairn-family
+# set-language puts plasma-localerc in it (ADR-0058). The login comes from
+# the account database, never from the environment.
+language_dir="/var/lib/cairn/locale/$(id -un)"
+
+# For the kiosk, which has no startplasma to read the file: each LANG,
+# LANGUAGE or LC_ variable in it, with its [$i] lock taken off, and only a
+# value made of a locale's characters. Every other line is passed over.
+# The child's systemd gets them too, for what it starts, such as Steam at
+# login (ADR-0027), as Plasma does for its own. No language must never
+# mean no login.
+export_language() {
+    local line key value
+    local names=()
+    [ -f "$language_dir/plasma-localerc" ] || return 0
+    while IFS= read -r line; do
+        key="${line%%=*}"
+        key="${key%"[\$i]"}"
+        value="${line#*=}"
+        if [[ "$key" =~ ^(LANG|LANGUAGE|LC_[A-Z]+)$ && "$value" =~ ^[A-Za-z0-9_.:@-]+$ ]]; then
+            export "$key=$value"
+            names+=("$key")
+        fi
+    done < "$language_dir/plasma-localerc"
+    if [ "${#names[@]}" -gt 0 ]; then
+        systemctl --user import-environment "${names[@]}" || true
+    fi
 }
 
 # An administrator is checked first. PAM asked them for a password even if
@@ -45,6 +80,7 @@ if in_group cairn-l1 || in_group cairn-l2; then
     # does not. pipewire-pulse brings PipeWire and WirePlumber with it.
     # No sound must never mean no login.
     systemctl --user start pipewire-pulse.service || true
+    export_language
     # Everything the kiosk prints goes to the journal, where a grown-up can
     # read it after the next login (#122): `journalctl -t cairn-kiosk`.
     # Otherwise SDDM puts it in the child's own ~/.cache/wayland-errors and
@@ -55,7 +91,19 @@ if in_group cairn-l1 || in_group cairn-l2; then
     exec labwc -C "$labwc_config" -S cairn-launcher
 fi
 
+# Plasma reads the child's language file, and Cairn's Kiosk file that hides
+# its language settings, through XDG_CONFIG_DIRS. KConfig reads the last
+# folder first, and an entry locked with [$i] there wins over every file
+# read after it, the child's own ~/.config included. Before /etc/xdg the
+# locks would lose to the base image's locked group in its kdeglobals.
+# Unset, the list is the one Fedora's plasma-workspace env.sh gives.
 if in_group cairn-l3 || in_group cairn-l4; then
+    config_dirs="${XDG_CONFIG_DIRS:-/etc/xdg:/usr/share/kde-settings/kde-profile/default/xdg}"
+    config_dirs="$config_dirs:/usr/local/share/cairn/child-xdg"
+    if [ -d "$language_dir" ]; then
+        config_dirs="$config_dirs:$language_dir"
+    fi
+    export XDG_CONFIG_DIRS="$config_dirs"
     exec startplasma-wayland
 fi
 

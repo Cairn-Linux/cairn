@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# KDE Kiosk settings for an L3 or L4 child's Plasma only (ADR-0058, #299).
+# cairn-session adds this folder to XDG_CONFIG_DIRS after /etc/xdg for a
+# child at L3 or L4, never for a grown-up, so KConfig reads it before the
+# system's files and the child's own. Each entry is locked on its own with
+# [$i], not the group: the base image's /etc/xdg/kdeglobals locks the group
+# [KDE Control Module Restrictions] with its own entries, which still apply.
+#
+# A child's language is the Guardian's, set in Family. These hide the ways
+# a child could change it by accident: System Settings' Region & Language
+# page, from its list, its search, KRunner, kcmshell6 and its own entry,
+# and Configure Language in KDE's apps, which is under Settings in KWrite
+# and under Configure in Dolphin's hamburger menu. The key is action/, as
+# KAuthorized reads it.
+#
+# This is a hide, not a wall. A start-up script in the child's own home
+# can take this folder out of XDG_CONFIG_DIRS for their session (ADR-0058,
+# Known limits).
+
+[KDE Control Module Restrictions]
+kcm_regionandlang[$i]=false
+
+[KDE Action Restrictions]
+action/switch_application_language[$i]=false

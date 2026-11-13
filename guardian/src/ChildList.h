@@ -20,6 +20,9 @@ struct ListedChild {
     QString fullName;
     // 1 to 4; the lower one for an account in two level groups (#100).
     int level = 0;
+    // The locale a Guardian chose for them (ADR-0058), or empty when none
+    // was, and the child has the computer's.
+    QString language;
 };
 
 // The family's children among these accounts, in the order their accounts
@@ -56,8 +59,10 @@ QStringList loginsOf(const std::vector<ListedChild>& children);
 // Each child as a map, login and name, in the same order, for a page's QML.
 QVariantList loginsAndNames(const std::vector<ListedChild>& children);
 
-// The same with their level, and otherLevels, the levels the Children page
-// offers to move them to, for its QML.
+// The same with their level, otherLevels, the levels the Children page
+// offers to move them to, languageName, the name of the language chosen for
+// them or "", and otherLanguages, the languages it offers them, each a map
+// of locale and name, for its QML (ADR-0058).
 QVariantList loginsNamesAndLevels(const std::vector<ListedChild>& children);
 
 // Whether both lists hold the same children, by login and name, in order.

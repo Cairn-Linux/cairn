@@ -263,9 +263,12 @@ A child cannot change their own name, nor their picture or language
 through AccountsService (ADR-0056). Cairn's polkit rule refuses
 AccountsService's `change-own-user-data` to every child, and
 util-linux's `chfn` refuses every account but root while `login.defs`
-sets no `CHFN_RESTRICT`. Files in the child's own home, such as
-`~/.face.icon` and `~/.config/plasma-localerc`, can still set a picture
-or language at L3 and L4; the rule does not reach them.
+sets no `CHFN_RESTRICT`. The rule does not reach files in the child's
+own home. `~/.face.icon` can still set a picture at L3 and L4. A
+child's own `~/.config/plasma-localerc` sets the language there only
+until a Guardian picks one in Family; after that Family's locked file
+wins, though a start-up script in the child's home can drop it
+(ADR-0058, Known limits).
 `build_files/check-own-account-data.sh` stops the build if either could
 stop holding. For AccountsService it checks only that the action is still
 there and named in its program. It cannot tell which action each change

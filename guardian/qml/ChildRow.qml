@@ -3,29 +3,36 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Cairn.Brand
 
-// One child on the Children page: their name, their level, a button for
-// each other level the page can give, and Change name. Up or down, the
-// level button reads the same (DESIGN §3). Change name opens a field for
-// the new name under the rest (ADR-0056).
+// One child on the Children page: their name, their level and language, a
+// button for each other level the page can give, Change name and Change
+// language. Up or down, the level button reads the same (DESIGN §3).
+// Change name opens a field for the new name under the rest (ADR-0056),
+// and Change language a button for each language (ADR-0058).
 Rectangle {
     id: row
 
-    // login, name, level and otherLevels, from ChildrenPage.listedChildren.
+    // login, name, level, otherLevels, languageName and otherLanguages,
+    // from ChildrenPage.listedChildren.
     required property var child
     // Whether the field for a new name is open, and what it holds. The page
     // keeps both, because the list is made again after every change.
     property bool renaming: false
     property string typedName: ""
+    // Whether the languages to choose from are open; the page keeps it too.
+    property bool choosingLanguage: false
 
     signal levelChosen(int level)
     signal renameOpened
     signal typedNameEdited(string name)
     signal nameChosen(string name)
     signal renameClosed
+    signal languageOpened
+    signal languageChosen(string locale)
+    signal languageClosed
 
     // The buttons' width on one line.
     readonly property real buttonsWidth: {
-        let total = changeName.width;
+        let total = changeName.width + buttons.spacing + changeLanguage.width;
         for (let i = 0; i < buttonRepeater.count; ++i) {
             const button = buttonRepeater.itemAt(i);
             if (button)
@@ -36,8 +43,9 @@ Rectangle {
     // The name and the buttons side by side when they fit, otherwise the
     // buttons under the name, as many to a line as fit, so a long name or
     // three buttons never squeeze the name away.
-    readonly property bool sideBySide: Math.max(childName.implicitWidth, childLevel.implicitWidth) + row.buttonsWidth + Tokens.bodySize * 3 <= row.width
-    // The name and the buttons, without the field for a new name.
+    readonly property bool sideBySide: Math.max(childName.implicitWidth, childLevel.implicitWidth, childLanguage.implicitWidth) + row.buttonsWidth + Tokens.bodySize * 3 <= row.width
+    // The name and the buttons, without the field for a new name or the
+    // languages.
     readonly property real topHeight: row.sideBySide ? Math.max(names.implicitHeight, buttons.height) : names.implicitHeight + Tokens.bodySize / 2 + buttons.height
 
     function takeFocus() {
@@ -56,7 +64,15 @@ Rectangle {
         nameChange.takeFocus();
     }
 
-    height: row.topHeight + (row.renaming ? Tokens.bodySize + nameChange.implicitHeight : 0) + Tokens.bodySize * 2
+    function focusChangeLanguage() {
+        changeLanguage.forceActiveFocus(Qt.TabFocusReason);
+    }
+
+    function focusLanguages() {
+        languageChange.takeFocus();
+    }
+
+    height: row.topHeight + (row.renaming ? Tokens.bodySize + nameChange.implicitHeight : 0) + (row.choosingLanguage ? Tokens.bodySize + languageChange.implicitHeight : 0) + Tokens.bodySize * 2
     radius: Tokens.radiusSm
     color: Tokens.card
     border.color: Tokens.line
@@ -94,6 +110,20 @@ Rectangle {
             width: parent.width
             elide: Text.ElideRight
             text: qsTr("Level %1").arg(row.child.level)
+            font.family: Tokens.fontFamily
+            font.pixelSize: Tokens.bodySize
+            color: Tokens.paperLabel
+            Accessible.role: Accessible.StaticText
+            Accessible.name: text
+        }
+
+        Text {
+            id: childLanguage
+
+            objectName: "childLanguage"
+            width: parent.width
+            elide: Text.ElideRight
+            text: row.child.languageName === "" ? qsTr("Language: the computer's own") : qsTr("Language: %1").arg(row.child.languageName)
             font.family: Tokens.fontFamily
             font.pixelSize: Tokens.bodySize
             color: Tokens.paperLabel
@@ -139,6 +169,19 @@ Rectangle {
                 Qt.callLater(row.focusNewName);
             }
         }
+
+        TextButton {
+            id: changeLanguage
+
+            objectName: "changeLanguage"
+            quiet: true
+            text: qsTr("Change language")
+            Accessible.name: qsTr("Change the language of %1").arg(row.child.name)
+            onActivated: {
+                row.languageOpened();
+                Qt.callLater(row.focusLanguages);
+            }
+        }
     }
 
     NameChange {
@@ -159,6 +202,23 @@ Rectangle {
         onCancelled: {
             row.renameClosed();
             Qt.callLater(row.focusChangeName);
+        }
+    }
+
+    LanguageChange {
+        id: languageChange
+
+        objectName: "languageChange"
+        x: Tokens.bodySize
+        y: Tokens.bodySize + row.topHeight + Tokens.bodySize
+        width: row.width - Tokens.bodySize * 2
+        visible: row.choosingLanguage
+        childName: row.child.name
+        languages: row.child.otherLanguages
+        onChosen: locale => row.languageChosen(locale)
+        onCancelled: {
+            row.languageClosed();
+            Qt.callLater(row.focusChangeLanguage);
         }
     }
 }

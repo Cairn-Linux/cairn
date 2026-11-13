@@ -177,7 +177,7 @@ locked icon, nothing to probe.
 
 | Area | Actions |
 |---|---|
-| Accounts | Create, archive, delete child accounts; set name and avatar. A child's name is the Guardian's alone: a child cannot change it at any level, and Family changes it. A child cannot change their picture or language through AccountsService either, though at L3 and L4 a picture or language from files in their own home can still show (ADR-0056) |
+| Accounts | Create, archive, delete child accounts; set name and avatar. A child's name is the Guardian's alone: a child cannot change it at any level, and Family changes it. A child cannot change their picture through AccountsService either, though at L3 and L4 a picture from files in their own home can still show (ADR-0056). A child's language is the Guardian's too: Family sets it, at any level, and an L3 or L4 child's Plasma starts in it and hides the page that changes it, which stops an accident and not a child who writes start-up files (ADR-0058) |
 | Levels | Raise or lower any child's level |
 | Permissions | Per-child app allowlist, game allowlist, browser access |
 | Time | Schedules and daily limits |
@@ -755,7 +755,11 @@ ADR-0035, proposed), and the launch-timeout handling described in §8.3.
   ratings, installation permissions. Originated at Endless; integrates with
   Flatpak. A D-Bus service and library rather than a GNOME-only component.
 - **KDE Kiosk** — desktop-level control. Which UI elements exist at all, via
-  immutable configuration keys.
+  immutable configuration keys. A Kiosk folder Cairn adds to a child's
+  session is a hide, not a wall: one start-up file in an L3 child's home
+  took it out of that child's session, and whether the locks in `/etc/xdg`
+  can be dropped the same way was not tried (ADR-0058). What a level must
+  enforce should not rest on Kiosk alone.
 
 These solve different problems and the design wants both. **Verify early that
 malcontent works cleanly on Plasma** — if it doesn't, the L3/L4 desktop choice

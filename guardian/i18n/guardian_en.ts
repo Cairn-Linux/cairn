@@ -125,35 +125,68 @@
     </message>
 </context>
 <context>
+    <name>ChildLanguage</name>
+    <message>
+        <location filename="../src/ChildLanguage.cpp" line="17"/>
+        <source>English (US)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/ChildLanguage.cpp" line="20"/>
+        <source>English (UK)</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>ChildRow</name>
     <message>
-        <location filename="../qml/ChildRow.qml" line="66"/>
+        <location filename="../qml/ChildRow.qml" line="82"/>
         <source>%1, level %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/ChildRow.qml" line="96"/>
+        <location filename="../qml/ChildRow.qml" line="112"/>
         <source>Level %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/ChildRow.qml" line="124"/>
+        <location filename="../qml/ChildRow.qml" line="126"/>
+        <source>Language: the computer&apos;s own</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/ChildRow.qml" line="126"/>
+        <source>Language: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/ChildRow.qml" line="154"/>
         <source>Move to level %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/ChildRow.qml" line="125"/>
+        <location filename="../qml/ChildRow.qml" line="155"/>
         <source>Move %1 to level %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/ChildRow.qml" line="135"/>
+        <location filename="../qml/ChildRow.qml" line="165"/>
         <source>Change name</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/ChildRow.qml" line="136"/>
+        <location filename="../qml/ChildRow.qml" line="166"/>
         <source>Change the name of %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/ChildRow.qml" line="178"/>
+        <source>Change language</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/ChildRow.qml" line="179"/>
+        <source>Change the language of %1</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -180,92 +213,107 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/ChildrenOutcome.qml" line="40"/>
-        <source>Type the child&apos;s name first.</source>
+        <location filename="../qml/ChildrenOutcome.qml" line="29"/>
+        <source>%1&apos;s language is %2 now. It starts the next time %1 logs in.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/ChildrenOutcome.qml" line="42"/>
-        <source>Type a short name for the account as well, with letters a to z.</source>
+        <source>Type the child&apos;s name first.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/ChildrenOutcome.qml" line="44"/>
-        <source>%1 already has an account on this computer. To add another child, give them a different name, such as one with an initial.</source>
+        <source>Type a short name for the account as well, with letters a to z.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/ChildrenOutcome.qml" line="46"/>
-        <source>%1 is the name of a grown-up on this computer. A child with a grown-up&apos;s name looks like them on every screen, so choose a different one.</source>
+        <source>%1 already has an account on this computer. To add another child, give them a different name, such as one with an initial.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/ChildrenOutcome.qml" line="48"/>
-        <source>Another child is called %1 already. Two children with one name look the same on every screen, so choose a different one, such as one with an initial.</source>
+        <source>%1 is the name of a grown-up on this computer. A child with a grown-up&apos;s name looks like them on every screen, so choose a different one.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/ChildrenOutcome.qml" line="50"/>
-        <source>%1 is the name already. Type a different one, or press Cancel.</source>
+        <source>Another child is called %1 already. Two children with one name look the same on every screen, so choose a different one, such as one with an initial.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/ChildrenOutcome.qml" line="52"/>
-        <source>A name cannot hold a colon, a comma, a backslash or a line break. Change the name and try again.</source>
+        <source>%1 is the name already. Type a different one, or press Cancel.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/ChildrenOutcome.qml" line="54"/>
-        <source>The short name can hold only letters a to z, digits, - and _, and starts with a letter. Change it and try again.</source>
+        <source>%1 is the language already. Choose a different one, or press Cancel.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/ChildrenOutcome.qml" line="56"/>
-        <source>Only levels 1 and 2 can be given for now. Levels 3 and 4 have no session yet.</source>
+        <source>Cairn&apos;s family command does not offer that language, so nothing changed. The window and the command may come from different versions of Cairn. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/ChildrenOutcome.qml" line="58"/>
-        <source>Another account on this computer has that short name. Press Add again to use a different one.</source>
+        <source>A name cannot hold a colon, a comma, a backslash or a line break. Change the name and try again.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/ChildrenOutcome.qml" line="60"/>
-        <source>%1 is not a child&apos;s account on this computer. The list shows the children there are now.</source>
+        <source>The short name can hold only letters a to z, digits, - and _, and starts with a letter. Change it and try again.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/ChildrenOutcome.qml" line="62"/>
-        <source>Cairn&apos;s family command did not get the rights it needs, so it changed nothing. Close Family and open it again. If it happens again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
+        <source>Only levels 1 and 2 can be given for now. Levels 3 and 4 have no session yet.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/ChildrenOutcome.qml" line="64"/>
-        <source>This window asked Cairn&apos;s family command for something it does not do, so nothing changed. The window and the command may come from different versions of Cairn. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
+        <source>Another account on this computer has that short name. Press Add again to use a different one.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/ChildrenOutcome.qml" line="66"/>
+        <source>%1 is not a child&apos;s account on this computer. The list shows the children there are now.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/ChildrenOutcome.qml" line="68"/>
+        <source>Cairn&apos;s family command did not get the rights it needs, so it changed nothing. Close Family and open it again. If it happens again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/ChildrenOutcome.qml" line="70"/>
+        <source>This window asked Cairn&apos;s family command for something it does not do, so nothing changed. The window and the command may come from different versions of Cairn. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/ChildrenOutcome.qml" line="72"/>
         <source>This account may not change the family. A grown-up&apos;s account can.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/ChildrenOutcome.qml" line="69"/>
+        <location filename="../qml/ChildrenOutcome.qml" line="75"/>
         <source>Nothing changed. It needs your password: the box was closed, or the password was not accepted.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/ChildrenOutcome.qml" line="71"/>
+        <location filename="../qml/ChildrenOutcome.qml" line="77"/>
         <source>Another change to the family was still under way, so nothing changed. Try again in a moment.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/ChildrenOutcome.qml" line="73"/>
+        <location filename="../qml/ChildrenOutcome.qml" line="79"/>
         <source>The change did not finish. Trying again is safe. If it fails again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/ChildrenOutcome.qml" line="75"/>
+        <location filename="../qml/ChildrenOutcome.qml" line="81"/>
         <source>Cairn&apos;s family command did not answer as expected. The list shows what is in place now. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian</source>
         <translation type="unfinished"></translation>
     </message>
@@ -273,17 +321,17 @@
 <context>
     <name>ChildrenView</name>
     <message>
-        <location filename="../qml/ChildrenView.qml" line="37"/>
+        <location filename="../qml/ChildrenView.qml" line="42"/>
         <source>Children</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/ChildrenView.qml" line="50"/>
+        <location filename="../qml/ChildrenView.qml" line="55"/>
         <source>Each child has their own login and their own level. A level can go up or down at any time, whatever fits now. Every change asks for your password.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/ChildrenView.qml" line="64"/>
+        <location filename="../qml/ChildrenView.qml" line="69"/>
         <source>No children yet. Add one below.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -448,6 +496,34 @@
     <message>
         <location filename="../qml/GamesView.qml" line="153"/>
         <source>Save waits: changes for a child who is logged in cannot be saved yet. Logged in: %1. Log them out first.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>LanguageChange</name>
+    <message>
+        <location filename="../qml/LanguageChange.qml" line="31"/>
+        <source>Choose a language for %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/LanguageChange.qml" line="40"/>
+        <source>Their screens are in this language from the next time they log in. The way to change it is hidden from children.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/LanguageChange.qml" line="63"/>
+        <source>Use %1 for %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/LanguageChange.qml" line="73"/>
+        <source>Cancel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/LanguageChange.qml" line="74"/>
+        <source>Cancel, and keep the language of %1</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

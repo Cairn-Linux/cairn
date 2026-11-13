@@ -87,7 +87,8 @@ var notInTheKiosk = [
 ];
 
 // Cairn's own actions, such as opening a child's Steam from a grown-up's
-// login (ADR-0032). A child at any level, and an account Cairn did not
+// login (ADR-0032) or Family's change of a child's name or language
+// (ADR-0056, ADR-0058). A child at any level, and an account Cairn did not
 // make, never sees the password prompt for one.
 var cairnActions = "com.cairnlinux.";
 

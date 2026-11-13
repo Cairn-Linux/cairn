@@ -25,6 +25,8 @@ Rectangle {
             return qsTr("%1 is at level %2 now. It starts the next time %1 logs in.").arg(name).arg(level);
         case ChildrenPage.NameChanged:
             return qsTr("%1 is called %2 now, on the login screen and in Family.").arg(name).arg(box.page.newName);
+        case ChildrenPage.LanguageChanged:
+            return qsTr("%1's language is %2 now. It starts the next time %1 logs in.").arg(name).arg(box.page.newLanguage);
         case ChildrenPage.NotChanged:
             return box.reason();
         }
@@ -48,6 +50,10 @@ Rectangle {
             return qsTr("Another child is called %1 already. Two children with one name look the same on every screen, so choose a different one, such as one with an initial.").arg(box.page.clash);
         case ChildrenPage.NameAsBefore:
             return qsTr("%1 is the name already. Type a different one, or press Cancel.").arg(box.page.newName);
+        case ChildrenPage.LanguageAsBefore:
+            return qsTr("%1 is the language already. Choose a different one, or press Cancel.").arg(box.page.newLanguage);
+        case ChildrenPage.BadLanguage:
+            return qsTr("Cairn's family command does not offer that language, so nothing changed. The window and the command may come from different versions of Cairn. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian");
         case ChildrenPage.BadFullName:
             return qsTr("A name cannot hold a colon, a comma, a backslash or a line break. Change the name and try again.");
         case ChildrenPage.BadName:

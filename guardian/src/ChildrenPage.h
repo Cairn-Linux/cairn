@@ -3,6 +3,7 @@
 
 #include "Account.h"
 #include "ChildList.h"
+#include "LanguageFile.h"
 #include "UnfinishedAdd.h"
 
 #include <QObject>
@@ -20,14 +21,17 @@ class FamilyChange;
 
 // What the Guardian tool's Children page shows, and what its buttons do:
 // the family's children with their levels, adding a child, moving a child
-// to another level (ADR-0040) and changing a child's name (ADR-0056).
+// to another level (ADR-0040), and changing a child's name (ADR-0056) and
+// language (ADR-0058).
 // Every change is one run of cairn-family through pkexec (ADR-0039).
 class ChildrenPage : public QObject {
     Q_OBJECT
     QML_ELEMENT
     QML_UNCREATABLE("The window is given one by main().")
-    // Each child as a map: login, name, level, and otherLevels, the levels
-    // the page offers to move them to.
+    // Each child as a map: login, name, level, otherLevels, the levels the
+    // page offers to move them to, languageName, the name of the language
+    // chosen for them or "", and otherLanguages, the languages it offers
+    // them, each a map of locale and name.
     Q_PROPERTY(QVariantList listedChildren READ listedChildren NOTIFY listedChildrenChanged)
     Q_PROPERTY(Step step READ step NOTIFY stepChanged)
     Q_PROPERTY(Reason reason READ reason NOTIFY stepChanged)
@@ -36,6 +40,8 @@ class ChildrenPage : public QObject {
     // The name the last change of a name asked for, as typed but for spaces
     // at either end.
     Q_PROPERTY(QString newName READ newName NOTIFY stepChanged)
+    // The name of the language the last change of a language asked for.
+    Q_PROPERTY(QString newLanguage READ newLanguage NOTIFY stepChanged)
     // The name, as the family knows it, of the child or grown-up a name the
     // page refused already belongs to.
     Q_PROPERTY(QString clash READ clash NOTIFY stepChanged)
@@ -49,26 +55,29 @@ public:
         Added,
         LevelChanged,
         NameChanged,
+        LanguageChanged,
         NotChanged, // see reason()
     };
     Q_ENUM(Step)
 
-    // Why nothing changed. The first six the page finds itself; the rest
+    // Why nothing changed. The first seven the page finds itself; the rest
     // are cairn-family's own words (ADR-0039) and pkexec's.
     enum class Reason : std::uint8_t {
         None,
         NoName,
         NoShortName,
-        SameName,      // a child on the list has that name already (#212)
-        AnotherChilds, // a new name another child on the list has (#212)
-        AGrownUpsName, // a name a grown-up's account has (#292)
-        NameAsBefore,  // a new name that is the child's name already
+        SameName,         // a child on the list has that name already (#212)
+        AnotherChilds,    // a new name another child on the list has (#212)
+        AGrownUpsName,    // a name a grown-up's account has (#292)
+        NameAsBefore,     // a new name that is the child's name already
+        LanguageAsBefore, // the language the child has already (#299)
         NotRoot,
         NotAGrownUp,
         Usage,
         BadName,
         BadFullName,
         BadLevel,
+        BadLanguage,
         Taken,
         NotAChild,
         Failed,
@@ -85,6 +94,11 @@ public:
         QString command;
         std::function<std::vector<Account>()> accounts = listAccounts;
         std::function<bool(const QString&)> nameInUse = ::nameInUse;
+        // The language a Guardian chose for the child with this login.
+        std::function<std::optional<QString>(const QString&)> languageOf =
+            [](const QString& login) {
+                return LanguageFile::read(QString::fromLatin1(LanguageFile::folder), login);
+            };
     };
 
     explicit ChildrenPage(Setup setup, QObject* parent = nullptr);
@@ -94,6 +108,7 @@ public:
     Reason reason() const;
     QString subject() const;
     QString newName() const;
+    QString newLanguage() const;
     QString clash() const;
     int level() const;
     bool busy() const;
@@ -106,13 +121,12 @@ public:
     Q_INVOKABLE void addChild(const QString& name, const QString& shortName, int level);
     Q_INVOKABLE void changeLevel(const QString& login, int level);
     Q_INVOKABLE void changeName(const QString& login, const QString& name);
+    Q_INVOKABLE void changeLanguage(const QString& login, const QString& locale);
     // Forgets a refusal once the field it was about has closed, so the page
     // no longer shows it. A change that went through still shows.
     Q_INVOKABLE void forgetRefusal();
     // Reads the children again from the account database.
     Q_INVOKABLE void reload();
-
-    static Reason reasonFor(const QString& answer);
 
 signals:
     void listedChildrenChanged();
@@ -132,6 +146,7 @@ private:
     Reason m_reason = Reason::None;
     QString m_subject;
     QString m_newName;
+    QString m_newLanguage;
     QString m_clash;
     int m_level = 0;
     Step m_onDone = Step::Ready;
