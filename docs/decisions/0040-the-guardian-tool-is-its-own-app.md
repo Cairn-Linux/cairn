@@ -17,7 +17,9 @@ dated 2026-11-12 under "The Children page" and in that section's
 consequences (the page reads the accounts again when it is shown, when
 Family comes back to the front, and before each change; and it takes
 away the sentence under the rows for the last change once a child it is
-about is no longer as they were)
+about is no longer as they were); the sentences dated 2026-11-12 under
+"Add a child" there (the form shows levels 3 and 4 as planned, and
+neither can be chosen)
 
 ## Context
 
@@ -134,7 +136,26 @@ step 4, and ADR-0041 says how they work.
   children on its list, not the grown-ups. Pressing Add or Save name
   again reads the accounts and answers for the family as it is.
 - **Add a child:** the name the login tile will show, and level 1 or 2,
-  each with one sentence from DESIGN §3. The window makes the account's
+  each with one sentence from DESIGN §3.
+  Since 2026-11-12 the form also shows levels 3 and 4 under them, each
+  with one sentence from DESIGN §3 and the word "Planned", and neither
+  can be chosen (the maintainer's choice of 2026-11-09 for the first
+  image that leaves the family; he suggested they might be blurred).
+  The look was chosen when it was built and is his to settle: words on
+  the page itself with no card or ring, in full colour, with nothing
+  blurred or faded, because a faded or blurred sentence could not be
+  read.
+  No tap, key or screen reader's action picks one.
+  Tab stops on each, though there is nothing to press, so that a person
+  who moves with Tab and a screen reader hears that they exist; the
+  outline that marks the keyboard's place shows round one only then.
+  Each tells a screen reader it is text, "Level 3, planned", with its
+  sentence, and offers nothing to check or press; this is tested through
+  Qt's accessibility calls, and not yet with a real screen reader.
+  The form still gives level 1 or 2 only, and `cairn-family` refuses any
+  other as before.
+  A child's row shows no planned level.
+  The window makes the account's
   login name from the name, in C++: lower case, accents dropped, only a
   to z, digits, `-` and `_`, starting with a letter or `_`, at most 32.
   When the name leaves nothing, a second field asks for a short name. If

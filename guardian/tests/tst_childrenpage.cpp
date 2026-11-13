@@ -317,6 +317,7 @@ private slots:
         QTest::newRow("backslash") << "Ada\\L" << 1 << ChildrenPage::Reason::BadFullName;
         QTest::newRow("line break") << "Ada\nL" << 1 << ChildrenPage::Reason::BadFullName;
         QTest::newRow("level 3") << "Dee" << 3 << ChildrenPage::Reason::BadLevel;
+        QTest::newRow("level 4") << "Dee" << 4 << ChildrenPage::Reason::BadLevel;
         QTest::newRow("level 0") << "Dee" << 0 << ChildrenPage::Reason::BadLevel;
     }
 

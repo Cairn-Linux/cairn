@@ -107,7 +107,15 @@ The Children page:
    language is English (UK) now. It starts the next time Ada logs in."
    A refusal, such as a closed password box, leaves the buttons open
    to try again.
-5. **Add a child:** the name for the login tile, and level 1 or 2. A
+5. **Add a child:** the name for the login tile, and level 1 or 2.
+   Levels 3 and 4 show under them with the word "Planned" and a
+   sentence each on what they will be: "A desktop with limits, and a
+   real terminal." and "The full desktop and terminal, with a
+   grown-up's controls still in place." They are words on the page,
+   with no card or ring, and cannot be chosen by a tap, a key or a
+   screen reader. Tab stops on each, so that a screen reader speaks
+   them, and the keyboard's outline shows round one only then; this is
+   not yet tried with a real screen reader. A
    name a child on the list already has, whatever the case of its
    letters, is refused before any password: "Cy already has an account
    on this computer. To add another child, give them a different name,
@@ -599,7 +607,7 @@ QML draws, C++ decides (ADR-0002):
 | `qml/FamilyWindow.qml`, `qml/ChildrenView.qml`, `qml/ChildrenOutcome.qml`, `qml/GamesView.qml` | The Guardian tool's window with its switch between pages, its Children page, the box there with the sentence for every answer, and its Games page. |
 | `qml/ChildChoice.qml`, `qml/GameCard.qml`, `qml/SaveOutcome.qml`, `qml/SaveResultWords.qml` | A child to pick on the Games page, one game in its grid, the sentences for a Save, and its words for what each child got. |
 | `qml/ChildGames.qml`, `qml/LoggedInCover.qml`, `qml/SaveProgress.qml` | The picked child's Steam, list and games, greyed and blurred while they are logged in; the card over them; and the Save's progress window, with the lid warning and Close. |
-| `qml/ChildRow.qml`, `qml/RowKeyboard.qml`, `qml/NameChange.qml`, `qml/AddChildForm.qml`, `qml/LabelledField.qml`, `qml/LevelChoice.qml` | A child on the list, where the keyboard was among the rows while the list is made again, the field for a child's new name, the Add form, a text field with its label, and one level to pick. |
+| `qml/ChildRow.qml`, `qml/RowKeyboard.qml`, `qml/NameChange.qml`, `qml/AddChildForm.qml`, `qml/LabelledField.qml`, `qml/LevelChoice.qml`, `qml/PlannedLevel.qml` | A child on the list, where the keyboard was among the rows while the list is made again, the field for a child's new name, the Add form, a text field with its label, one level to pick, and one level shown as planned, which cannot be picked. |
 | `qml/TextButton.qml`, `qml/ScrollMark.qml`, `qml/ScrollKeys.qml` | The button both windows use; the thin bar beside a part that scrolls, which shows where it is; and the arrow and page keys a button under that part passes on to it. |
 | `src/FamilyCommand` | `cairn-family create-child` and `set-level`: which accounts it may change, and the steps for each. Everything it reads from or does to the machine is in its `Setup`, so a test can replace it. |
 | `src/Caller` | Who started `cairn-family`: root, and through pkexec an administrator, with their home from the account database. |
@@ -700,6 +708,12 @@ into full view. `heldKey` sends the repeats of a key held down, which
 TestCase cannot, so the tests check that a game card, a button, a child,
 a level and a picture each count it once, and that a held Down goes on
 scrolling the Save's words.
+`screenReader` asks a control what a screen reader may do with it, and
+presses or toggles it that way, which no key or tap in a test does. The
+tests check that Add a child shows four levels, that a planned one is
+on the screen and not faded, that it offers a screen reader nothing to
+press, that no click, touch, key or such press or toggle picks it, and
+that Tab stops on it on the way from level 2 to Add.
 `loginsessions` checks the rule for a login, and asks the test machine's
 own logind when it has one;
 `loginwatch` sends logind's signals on a bus of its own.
