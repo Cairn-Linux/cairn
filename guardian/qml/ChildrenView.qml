@@ -118,7 +118,10 @@ Column {
             }
             onRenameClosed: {
                 view.renaming = "";
-                view.page.forgetRefusal();
+                // Only a refusal of this name goes with its field. The Add
+                // form's stays.
+                if (view.changingName && view.changing === modelData.login)
+                    view.page.forgetRefusal();
             }
             onLanguageOpened: {
                 // Closing the name field clears a refusal about it (#292).

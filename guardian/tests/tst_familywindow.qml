@@ -545,6 +545,22 @@ TestCase {
         compare(outcome(window), "");
     }
 
+    // Escape in a name's field clears only a refusal of that name. The Add
+    // form's refusal, made while the field was open, stays.
+    function test_escapeLeavesTheFormsRefusal() {
+        const window = makeWindow("done");
+        mouseClick(findChild(childRow(window, 1), "changeName"));
+        tryCompare(newNameInput(window, 1), "activeFocus", true);
+        mouseClick(findChild(window, "addButton"));
+        compare(outcome(window), "Type the child's name first.");
+        verify(findChild(childRow(window, 1), "nameChange").visible);
+        newNameInput(window, 1).forceActiveFocus();
+        keyClick(Qt.Key_Escape);
+        verify(!findChild(childRow(window, 1), "nameChange").visible);
+        compare(window.page.reason, ChildrenPage.NoName);
+        compare(outcome(window), "Type the child's name first.");
+    }
+
     function test_theSameNameIsRefused() {
         const window = makeWindow("asking");
         mouseClick(findChild(childRow(window, 0), "changeName"));
