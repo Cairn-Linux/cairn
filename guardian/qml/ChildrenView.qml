@@ -5,77 +5,30 @@ import Cairn.Brand
 import Cairn.Family
 
 // The Children page: each child with their level, a way to move a child to
-// another level, and a way to add one. Raising and lowering a level look
-// and read the same (DESIGN §3). One change runs at a time, and every
-// control waits while it does.
+// another level or change their name, and a way to add one. Raising and
+// lowering a level look and read the same (DESIGN §3). One change runs at
+// a time, and every control waits while it does.
 Column {
     id: view
 
     required property ChildrenPage page
     // The box with what the last change did, for the window to scroll to.
     readonly property alias outcomeBox: outcomeBox
-    // The login of the child whose level the parent changed last, or ""
-    // when the last change came from the Add form. Focus goes back there.
+    // The login of the child whose level or name the parent changed last,
+    // or "" when the last change came from the Add form. Focus goes back
+    // there: to the new name's field or Change name after a name.
     property string changing: ""
+    property bool changingName: false
+    // The login of the child whose new name is being typed, or "", and
+    // what is typed so far. Kept here, not in the row, because the list is
+    // made again after every change, and a refused name stays to mend.
+    property string renaming: ""
+    property string typedName: ""
 
     // The outcome has changed, and focus is back where the parent was.
     signal outcomeShown
 
     spacing: Tokens.bodySize
-
-    // What the last change did, or why nothing changed, in one or two
-    // sentences. The list below always shows what is in place now.
-    function outcome() {
-        const name = view.page.subject;
-        const level = view.page.level;
-        switch (view.page.step) {
-        case ChildrenPage.Asking:
-            return qsTr("Confirm with your password, or your fingerprint, in the box that opened.");
-        case ChildrenPage.Added:
-            return qsTr("%1 can log in now, at level %2. %1 starts with no games: choose them on the Games page.").arg(name).arg(level);
-        case ChildrenPage.LevelChanged:
-            return qsTr("%1 is at level %2 now. It starts the next time %1 logs in.").arg(name).arg(level);
-        case ChildrenPage.NotChanged:
-            return view.reason();
-        }
-        return "";
-    }
-
-    function reason() {
-        const name = view.page.subject;
-        switch (view.page.reason) {
-        case ChildrenPage.NoName:
-            return qsTr("Type the child's name first.");
-        case ChildrenPage.NoShortName:
-            return qsTr("Type a short name for the account as well, with letters a to z.");
-        case ChildrenPage.SameName:
-            return qsTr("%1 already has an account on this computer. To add another child, give them a different name, such as one with an initial.").arg(name);
-        case ChildrenPage.BadFullName:
-            return qsTr("A name cannot hold a colon, a comma, a backslash or a line break. Change the name and try again.");
-        case ChildrenPage.BadName:
-            return qsTr("The short name can hold only letters a to z, digits, - and _, and starts with a letter. Change it and try again.");
-        case ChildrenPage.BadLevel:
-            return qsTr("Only levels 1 and 2 can be given for now. Levels 3 and 4 have no session yet.");
-        case ChildrenPage.Taken:
-            return qsTr("Another account on this computer has that short name. Press Add again to use a different one.");
-        case ChildrenPage.NotAChild:
-            return qsTr("%1 is not a child's account on this computer. The list shows the children there are now.").arg(name);
-        case ChildrenPage.NotRoot:
-            return qsTr("Cairn's family command did not get the rights it needs, so it changed nothing. Close Family and open it again. If it happens again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian");
-        case ChildrenPage.Usage:
-            return qsTr("This window asked Cairn's family command for something it does not do, so nothing changed. The window and the command may come from different versions of Cairn. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian");
-        case ChildrenPage.NotAGrownUp:
-            return qsTr("This account may not change the family. A grown-up's account can.");
-        case ChildrenPage.Dismissed:
-        case ChildrenPage.NotAuthorized:
-            return qsTr("Nothing changed. It needs your password: the box was closed, or the password was not accepted.");
-        case ChildrenPage.Busy:
-            return qsTr("Another change to the family was still under way, so nothing changed. Try again in a moment.");
-        case ChildrenPage.Failed:
-            return qsTr("The change did not finish. Trying again is safe. If it fails again, the reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian");
-        }
-        return qsTr("Cairn's family command did not answer as expected. The list shows what is in place now. The reason is in the system log. In a terminal: journalctl -t cairn-family -t cairn-guardian");
-    }
 
     Text {
         objectName: "heading"
@@ -129,41 +82,42 @@ Column {
             width: view.width
             child: modelData
             enabled: !view.page.busy
+            renaming: view.renaming === modelData.login
+            typedName: view.typedName
             onLevelChosen: level => {
+                // A level chosen leaves the name as it is.
+                view.renaming = "";
                 view.changing = modelData.login;
+                view.changingName = false;
                 view.page.changeLevel(modelData.login, level);
+            }
+            onRenameOpened: {
+                if (view.renaming !== modelData.login)
+                    view.typedName = modelData.name;
+                view.renaming = modelData.login;
+            }
+            onTypedNameEdited: name => view.typedName = name
+            onNameChosen: name => {
+                view.changing = modelData.login;
+                view.changingName = true;
+                view.page.changeName(modelData.login, name);
+            }
+            onRenameClosed: {
+                view.renaming = "";
+                // Only a refusal of this name goes with its field. The Add
+                // form's stays.
+                if (view.changingName && view.changing === modelData.login)
+                    view.page.forgetRefusal();
             }
         }
     }
 
     // The outcome sits between the list and the form, near both.
-    Rectangle {
+    ChildrenOutcome {
         id: outcomeBox
 
         width: view.width
-        height: outcomeText.implicitHeight + Tokens.bodySize * 2
-        visible: outcomeText.text !== ""
-        radius: Tokens.radiusSm
-        color: Tokens.card
-        border.color: Tokens.machine
-        border.width: Tokens.strokeHairline
-
-        Text {
-            id: outcomeText
-
-            objectName: "outcome"
-            x: Tokens.bodySize
-            y: Tokens.bodySize
-            width: parent.width - Tokens.bodySize * 2
-            wrapMode: Text.WordWrap
-            text: view.outcome()
-            font.family: Tokens.fontFamily
-            font.pixelSize: Tokens.bodySize
-            lineHeight: Tokens.bodyLineHeight
-            color: Tokens.paperLabel
-            Accessible.role: Accessible.AlertMessage
-            Accessible.name: text
-        }
+        page: view.page
     }
 
     AddChildForm {
@@ -186,7 +140,12 @@ Column {
             for (let i = 0; i < rows.count; ++i) {
                 const row = rows.itemAt(i) as ChildRow;
                 if (row && row.child.login === view.changing) {
-                    row.takeFocus();
+                    if (view.changingName && row.renaming)
+                        row.focusNewName();
+                    else if (view.changingName)
+                        row.focusChangeName();
+                    else
+                        row.takeFocus();
                     view.outcomeShown();
                     return;
                 }
@@ -205,6 +164,9 @@ Column {
         function onStepChanged() {
             if (view.page.step === ChildrenPage.Added)
                 form.clear();
+            // A name in place closes its field.
+            if (view.page.step === ChildrenPage.NameChanged)
+                view.renaming = "";
             // Later, once the controls are enabled again.
             if (view.page.step === ChildrenPage.Asking)
                 Qt.callLater(view.outcomeShown);

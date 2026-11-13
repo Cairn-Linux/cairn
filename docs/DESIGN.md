@@ -177,7 +177,7 @@ locked icon, nothing to probe.
 
 | Area | Actions |
 |---|---|
-| Accounts | Create, archive, delete child accounts; set name and avatar |
+| Accounts | Create, archive, delete child accounts; set name and avatar. A child's name is the Guardian's alone: a child cannot change it at any level, and Family changes it. A child cannot change their picture or language through AccountsService either, though at L3 and L4 a picture or language from files in their own home can still show (ADR-0056) |
 | Levels | Raise or lower any child's level |
 | Permissions | Per-child app allowlist, game allowlist, browser access |
 | Time | Schedules and daily limits |
@@ -193,7 +193,8 @@ password. This is where account creation, level changes, updates, rollback, and
 data export live. Its tool is Cairn's own app, "Family" in the Guardian's
 menu, not pages added to System Settings (ADR-0040). System Settings lists
 "Family" too, in place of Plasma's Users page, which Cairn hides; a
-Guardian changes their own password and picture in Family (ADR-0043).
+Guardian changes their own password and picture in Family (ADR-0043),
+and a child's name on its Children page (ADR-0056).
 Fixing what a child's Steam waits for, such as a sign-in Steam turned
 down, is done there too, once the child has logged out (ADR-0032,
 proposed; ADR-0049). Cairn does not ask for a Guardian's password

@@ -4,15 +4,15 @@ The Guardian's side of Cairn (ROADMAP P1-5). So far it has three pieces:
 
 - **The Guardian tool**, "Family" in a Guardian's application menu
   and in System Settings (ADR-0040, ADR-0043). Its Children page lists
-  the family's children with their levels, adds a child and moves a
-  child to another level. Its Games page chooses the games on each
+  the family's children with their levels, adds a child, moves a child
+  to another level and changes a child's name (ADR-0056). Its Games page chooses the games on each
   child's own list (ADR-0041). Its Your account page changes the
   Guardian's own password and picture (ADR-0043). Its Notices page says
   when wrong passwords were typed, and whether an account locked
   (ADR-0054).
 - **`cairn-family`**, the root command under it that makes a child's
-  account, sets a child's level (ADR-0039) and gives children their
-  games (ADR-0041). The family's setup on the image runs it too.
+  account, sets a child's level (ADR-0039) and name (ADR-0056) and gives
+  children their games (ADR-0041). The family's setup on the image runs it too.
 - **Steam for a child**, a small window that opens a child's own Steam
   from the Guardian's own Plasma login, to sign the child in, switch the
   account or change Steam's settings (ADR-0032, proposed).
@@ -49,21 +49,36 @@ The Children page:
    give, 1 or 2. Up or down, the button and the sentence after it read
    the same (DESIGN §3). The new level starts the next time the child
    logs in, because PAM and the session read the groups at login.
-3. **Add a child:** the name for the login tile, and level 1 or 2. A
+3. **Change name** beside each child, at any level, opens a field under
+   the row with the child's name in it, and **Save name** and
+   **Cancel**; Enter saves and Escape cancels. A child cannot change
+   their own name (ADR-0056), so this is how a name changes. The full
+   name the child has already, an empty name, and a name another child
+   on the list or a grown-up has, whatever the case of its letters, are
+   refused before any password, so two children never share a name and
+   no child looks like a grown-up (#212, #292). The refusal names the
+   child or grown-up as the list shows them. Once the name is in place: "Ada is called Ada Lovelace now,
+   on the login screen and in Family." The child's "Steam for" entry in
+   the Guardian's menu takes the new name too. A name a child set for
+   themselves before this image stays until it is changed here. Family
+   cannot change a child's picture or language yet.
+4. **Add a child:** the name for the login tile, and level 1 or 2. A
    name a child on the list already has, whatever the case of its
    letters, is refused before any password: "Cy already has an account
    on this computer. To add another child, give them a different name,
    such as one with an initial." Two children with one name would look
-   the same on every screen (#212). The window makes the account's own
+   the same on every screen (#212). A grown-up's name is refused the
+   same way (#292). The window makes the account's own
    short name from the name, such as `zoe` from "Zoë", and asks for one
    only when the name has no letters a to z. If an account or a group
    already has it, it uses `zoe2`, `zoe3` and so on, so it never names
    an existing child.
-4. Each change runs `cairn-family` through `pkexec`, which asks for the
+5. Each change runs `cairn-family` through `pkexec`, which asks for the
    Guardian's password every time. Every control waits until the answer
    is in, and one sentence says what happened, or why nothing changed and
-   what to do next. A refusal leaves the form as it was.
-5. An add that failed may have made the account, so the child is on the
+   what to do next. A refusal leaves the form, or the new name, as it
+   was.
+6. An add that failed may have made the account, so the child is on the
    list. Adding the same name again, whatever the case of its letters,
    finishes that add rather than being refused. Family remembers the
    failed add only while it stays open.
@@ -331,6 +346,7 @@ no button and leaves the box in front.
 ```sh
 cairn-family create-child LOGIN LEVEL [--full-name NAME]
 cairn-family set-level LOGIN LEVEL
+cairn-family set-name LOGIN NAME
 cairn-family save-games LOGIN=APPID,APPID... [LOGIN=...]
 cairn-family log-out LOGIN
 cairn-family set-own-password    # the new password on standard input
@@ -338,15 +354,16 @@ cairn-family set-own-password    # the new password on standard input
 
 It is installed as `/usr/libexec/cairn/cairn-family` and runs as root:
 through `pkexec`, behind a polkit action for each subcommand
-(`com.cairnlinux.family.create-child`, `.set-level`, `.save-games`,
-`.log-out`), each of which asks for an administrator's password for
+(`com.cairnlinux.family.create-child`, `.set-level`, `.set-name`,
+`.save-games`, `.log-out`), each of which asks for an administrator's password for
 every change, and `.set-own-password`, which asks for the caller's own
 password every time (ADR-0043), or
 with `sudo` from `../provision/cairn-family-setup.sh`. Started by
 `pkexec`, it checks again that the account that started it is an
 administrator.
 
-- LEVEL is 1 or 2. L3 and L4 have no child session yet.
+- LEVEL is 1 or 2. L3 and L4 have no child session yet. `set-name`
+  takes no level, and renames a child at any level.
 - `create-child` makes a new account with its level group and a locked
   password, with NAME as its full name. Run again for a child Cairn made,
   it locks the password if needed, sets the full name and the level, and
@@ -354,11 +371,14 @@ administrator.
 - `set-level` changes an existing child's level: the new group first,
   then the old one goes (#100).
   It also locks the child's password if it is not locked.
+- `set-name` changes an existing child's full name to NAME, with the
+  same rule as create-child's, and only that (ADR-0056). The journal
+  gets `set-name LOGIN`, not the name.
 - An account Cairn did not make is refused, never made a child: an
   administrator, a Guardian, a system account, or one in no level group.
-- Both write the child's "Steam for <child>" entry in
+- All three write the child's "Steam for <child>" entry in
   `/usr/local/share/applications`, as provisioning does, and relabel it.
-- Both take `/run/lock/cairn-family-accounts` before they read the
+- All three take `/run/lock/cairn-family-accounts` before they read the
   account and keep it until the change is made, so two grown-ups'
   changes at once go one after the other, and the second reads the
   groups the first left (#255). Without that, two level changes could
@@ -485,6 +505,7 @@ QML draws, C++ decides (ADR-0002):
 | `src/ChildList` | The family's children among the accounts, in the order they were made, each with their name and level, as maps for the pages' QML; and the rule for when two names are one, whatever the case of their letters. |
 | `src/FamilyChange` | Runs `pkexec` with `cairn-family`, one change at a time, and reads its one-line answer, or pkexec's own exit code. |
 | `src/ChildrenPage` | What the Children page shows and what its buttons do: the list, the checks before a change, and why a change was refused. Its account database is in its `Setup`, so a test can replace it. |
+| `src/UnfinishedAdd` | The Children page's memory of an add that may have made the account before it stopped, so adding that name again finishes it. |
 | `src/GamesPage` | What the Games page shows and does: the children, the one picked, the games with each marked when it is on that child's list as saved and as wanted, turning a game, Save, a logged-in child's greyed games, and opening a child's Steam window. Its files, accounts, commands, program start and logind reader are in its `Setup`, so a test can replace them. |
 | `src/LoginSessions` | Who is logged in, from systemd-logind's `ListSessions` on the system bus through Qt D-Bus, without root, counted by the visit helper's own rule. |
 | `src/LoginWatch` | Keeps who is logged in up to date, reading again on logind's `SessionNew` and `SessionRemoved`. |
@@ -517,10 +538,10 @@ QML draws, C++ decides (ADR-0002):
 | `src/NoticesPage` | What the Notices page shows: its state, the sentences, how far back the record goes, and the words under the list. Its journalctl, folders, accounts, time zone and clock are in its `Setup`, so a test can replace them. |
 | `qml/NoticesView.qml` | The Notices page. |
 | `src/GamePicture` | A game's picture by its app id, with the launcher's rule: `<folder>/<appid>.jpg` when it is a plain file, not a link. The Games page and `cairn-family` both use it. |
-| `qml/FamilyWindow.qml`, `qml/ChildrenView.qml`, `qml/GamesView.qml` | The Guardian tool's window with its switch between pages, its Children page with the sentence for every answer, and its Games page. |
+| `qml/FamilyWindow.qml`, `qml/ChildrenView.qml`, `qml/ChildrenOutcome.qml`, `qml/GamesView.qml` | The Guardian tool's window with its switch between pages, its Children page, the box there with the sentence for every answer, and its Games page. |
 | `qml/ChildChoice.qml`, `qml/GameCard.qml`, `qml/SaveOutcome.qml`, `qml/SaveResultWords.qml` | A child to pick on the Games page, one game in its grid, the sentences for a Save, and its words for what each child got. |
 | `qml/ChildGames.qml`, `qml/LoggedInCover.qml`, `qml/SaveProgress.qml` | The picked child's Steam, list and games, greyed and blurred while they are logged in; the card over them; and the Save's progress window, with the lid warning and Close. |
-| `qml/ChildRow.qml`, `qml/AddChildForm.qml`, `qml/LabelledField.qml`, `qml/LevelChoice.qml` | A child on the list, the Add form, a text field with its label, and one level to pick. |
+| `qml/ChildRow.qml`, `qml/NameChange.qml`, `qml/AddChildForm.qml`, `qml/LabelledField.qml`, `qml/LevelChoice.qml` | A child on the list, the field for a child's new name, the Add form, a text field with its label, and one level to pick. |
 | `qml/TextButton.qml`, `qml/ScrollMark.qml`, `qml/ScrollKeys.qml` | The button both windows use; the thin bar beside a part that scrolls, which shows where it is; and the arrow and page keys a button under that part passes on to it. |
 | `src/FamilyCommand` | `cairn-family create-child` and `set-level`: which accounts it may change, and the steps for each. Everything it reads from or does to the machine is in its `Setup`, so a test can replace it. |
 | `src/Caller` | Who started `cairn-family`: root, and through pkexec an administrator, with their home from the account database. |

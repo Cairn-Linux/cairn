@@ -7,7 +7,6 @@
 
 #include <QHash>
 
-#include <algorithm>
 #include <utility>
 
 ChildrenPage::ChildrenPage(Setup setup, QObject* parent)
@@ -33,6 +32,14 @@ QString ChildrenPage::subject() const {
     return m_subject;
 }
 
+QString ChildrenPage::newName() const {
+    return m_newName;
+}
+
+QString ChildrenPage::clash() const {
+    return m_clash;
+}
+
 int ChildrenPage::level() const {
     return m_level;
 }
@@ -48,10 +55,11 @@ bool ChildrenPage::needsShortName(const QString& name) const {
 
 // A name a child on the list already has is refused, unless the add
 // finishes a failed one: two children with one name look the same on
-// every screen (#212). The login name comes from the name, or from the
-// short name when the name gives none, and is never one an account or
-// group already has: given an existing child's login, create-child would
-// change that child instead.
+// every screen (#212). So is a grown-up's name, which would make the child
+// look like that grown-up (#292). The login name comes from the name, or
+// from the short name when the name gives none, and is never one an
+// account or group already has: given an existing child's login,
+// create-child would change that child instead.
 void ChildrenPage::addChild(const QString& name, const QString& shortName, int level) {
     if (busy()) {
         return;
@@ -59,13 +67,15 @@ void ChildrenPage::addChild(const QString& name, const QString& shortName, int l
     const QString fullName = name.trimmed();
     m_subject = fullName;
     m_level = level;
+    m_clash.clear();
     if (fullName.isEmpty()) {
         setStep(Step::NotChanged, Reason::NoName);
         return;
     }
-    const std::optional<QString> unfinished = unfinishedLogin(fullName);
-    if (!unfinished && childNamed(m_children, fullName) != nullptr) {
-        setStep(Step::NotChanged, Reason::SameName);
+    const std::optional<QString> unfinished =
+        m_unfinished.loginFor(fullName, m_children, m_setup.nameInUse);
+    const ListedChild* other = unfinished ? nullptr : childNamed(m_children, fullName);
+    if (refusedAsTaken(other, Reason::SameName, fullName)) {
         return;
     }
     std::optional<QString> login = loginFromName(fullName);
@@ -84,27 +94,10 @@ void ChildrenPage::addChild(const QString& name, const QString& shortName, int l
         setStep(Step::NotChanged, Reason::Taken);
         return;
     }
-    m_adding = UnfinishedAdd{.login = *free, .fullName = fullName};
+    m_unfinished.starting(*free, fullName);
     run({QStringLiteral("create-child"), *free, QString::number(level),
          QStringLiteral("--full-name"), fullName},
         Step::Added);
-}
-
-// After an add that may have stopped part way, adding that name again,
-// whatever the case of its letters, gives create-child the same login, so
-// the second run finishes the first (ADR-0039) instead of making a second
-// account with that name. It does only while that login is free or is
-// still that very child.
-std::optional<QString> ChildrenPage::unfinishedLogin(const QString& fullName) const {
-    if (!m_unfinished || !sameName(m_unfinished->fullName, fullName)) {
-        return std::nullopt;
-    }
-    const QString& earlier = m_unfinished->login;
-    const ListedChild* child = childWithLogin(m_children, earlier);
-    if ((child != nullptr && sameName(child->name, fullName)) || !m_setup.nameInUse(earlier)) {
-        return earlier;
-    }
-    return std::nullopt;
 }
 
 // Only a child the page lists, so the page never names another account.
@@ -112,18 +105,68 @@ void ChildrenPage::changeLevel(const QString& login, int level) {
     if (busy()) {
         return;
     }
-    const auto child = std::ranges::find(m_children, login, &ListedChild::login);
-    m_subject = child == m_children.end() ? login : child->name;
+    const ListedChild* child = childWithLogin(m_children, login);
+    m_subject = child == nullptr ? login : child->name;
     m_level = level;
-    if (child == m_children.end()) {
+    if (child == nullptr) {
         setStep(Step::NotChanged, Reason::NotAChild);
         return;
     }
     run({QStringLiteral("set-level"), login, QString::number(level)}, Step::LevelChanged);
 }
 
+// A child's new name, at any level, refused before any password when it is
+// empty, is the child's full name already, or is another child's or a
+// grown-up's (#212, #292). The same name in other capitals is a change, and
+// so is a child's login given as the full name they never had.
+void ChildrenPage::changeName(const QString& login, const QString& name) {
+    if (busy()) {
+        return;
+    }
+    const ListedChild* child = childWithLogin(m_children, login);
+    m_subject = child == nullptr ? login : child->name;
+    m_newName = name.trimmed();
+    m_level = child == nullptr ? 0 : child->level;
+    m_clash.clear();
+    if (child == nullptr) {
+        setStep(Step::NotChanged, Reason::NotAChild);
+    } else if (m_newName.isEmpty()) {
+        setStep(Step::NotChanged, Reason::NoName);
+    } else if (m_newName == child->fullName) {
+        setStep(Step::NotChanged, Reason::NameAsBefore);
+    } else if (!refusedAsTaken(childNamed(m_children, m_newName, login), Reason::AnotherChilds,
+                               m_newName)) {
+        run({QStringLiteral("set-name"), login, m_newName}, Step::NameChanged);
+    }
+}
+
+// Refuses a name another child, given as `other`, or a grown-up has
+// already, and says whether it did. The list is as last read, so a name
+// given meanwhile from another window goes through, as in Add a child.
+bool ChildrenPage::refusedAsTaken(const ListedChild* other, Reason childs, const QString& name) {
+    if (other != nullptr) {
+        m_clash = other->name;
+        setStep(Step::NotChanged, childs);
+        return true;
+    }
+    if (const std::optional<QString> grownUp = nameAmong(m_grownUps, name)) {
+        m_clash = *grownUp;
+        setStep(Step::NotChanged, Reason::AGrownUpsName);
+        return true;
+    }
+    return false;
+}
+
+void ChildrenPage::forgetRefusal() {
+    if (m_step == Step::NotChanged) {
+        setStep(Step::Ready);
+    }
+}
+
 void ChildrenPage::reload() {
-    m_children = childrenAmong(m_setup.accounts());
+    const std::vector<Account> accounts = m_setup.accounts();
+    m_children = childrenAmong(accounts);
+    m_grownUps = grownUpNamesAmong(accounts);
     emit listedChildrenChanged();
 }
 
@@ -170,25 +213,12 @@ void ChildrenPage::run(const QStringList& arguments, Step onDone) {
 void ChildrenPage::finished(const QString& answer) {
     reload();
     if (m_onDone == Step::Added) {
-        rememberAdd(answer);
+        m_unfinished.answered(answer, reasonFor(answer) != Reason::Unknown);
     }
     if (answer == QLatin1String("done")) {
         setStep(m_onDone);
     } else {
         setStep(Step::NotChanged, reasonFor(answer));
-    }
-}
-
-// A failed add, or one with an answer the window cannot read, may have
-// made the account before it stopped. It is remembered until an add with
-// that login is done. A refusal or a closed password box changes nothing.
-void ChildrenPage::rememberAdd(const QString& answer) {
-    if (answer == QLatin1String("done")) {
-        if (m_unfinished && m_unfinished->login == m_adding.login) {
-            m_unfinished.reset();
-        }
-    } else if (answer == QLatin1String("failed") || reasonFor(answer) == Reason::Unknown) {
-        m_unfinished = m_adding;
     }
 }
 

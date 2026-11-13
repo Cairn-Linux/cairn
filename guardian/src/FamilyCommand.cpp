@@ -13,7 +13,11 @@
 
 namespace {
 
+// Only the login and the level: a full name is the family's own words.
 QString askedFor(const FamilyRequest& request) {
+    if (request.action == FamilyRequest::Action::SetName) {
+        return QStringLiteral("set-name %1").arg(request.login);
+    }
     const QString action = request.action == FamilyRequest::Action::SetLevel
                                ? QStringLiteral("set-level")
                                : QStringLiteral("create-child");
@@ -50,9 +54,13 @@ FamilyCommand::Outcome FamilyCommand::run(const QStringList& arguments) const {
         return {.refusal = refusal, .asked = asked};
     }
     const std::optional<Account> account = m_setup.lookUp(request.login);
-    if (request.action == FamilyRequest::Action::SetLevel) {
+    if (request.action != FamilyRequest::Action::CreateChild) {
         if (!account || !account->isCairnChild()) {
             return {.refusal = Refusal::NotAChild, .asked = asked};
+        }
+        if (request.action == FamilyRequest::Action::SetName) {
+            return {.refusal = setName(*account, request.fullName.value_or(QString())),
+                    .asked = asked};
         }
         return {.refusal = changeChild(*account, request), .asked = asked};
     }
@@ -133,6 +141,16 @@ std::optional<Refusal> FamilyCommand::setLevel(const Account& child, int level) 
         }
     }
     return std::nullopt;
+}
+
+// A child's new name, at any level, and their "Steam for" entry with it.
+// The level and the password stay as they are (ADR-0056).
+std::optional<Refusal> FamilyCommand::setName(const Account& child, const QString& fullName) const {
+    if (fullName != child.fullName &&
+        !SystemTool::run(m_setup.usermod, {QStringLiteral("--comment"), fullName, child.login})) {
+        return Refusal::Failed;
+    }
+    return writeEntry(child.login, fullName);
 }
 
 // A file renamed into place keeps the label of the file it was written as,

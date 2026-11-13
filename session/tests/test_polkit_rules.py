@@ -158,11 +158,12 @@ process.stdout.write(rules[0]({id: input.action}, subject));
 
 class FamilyActionTest(unittest.TestCase):
     """cairn-family's actions, one per subcommand (ADR-0039, ADR-0041,
-    ADR-0043): the levels rule refuses each to a child and lets an
+    ADR-0043, ADR-0056): the levels rule refuses each to a child and lets an
     administrator through to the password prompt, with no change of its
     own."""
 
-    SUBCOMMANDS = {"create-child", "set-level", "save-games", "log-out", "set-own-password"}
+    SUBCOMMANDS = {"create-child", "set-level", "set-name", "save-games", "log-out",
+                   "set-own-password"}
     # Asks for the grown-up's own password, the one being changed.
     OWN = {"set-own-password"}
 
@@ -210,7 +211,7 @@ class FamilyActionTest(unittest.TestCase):
                          "Look for new games, or change which games a child has")
         # Logging a child out is its own password, never folded into a Save.
         self.assertEqual(messages["log-out"], "A grown-up's password is needed to log a child out.")
-        for subcommand in ("create-child", "set-level"):
+        for subcommand in ("create-child", "set-level", "set-name"):
             self.assertEqual(messages[subcommand],
                              "A grown-up's password is needed to change a child's account.")
         self.assertEqual(messages["set-own-password"], "Type the password you use now to change it.")
@@ -302,6 +303,52 @@ class KioskScreenAndPowerKeyTest(unittest.TestCase):
             ("lodger",): "not-handled",
         }
         for action in SCREEN_AND_POWER_KEY:
+            for groups, answer in cases.items():
+                with self.subTest(action=action, groups=groups):
+                    given = json.dumps({"rules": str(RULES), "action": action,
+                                        "groups": list(groups)})
+                    result = subprocess.run([node, "-e", RULE_RUNNER, given], capture_output=True,
+                                            text=True, check=True)
+                    self.assertEqual(result.stdout, answer)
+
+
+class OwnAccountDataTest(unittest.TestCase):
+    """A child's own name, picture and language (ADR-0056): AccountsService
+    asks one action for all of them, and the rule refuses it at every level
+    before any prompt. Its other two actions, another account's data and
+    one's own password, are refused too, so no grown-up's password box
+    opens in a child's session. A grown-up, and an account Cairn did not
+    make, keep Fedora's default."""
+
+    ACTIONS = ("org.freedesktop.accounts.change-own-user-data",
+               "org.freedesktop.accounts.change-own-password",
+               "org.freedesktop.accounts.user-administration")
+
+    def setUp(self):
+        self.rules = RULES.read_text()
+
+    def test_they_are_in_the_guardians_list(self):
+        # The Guardian's list, not the kiosk's, so L3 and L4 are refused too.
+        [guardian] = re.findall(r"var guardianOnly = \[(.*?)\];", self.rules, re.S)
+        for action in self.ACTIONS:
+            with self.subTest(action=action):
+                self.assertIn(action, quoted_strings(guardian))
+
+    def test_the_rule_itself_answers_so(self):
+        node = shutil.which("node")
+        if node is None:
+            self.skipTest("no node here to run the rule with")
+        cases = {
+            ("ada", "cairn-l1"): "no",
+            ("ben", "cairn-l2"): "no",
+            ("ada", "cairn-l3"): "no",
+            ("ben", "cairn-l4"): "no",
+            ("gina", "wheel", "cairn-guardian"): "not-handled",
+            ("dad", "cairn-guardian", "cairn-l1"): "not-handled",
+            ("bazzite", "wheel"): "not-handled",
+            ("lodger",): "not-handled",
+        }
+        for action in self.ACTIONS:
             for groups, answer in cases.items():
                 with self.subTest(action=action, groups=groups):
                     given = json.dumps({"rules": str(RULES), "action": action,
