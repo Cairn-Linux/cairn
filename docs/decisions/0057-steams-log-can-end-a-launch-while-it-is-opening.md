@@ -140,6 +140,14 @@ says has ended since the tap, is over: the tiles come back at once.**
   It does not for a game that Steam runs as a short process first and
   then a second one, with a window from the first: not seen on the VM or
   the laptop, but the check in the VM and child test 2 watch for it.
+  Nor does it for a game given up on while Steam was still getting it
+  ready, when the child then taps the same game.
+  That run starts after the tap, so its reaper counts as this tap's, and
+  if it ends while the launch is still opening, the launch ends.
+  That is right if Steam starts the game once for both taps.
+  It is wrong only if Steam then starts it again for the second tap.
+  Steam's log cannot tell the two runs apart, and no check so far has
+  tried a give-up just before a tap.
 - A game that hides its only window while opening, and goes on running,
   keeps waiting: Steam has not said it ended.
 - Tested in C++ with fixture logs: Steam's end is seen; an end from
