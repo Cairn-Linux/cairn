@@ -141,6 +141,7 @@ set(family_window_sources
     src/UnfinishedAdd.h src/UnfinishedAdd.cpp
     src/ChildrenPage.h src/ChildrenPage.cpp
     src/ChildrenRefusals.h src/ChildrenRefusals.cpp
+    src/OutcomeChildren.h src/OutcomeChildren.cpp
     src/GameCatalogue.h src/GameCatalogue.cpp
     src/GamePicture.h src/GamePicture.cpp
     src/GameShelf.h src/GameShelf.cpp
@@ -182,6 +183,7 @@ set(family_window_qml_files
     qml/SaveProgress.qml
     qml/LoggedInCover.qml
     qml/ChildRow.qml
+    qml/RowKeyboard.qml
     qml/NameChange.qml
     qml/LanguageChange.qml
     qml/AddChildForm.qml
@@ -450,6 +452,15 @@ target_include_directories(tst_unfinishedadd PRIVATE src)
 target_link_libraries(tst_unfinishedadd PRIVATE Qt6::Core Qt6::Test cairn-accounts)
 add_test(NAME unfinishedadd COMMAND tst_unfinishedadd)
 
+# Which children the Children page's last sentence is about, and when one
+# of them is no longer as the sentence found them (ADR-0040).
+qt_add_executable(tst_outcomechildren tests/tst_outcomechildren.cpp src/OutcomeChildren.h
+    src/OutcomeChildren.cpp src/ChildList.h src/ChildList.cpp src/ChildLanguage.h
+    src/ChildLanguage.cpp)
+target_include_directories(tst_outcomechildren PRIVATE src)
+target_link_libraries(tst_outcomechildren PRIVATE Qt6::Core Qt6::Test cairn-accounts)
+add_test(NAME outcomechildren COMMAND tst_outcomechildren)
+
 qt_add_executable(tst_childrenpage tests/tst_childrenpage.cpp ${family_window_sources})
 target_include_directories(tst_childrenpage PRIVATE src)
 target_link_libraries(tst_childrenpage PRIVATE Qt6::Qml Qt6::Gui Qt6::DBus Qt6::Test cairn-accounts)
@@ -598,7 +609,7 @@ set_tests_properties(steamvisit ownsteam screenlockwatch steamforchild steamwind
     logoutcommand gamessave
     steamentry
     loginname childlist familychange saverun savereport loginsessions loginwatch childlogout
-    gamechoices childrenpage
+    gamechoices outcomechildren childrenpage
     gamepicture gameshelf keyvalues steammanifest ownsteamgames gamespage familywindow
     newpassword ownpasswordcommand picturefile accountpage walletpassword
     journaltries trynotices noticewords tryreader PROPERTIES
