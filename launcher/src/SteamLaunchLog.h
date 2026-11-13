@@ -29,6 +29,15 @@
 //
 // A launch whose last step is still DownloadingDepots after Steam took the
 // game off its download schedule has stopped part-way (#206, SteamStall).
+//
+// Steam also writes when the game's own process starts and ends: `Game
+// process added : AppID 294530 "..."` and `Game process removed: AppID
+// 294530 "..."`. The process is Steam's reaper, which holds the whole game,
+// so "removed" comes once, when the game is over, whether the child quit it
+// or it crashed (ADR-0057). The `ProcID` at the end of the two lines names
+// different processes, Steam's wrapper and then the last one it tracked, so
+// it cannot pair a removal with its start; SteamGameWait checks the reaper
+// is gone too.
 class SteamLaunchLog {
 public:
     enum class Step : std::uint8_t {
@@ -73,6 +82,10 @@ public:
     // asks when it could not check the game's Steam Cloud saves,
     // `SynchronizingCloud "syncfailed"`, as of the last read() (#211).
     bool cloudSyncFailed() const;
+    // Since the tap, Steam's log has said the game's process ended, and no
+    // process of the game started after that, as of the last read()
+    // (ADR-0057).
+    bool gameEnded() const;
 
     // The app id in `steam -applaunch <appid>`, or empty for anything else.
     static QString appIdOf(const QStringList& exec);
@@ -98,6 +111,7 @@ private:
     Step m_step = Step::Nothing;
     bool m_downloading = false;
     bool m_cloudSyncFailed = false;
+    bool m_gameEnded = false;
     bool m_reached = false;
     bool m_clientStarted = false;
     std::optional<QDateTime> m_steamStartedAt;

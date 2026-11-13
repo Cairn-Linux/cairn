@@ -104,6 +104,41 @@ void steamFetchesSoldier() {
               "0xc) ");
 }
 
+QStringList freddiFish2() {
+    return {QStringLiteral("steam"), QStringLiteral("-applaunch"), QStringLiteral("294530")};
+}
+
+// The line Steam writes when Freddi Fish 2's own process starts ("added ")
+// or ends ("removed"), as on the test VM (2026-11-07).
+void freddiFish2Process(const QByteArray& what) {
+    steamLogs(QStringLiteral("console_log.txt"), 0,
+              "Game process " + what +
+                  ": AppID 294530 \"/var/home/child/.local/share/Steam/ubuntu12_32/"
+                  "steam-launch-wrapper -- /var/home/child/.local/share/Steam/ubuntu12_32/reaper "
+                  "SteamLaunch AppId=294530 -- ...\", ProcID 4050");
+}
+
+// A stand-in steam in `dir`, first on PATH, that hands off at once as the
+// real one does. Returns the PATH from before, to put back.
+QByteArray putSteamStandInOnPath(const QTemporaryDir& dir) {
+    QFile fake(dir.filePath(QStringLiteral("steam")));
+    if (fake.open(QIODevice::WriteOnly)) {
+        fake.write("#!/bin/sh\nexit 0\n");
+        fake.close();
+    }
+    fake.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner);
+    const QByteArray path = qgetenv("PATH");
+    qputenv("PATH", dir.path().toUtf8() + ':' + path);
+    return path;
+}
+
+// What the journal says when Steam's log ends a launch (ADR-0057).
+QRegularExpression steamSaysItEnded(const QString& title) {
+    return QRegularExpression(QStringLiteral("^Steam says %1 ended while it was starting, \\d+ s "
+                                             "after the tap; back to the tiles\\.$")
+                                  .arg(QRegularExpression::escape(title)));
+}
+
 // Steam's logs as no client has written them yet, so each case's lines are
 // its own.
 void forgetSteamsLogs() {
@@ -896,6 +931,119 @@ private slots:
                               QStringLiteral("Pajama Sam"));
         QVERIFY(!launcher.needsGrownUp());
         QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+        qputenv("PATH", path);
+    }
+
+    // As on the test VM (#276): the child quits a Steam game while its
+    // window is in its steady wait. Steam writes that the game's process
+    // ended a moment after the window goes, and the tiles come back then,
+    // without waiting out the grace (ADR-0057).
+    void aSteamGameQuitWhileOpeningReturnsToTheTiles() {
+        const QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QByteArray path = putSteamStandInOnPath(dir);
+
+        AppLauncher launcher(this);
+        launcher.setSteadyMilliseconds(3000);
+        launcher.setLaunchGraceMilliseconds(15000);
+        launcher.launch(QStringLiteral("Freddi Fish 2"), freddiFish2());
+        freddiFish2Process("added ");
+        QTest::qWait(300);
+        launcher.windowOpened(QStringLiteral("g1"), QStringLiteral("steam_app_294530"),
+                              QStringLiteral("Freddi Fish 2"));
+        QTest::qWait(300);
+        launcher.windowClosed(QStringLiteral("g1"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+        QTest::ignoreMessage(QtInfoMsg, steamSaysItEnded(QStringLiteral("Freddi Fish 2")));
+        freddiFish2Process("removed");
+        QTRY_COMPARE_WITH_TIMEOUT(launcher.state(), AppLauncher::State::Idle, 1000);
+        QVERIFY(!launcher.needsGrownUp());
+        qputenv("PATH", path);
+    }
+
+    // The same within a minute of login, when each grace is followed by
+    // another while Steam starts (ADR-0029). Here Steam says the game ended
+    // before its window has gone, as when it ends by itself: the tiles come
+    // back with the window.
+    void aSteamGameEndedWhileSteamStartsReturnsToTheTilesWithItsWindow() {
+        const QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QByteArray path = putSteamStandInOnPath(dir);
+
+        AppLauncher launcher(this);
+        launcher.setSteadyMilliseconds(3000);
+        launcher.setLaunchGraceMilliseconds(300);
+        launcher.setSteamStartedAtLogin(true);
+        launcher.launch(QStringLiteral("Freddi Fish 2"), freddiFish2());
+        freddiFish2Process("added ");
+        QTest::qWait(450); // a grace ends before the window.
+        launcher.windowOpened(QStringLiteral("g1"), QStringLiteral("steam_app_294530"),
+                              QStringLiteral("Freddi Fish 2"));
+        QTest::qWait(400); // and one while it is up.
+        freddiFish2Process("removed");
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+        QTest::ignoreMessage(QtInfoMsg, steamSaysItEnded(QStringLiteral("Freddi Fish 2")));
+        launcher.windowClosed(QStringLiteral("g1"));
+        QCOMPARE(launcher.state(), AppLauncher::State::Idle);
+        QVERIFY(!launcher.needsGrownUp());
+        qputenv("PATH", path);
+    }
+
+    // A splash that goes while Steam's game runs on is part of the start,
+    // also when a game given up on just before the tap ends after it
+    // (ADR-0055): its end came before this game started.
+    void aSplashWhileTheSteamGameRunsKeepsWaiting() {
+        const QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QByteArray path = putSteamStandInOnPath(dir);
+
+        AppLauncher launcher(this);
+        launcher.setSteadyMilliseconds(300);
+        launcher.setLaunchGraceMilliseconds(15000);
+        launcher.launch(QStringLiteral("Freddi Fish 2"), freddiFish2());
+        freddiFish2Process("removed");
+        freddiFish2Process("added ");
+        QTest::qWait(300);
+        launcher.windowOpened(QStringLiteral("s1"), QStringLiteral("steam_app_294530"), {});
+        QTest::qWait(100);
+        launcher.windowClosed(QStringLiteral("s1"));
+        QTest::qWait(800); // Steam's log is read again, and says nothing new.
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+        launcher.windowOpened(QStringLiteral("g1"), QStringLiteral("steam_app_294530"),
+                              QStringLiteral("Freddi Fish 2"));
+        QTRY_COMPARE(launcher.state(), AppLauncher::State::Running);
+        QVERIFY(!launcher.needsGrownUp());
+        qputenv("PATH", path);
+    }
+
+    // Steam's log is read again only while a Steam game's window is gone
+    // and its launch is opening: not once a window is back, nor after the
+    // launch has ended at the grace (ADR-0057).
+    void steamsLogIsReadAgainOnlyWhileTheWindowIsGone() {
+        const QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QByteArray path = putSteamStandInOnPath(dir);
+
+        AppLauncher launcher(this);
+        launcher.setSteadyMilliseconds(3000);
+        launcher.setLaunchGraceMilliseconds(1000);
+        launcher.launch(QStringLiteral("Freddi Fish 2"), freddiFish2());
+        QVERIFY(!launcher.readingSteamLog());
+        QTest::qWait(300);
+        launcher.windowOpened(QStringLiteral("s1"), QStringLiteral("steam_app_294530"), {});
+        QVERIFY(!launcher.readingSteamLog());
+        launcher.windowClosed(QStringLiteral("s1"));
+        QVERIFY(launcher.readingSteamLog());
+        launcher.windowOpened(QStringLiteral("g1"), QStringLiteral("steam_app_294530"),
+                              QStringLiteral("Freddi Fish 2"));
+        QVERIFY(!launcher.readingSteamLog());
+        launcher.windowClosed(QStringLiteral("g1"));
+        QVERIFY(launcher.readingSteamLog());
+        QTest::ignoreMessage(QtInfoMsg,
+                             "Freddi Fish 2 came and went before it opened; back to the tiles.");
+        QTRY_COMPARE(launcher.state(), AppLauncher::State::Idle);
+        QVERIFY(!launcher.readingSteamLog());
+        QVERIFY(!launcher.needsGrownUp());
         qputenv("PATH", path);
     }
 

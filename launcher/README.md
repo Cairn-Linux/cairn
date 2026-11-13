@@ -264,6 +264,9 @@ While Steam's own log says it is working on the game, downloading an
 update or running its install script, the wait runs up to ten minutes and
 the starting screen adds "Getting it ready. This can take a few minutes."
 `SteamLaunchLog` reads only the lines Steam adds after the tap (ADR-0036).
+It also reads Steam's "Game process added" and "Game process removed"
+lines for the game, which say when the game's reaper started and ended
+(ADR-0057).
 Steam starting, or installing an update of itself, is work too: `SteamStartup`
 reads the last part of Steam's `bootstrap_log.txt` and `console_log.txt`. A
 tap made during an update is lost when Steam restarts, so once a client
@@ -370,8 +373,15 @@ says and never from a window's name:
   game may show a splash, or a window it replaces at once, before its own.
   The app is open once one of its windows has stayed up for three seconds
   (ADR-0028); until then the launcher is Starting, and a window that comes
-  and goes does not end the launch. After that, a window that belongs to
-  one of the app's, such as a dialog, is the app's too. While one is on the
+  and goes does not end the launch, unless the program the launcher
+  started has quit since, or, for a Steam game, Steam's log says the
+  game's process ended since the tap (ADR-0057, #276). Then the tiles
+  come back at once, and the journal says "Steam says … ended while it was
+  starting". While a Steam game's window is gone and its launch is
+  opening, Steam's log is read every 250 ms. Steam's line counts only once
+  no reaper started since the tap still runs for the game. After that, a
+  window that belongs to one of the app's, such as a dialog, is the app's
+  too. While one is on the
   screen the launcher is Running; when the last one leaves, the tiles are
   back.
 - While Steam is updating itself, a window that comes on the screen is its
