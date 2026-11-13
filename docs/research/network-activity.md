@@ -192,7 +192,9 @@ days, which is about twice a week.
 
 The image's file `/etc/dnf/repos.override.d/99-config_manager.repo`
 turns the Terra sources off for `dnf`.
-Whether the count honours that is not known; the capture should show
+On the test VM, three of the five requests went to Terra's host.
+Whether that VM had the override file was not read.
+So whether the count honours it is not known; the capture should show
 it.
 
 **1.2 to 1.4, the updater.**
@@ -1074,6 +1076,12 @@ a Steam game, cy at level 1 without one, ben at level 3.
 Record every packet that leaves it, from outside the computer (on the
 VM's host or on the router), so nothing on the computer can hide from
 the recording.
+That recording shows each host, port, time and size.
+It cannot read inside an HTTPS request.
+So where the table asks what a request carries, read it on the computer
+too, in the journal when the program logs its request, as `rpm-ostree`
+does for the count.
+Where nothing on the computer shows it, that item stays open.
 On the computer, keep the journal and read
 `systemctl list-timers --all` at the end of each part.
 Record whether each request leaves over IPv4 or IPv6.
@@ -1084,7 +1092,7 @@ Record whether each request leaves over IPv4 or IPv6.
 | The count | From 5 minutes before the time `systemctl list-timers rpm-ostree-countme.timer` gives, to 30 minutes after | Which hosts, and what each request carries; whether the Terra requests go though the sources are off for `dnf` |
 | One timed updater run, with the system's source reachable, and one without | The whole run | Which hosts, how much data; whether `formulae.brew.sh`, `analytics.brew.sh` or another Homebrew report host is contacted; whether the Flatpak part contacts Flathub with no app installed; how many connectivity checks it asks for; whether it skips on battery and on a metered connection; whether anything shows on a logged-in child's screen |
 | The key check | From the time `systemctl list-timers unbound-anchor.timer` gives, or a whole day | Whether `unbound-anchor.service` runs to the end, and whether it reaches the root name servers or `data.iana.org` |
-| A second count, a week later | One run | Whether a run in a week already counted sends anything |
+| A second count, in the same week as the first | One run: start `rpm-ostree-countme.service` by hand before the week of the first run ends | Whether it sends anything, once the first run has sent its count that week |
 | Guardian's first Plasma login | From before the password to 10 minutes after | Steam and the request to `store.steampowered.com`; broadcast and ports 1714 to 1764 (KDE Connect); any connection to `unifiedpush.kde.org`, `api.beacondb.net`, `geoip.kde.org`; `systemctl status geoclue fwupd passim` right after the login; whether Bluetooth becomes visible while its settings page is open |
 | ben's level 3 login, home made new on this image | The same | The same; and that no welcome window opens |
 | ada's level 1 login, then cy's | The same | Steam for ada and none for cy; `systemctl --user list-units --state=running` and `ps -u ada -o pid,cmd`, to confirm nothing from `graphical-session.target` or D-Bus runs in the kiosk that should not |
