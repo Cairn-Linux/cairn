@@ -104,7 +104,10 @@ Column {
             }
             onRenameClosed: {
                 view.renaming = "";
-                view.page.forgetRefusal();
+                // Only a refusal of this name goes with its field. The Add
+                // form's stays.
+                if (view.changingName && view.changing === modelData.login)
+                    view.page.forgetRefusal();
             }
         }
     }

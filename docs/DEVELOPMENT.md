@@ -267,7 +267,10 @@ sets no `CHFN_RESTRICT`. Files in the child's own home, such as
 `~/.face.icon` and `~/.config/plasma-localerc`, can still set a picture
 or language at L3 and L4; the rule does not reach them.
 `build_files/check-own-account-data.sh` stops the build if either could
-stop holding. To look yourself:
+stop holding. For AccountsService it checks only that the action is still
+there and named in its program. It cannot tell which action each change
+asks. If an update gave the name its own new action and kept the old one
+for the rest, the build would still pass. To look yourself:
 
 ```sh
 podman run --rm localhost/cairn:dev grep -n change-own-user-data /usr/share/polkit-1/rules.d/10-cairn-levels.rules
