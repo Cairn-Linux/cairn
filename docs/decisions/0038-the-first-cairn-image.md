@@ -569,6 +569,10 @@ line too.
   translation of Cairn's own. The notice goes on the Guardian tool's About
   page. Until then this one condition is not met, and P1-14 blocks
   publishing on it.
+  Since 2026-11-12 Family has that About page, with the notice in full,
+  the address written out, and a button that asks the desktop to open it
+  in the parent's browser when they press it (ADR-0040, "The About
+  page"). It is tested, not yet seen on the VM or on an image.
 - **P1-1, Bazzite's extras.** Still in menus a Guardian sees: "Bazzite
   Updater" and "Bazzite Portal", from Bazzite's own packages, and a pin
   of the portal that `bazzite-pins.js` adds to an empty task bar.

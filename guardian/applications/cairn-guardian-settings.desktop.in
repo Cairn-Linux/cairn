@@ -7,7 +7,7 @@
 [Desktop Entry]
 Type=Service
 Name=Family
-Comment=The children, their levels and games, your own password and picture, and wrong passwords typed
+Comment=The children, their levels and games, your own password and picture, and wrong passwords typed, and what Cairn Linux is
 Exec=@CMAKE_INSTALL_FULL_BINDIR@/cairn-guardian
 TryExec=@CMAKE_INSTALL_FULL_BINDIR@/cairn-guardian
 Icon=system-users

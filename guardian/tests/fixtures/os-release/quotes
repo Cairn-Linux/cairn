@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: Apache-2.0
+# A comment, then a blank line
+
+BARE=plain-1.2
+SINGLE='two words, a "quote" and a \ kept'
+DOUBLE="two words"
+ESCAPED="a \"quote\", a \\, a \$ and a \`"
+OTHER="a \n stays as it is written"
+EMPTY=
+EMPTY_QUOTED=""
+  INDENTED=yes
+  # An indented comment
+#COMMENTED=yes
+  # INDENTED_COMMENT=yes
+a line with no equals sign
+=no key
+TWICE=first
+TWICE="second"
+HOME_DIR="$HOME"
+COMMAND=`id`
+SUBSHELL='$(id)'
+WITH_EQUALS=a=b
