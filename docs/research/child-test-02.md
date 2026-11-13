@@ -383,7 +383,8 @@ From your own login, this shows what the launcher and Steam wrote today.
 Match its times to the times on the sheets.
 
 ```sh
-journalctl -t cairn-launcher -t cairn-kiosk -t cairn-steam-for -t cairn-steam-visit --since today
+journalctl -t cairn-launcher -t cairn-kiosk \
+  -t cairn-steam-for -t cairn-steam-visit --since today
 ```
 
 ## Already decided
