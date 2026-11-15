@@ -21,8 +21,9 @@
 set -ouex pipefail
 
 # What every account's systemd started at login: the link, the unit and
-# its script.
-rm /etc/systemd/user/default.target.wants/bazzite-user-setup.service
+# its script. By 45.20261112 Bazzite had moved the link here from
+# default.target.wants, so the step starts with the graphical session.
+rm /etc/systemd/user/graphical-session-pre.target.wants/bazzite-user-setup.service
 rm /usr/lib/systemd/user/bazzite-user-setup.service
 rm /usr/libexec/bazzite-user-setup
 
