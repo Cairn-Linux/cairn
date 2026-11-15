@@ -82,6 +82,9 @@ The last column of every table says one of four things.
   show what a first start changes.
 - A fresh install from the Cairn ISO has not been checked against this
   list.
+- Main has moved since. On 2026-11-15 it took #304, which refuses a
+  child the updater (1.2 to 1.4), and #311, which builds on Bazzite
+  45.20261112. The image was not read again after either.
 
 **A note on "no package owns the link".**
 All 140 links that switch system units on in this image belong to no
@@ -267,13 +270,14 @@ Upstream's page says a report holds no user identifier.
 The nightly `brew update` and `brew upgrade` may each send one; not
 seen.
 
-A child can start the updater today.
+A child could start the updater in the image read here.
 The package's polkit file `/usr/share/polkit-1/rules.d/uupd.rules`
 answers yes to any account for `uupd.service` and
-`uupd-manual.service`, and Cairn's `10-cairn-levels.rules` has no line
-for them at main.
-Roadmap #265 already carries this.
-Pull request #304, not merged yet, adds a rule that refuses a child.
+`uupd-manual.service`, and Cairn's `10-cairn-levels.rules` had no line
+for them at 57bd89a.
+Roadmap #265 carries this.
+Pull request #304, merged on 2026-11-15, refuses a child those two
+units and `uupd.timer` at every level.
 
 `/usr/share/ublue-os/image-info.json` still names Bazzite's registry.
 It is text other programs show.
@@ -867,8 +871,8 @@ The updater is `uupd` at 04:00 with catch-up, not a `bootc upgrade`
 timer.
 It updates a logged-in child's own apps as that child, and has tried to
 send notices to a logged-in child.
-A child can start it today (#265); pull request #304, not merged yet,
-refuses a child.
+A child could start it at 57bd89a (#265); pull request #304, merged on
+2026-11-15, refuses a child.
 
 **5.16, "Bazzite Updater" in the menu.**
 A Guardian needs some way to update by hand, so this goes with the same
