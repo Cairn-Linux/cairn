@@ -191,9 +191,20 @@ podman image inspect --format '{{index .Labels "org.opencontainers.image.version
 Rootless podman is enough. A build from an already pulled Bazzite
 base takes 3 to 4 minutes on the dev PC, most of it compiling and the
 tests. Later builds reuse the layer with the build tools, and an edit to the
-docs or to `build.sh` reuses the compiled tree too. The build stops if a
-test fails, if Fedora's Qt headers are not exactly the Qt the base ships,
-or if `bootc container lint` warns about anything.
+docs reuses the compiled tree too.
+Podman does not look inside the folder the build mounts at `/ctx` when it
+decides whether a step can be reused.
+So after a change to `build_files/`, `system_files/` or `brand/image`,
+build with `--no-cache`, or the image may keep an older `build.sh` step
+and older checks.
+That happened on the dev PC on 2026-11-12.
+The build uses the `ghcr.io/ublue-os/bazzite:stable` already pulled, if
+there is one.
+Main is checked against Bazzite 45.20261112; with an older base the build
+stops at the first `rm` in `build_files/bazzite-extras.sh`.
+Run `podman pull ghcr.io/ublue-os/bazzite:stable` first to get the newest.
+The build stops if a test fails, if Fedora's Qt headers are not exactly
+the Qt the base ships, or if `bootc container lint` warns about anything.
 
 The final stage layers the packages Cairn needs (`build_files/packages.sh`),
 copies Cairn's tree in, then sets the image up to boot into Cairn
@@ -226,7 +237,8 @@ update's download are measured again then.
 The image calls itself Cairn Linux and carries the Cairn mark (slice 5).
 `build_files/check-name-and-logos.sh` runs as its own step before the
 lint and stops the build if a Bazzite logo, welcome file or support link
-it does not know about appears. To look yourself:
+it does not know about appears, or if a plain `fastfetch` draws a logo.
+To look yourself:
 
 ```sh
 podman run --rm localhost/cairn:dev cat /etc/os-release
@@ -243,6 +255,28 @@ and the 23 pictures in them as missing, because the build removes them
 (below). Leave out `--nomtime` and `rpm -V` lists hundreds of files whose
 times the base changed.
 
+A child cannot start or stop the system updater (#265). Universal Blue's
+`uupd.rules` lets any account start and stop the updater's two services
+with no password, and Cairn's polkit rule, which polkit reads first,
+refuses a child for them and for the updater's timer.
+One limit stays: a program in a child's session that a grown-up has
+just typed their password into, for some other unit, can start or stop
+the updater while polkit keeps that password
+(`docs/research/kiosk-containment.md`).
+`build_files/check-updater-rule.sh` stops the build if another rule file
+would be read before Cairn's, if the image no longer has a unit the rule
+names, or if another rule file answers for one of systemd's units that
+the rule does not name. To look yourself:
+
+```sh
+podman run --rm localhost/cairn:dev find /etc/polkit-1/rules.d /usr/share/polkit-1/rules.d -name '*.rules' -printf '%f\n' | LC_ALL=C sort | head -n 3
+podman run --rm localhost/cairn:dev cat /usr/share/polkit-1/rules.d/uupd.rules
+```
+
+The first prints the three rule files polkit reads first, with
+`10-cairn-levels.rules` at the top. The second names `uupd.service` and
+`uupd-manual.service` and no other unit.
+
 Bazzite's first-login step is out of the image (#261). Every account's
 own systemd started it at login, and it ran a root step that polkit let
 any account run without a password. `build_files/bazzite-extras.sh`
@@ -251,13 +285,19 @@ rule for it, and `build_files/check-bazzite-extras.sh` stops the build if
 any of them comes back. To look yourself:
 
 ```sh
-podman run --rm localhost/cairn:dev ls /etc/systemd/user/default.target.wants
+podman run --rm localhost/cairn:dev ls /etc/systemd/user/default.target.wants \
+    /etc/systemd/user/graphical-session-pre.target.wants
 podman run --rm localhost/cairn:dev systemctl --global is-enabled bazzite-user-setup.service
 ```
 
-The first lists `mpris-proxy.service` and `bazzite-dynamic-fixes.service`,
-Bazzite's fix for GTK programs on Intel graphics, which runs as the
-account and stays. The second says `not-found`.
+The first command lists `mpris-proxy.service` in `default.target.wants`.
+In `graphical-session-pre.target.wants` it lists
+`bazzite-dynamic-fixes.service`, Bazzite's fix for GTK programs on Intel
+graphics, which runs as the account and stays, then
+`dmemcg-booster-user.service` and `xdg-user-dirs.service`.
+By its build of 2026-11-12 (45.20261112), Bazzite had moved the
+first-login step's link to that folder from `default.target.wants`.
+The second command says `not-found`.
 
 The grown-up's start-menu button shows the Cairn mark (#166, first
 step). Valve's look names `distributor-logo-steamdeck`, which slice 5
@@ -399,7 +439,7 @@ copy by reflink need a folder that can reflink (btrfs or XFS), one
 `provision` test reads `sysusers.d` and
 `build_files/`, which the build stage does not copy, the
 `hideuserspage` and `kdepictures` tests run scripts from `build_files/`,
-and one `polkit_rules` test runs the
+and the `polkit_rules` tests that run the
 levels rule with `node`, which the build stage does not install. The build log lists every skip under
 "Tests skipped in the build stage". Run `ctest` on the host before
 building an image; it is the only place those tests run.
