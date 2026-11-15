@@ -23,6 +23,23 @@ QByteArray commandLine(const QByteArray& arguments) {
            arguments + "\"\n";
 }
 
+// The line Steam writes when the game's own process starts, or ends, as on
+// the test VM (2026-11-07), for the game `appId`.
+QByteArray gameProcess(const QByteArray& what, const QByteArray& appId = "294650") {
+    return "[2026-11-07 20:42:42] Game process " + what + ": AppID " + appId +
+           " \"/var/home/child/.local/share/Steam/ubuntu12_32/steam-launch-wrapper -- "
+           "/var/home/child/.local/share/Steam/ubuntu12_32/reaper SteamLaunch AppId=" +
+           appId + " -- ...\", ProcID 4050\n";
+}
+
+QByteArray processAdded(const QByteArray& appId = "294650") {
+    return gameProcess("added ", appId);
+}
+
+QByteArray processRemoved(const QByteArray& appId = "294650") {
+    return gameProcess("removed", appId);
+}
+
 void append(const QString& path, const QByteArray& text) {
     QFile log(path);
     QVERIFY(log.open(QIODevice::WriteOnly | QIODevice::Append));
@@ -293,6 +310,71 @@ private slots:
         QCOMPARE(log.read(nextMorning()), Step::Refused);
         log.startLaunch(QStringLiteral("294650"));
         QCOMPARE(log.read(nextMorning()), Step::Nothing);
+    }
+
+    // Steam says the game's process ended: the game is over (ADR-0057).
+    void theGameEndingIsSeen() {
+        const QTemporaryDir dir;
+        const QString path = dir.filePath(QStringLiteral("console_log.txt"));
+        SteamLaunchLog log(path);
+        log.startLaunch(QStringLiteral("294650"));
+        append(path, line("changed task to Completed with \"\"") + processAdded());
+        log.read(nextMorning());
+        QVERIFY(!log.gameEnded());
+        append(path, processRemoved());
+        QCOMPARE(log.read(nextMorning()), Step::GameStarted);
+        QVERIFY(log.gameEnded());
+    }
+
+    // An end from before the tap, the end of another game, or of a game
+    // whose id starts the same, says nothing about this one.
+    void onlyThisGameEndingSinceTheTapCounts() {
+        const QTemporaryDir dir;
+        const QString path = dir.filePath(QStringLiteral("console_log.txt"));
+        append(path, processAdded() + processRemoved());
+        SteamLaunchLog log(path);
+        log.startLaunch(QStringLiteral("294650"));
+        log.read(nextMorning());
+        QVERIFY(!log.gameEnded());
+        append(path, processRemoved("70") + processRemoved("2946501"));
+        log.read(nextMorning());
+        QVERIFY(!log.gameEnded());
+    }
+
+    // A game given up on just before the tap ends after it, and the game the
+    // tap asked for starts after that: it has not ended (ADR-0055).
+    void aGameStartedAfterAnEndHasNotEnded() {
+        const QTemporaryDir dir;
+        const QString path = dir.filePath(QStringLiteral("console_log.txt"));
+        SteamLaunchLog log(path);
+        log.startLaunch(QStringLiteral("294650"));
+        append(path, processRemoved() + processAdded());
+        log.read(nextMorning());
+        QVERIFY(!log.gameEnded());
+        append(path, processRemoved());
+        log.read(nextMorning());
+        QVERIFY(log.gameEnded());
+    }
+
+    // A new tap forgets that the last one's game ended, and so does a new
+    // log: a new client runs nothing yet.
+    void aNewTapOrANewLogForgetsTheEnd() {
+        const QTemporaryDir dir;
+        const QString path = dir.filePath(QStringLiteral("console_log.txt"));
+        SteamLaunchLog log(path);
+        log.startLaunch(QStringLiteral("294650"));
+        append(path, processRemoved());
+        log.read(nextMorning());
+        QVERIFY(log.gameEnded());
+        log.startLaunch(QStringLiteral("294650"));
+        QVERIFY(!log.gameEnded());
+        append(path, processRemoved());
+        log.read(nextMorning());
+        QVERIFY(log.gameEnded());
+        QVERIFY(QFile::remove(path));
+        append(path, "[2026-11-07 20:43:00] System startup time: 16.79 seconds\n");
+        log.read(nextMorning());
+        QVERIFY(!log.gameEnded());
     }
 
     void noGameSaysNothing() {
