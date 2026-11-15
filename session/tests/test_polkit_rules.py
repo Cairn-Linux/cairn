@@ -2,8 +2,10 @@
 # SPDX-License-Identifier: Apache-2.0
 """Checks that the polkit rules still say what the README promises.
 
-polkit's engine is not available here, so this reads the file as text. The
-real check is `pkcheck` as the child in the VM, recorded in
+polkit's engine is not available here, so most of this reads the file as
+text. Where a test needs the rule's answer it runs the rule with `node` and a
+stand-in for polkit, and is skipped where there is no `node`. The real check
+is `pkcheck` as the child in the VM, recorded in
 docs/research/kiosk-containment.md.
 """
 
@@ -48,6 +50,10 @@ SCREEN_AND_POWER_KEY = [
     "org.freedesktop.login1.chvt",
     "org.freedesktop.login1.inhibit-handle-power-key",
 ]
+# The one action systemd asks polkit about for any unit, and the three
+# units the base image's updater package, uupd, ships (#265).
+MANAGE_UNITS = "org.freedesktop.systemd1.manage-units"
+UPDATER_UNITS = ["uupd.service", "uupd-manual.service", "uupd.timer"]
 
 
 def without_comments(text):
@@ -107,6 +113,23 @@ class PolkitRulesTest(unittest.TestCase):
     def test_has_the_licence_line(self):
         self.assertTrue(self.text.startswith("// SPDX-License-Identifier: Apache-2.0"))
 
+    def test_uses_no_javascript_that_polkits_engine_refuses(self):
+        # polkit drops a rule file it cannot read, and every refusal in the
+        # file goes with it. The tests below run the rule with node, which
+        # takes all of these; polkit 127's engine, Duktape, was seen to
+        # refuse each one (kiosk-containment.md, 2026-11-11).
+        code = re.sub(r'"[^"]*"', '""', without_comments(self.text))
+        refused = {
+            "an arrow function": r"=>",
+            "let": r"\blet\b",
+            "a template string": "`",
+            "for ... of": r"\bof\b",
+            "includes, which a list does not have": r"\.includes\(",
+            "a default argument": r"function[^(]*\([^)]*=",
+        }
+        for form, pattern in refused.items():
+            with self.subTest(form=form):
+                self.assertIsNone(re.search(pattern, code))
 
 
 class SteamVisitActionTest(unittest.TestCase):
@@ -142,7 +165,11 @@ class SteamVisitActionTest(unittest.TestCase):
 
 
 # A stand-in for polkit's engine, enough to run the rule: it loads the file
-# and answers for one action and one account's groups.
+# and answers for one action and one account's groups. Some programs send
+# details with the action, as systemd sends the unit; the rule reads one
+# with action.lookup, which gives nothing for a detail that was not sent.
+# polkit runs every rule file in one context, so the text of a file read
+# later can be given too, and runs after the rule in the same one.
 RULE_RUNNER = """
 var rules = [];
 var polkit = {
@@ -151,8 +178,11 @@ var polkit = {
 };
 var input = JSON.parse(process.argv[process.argv.length - 1]);
 eval(require("fs").readFileSync(input.rules, "utf8"));
+if (input.later) { eval(input.later); }
 var subject = {isInGroup: function (group) { return input.groups.indexOf(group) >= 0; }};
-process.stdout.write(rules[0]({id: input.action}, subject));
+var details = input.details || {};
+var action = {id: input.action, lookup: function (name) { return details[name]; }};
+process.stdout.write(rules[0](action, subject));
 """
 
 
@@ -269,6 +299,175 @@ class FamilyActionTest(unittest.TestCase):
 
     def test_has_the_licence_line(self):
         self.assertEqual(self.text.splitlines()[1], "<!-- SPDX-License-Identifier: Apache-2.0 -->")
+
+
+class UpdaterUnitsTest(unittest.TestCase):
+    """The system updater's units (#265): Universal Blue's uupd.rules says
+    yes to any account that asks systemd to start or stop the updater, so
+    the levels rule refuses a child first, at every level and whatever is
+    asked of the unit. An administrator, an account Cairn did not make and
+    every other unit are left to the rule files that come after."""
+
+    CHILDREN = [("ada", "cairn-l1"), ("ben", "cairn-l2"), ("cy", "cairn-l3"), ("ada", "cairn-l4")]
+    # Guardian first, even from a level group (ADR-0023).
+    ADMINISTRATORS = [
+        ("guardian", "cairn-guardian"),
+        ("guardian", "wheel"),
+        ("guardian", "wheel", "cairn-guardian"),
+        ("guardian", "cairn-guardian", "cairn-l1"),
+        ("guardian", "cairn-guardian", "cairn-l4"),
+        ("guardian", "wheel", "cairn-l2"),
+        ("guardian", "wheel", "cairn-l3"),
+    ]
+    NOT_CAIRNS = [(), ("users",)]
+
+    def setUp(self):
+        self.rules = RULES.read_text()
+        self.node = shutil.which("node")
+
+    def needs_node(self):
+        """Called first by each test that runs the rule, so that a machine
+        without node skips the test once and not once for every case."""
+        if self.node is None:
+            self.skipTest("no node here to run the rule with")
+
+    def answer(self, groups, unit, verb="start", action=MANAGE_UNITS):
+        """What the rule says to an account in these groups when systemd
+        asks about this unit. systemd sends the unit and the verb as
+        details of the action; None leaves one out."""
+        details = {name: value for name, value in (("unit", unit), ("verb", verb))
+                   if value is not None}
+        given = json.dumps({"rules": str(RULES), "action": action, "groups": list(groups),
+                            "details": details})
+        result = subprocess.run([self.node, "-e", RULE_RUNNER, given], capture_output=True,
+                                text=True, check=True)
+        return result.stdout
+
+    def test_the_list_is_the_updaters_three_units(self):
+        lists = re.findall(r"var updaterUnits = \[(.*?)\];", self.rules, re.S)
+        self.assertEqual([quoted_strings(units) for units in lists], [set(UPDATER_UNITS)])
+        self.assertIn(f'var manageUnits = "{MANAGE_UNITS}";', self.rules)
+
+    def test_the_unit_is_the_only_detail_the_rule_reads(self):
+        # Never the verb: uupd.rules says yes whatever the verb, so a rule
+        # that picked verbs would leave open the ones it did not name.
+        read = re.findall(r'\.lookup\("([^"]*)"\)', without_comments(self.rules))
+        self.assertEqual(read, ["unit"])
+
+    def test_a_child_at_every_level_is_refused_for_every_updater_unit(self):
+        self.needs_node()
+        for groups in self.CHILDREN:
+            for unit in UPDATER_UNITS:
+                for verb in ("start", "stop"):
+                    with self.subTest(groups=groups, unit=unit, verb=verb):
+                        self.assertEqual(self.answer(groups, unit, verb), "no")
+
+    def test_whatever_is_asked_of_the_unit(self):
+        # Verbs systemd 262 was seen to send, one it does not have, and none.
+        # It sends cancel when a job of the unit's is cancelled over its own
+        # socket, /run/systemd/io.systemd.Manager, which any account can open.
+        self.needs_node()
+        verbs = ("restart", "try-restart", "kill", "reset-failed", "set-property", "ref",
+                 "cancel", "a-verb-systemd-adds-later", None)
+        for groups in (("ada", "cairn-l1"), ("cy", "cairn-l3")):
+            for verb in verbs:
+                with self.subTest(groups=groups, verb=verb):
+                    self.assertEqual(self.answer(groups, "uupd.service", verb), "no")
+
+    def test_the_same_child_asking_about_another_unit_is_not_answered(self):
+        self.needs_node()
+        for groups in self.CHILDREN:
+            for unit in ("bluetooth.service", "cups.service"):
+                with self.subTest(groups=groups, unit=unit):
+                    self.assertEqual(self.answer(groups, unit), "not-handled")
+
+    def test_a_unit_is_matched_by_its_whole_name(self):
+        # None is a request that names no unit, as when every unit's failed
+        # state is cleared at once.
+        self.needs_node()
+        near = ("uupd", "uupd.service.d", "not-uupd.service", "uupd-manual.timer",
+                "uupd.services", "UUPD.service", "", None)
+        for unit in near:
+            with self.subTest(unit=unit):
+                self.assertEqual(self.answer(("ben", "cairn-l2"), unit), "not-handled")
+
+    def test_only_the_one_action_is_answered(self):
+        # polkit runs the rules again for manage-unit-files, with the same
+        # unit, because that action implies manage-units. Nothing says yes
+        # to it, and the levels rule leaves it and the rest of systemd's
+        # actions to systemd's default, a grown-up's password.
+        self.needs_node()
+        others = ("org.freedesktop.systemd1.manage-unit-files",
+                  "org.freedesktop.systemd1.reload-daemon",
+                  "org.freedesktop.systemd1.set-environment")
+        for action in others:
+            for unit in UPDATER_UNITS:
+                with self.subTest(action=action, unit=unit):
+                    self.assertEqual(self.answer(("ada", "cairn-l1"), unit, action=action),
+                                     "not-handled")
+
+    def test_an_administrator_falls_through_even_from_a_level_group(self):
+        self.needs_node()
+        for groups in self.ADMINISTRATORS:
+            for unit in UPDATER_UNITS:
+                with self.subTest(groups=groups, unit=unit):
+                    self.assertEqual(self.answer(groups, unit), "not-handled")
+
+    def test_an_account_cairn_did_not_make_falls_through(self):
+        self.needs_node()
+        for groups in self.NOT_CAIRNS:
+            for unit in UPDATER_UNITS:
+                with self.subTest(groups=groups, unit=unit):
+                    self.assertEqual(self.answer(groups, unit), "not-handled")
+
+
+class LaterRuleFileTest(unittest.TestCase):
+    """polkit runs every rule file in one JavaScript context, so a file
+    read later that names a function or a list as the levels rule does
+    would take that name over. The rule keeps its names inside one
+    function, so its answers are the same whatever a later file names."""
+
+    # Who asks, for what, with which details, and the rule's answer.
+    CASES = [
+        (("ada", "cairn-l1"), MANAGE_UNITS, {"unit": "uupd.service", "verb": "start"}, "no"),
+        (("cy", "cairn-l3"), "org.projectatomic.rpmostree1.upgrade", {}, "no"),
+        (("ben", "cairn-l2"), "org.freedesktop.login1.power-off", {}, "no"),
+        (("cy", "cairn-l3"), "com.cairnlinux.family.set-level", {}, "no"),
+        (("ada", "cairn-l1"), MANAGE_UNITS, {"unit": "bluetooth.service", "verb": "start"},
+         "not-handled"),
+        (("guardian", "wheel", "cairn-guardian"), MANAGE_UNITS, {"unit": "uupd.service"},
+         "not-handled"),
+    ]
+
+    def setUp(self):
+        code = without_comments(RULES.read_text())
+        self.functions = sorted(set(re.findall(r"\bfunction (\w+)\(", code)))
+        self.lists = sorted(set(re.findall(r"\bvar (\w+) =", code)))
+
+    def test_the_rule_names_functions_and_lists_to_take_over(self):
+        # Or the test below would pass by finding nothing to try.
+        self.assertIn("isOneOf", self.functions)
+        self.assertIn("updaterUnits", self.lists)
+
+    def test_a_later_file_with_the_same_names_changes_no_answer(self):
+        node = shutil.which("node")
+        if node is None:
+            self.skipTest("no node here to run the rule with")
+        later_files = {
+            "none": "",
+            "the same functions": "".join(f"function {name}() {{ return false; }}\n"
+                                          for name in self.functions),
+            "the same lists": "".join(f'var {name} = ["its own"];\n' for name in self.lists),
+        }
+        for later, text in later_files.items():
+            for groups, action, details, answer in self.CASES:
+                with self.subTest(later=later, groups=groups, action=action, details=details):
+                    given = json.dumps({"rules": str(RULES), "action": action,
+                                        "groups": list(groups), "details": details,
+                                        "later": text})
+                    result = subprocess.run([node, "-e", RULE_RUNNER, given], capture_output=True,
+                                            text=True, check=True)
+                    self.assertEqual(result.stdout, answer)
 
 
 class KioskScreenAndPowerKeyTest(unittest.TestCase):
