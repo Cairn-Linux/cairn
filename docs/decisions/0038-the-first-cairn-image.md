@@ -483,8 +483,13 @@ Bazzite's logo, the autostart that turns Bazzite's announcements into
 notifications, the "Documentation" menu entry that opens Bazzite's docs,
 and the "Bazzite Portal" autostart every new account gets from
 `/etc/skel`. With the banner gone, Universal Blue's `user-motd.sh` prints
-`/etc/user-motd`, which does not exist. A plain `fastfetch` now picks its
-own logo from `ID_LIKE`.
+`/etc/user-motd`, which does not exist. A plain `fastfetch` then picked
+its own logo from `ID_LIKE`, which was Fedora's. Since 2026-11-12 the
+build writes `/etc/xdg/fastfetch/config.jsonc`, which asks for no logo
+and names the lines fastfetch prints by default, and the check stops the
+build if a logo comes back. fastfetch reads a config in an account's own
+folder in place of that one, so one that names no logo gets Fedora's
+again.
 
 **Labels.** The image's title, description, URLs, vendor and licence
 name Cairn; the revision, creation date and Artifact Hub labels are

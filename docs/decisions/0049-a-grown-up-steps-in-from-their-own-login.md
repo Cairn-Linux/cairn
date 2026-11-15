@@ -514,6 +514,8 @@ parent docs as a known gap, as Mason chose for #86 on 2026-11-02.
   `uupd.rules` lets any account, a child's included, start or stop the
   system updater (`manage-units` on `uupd.service`, with no check of who
   asks): #265, for #85's audit.
+  Since 2026-11-11 the levels rule refuses a child first, for the
+  updater's two services and its timer.
   And the fingerprint is missing from the image, against ADR-0032 and
   the "or your fingerprint" in the Guardian tool's words: #264.
   Nothing in this ADR relies on a fingerprint.
