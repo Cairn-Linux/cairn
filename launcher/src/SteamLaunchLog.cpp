@@ -40,6 +40,7 @@ void SteamLaunchLog::startLaunch(const QString& appId) {
     m_step = Step::Nothing;
     m_downloading = false;
     m_cloudSyncFailed = false;
+    m_gameEnded = false;
     m_reached = false;
     m_clientStarted = false;
     m_steamStartedAt.reset();
@@ -56,10 +57,15 @@ SteamLaunchLog::Step SteamLaunchLog::read(const QDateTime& now) {
         m_step = Step::Nothing;
         m_downloading = false;
         m_cloudSyncFailed = false;
+        m_gameEnded = false;
         m_clientStarted = true;
     }
     // The quote after the id keeps 294650 from matching 2946501.
     const QByteArray thisGame = "'-applaunch' '" + m_appId.toUtf8() + "'";
+    // The quote after the id here does the same. A process added after one
+    // was removed is the game started again, as after a give-up.
+    const QByteArray processAdded = "Game process added : AppID " + m_appId.toUtf8() + " \"";
+    const QByteArray processRemoved = "Game process removed: AppID " + m_appId.toUtf8() + " \"";
     for (const QByteArray& line : lines) {
         const Step step = stepOf(line, m_appId);
         if (step != Step::Nothing) {
@@ -67,6 +73,11 @@ SteamLaunchLog::Step SteamLaunchLog::read(const QDateTime& now) {
             m_downloading = line.contains("changed task to DownloadingDepots ");
             m_cloudSyncFailed =
                 line.contains("waiting for user response to SynchronizingCloud \"syncfailed\"");
+        }
+        if (line.contains(processRemoved)) {
+            m_gameEnded = true;
+        } else if (line.contains(processAdded)) {
+            m_gameEnded = false;
         }
         if (!line.contains("ExecCommandLine: ")) {
             continue;
@@ -108,6 +119,10 @@ bool SteamLaunchLog::downloading() const {
 
 bool SteamLaunchLog::cloudSyncFailed() const {
     return m_cloudSyncFailed;
+}
+
+bool SteamLaunchLog::gameEnded() const {
+    return m_gameEnded;
 }
 
 QString SteamLaunchLog::appIdOf(const QStringList& exec) {
