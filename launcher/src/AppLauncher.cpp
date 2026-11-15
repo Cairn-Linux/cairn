@@ -24,11 +24,15 @@ constexpr int exitGraceMilliseconds = 2000;
 // the laptop (2026-10-08) the starting screen went with that first
 // window and the tiles flashed between it and the game's own.
 constexpr int defaultSteadyMilliseconds = 3000;
+// How often Steam's log is read while a Steam game's window is gone and the
+// launch is still opening. On the test VM (2026-11-07) Steam wrote that the
+// game had ended 0.1 to 0.3 s after its window went, or before it.
+constexpr int steamEndCheckMilliseconds = 250;
 } // namespace
 
 AppLauncher::AppLauncher(QObject* parent)
     : QObject(parent), m_settleTimer(this), m_launchGraceTimer(this), m_exitGraceTimer(this),
-      m_steadyTimer(this), m_steamRestart(this) {
+      m_steadyTimer(this), m_steamEndTimer(this), m_steamRestart(this) {
     m_settleTimer.setSingleShot(true);
     m_settleTimer.setInterval(defaultSettleMilliseconds);
     connect(&m_settleTimer, &QTimer::timeout, this, [this] { m_settled = true; });
@@ -45,6 +49,8 @@ AppLauncher::AppLauncher(QObject* parent)
             update();
         }
     });
+    m_steamEndTimer.setInterval(steamEndCheckMilliseconds);
+    connect(&m_steamEndTimer, &QTimer::timeout, this, &AppLauncher::update);
     m_exitGraceTimer.setSingleShot(true);
     m_exitGraceTimer.setInterval(exitGraceMilliseconds);
     connect(&m_exitGraceTimer, &QTimer::timeout, this, [this] {
@@ -311,10 +317,11 @@ void AppLauncher::update() {
     }
     // While the app is still opening and the grace timer runs, a window that
     // came and went was a splash; keep waiting for the next. Not when the
-    // program itself has quit since its window came up: that is the app
-    // ending, and nothing more will come.
+    // program itself has quit since its window came up, nor when Steam says
+    // its game has ended: that is the app ending, and nothing more will come.
+    const bool steamEnded = checkSteamGameEnded();
     const bool stillOpening =
-        m_windows.opening() && m_launchGraceTimer.isActive() && !m_quitWhileOpening;
+        m_windows.opening() && m_launchGraceTimer.isActive() && !m_quitWhileOpening && !steamEnded;
     if (m_windows.launching() && m_windows.appWasOnScreen() && !m_windows.appOnScreen() &&
         !stillOpening) {
         // The app's last window has left the screen, so the app has too.
@@ -353,6 +360,36 @@ void AppLauncher::update() {
     }
 }
 
+bool AppLauncher::goneWhileOpening() const {
+    return m_windows.opening() && m_windows.appWasOnScreen() && !m_windows.appOnScreen() &&
+           m_launchGraceTimer.isActive();
+}
+
+bool AppLauncher::checkSteamGameEnded() {
+    if (!m_steamGame.steamGame() || !goneWhileOpening()) {
+        m_steamEndTimer.stop();
+        return false;
+    }
+    if (!m_steamGame.gameEnded()) {
+        // Steam may write it a moment after the window goes.
+        if (!m_steamEndTimer.isActive()) {
+            m_steamEndTimer.start();
+        }
+        return false;
+    }
+    m_steamEndTimer.stop();
+    const qint64 seconds = (BootClock::milliseconds() - m_launchStartedAt) / 1000;
+    qInfo().noquote() << QStringLiteral("Steam says %1 ended while it was starting, %2 s after "
+                                        "the tap; back to the tiles.")
+                             .arg(m_launchTitle)
+                             .arg(seconds);
+    return true;
+}
+
+bool AppLauncher::readingSteamLog() const {
+    return m_steamEndTimer.isActive();
+}
+
 void AppLauncher::appIsOpen() {
     m_windows.appIsOpen();
     m_launchGraceTimer.stop();
@@ -366,6 +403,7 @@ void AppLauncher::endLaunch() {
     m_settleTimer.stop();
     m_launchGraceTimer.stop();
     m_exitGraceTimer.stop();
+    m_steamEndTimer.stop();
     // A program still running runs on by itself; its exit no longer matters.
     m_process = nullptr;
 }
@@ -479,6 +517,8 @@ void AppLauncher::onLaunchGraceTimeout() {
     // A window came and went: the app showed itself and is gone, so the
     // tiles come back (#133).
     if (m_windows.appWasOnScreen()) {
+        qInfo().noquote() << QStringLiteral("%1 came and went before it opened; back to the tiles.")
+                                 .arg(m_launchTitle);
         endLaunch();
         update();
         return;
