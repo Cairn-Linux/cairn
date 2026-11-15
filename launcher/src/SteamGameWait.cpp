@@ -42,6 +42,17 @@ bool SteamGameWait::steamGame() const {
     return !m_appId.isEmpty();
 }
 
+bool SteamGameWait::gameEnded() {
+    if (m_appId.isEmpty()) {
+        return false;
+    }
+    m_log.read(QDateTime::currentDateTime());
+    // Steam's line cannot say which run of the game ended. A game given up
+    // on just before the tap can end after this one started (ADR-0055); this
+    // one's reaper still running says it was that one.
+    return m_log.gameEnded() && !newReaper();
+}
+
 bool SteamGameWait::stillComing() {
     if (m_appId.isEmpty() || !m_sinceLaunch.isValid()) {
         return false;
