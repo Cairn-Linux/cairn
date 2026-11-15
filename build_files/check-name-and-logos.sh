@@ -90,6 +90,48 @@ absent grep -rIl 'bazzite\.gg' /etc/xdg /etc/skel /etc/profile.d \
     /usr/share/fish/vendor_conf.d
 [[ ! -e /usr/libexec/ublue-motd ]]
 
+# A plain fastfetch draws no logo, Fedora's or Bazzite's. The build's
+# root runs it here, with the config an account reads when it has none
+# of its own, so every account must be able to read that file.
+[[ "$(stat -c %a /etc/xdg/fastfetch)" == 755 ]]
+[[ "$(stat -c %a /etc/xdg/fastfetch/config.jsonc)" == 644 ]]
+
+# With only "break", an empty line, to print, all fastfetch writes is its
+# logo, and --pipe false makes it draw as it does on a terminal. With no
+# config read there must be a logo to see, or this checks nothing. With
+# Cairn's, fastfetch writes what it does when told to draw none. cmp
+# keeps the drawing out of the build's log.
+drawn() {
+    fastfetch --pipe false --structure break "$@"
+}
+absent cmp -s <(drawn --config none) <(drawn --config none --logo none)
+cmp <(drawn) <(drawn --config none --logo none)
+
+# Its lines are still there, each from the start of its line, where a
+# logo would push it to the right. A config that names no lines prints
+# none. The build's root has no home folder, so what the lines look up
+# there goes to /tmp. grep -c reads to the end, so fastfetch never
+# writes to a closed pipe.
+XDG_CACHE_HOME=/tmp/fastfetch-cache fastfetch | grep -c '^OS: Cairn Linux'
+
+# No alias or function gives the word another meaning, as Bazzite's did,
+# in these places: what bash, sh and fish read at start for every
+# account, the folders fish takes functions from, and what a new account
+# is given. -R reads the files that links there point at too, such as
+# systemd's two in /etc/profile.d. grep must answer 1, which is "looked
+# in every place and found nothing". For a place that is missing it
+# answers 2 even when the word is in another, and absent would take that
+# for "not found".
+status=0
+grep -RIlw fastfetch /etc/profile /etc/profile.d /etc/bashrc /etc/skel \
+    /etc/fish /usr/share/fish/vendor_conf.d \
+    /usr/share/fish/vendor_functions.d || status=$?
+[[ "${status}" == 1 ]]
+
+# No new account starts with a fastfetch config of its own, which
+# fastfetch would read in place of Cairn's.
+[[ ! -e /etc/skel/.config/fastfetch && ! -e /etc/skel/fastfetch ]]
+
 # The icon cache lists the new names, so a deployed system finds them.
 # Each name ends in a NUL there, so the Ink name is not matched by the
 # Sand one.
