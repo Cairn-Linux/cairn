@@ -65,6 +65,12 @@ QVariantList loginsAndNames(const std::vector<ListedChild>& children);
 // of locale and name, for its QML (ADR-0058).
 QVariantList loginsNamesAndLevels(const std::vector<ListedChild>& children);
 
+// Whether the Children page shows the two the same: one login, name and
+// level, and one language among those Family offers, or none. What no row
+// shows is no difference: a login given as the full name, or one language
+// Family does not offer in place of another.
+bool sameOnTheList(const ListedChild& one, const ListedChild& other);
+
 // Whether both lists hold the same children, by login and name, in order.
 bool sameLoginsAndNames(const std::vector<ListedChild>& one, const std::vector<ListedChild>& other);
 

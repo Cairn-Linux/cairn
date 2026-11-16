@@ -12,7 +12,12 @@ switch between them and a read-only Games page landed 2026-10-28, and
 highlighting games and Save the same day); ADR-0043, proposed (a third page, Your account,
 with the Guardian's own password and picture, and "Family" in System
 Settings in place of Plasma's hidden Users page); the section "A name a
-child on the list already has" below (2026-10-31, #212)
+child on the list already has" below (2026-10-31, #212); the sentences
+dated 2026-11-12 under "The Children page" and in that section's
+consequences (the page reads the accounts again when it is shown, when
+Family comes back to the front, and before each change; and it takes
+away the sentence under the rows for the last change once a child it is
+about is no longer as they were)
 
 ## Context
 
@@ -104,9 +109,30 @@ step 4, and ADR-0041 says how they work.
 
 - Every Cairn child, in the order their accounts were made, as on the
   login screen (ADR-0020), with their name and level. The list comes from
-  the account database through NSS, read again after every change. A
-  child is the same as `cairn-family`'s: a person's account in a level
-  group, and no administrator. The rule lives in `accounts/` for both.
+  the account database through NSS, read again after every change.
+  Since 2026-11-12 it is also read each time the page is shown, each
+  time Family comes back to the front, and before each change. A child
+  is the same as `cairn-family`'s: a person's account in a level group,
+  and no administrator. The rule lives in `accounts/` for both.
+- Since 2026-11-12 the sentence under the rows, which says what the
+  last change did or why it did nothing, goes when a later read of the
+  accounts finds that a child it is about is not as they were when it
+  was written: gone from the list, back on the list, or there with
+  another name, level or language. The page is then as it is before any
+  change. A read that finds each such child the same leaves the
+  sentence, whatever else changed in the family. A sentence is about
+  the child whose row's button was pressed, or the child Add a child
+  made or asked the password to make, and about a child it names as
+  having the name already. The read that follows a change's answer
+  writes that change's sentence and never takes it away, and nothing is
+  taken away while a change waits for its password. A sentence about no
+  child is taken away by no read: "Type the child's name first.", or a
+  name Add a child refuses before any password because it holds a
+  colon. A grown-up's name refused, for a new child or for a child's
+  new name (ADR-0056), stays even when that grown-up's account is
+  removed or renamed in a terminal meanwhile: the page follows the
+  children on its list, not the grown-ups. Pressing Add or Save name
+  again reads the accounts and answers for the family as it is.
 - **Add a child:** the name the login tile will show, and level 1 or 2,
   each with one sentence from DESIGN §3. The window makes the account's
   login name from the name, in C++: lower case, accents dropped, only a
@@ -229,14 +255,22 @@ whatever the case of its letters, before the password is asked for.**
 ### Consequences
 
 - The form can no longer make two children with one name, as long as no
-  child is made outside Family while it is open. A family with two
-  children of one name gives one of them an initial, as the sentence
-  says.
-- The window compares the name with the children as it last read them:
-  when it opened, and after each change. A child made in a terminal
-  since then is not compared. A retry is not compared at all, so a child
-  of that name made elsewhere between a failed add and its retry does
-  not stop it.
+  child is made outside Family while it asks for the password. A family
+  with two children of one name gives one of them an initial, as the
+  sentence says.
+- The window compares the name with the children as it reads them just
+  before it asks for the password. Until 2026-11-12 it compared them as
+  it last read them, when it opened and after each change, so a child
+  removed in a terminal kept their row and their name until the next
+  change was answered or Family was closed. A child made elsewhere while
+  the password is asked for is still not compared. A retry is not
+  compared at all, so a child of that name made elsewhere between a
+  failed add and its retry does not stop it.
+- Since 2026-11-12 the refusal "Ada already has an account on this
+  computer" goes once a read of the accounts finds Ada gone from the
+  list, or there with another name, level or language. Before, it
+  stayed under the rows until the next change, though the list no
+  longer showed that child.
 - Only children are compared. A child may still get a grown-up's name;
   a grown-up's tile asks for a password, so a child cannot land in that
   account with a tap.

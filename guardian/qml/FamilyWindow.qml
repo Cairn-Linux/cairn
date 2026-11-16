@@ -38,11 +38,13 @@ Window {
     color: Tokens.ground
     visible: true
 
-    // Shows a page from its top. The Games page reads its files again, so
-    // a child just added or a game just listed is there.
+    // Shows a page from its top. Each page reads what it shows again, so a
+    // child just added or removed, or a game just listed, is there.
     function show(name) {
         if (window.showing === name)
             return;
+        if (name === "children")
+            window.page.shown();
         if (name === "games")
             window.gamesPage.reload();
         if (name === "account")
@@ -101,6 +103,16 @@ Window {
             return;
         window.keyboardItem = item;
         window.showItem(item);
+    }
+
+    // The family may have been changed in another window, a terminal's
+    // say, while Family was behind it. So the Children page is told each
+    // time Family comes back to the front with it showing. The page makes
+    // its list again only when the family differs, so a password box that
+    // closes, which brings Family to the front too, changes nothing here.
+    onActiveChanged: {
+        if (window.active && window.showing === "children")
+            window.page.shown();
     }
 
     // In each frame the window first lays out what changed, then says so
@@ -244,6 +256,9 @@ Window {
                 window.showItem(window.activeFocusItem);
                 window.showItem(childrenView.outcomeBox);
             }
+            // What has the keyboard may have moved with the rows, the
+            // Add a child field under them too.
+            onRowsMadeAgain: window.showItem(window.activeFocusItem)
         }
 
         GamesView {
