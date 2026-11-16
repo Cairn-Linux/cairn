@@ -185,6 +185,7 @@ locked icon, nothing to probe.
 | Games | Run the scanner, choose each child's own games from the Guardian's own Steam (ADR-0041, ADR-0042), update a child's Steam while they are logged out (§8.3; ADR-0048, proposed), open a child's own Steam to sign it in or answer it (ADR-0032, proposed), assign categories, manage tiles (§8.7) |
 | Data | Reset a child account; export creations (§11) |
 | Notices | See in Family each time wrong passwords were typed on the computer in the last 30 days, for every account, where, from whose login, and whether that locked the account, read from the journal and kept nowhere else (ADR-0054) |
+| About | See in Family what Cairn Linux is, which version the computer runs when the image says, that it is not Bazzite's, Universal Blue's, Red Hat's or Fedora's, and where its licences are (ADR-0040, ADR-0038) |
 
 #### Two access paths
 

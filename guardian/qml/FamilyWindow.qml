@@ -3,10 +3,10 @@ import QtQuick
 import Cairn.Brand
 import Cairn.Family
 
-// The Guardian tool, "Family" in the menu (ADR-0040). Four pages,
-// Children, Games, Your account (ADR-0043) and Notices (ADR-0054), with a
-// switch between them above the page, which stays in place while the page
-// scrolls.
+// The Guardian tool, "Family" in the menu (ADR-0040). Five pages,
+// Children, Games, Your account (ADR-0043), Notices (ADR-0054) and About,
+// with a switch between them above the page, which stays in place while
+// the page scrolls.
 Window {
     id: window
 
@@ -14,10 +14,12 @@ Window {
     required property GamesPage gamesPage
     required property AccountPage accountPage
     required property NoticesPage noticesPage
+    required property AboutPage aboutPage
 
-    // The page that shows: "children", "games", "account" or "notices".
+    // The page that shows: "children", "games", "account", "notices" or
+    // "about".
     property string showing: "children"
-    readonly property Item shownView: window.showing === "games" ? gamesView : window.showing === "account" ? accountView : window.showing === "notices" ? noticesView : childrenView
+    readonly property Item shownView: window.showing === "games" ? gamesView : window.showing === "account" ? accountView : window.showing === "notices" ? noticesView : window.showing === "about" ? aboutView : childrenView
 
     // The item the keyboard is on, kept while another window has it.
     property Item keyboardItem: null
@@ -32,7 +34,8 @@ Window {
     title: qsTr("Family")
     width: Tokens.headingSize * 26
     height: Tokens.headingSize * 34
-    // Wide enough for the four page buttons on one line.
+    // Wide enough for the first four page buttons on one line. About,
+    // the fifth, goes on to a second line there.
     minimumWidth: Tokens.headingSize * 22
     minimumHeight: Tokens.headingSize * 12
     color: Tokens.ground
@@ -143,9 +146,11 @@ Window {
         height: tabs.height + window.margin
         color: Tokens.ground
 
-        // The window's minimum width keeps the four buttons on one line.
-        // Longer words, from a translation or larger text, go on to the
-        // next line rather than out of sight.
+        // The window as it opens has room for the five buttons on one
+        // line, and its minimum width for the first four. A button with
+        // no room, About in a narrow window or longer words from a
+        // translation or larger text, goes on to the next line rather
+        // than out of sight.
         Flow {
             id: tabs
 
@@ -213,7 +218,21 @@ Window {
                 Accessible.checkable: true
                 Accessible.checked: window.showing === "notices"
                 KeyNavigation.left: accountTab
+                KeyNavigation.right: aboutTab
                 onActivated: window.show("notices")
+            }
+
+            TextButton {
+                id: aboutTab
+
+                objectName: "aboutTab"
+                text: qsTr("About")
+                quiet: window.showing !== "about"
+                Accessible.role: Accessible.PageTab
+                Accessible.checkable: true
+                Accessible.checked: window.showing === "about"
+                KeyNavigation.left: noticesTab
+                onActivated: window.show("about")
             }
         }
 
@@ -306,6 +325,21 @@ Window {
             page: window.noticesPage
             flickable: flickable
 
+            onShowRequested: item => window.showItem(item)
+        }
+
+        AboutView {
+            id: aboutView
+
+            objectName: "aboutView"
+            x: window.margin
+            y: window.margin
+            width: window.width - window.margin * 2
+            visible: window.showing === "about"
+            page: window.aboutPage
+            flickable: flickable
+
+            // The words under a button whose press opened nothing.
             onShowRequested: item => window.showItem(item)
         }
     }

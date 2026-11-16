@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
+#include "AboutPage.h"
 #include "AccountPage.h"
 #include "ChildrenPage.h"
 #include "GamesPage.h"
@@ -23,6 +24,7 @@
 #include <QSet>
 #include <QTemporaryDir>
 #include <QTimeZone>
+#include <QUrl>
 #include <QtQuickTest/quicktest.h>
 
 #include <algorithm>
@@ -384,6 +386,54 @@ public:
         return page;
     }
 
+    // The window's AboutPage, over an os-release and a folder of licence
+    // texts of its own. "image" is the image as it is built today: Cairn's
+    // file with no version of Cairn's in it, and the four full texts.
+    // "with-version" has the image's version too; "not-cairn" is another
+    // system's file; "no-licences" has no folder of full texts;
+    // "nothing-opens" is "image" with an opener that answers no. A press
+    // only adds its address to opened(): no test starts a web browser.
+    Q_INVOKABLE AboutPage* aboutPage(const QString& kind = QStringLiteral("image")) {
+        const QDir files(m_files.path());
+        QFile image(QStringLiteral(FIXTURES "/os-release/cairn"));
+        QByteArray osRelease = image.open(QIODevice::ReadOnly) ? image.readAll() : QByteArray();
+        if (kind == "with-version") {
+            osRelease += "IMAGE_VERSION=dev.20261112-0a1b2c3\n";
+        }
+        if (kind == "not-cairn") {
+            osRelease = "NAME=\"Fedora Linux\"\nID=fedora\nVERSION_ID=45\n"
+                        "IMAGE_VERSION=45.20261104\n";
+        }
+        QDir(files.filePath("about")).removeRecursively();
+        files.mkpath("about");
+        writeFile(files.filePath("about/os-release"), osRelease);
+        if (kind != "no-licences") {
+            files.mkpath("about/licenses/cairn");
+            for (const char* text :
+                 {"LICENSE", "LICENSE-CC-BY-SA-4.0", "NOTICE", "TRADEMARKS.md"}) {
+                writeFile(files.filePath("about/licenses/cairn/" + QString::fromLatin1(text)),
+                          "words\n");
+            }
+        }
+        m_opened.clear();
+        AboutPage::Setup setup;
+        setup.osRelease = files.filePath("about/os-release");
+        setup.licenceFolder = files.filePath("about/licenses/cairn");
+        const bool opens = kind != "nothing-opens";
+        setup.open = [this, opens](const QUrl& address) {
+            m_opened.append(address.toString());
+            return opens;
+        };
+        auto* page = new AboutPage(setup);
+        QQmlEngine::setObjectOwnership(page, QQmlEngine::JavaScriptOwnership);
+        return page;
+    }
+
+    // Each address a press on the About page asked the desktop to open.
+    Q_INVOKABLE QStringList opened() const {
+        return m_opened;
+    }
+
     Q_INVOKABLE QStringList startedSteam() const {
         return m_startedSteam;
     }
@@ -455,6 +505,7 @@ private:
     // The shared games gamesPage() last wrote into the full list.
     QJsonArray m_shared;
     QStringList m_startedSteam;
+    QStringList m_opened;
     StandInWallet m_kwalletd;
 };
 

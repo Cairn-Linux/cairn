@@ -8,9 +8,9 @@
 [Desktop Entry]
 Type=Application
 Name=Family
-GenericName=Children, games, your account and notices
-Comment=The children, their levels and games, your own password and picture, and wrong passwords typed
-Keywords=children;child;level;games;Steam;password;picture;account;notices;locked;
+GenericName=Children, games, your account, notices and about
+Comment=The children, their levels and games, your own password and picture, and wrong passwords typed, and what Cairn Linux is
+Keywords=children;child;level;games;Steam;password;picture;account;notices;locked;about;version;licence;license;
 Exec=@CMAKE_INSTALL_FULL_BINDIR@/cairn-guardian
 TryExec=@CMAKE_INSTALL_FULL_BINDIR@/cairn-guardian
 Icon=system-users
