@@ -307,8 +307,10 @@ and Terra's.
 `build_files/no-countme.sh` removes the timer's link and masks the timer
 and its service, the opt-out rpm-ostree's own page gives.
 It also sets `countme=0` in every repository file, so neither
-`rpm-ostree countme` run by hand nor a metadata download asks for the
-count.
+`rpm-ostree countme` run by hand nor dnf5's metadata downloads ask for
+the count.
+rpm-ostree's own downloads never ask for it: its code turns the count
+off.
 `build_files/check-no-countme.sh` stops the build unless both units are
 masked in `/etc/systemd/system`, the timer's link is gone, and no
 repository file asks for the count.

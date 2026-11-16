@@ -25,9 +25,10 @@ systemctl disable rpm-ostree-countme.timer
 systemctl mask rpm-ostree-countme.timer rpm-ostree-countme.service
 
 # The repositories' own countme=1 is the second way out: `rpm-ostree
-# countme` run by hand, and the metadata downloads of rpm-ostree and dnf5,
-# which add the weekly count to a repository that asks for it. countme=0
-# turns that off for both. dnf5's repos.override.d would not do, because
-# rpm-ostree does not read it.
+# countme` run by hand, and dnf5's metadata downloads, which add the
+# weekly count to a repository that asks for it. (rpm-ostree's own
+# downloads never add it: its code turns libdnf's count off.) countme=0
+# turns both off. dnf5's repos.override.d would not do, because
+# `rpm-ostree countme` does not read it.
 find /usr/share/dnf5/repos.d /etc/yum.repos.d -name '*.repo' \
     -exec sed -i -E 's/^[[:space:]]*countme[[:space:]]*=.*$/countme=0/' {} +

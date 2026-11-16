@@ -38,9 +38,10 @@ if [[ -e "${wants}" || -L "${wants}" ]]; then
 fi
 
 # No repository asks for the count, so neither `rpm-ostree countme` by
-# hand nor a metadata download sends it. Any countme line but countme=0
-# fails, because dnf reads yes, true and on as well as 1. The folders are
-# checked first, since grep finding nothing in a missing folder would pass.
+# hand nor a dnf5 metadata download sends it. Any countme line but
+# countme=0 fails, because dnf reads yes, true and on as well as 1. The
+# folders are checked first, since grep finding nothing in a missing
+# folder would pass.
 repo_folders=(/usr/share/dnf5/repos.d /etc/yum.repos.d)
 for folder in "${repo_folders[@]}"; do
     [[ -d "${folder}" ]] || fail "${folder} is missing, so it was not checked."
