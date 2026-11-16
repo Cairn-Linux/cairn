@@ -163,9 +163,11 @@ submodule present, since the build reads the checkout and not git:
 
 ```sh
 git submodule update --init
+version="dev.$(date +%Y%m%d)-$(git rev-parse --short HEAD)"
 podman build -t localhost/cairn:dev \
   --label org.opencontainers.image.revision="$(git rev-parse HEAD)" \
-  --label org.opencontainers.image.version="dev.$(date +%Y%m%d)-$(git rev-parse --short HEAD)" \
+  --label org.opencontainers.image.version="${version}" \
+  --build-arg CAIRN_VERSION="${version}" \
   .
 ```
 
@@ -186,6 +188,29 @@ To read them back:
 
 ```sh
 podman image inspect --format '{{index .Labels "org.opencontainers.image.version"}} {{index .Labels "org.opencontainers.image.revision"}}' localhost/cairn:dev
+```
+
+`CAIRN_VERSION` puts the same version in `/usr/lib/os-release` as
+`IMAGE_VERSION` (since 2026-11-15).
+Family's About page shows it, and `hostnamectl` shows it as "OS Image
+Version".
+The command above works the version out once, so the label and the file
+always agree.
+With no `CAIRN_VERSION`, `os-release` has no `IMAGE_VERSION` line.
+The value may hold only lower-case letters, digits, `.`, `_` and `-`, as
+`os-release(5)` asks; anything else stops the build with a line that says
+so.
+A new version runs only the last steps again: the one that writes it, the
+checks and the lint.
+The packages and the compiled tree stay cached, and such a build took
+about 20 seconds on the dev PC on 2026-11-15.
+`build_files/check-image-version.sh` stops the build if `os-release` does
+not hold exactly the version given, once, or holds one when none was
+given.
+To look:
+
+```sh
+podman run --rm localhost/cairn:dev grep IMAGE_VERSION /usr/lib/os-release
 ```
 
 Rootless podman is enough. A build from an already pulled Bazzite

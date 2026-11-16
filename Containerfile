@@ -66,10 +66,11 @@ FROM ${BASE_IMAGE}
 # shows, with `podman build --label`, as image-template's Justfile does
 # (docs/DEVELOPMENT.md, "Building the image"). Not with build arguments:
 # podman reuses a cached LABEL step when only an argument's value has
-# changed, so the image would keep an older build's commit. A plain build
-# leaves both empty, so the labels never give Bazzite's commit or version
-# as Cairn's. containers.bootc and the ostree labels stay as they are,
-# because bootc reads them.
+# changed, so the image would keep an older build's commit. The version
+# goes into os-release too, from a build argument, in a RUN step further
+# down. A plain build leaves both labels empty, so they never give
+# Bazzite's commit or version as Cairn's. containers.bootc and the ostree
+# labels stay as they are, because bootc reads them.
 LABEL org.opencontainers.image.title="Cairn Linux" \
       org.opencontainers.image.description="A computer that grows with your child." \
       org.opencontainers.image.url="https://github.com/Cairn-Linux/cairn" \
@@ -97,10 +98,26 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=tmpfs,dst=/tmp \
     /ctx/build.sh
 
+# Cairn's version in os-release as IMAGE_VERSION, which Family's About
+# page and `hostnamectl` show, when whoever builds the image gives one
+# with `--build-arg CAIRN_VERSION=...`, the same value as the version
+# label (docs/DEVELOPMENT.md). With none, os-release names no version.
+# Its own step, as late as it can be, so the packages and the compiled
+# tree stay cached when only the version changes. Unlike the LABEL step
+# above, a RUN step that uses an argument ran again when only the
+# argument's value changed (tried 2026-11-15), and the check step below
+# stops the build if it ever does not. The initramfs build.sh made keeps
+# its copy of os-release as it was, with no version.
+ARG CAIRN_VERSION
+RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
+    --mount=type=tmpfs,dst=/tmp \
+    /ctx/image-version.sh "${CAIRN_VERSION}"
+
 # A child must not be able to start or stop the system updater (#265).
 # The image must say Cairn, not Bazzite or Fedora (slice 5), from the
 # boot screen on (#165) to the Guardian's start-menu button (#166), and
-# the Bazzite extras the build takes out must stay out (#261). The lock
+# the Bazzite extras the build takes out must stay out (#261). os-release
+# must name the version the build was given, once, or none. The lock
 # screen's fingerprint check must not count a missing reader as a wrong
 # try (#283), a child with su must not be able to write another
 # account's count of wrong passwords (#289), and a child must not be able
@@ -108,6 +125,7 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
 RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=tmpfs,dst=/tmp \
     /ctx/check-name-and-logos.sh && \
+    /ctx/check-image-version.sh "${CAIRN_VERSION}" && \
     /ctx/check-boot-screen.sh && \
     /ctx/check-guardian-desktop.sh && \
     /ctx/check-bazzite-extras.sh && \
