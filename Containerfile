@@ -102,9 +102,10 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
 # boot screen on (#165) to the Guardian's start-menu button (#166), and
 # the Bazzite extras the build takes out must stay out (#261). The lock
 # screen's fingerprint check must not count a missing reader as a wrong
-# try (#283), and a child with su must not be able to write another
-# account's count of wrong passwords (#289). rpm-ostree's "count me"
-# report must stay off (#36).
+# try (#283), a child with su must not be able to write another
+# account's count of wrong passwords (#289), and a child must not be able
+# to change their own name, picture or language (#292). rpm-ostree's
+# "count me" report must stay off (#36).
 RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=tmpfs,dst=/tmp \
     /ctx/check-name-and-logos.sh && \
@@ -114,7 +115,8 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     /ctx/check-updater-rule.sh && \
     /ctx/check-no-countme.sh && \
     python3 -I /ctx/check-lock-screen-pam.py && \
-    python3 -I /ctx/check-faillock-owner.py
+    python3 -I /ctx/check-faillock-owner.py && \
+    /ctx/check-own-account-data.sh
 
 # Any lint warning stops the build.
 RUN bootc container lint --fatal-warnings
