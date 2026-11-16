@@ -421,14 +421,14 @@ launcher to find, and yes with the one that failed. None of this was
 tried on an image. So on the image neither sentence is expected to show,
 and a press that opens nothing leaves the page as it was.
 
-The pull request for this page asked the maintainer whether a web
-button was all right. On 2026-11-15 the maintainer answered that the
-page should have a link to Cairn's own site too, and that the site needs
-a documentation section (Cairn-Linux/cairn-site#4). So the Fedora button stays, and the button for
-Cairn's site was added. The site has no documentation section yet, so
-the button opens its home page. Each web button is one block in
-`guardian/qml/AboutView.qml`, and the notice reads the same without
-Fedora's button.
+The pull request for this page asked the maintainer whether a web button
+was all right. On 2026-11-15 the maintainer answered that the page
+should have a link to Cairn's own site too, and that the site needs a
+documentation section (Cairn-Linux/cairn-site#4). So the Fedora button
+stays, and the button for Cairn's site was added. The site has no
+documentation section yet, so the button opens its home page. Each web
+button is one block in `guardian/qml/AboutView.qml`, and the notice
+reads the same without Fedora's button.
 
 ### The fifth button
 
