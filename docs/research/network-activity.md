@@ -103,7 +103,8 @@ Today the computer does these things by itself:
 
 - Every few days a timer sends Fedora's and Terra's servers a count
   that names "Cairn Linux 45" and gives a rough age of the install.
-  Whether every run sends it, or only one a week, is not known.
+  By rpm-ostree's source only one run a week sends it; that was not
+  seen on a machine.
 - While it is online, its settings ask it to fetch one small page from
   Fedora every five minutes.
 - It asks public time servers for the time.
@@ -185,13 +186,20 @@ exists at that internet address.
 DNF's manual says the number is an age group worked out on the
 computer: 1 for the first week, 2 for the first month, 3 for up to six
 months, 4 for longer.
-It says the age counts from when `/etc/machine-id` last changed.
-That file is empty in the image and is filled at the first start.
 The manual names no machine number being sent.
-It also says only one request a week carries the mark.
-The `rpm-ostree` program in the image holds the words "window already
-counted", so a run in a week already counted may send nothing.
-That was not seen: the VM showed one run.
+
+Corrected on 2026-11-16: the manual's age, counted from when
+`/etc/machine-id` last changed, is dnf's, not this count's.
+The image has `rpm-ostree` 2026.3.
+By upstream's source at v2026.3 (`rust/src/countme/cookie.rs`), it
+counts the age from its own record of its first run, which it keeps in
+`/var/lib/rpm-ostree-countme/countme`.
+The unit gives it that folder (`StateDirectory=rpm-ostree-countme`).
+By the same source it counts once in each 7-day window, and a run in a
+window already counted sends nothing.
+The program in the image holds that message: "Skipping: Not in a new
+counting window".
+That was not seen on a machine: the VM showed one run.
 
 `rpm-ostree`'s own page says a computer with no added packages fetches
 no package lists at all.
@@ -203,8 +211,10 @@ The image's file `/etc/dnf/repos.override.d/99-config_manager.repo`
 turns the Terra sources off for `dnf`.
 On the test VM, three of the five requests went to Terra's host.
 Whether that VM had the override file was not read.
-So whether the count honours it is not known; the capture should show
-it.
+By upstream's source at v2026.3 (`rust/src/countme/repo.rs`), the count
+reads only `/etc/yum.repos.d` and `/usr/share/dnf5/repos.d`, never an
+override folder, so the override does not stop it (2026-11-16).
+That fits the three requests to Terra, but was not seen as such.
 
 **1.2 to 1.4, the updater.**
 The program is `uupd` 1.5.7, Universal Blue's updater.
@@ -1175,8 +1185,9 @@ again and confirm the thing is gone from the recording.
    actually fetches, and how often.
 9. What Steam contacts, and whether Bazzite's first-run request
    happens as its script reads.
-10. Whether the count sends on every run or once a week, and whether it
-    honours the `dnf` override that turns Terra's sources off.
+10. Seen on a machine: that the count sends once a week, and that it
+    ignores the `dnf` override that turns Terra's sources off, as
+    upstream's source says (1.1).
 11. What the updater does once a Cairn image has a place to be fetched
     from, and whether its checks before a timed run act as upstream's
     source says.
