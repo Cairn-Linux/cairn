@@ -5,6 +5,7 @@
 #include "NoticesPage.h"
 #include "StandInWallet.h"
 
+#include <QAccessible>
 #include <QColor>
 #include <QCoreApplication>
 #include <QDBusConnection>
@@ -475,6 +476,44 @@ public:
     }
 };
 
+// What a screen reader is offered on one control, and its press and
+// toggle: the same calls an assistive tool makes, which no key or tap in a
+// test reaches. The tests get it as `screenReader`.
+class ScreenReader : public QObject {
+    Q_OBJECT
+
+public:
+    using QObject::QObject;
+
+    // The names of the actions the control offers, such as "Press".
+    Q_INVOKABLE QStringList actions(QObject* control) const {
+        QAccessibleInterface* seen = QAccessible::queryAccessibleInterface(control);
+        if (seen == nullptr || seen->actionInterface() == nullptr) {
+            return {};
+        }
+        return seen->actionInterface()->actionNames();
+    }
+
+    // Asks the control to be pressed, whether or not it offers that.
+    Q_INVOKABLE void press(QObject* control) const {
+        ask(control, QAccessibleActionInterface::pressAction());
+    }
+
+    // Asks the control to be checked or unchecked, whether or not it
+    // offers that.
+    Q_INVOKABLE void toggle(QObject* control) const {
+        ask(control, QAccessibleActionInterface::toggleAction());
+    }
+
+private:
+    static void ask(QObject* control, const QString& action) {
+        QAccessibleInterface* seen = QAccessible::queryAccessibleInterface(control);
+        if (seen != nullptr && seen->actionInterface() != nullptr) {
+            seen->actionInterface()->doAction(action);
+        }
+    }
+};
+
 class Setup : public QObject {
     Q_OBJECT
 
@@ -492,6 +531,8 @@ public slots:
         }
         engine->rootContext()->setContextProperty(QStringLiteral("standIns"), standIns);
         engine->rootContext()->setContextProperty(QStringLiteral("heldKey"), new HeldKey(engine));
+        engine->rootContext()->setContextProperty(QStringLiteral("screenReader"),
+                                                  new ScreenReader(engine));
     }
 };
 

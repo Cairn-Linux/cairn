@@ -63,12 +63,22 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AddChildForm.qml" line="111"/>
+        <location filename="../qml/AddChildForm.qml" line="115"/>
+        <source>A desktop with limits, and a real terminal.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AddChildForm.qml" line="122"/>
+        <source>The full desktop and terminal, with a grown-up&apos;s controls still in place.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AddChildForm.qml" line="127"/>
         <source>Add</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AddChildForm.qml" line="112"/>
+        <location filename="../qml/AddChildForm.qml" line="128"/>
         <source>Add the child</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1106,6 +1116,24 @@
     <message>
         <location filename="../qml/PictureTile.qml" line="30"/>
         <source>Use the picture %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>PlannedLevel</name>
+    <message>
+        <location filename="../qml/PlannedLevel.qml" line="25"/>
+        <source>Level %1, planned</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PlannedLevel.qml" line="56"/>
+        <source>Level %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PlannedLevel.qml" line="79"/>
+        <source>Planned</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
