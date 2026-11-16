@@ -100,6 +100,13 @@ public:
             return std::ranges::any_of(
                 accounts, [&name](const Account& account) { return account.login == name; });
         };
+        // Ben has British English, chosen in Family; Ada has none chosen.
+        setup.languageOf = [](const QString& login) -> std::optional<QString> {
+            if (login == QLatin1String("ben")) {
+                return QStringLiteral("en_GB.UTF-8");
+            }
+            return std::nullopt;
+        };
         auto* page = new ChildrenPage(setup);
         QQmlEngine::setObjectOwnership(page, QQmlEngine::JavaScriptOwnership);
         return page;

@@ -13,10 +13,14 @@
 
 namespace {
 
-// Only the login and the level: a full name is the family's own words.
+// Only the login, the level and the locale: a full name is the family's
+// own words.
 QString askedFor(const FamilyRequest& request) {
     if (request.action == FamilyRequest::Action::SetName) {
         return QStringLiteral("set-name %1").arg(request.login);
+    }
+    if (request.action == FamilyRequest::Action::SetLanguage) {
+        return QStringLiteral("set-language %1 %2").arg(request.login, request.locale);
     }
     const QString action = request.action == FamilyRequest::Action::SetLevel
                                ? QStringLiteral("set-level")
@@ -62,6 +66,9 @@ FamilyCommand::Outcome FamilyCommand::run(const QStringList& arguments) const {
             return {.refusal = setName(*account, request.fullName.value_or(QString())),
                     .asked = asked};
         }
+        if (request.action == FamilyRequest::Action::SetLanguage) {
+            return {.refusal = setLanguage(*account, request.locale), .asked = asked};
+        }
         return {.refusal = changeChild(*account, request), .asked = asked};
     }
     if (!account) {
@@ -77,10 +84,11 @@ FamilyCommand::Outcome FamilyCommand::run(const QStringList& arguments) const {
 
 // The level group comes with the account, so a run cut off after useradd
 // leaves a child the next run can finish, never an account it would refuse.
-// The games file of an account removed outside cairn-family goes first, so
-// a new child never starts with games no parent chose for them.
+// The games and language files of an account removed outside cairn-family
+// go first, so a new child never starts with games or a language no parent
+// chose for them.
 std::optional<Refusal> FamilyCommand::makeChild(const FamilyRequest& request) const {
-    if (!removeOldGames(request.login)) {
+    if (!removeOldFiles(request.login)) {
         return Refusal::Failed;
     }
     QStringList arguments{QStringLiteral("--create-home")};
@@ -96,9 +104,10 @@ std::optional<Refusal> FamilyCommand::makeChild(const FamilyRequest& request) co
     return writeEntry(request.login, request.fullName.value_or(request.login));
 }
 
-bool FamilyCommand::removeOldGames(const QString& login) const {
+bool FamilyCommand::removeOldFiles(const QString& login) const {
     return RootFolder::remove(m_setup.gamesFolder, m_setup.gamesOwner,
-                              login + QStringLiteral(".json"));
+                              login + QStringLiteral(".json")) &&
+           LanguageFile::remove(m_setup.localeFolder, m_setup.localeOwner, login);
 }
 
 std::optional<Refusal> FamilyCommand::changeChild(const Account& child,
@@ -151,6 +160,21 @@ std::optional<Refusal> FamilyCommand::setName(const Account& child, const QStrin
         return Refusal::Failed;
     }
     return writeEntry(child.login, fullName);
+}
+
+// A child's language, at any level, from their next login. Only root
+// writes the file, outside the child's home (ADR-0058).
+std::optional<Refusal> FamilyCommand::setLanguage(const Account& child,
+                                                  const QString& locale) const {
+    const ChildLanguage::Language* language = ChildLanguage::find(locale);
+    if (language == nullptr) {
+        return Refusal::BadLanguage;
+    }
+    if (!LanguageFile::write(m_setup.localeFolder, m_setup.localeOwner, m_setup.restorecon,
+                             child.login, *language)) {
+        return Refusal::Failed;
+    }
+    return std::nullopt;
 }
 
 // A file renamed into place keeps the label of the file it was written as,
