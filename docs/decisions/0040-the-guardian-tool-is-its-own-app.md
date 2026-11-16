@@ -371,8 +371,8 @@ No image writes that key today. `build_files/name-and-logos.sh` writes
 fourteen keys and none is Cairn's own version, which exists only as a
 label on the image (ADR-0038, "Labels"). So every computer shows the
 second sentence until the build writes the key. That is a change to the
-image, of its own, and the maintainer has not said yes to it. It is not
-made here.
+image, of its own. The maintainer said yes to it on 2026-11-15. It is
+its own pull request and is not made here.
 
 Fedora's number is never shown as Cairn's version. `VERSION_ID` is the
 Fedora release of the base, 45 today. "Cairn Linux 45" would read as

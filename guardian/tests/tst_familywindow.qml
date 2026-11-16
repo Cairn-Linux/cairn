@@ -2611,10 +2611,16 @@ TestCase {
         for (const name of sentences)
             verify(!findChild(window, name).visible, name);
         // The keyboard brings the button into sight, with no room left
-        // under it for the sentence.
+        // under it for the sentence. A hidden sentence has no place on
+        // the page yet, so the room is measured from the button.
         button.forceActiveFocus();
         tryVerify(() => inSightOnThePage(window, button));
-        verify(!inSightOnThePage(window, sentence));
+        const scroller = findChild(window, "scroller");
+        const view = findChild(window, "aboutView");
+        verify(sentence.height > 0);
+        const buttonTop = button.mapToItem(scroller, 0, 0).y;
+        verify(buttonTop + button.height + view.spacing + sentence.height > scroller.height);
+        const scrolledTo = scroller.contentY;
         keyClick(Qt.Key_Return);
         compare(standIns.opened().length, 1);
         verify(sentence.visible);
@@ -2626,8 +2632,9 @@ TestCase {
         compare(sentence.Accessible.role, Accessible.AlertMessage);
         // Laid out under its button at once, so the window scrolls to
         // where the sentence is.
-        fuzzyCompare(sentence.y, button.y + button.height + findChild(window, "aboutView").spacing, 1);
+        fuzzyCompare(sentence.y, button.y + button.height + view.spacing, 1);
         tryVerify(() => inSightOnThePage(window, sentence));
+        verify(scroller.contentY > scrolledTo);
         verify(button.activeFocus);
         // The other button's press moves the sentence to under it.
         const otherButton = findChild(window, data.otherButton);

@@ -29,9 +29,8 @@ class AboutPage : public QObject {
     Q_PROPERTY(QString fedoraRelease READ fedoraRelease CONSTANT)
     // The folder with the four licence texts; empty when one is missing.
     Q_PROPERTY(QString licenceFolder READ licenceFolder CONSTANT)
-    // Both written here, not in a translatable sentence, so no translation
-    // can change where a button or Fedora's notice points.
-    Q_PROPERTY(QString cairnAddress READ cairnAddress CONSTANT)
+    // Written here, not in a translatable sentence, so no translation can
+    // change the address Fedora's notice gives.
     Q_PROPERTY(QString fedoraAddress READ fedoraAddress CONSTANT)
     // The button whose last press opened nothing, by the opener's answer.
     Q_PROPERTY(Place notOpened READ notOpened NOTIFY notOpenedChanged)
@@ -56,6 +55,8 @@ public:
     QString version() const;
     QString fedoraRelease() const;
     QString licenceFolder() const;
+    // The address Cairn's button opens. No sentence on the page writes it
+    // out: the button's own words name the site.
     // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
     QString cairnAddress() const;
     // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
