@@ -4,96 +4,103 @@
 <context>
     <name>AboutView</name>
     <message>
-        <location filename="../qml/AboutView.qml" line="67"/>
+        <location filename="../qml/AboutView.qml" line="68"/>
         <source>About Cairn Linux</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AboutView.qml" line="73"/>
+        <location filename="../qml/AboutView.qml" line="74"/>
         <source>Cairn Linux is the system on this computer. It is made for children, with a grown-up in charge.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AboutView.qml" line="81"/>
+        <location filename="../qml/AboutView.qml" line="99"/>
         <source>This copy of Cairn Linux does not say which version it is.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AboutView.qml" line="81"/>
+        <location filename="../qml/AboutView.qml" line="99"/>
         <source>Version: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AboutView.qml" line="88"/>
+        <location filename="../qml/AboutView.qml" line="106"/>
         <source>What it is built on</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AboutView.qml" line="95"/>
+        <location filename="../qml/AboutView.qml" line="113"/>
         <source>Cairn Linux is built on Bazzite, a Universal Blue image derived from Fedora® Linux. Cairn Linux is not affiliated with, endorsed by, or supported by Bazzite, Universal Blue, Red Hat or the Fedora Project.</source>
         <extracomment>Says what Cairn Linux is built on, and that it is not theirs. Keep its meaning, every name in it and the ® after the first &quot;Fedora&quot;, which Fedora&apos;s trademark guidelines ask for.</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AboutView.qml" line="103"/>
+        <location filename="../qml/AboutView.qml" line="121"/>
         <source>The software Cairn Linux provides is not provided or supported by the Fedora Project. Official Fedora Materials are available through the Fedora Project website at %1.</source>
         <extracomment>Fedora&apos;s trademark guidelines ask for this notice. Keep its meaning and every name in it. %1 is the address of Fedora&apos;s website.</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AboutView.qml" line="113"/>
+        <location filename="../qml/AboutView.qml" line="131"/>
         <source>Open fedoraproject.org in your web browser</source>
         <extracomment>Keep fedoraproject.org as it is: it is the address the button opens.</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AboutView.qml" line="121"/>
+        <location filename="../qml/AboutView.qml" line="92"/>
+        <location filename="../qml/AboutView.qml" line="139"/>
         <source>No web browser opened. The address above works in any browser, on this computer or on a phone.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AboutView.qml" line="128"/>
+        <location filename="../qml/AboutView.qml" line="84"/>
+        <source>Open cairnlinux.com in your web browser</source>
+        <extracomment>Keep cairnlinux.com as it is: it is the address the button opens.</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/AboutView.qml" line="146"/>
         <source>This copy is derived from Fedora Linux %1.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AboutView.qml" line="136"/>
+        <location filename="../qml/AboutView.qml" line="154"/>
         <source>Fedora is a trademark or registered trademark of Red Hat, Inc., or its subsidiaries in the United States and other countries.</source>
         <extracomment>Fedora&apos;s trademark guidelines ask for this statement. Keep its meaning and every name in it.</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AboutView.qml" line="143"/>
+        <location filename="../qml/AboutView.qml" line="161"/>
         <source>Licences</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AboutView.qml" line="149"/>
+        <location filename="../qml/AboutView.qml" line="167"/>
         <source>Cairn Linux&apos;s own code is licensed under the Apache License 2.0. Its documentation and brand assets, including the stacked-stones artwork, are licensed under CC BY-SA 4.0. Those copyright licences do not grant trademark rights in the name &quot;Cairn Linux&quot; or the stacked-stones mark.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AboutView.qml" line="156"/>
+        <location filename="../qml/AboutView.qml" line="174"/>
         <source>The full texts could not be found on this computer.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AboutView.qml" line="156"/>
+        <location filename="../qml/AboutView.qml" line="174"/>
         <source>The full texts are on this computer, in the folder %1. LICENSE is the Apache License 2.0. LICENSE-CC-BY-SA-4.0 is the CC BY-SA 4.0 licence. NOTICE says whose work Cairn Linux is built on. TRADEMARKS.md says how the name and the mark may be used.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AboutView.qml" line="164"/>
+        <location filename="../qml/AboutView.qml" line="182"/>
         <source>Open the folder with the full texts</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AboutView.qml" line="172"/>
+        <location filename="../qml/AboutView.qml" line="190"/>
         <source>The folder did not open. Its path is written above.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/AboutView.qml" line="179"/>
+        <location filename="../qml/AboutView.qml" line="197"/>
         <source>The rest of the system is software from other projects, each under its own licence. The licences of its packages are in the folder /usr/share/licenses.</source>
         <extracomment>Keep the path /usr/share/licenses as it is.</extracomment>
         <translation type="unfinished"></translation>

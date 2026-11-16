@@ -2311,6 +2311,11 @@ TestCase {
                 text: "Cairn Linux is the system on this computer. It is made for children, with a grown-up in charge."
             },
             {
+                name: "openCairn",
+                role: Accessible.Button,
+                text: "Open cairnlinux.com in your web browser"
+            },
+            {
                 name: "aboutVersion",
                 role: Accessible.StaticText,
                 text: "This copy of Cairn Linux does not say which version it is."
@@ -2381,7 +2386,7 @@ TestCase {
             verify(item.y > above, part.name + " is not under the part before it");
             above = item.y;
         }
-        // Each block of words, the two that show only after a press that
+        // Each block of words, the three that show only after a press that
         // opened nothing as well, is plain text whose name for a screen
         // reader is all of its words.
         let blocks = 0;
@@ -2394,7 +2399,8 @@ TestCase {
             compare(block.Accessible.name, block.text);
             verify(block.text !== "", block.objectName);
         }
-        compare(blocks, 14);
+        compare(blocks, 15);
+        verify(!findChild(window, "cairnNotOpened").visible);
         verify(!findChild(window, "fedoraNotOpened").visible);
         verify(!findChild(window, "folderNotOpened").visible);
         if (standIns.screenshotPath() !== "") {
@@ -2453,8 +2459,8 @@ TestCase {
             compare(words.color, first.color, name);
         }
         const texts = textsIn(findChild(window, "aboutView"));
-        // The fourteen blocks of words and the two buttons' words.
-        compare(texts.length, 16);
+        // The fifteen blocks of words and the three buttons' words.
+        compare(texts.length, 18);
         for (const text of texts)
             verify(text.font.pixelSize >= Tokens.minGuardian, text.text);
     }
@@ -2505,7 +2511,7 @@ TestCase {
         for (const name of others)
             verify(!findChild(window, name).text.includes("45"), name);
         // Everything that does not come from the file still shows.
-        const fixed = ["aboutHeading", "aboutWhatItIs", "aboutVersion", "builtOnHeading", "aboutLineage", "aboutNotice", "openFedora", "aboutAttribution", "licencesHeading", "aboutLicences", "aboutFullTexts", "openFolder", "aboutOtherSoftware"];
+        const fixed = ["aboutHeading", "aboutWhatItIs", "openCairn", "aboutVersion", "builtOnHeading", "aboutLineage", "aboutNotice", "openFedora", "aboutAttribution", "licencesHeading", "aboutLicences", "aboutFullTexts", "openFolder", "aboutOtherSoftware"];
         compare(aboutParts(window).filter(name => name !== "aboutFedoraRelease"), fixed);
     }
 
@@ -2519,6 +2525,10 @@ TestCase {
         wait(200);
         compare(standIns.opened(), []);
         const buttons = [
+            {
+                name: "openCairn",
+                address: "https://cairnlinux.com/"
+            },
             {
                 name: "openFedora",
                 address: "https://fedoraproject.org/"
@@ -2550,8 +2560,9 @@ TestCase {
             keyClick(Qt.Key_Tab);
             compare(standIns.opened(), asked);
         }
-        compare(asked.length, 10);
+        compare(asked.length, 15);
         compare(window.aboutPage.notOpened, AboutPage.None);
+        verify(!findChild(window, "cairnNotOpened").visible);
         verify(!findChild(window, "fedoraNotOpened").visible);
         verify(!findChild(window, "folderNotOpened").visible);
     }
@@ -2562,18 +2573,28 @@ TestCase {
     function test_theAboutPageWhenNothingOpens_data() {
         return [
             {
+                tag: "Cairn's website",
+                button: "openCairn",
+                sentence: "cairnNotOpened",
+                words: "No web browser opened. The address above works in any browser, on this computer or on a phone.",
+                other: "folderNotOpened",
+                otherButton: "openFolder"
+            },
+            {
                 tag: "Fedora's website",
                 button: "openFedora",
                 sentence: "fedoraNotOpened",
                 words: "No web browser opened. The address above works in any browser, on this computer or on a phone.",
-                other: "folderNotOpened"
+                other: "folderNotOpened",
+                otherButton: "openFolder"
             },
             {
                 tag: "the folder",
                 button: "openFolder",
                 sentence: "folderNotOpened",
                 words: "The folder did not open. Its path is written above.",
-                other: "fedoraNotOpened"
+                other: "fedoraNotOpened",
+                otherButton: "openFedora"
             }
         ];
     }
@@ -2586,7 +2607,9 @@ TestCase {
         showAbout(window);
         const button = findChild(window, data.button);
         const sentence = findChild(window, data.sentence);
-        verify(!sentence.visible);
+        const sentences = ["cairnNotOpened", "fedoraNotOpened", "folderNotOpened"];
+        for (const name of sentences)
+            verify(!findChild(window, name).visible, name);
         // The keyboard brings the button into sight, with no room left
         // under it for the sentence.
         button.forceActiveFocus();
@@ -2595,6 +2618,9 @@ TestCase {
         keyClick(Qt.Key_Return);
         compare(standIns.opened().length, 1);
         verify(sentence.visible);
+        // Only the pressed button's sentence shows.
+        for (const name of sentences)
+            compare(findChild(window, name).visible, name === data.sentence, name);
         compare(sentence.text, data.words);
         compare(sentence.Accessible.name, data.words);
         compare(sentence.Accessible.role, Accessible.AlertMessage);
@@ -2603,9 +2629,8 @@ TestCase {
         fuzzyCompare(sentence.y, button.y + button.height + findChild(window, "aboutView").spacing, 1);
         tryVerify(() => inSightOnThePage(window, sentence));
         verify(button.activeFocus);
-        verify(!findChild(window, data.other).visible);
         // The other button's press moves the sentence to under it.
-        const otherButton = findChild(window, data.other === "folderNotOpened" ? "openFolder" : "openFedora");
+        const otherButton = findChild(window, data.otherButton);
         otherButton.forceActiveFocus();
         keyClick(Qt.Key_Space);
         verify(!sentence.visible);
@@ -2627,7 +2652,7 @@ TestCase {
         const words = aboutWords(window);
         verify(!words.includes("The full texts are on this computer"));
         verify(!words.includes("Open the folder"));
-        compare(aboutParts(window), ["aboutHeading", "aboutWhatItIs", "aboutVersion", "builtOnHeading", "aboutLineage", "aboutNotice", "openFedora", "aboutFedoraRelease", "aboutAttribution", "licencesHeading", "aboutLicences", "aboutFullTexts", "aboutOtherSoftware"]);
+        compare(aboutParts(window), ["aboutHeading", "aboutWhatItIs", "openCairn", "aboutVersion", "builtOnHeading", "aboutLineage", "aboutNotice", "openFedora", "aboutFedoraRelease", "aboutAttribution", "licencesHeading", "aboutLicences", "aboutFullTexts", "aboutOtherSoftware"]);
         // Tab passes over the button that does not show.
         findChild(window, "aboutFullTexts").forceActiveFocus();
         keyClick(Qt.Key_Tab);
@@ -2661,7 +2686,7 @@ TestCase {
         compare(scroller.contentY, 0);
         verify(scroller.contentHeight > scroller.height * 2);
         const ring = Tokens.focusOffset + Tokens.focusWidth;
-        const stops = ["aboutWhatItIs", "aboutVersion", "aboutLineage", "aboutNotice", "openFedora", "aboutFedoraRelease", "aboutAttribution", "aboutLicences", "aboutFullTexts", "openFolder", "aboutOtherSoftware"];
+        const stops = ["aboutWhatItIs", "openCairn", "aboutVersion", "aboutLineage", "aboutNotice", "openFedora", "aboutFedoraRelease", "aboutAttribution", "aboutLicences", "aboutFullTexts", "openFolder", "aboutOtherSoftware"];
         for (const name of stops) {
             const stop = findChild(window, name);
             keyClick(Qt.Key_Tab);

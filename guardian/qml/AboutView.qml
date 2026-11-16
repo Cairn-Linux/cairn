@@ -4,13 +4,14 @@ import QtQuick
 import Cairn.Brand
 import Cairn.Family
 
-// The About page (ADR-0040): what Cairn Linux is, which version this
-// computer runs when its image says, what it is built on, with Fedora's
-// notice in full, and where the licences are. Every block is plain text.
-// The version, Fedora's release, Fedora's address and the folder's path
-// are put into their sentences from the page object, so nothing read from
-// a file is ever markup and no translation can change the notice's address
-// or the folder's path.
+// The About page (ADR-0040): what Cairn Linux is, with a button for its
+// website, which version this computer runs when its image says, what it
+// is built on, with Fedora's notice in full, and where the licences are.
+// Every block is plain text. The version, Fedora's release, Fedora's
+// address and the folder's path are put into their sentences from the
+// page object, so nothing read from a file is ever markup and no
+// translation can change the notice's address or the folder's path. Each
+// button only names a place; the page object holds what it opens.
 //
 // The keyboard reads it too. Tab stops on each block of words and each
 // button in turn, and the window scrolls to show it; Up, Down, Page Up
@@ -72,6 +73,23 @@ Column {
         width: view.width
         text: qsTr("Cairn Linux is the system on this computer. It is made for children, with a grown-up in charge.")
         onKeyPressed: event => view.scrollBy(event)
+    }
+
+    // Cairn's own website. Nothing is looked up or fetched until it is
+    // pressed.
+    TextButton {
+        objectName: "openCairn"
+        quiet: true
+        //: Keep cairnlinux.com as it is: it is the address the button opens.
+        text: qsTr("Open cairnlinux.com in your web browser")
+        Keys.onPressed: event => view.scrollBy(event)
+        onActivated: view.page.open(AboutPage.CairnWebsite)
+    }
+
+    NotOpened {
+        objectName: "cairnNotOpened"
+        visible: view.page.notOpened === AboutPage.CairnWebsite
+        text: qsTr("No web browser opened. The address above works in any browser, on this computer or on a phone.")
     }
 
     // Cairn's own version, never Fedora's number.

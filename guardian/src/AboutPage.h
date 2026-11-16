@@ -11,11 +11,12 @@
 
 // What the Guardian tool's About page shows (ADR-0040): which version of
 // Cairn Linux this computer runs, when its os-release says; which Fedora
-// release that copy is derived from; and where the licence texts are. It
-// reads those two places on this computer once, when it is made. It opens
-// a web browser or a file manager only when a button is pressed, and looks
-// nothing up, fetches nothing and checks for no browser before that.
-// Children never see the page: only a Guardian can run Family (ADR-0040).
+// release that copy is derived from; where the licence texts are; and the
+// two websites its buttons open, Cairn's and Fedora's. It reads those two
+// places on this computer once, when it is made. It opens a web browser
+// or a file manager only when a button is pressed, and looks nothing up,
+// fetches nothing and checks for no browser before that. Children never
+// see the page: only a Guardian can run Family (ADR-0040).
 class AboutPage : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -28,14 +29,15 @@ class AboutPage : public QObject {
     Q_PROPERTY(QString fedoraRelease READ fedoraRelease CONSTANT)
     // The folder with the four licence texts; empty when one is missing.
     Q_PROPERTY(QString licenceFolder READ licenceFolder CONSTANT)
-    // Written here, not in a translatable sentence, so no translation can
-    // change where Fedora's notice points.
+    // Both written here, not in a translatable sentence, so no translation
+    // can change where a button or Fedora's notice points.
+    Q_PROPERTY(QString cairnAddress READ cairnAddress CONSTANT)
     Q_PROPERTY(QString fedoraAddress READ fedoraAddress CONSTANT)
     // The button whose last press opened nothing, by the opener's answer.
     Q_PROPERTY(Place notOpened READ notOpened NOTIFY notOpenedChanged)
 
 public:
-    enum class Place : std::uint8_t { None, FedoraWebsite, LicenceFolder };
+    enum class Place : std::uint8_t { None, CairnWebsite, FedoraWebsite, LicenceFolder };
     Q_ENUM(Place)
 
     struct Setup {
@@ -55,11 +57,13 @@ public:
     QString fedoraRelease() const;
     QString licenceFolder() const;
     // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+    QString cairnAddress() const;
+    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
     QString fedoraAddress() const;
     Place notOpened() const;
 
-    // Opens Fedora's website or the licence folder. The address is this
-    // class's own: QML only names the place.
+    // Opens Cairn's website, Fedora's website or the licence folder. The
+    // address is this class's own: QML only names the place.
     Q_INVOKABLE void open(Place place);
 
 signals:

@@ -65,6 +65,11 @@ QString AboutPage::licenceFolder() const {
 }
 
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+QString AboutPage::cairnAddress() const {
+    return QStringLiteral("https://cairnlinux.com/");
+}
+
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 QString AboutPage::fedoraAddress() const {
     return QStringLiteral("https://fedoraproject.org/");
 }
@@ -75,7 +80,9 @@ AboutPage::Place AboutPage::notOpened() const {
 
 void AboutPage::open(Place place) {
     QUrl address;
-    if (place == Place::FedoraWebsite) {
+    if (place == Place::CairnWebsite) {
+        address = QUrl(cairnAddress());
+    } else if (place == Place::FedoraWebsite) {
         address = QUrl(fedoraAddress());
     } else if (place == Place::LicenceFolder && !m_licenceFolder.isEmpty()) {
         address = QUrl::fromLocalFile(m_licenceFolder);

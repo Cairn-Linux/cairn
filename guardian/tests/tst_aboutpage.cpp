@@ -119,6 +119,7 @@ private slots:
         QCOMPARE(page.version(), QString());
         QCOMPARE(page.fedoraRelease(), QString());
         // What does not come from the file is still there.
+        QCOMPARE(page.cairnAddress(), QString("https://cairnlinux.com/"));
         QCOMPARE(page.fedoraAddress(), QString("https://fedoraproject.org/"));
     }
 
@@ -126,6 +127,7 @@ private slots:
         const QString all = folderWith("all", m_fullTexts);
         const AboutPage page(setupOver(kImagesFile, all));
         QCOMPARE(page.licenceFolder(), all);
+        QCOMPARE(page.cairnAddress(), QString("https://cairnlinux.com/"));
         QCOMPARE(page.fedoraAddress(), QString("https://fedoraproject.org/"));
 
         // One text missing, each in turn.
@@ -145,7 +147,7 @@ private slots:
     }
 
     // Nothing phones home: an address is opened only by a press, and only
-    // one of the page's own two.
+    // one of the page's own three.
     void opensOnlyWhatIsAsked() {
         const QString folder = folderWith("texts", m_fullTexts);
         QList<QUrl> opened;
@@ -159,6 +161,7 @@ private slots:
         QCOMPARE(page.version(), QString());
         QCOMPARE(page.fedoraRelease(), QString("45"));
         QCOMPARE(page.licenceFolder(), folder);
+        QCOMPARE(page.cairnAddress(), QString("https://cairnlinux.com/"));
         QCOMPARE(page.fedoraAddress(), QString("https://fedoraproject.org/"));
         QCOMPARE(page.notOpened(), Place::None);
         QCOMPARE(opened, QList<QUrl>());
@@ -166,12 +169,16 @@ private slots:
         page.open(Place::None);
         QCOMPARE(opened, QList<QUrl>());
 
-        page.open(Place::FedoraWebsite);
+        page.open(Place::CairnWebsite);
         QCOMPARE(opened.size(), 1);
+        QCOMPARE(opened.constLast().toString(), QString("https://cairnlinux.com/"));
+
+        page.open(Place::FedoraWebsite);
+        QCOMPARE(opened.size(), 2);
         QCOMPARE(opened.constLast().toString(), QString("https://fedoraproject.org/"));
 
         page.open(Place::LicenceFolder);
-        QCOMPARE(opened.size(), 2);
+        QCOMPARE(opened.size(), 3);
         QVERIFY(opened.constLast().isLocalFile());
         QCOMPARE(opened.constLast().toLocalFile(), folder);
         QCOMPARE(page.notOpened(), Place::None);
@@ -180,11 +187,14 @@ private slots:
         setup.licenceFolder = path("nowhere");
         AboutPage without(setup);
         without.open(Place::LicenceFolder);
-        QCOMPARE(opened.size(), 2);
+        QCOMPARE(opened.size(), 3);
         QCOMPARE(without.notOpened(), Place::None);
         without.open(Place::FedoraWebsite);
-        QCOMPARE(opened.size(), 3);
+        QCOMPARE(opened.size(), 4);
         QCOMPARE(opened.constLast().toString(), QString("https://fedoraproject.org/"));
+        without.open(Place::CairnWebsite);
+        QCOMPARE(opened.size(), 5);
+        QCOMPARE(opened.constLast().toString(), QString("https://cairnlinux.com/"));
     }
 
     void nothingOpened() {
@@ -196,6 +206,7 @@ private slots:
         const QSignalSpy changed(&page, &AboutPage::notOpenedChanged);
         QCOMPARE(page.notOpened(), Place::None);
 
+        page.open(Place::CairnWebsite);
         page.open(Place::FedoraWebsite);
         page.open(Place::LicenceFolder);
         QCOMPARE(page.notOpened(), Place::None);
@@ -212,12 +223,18 @@ private slots:
         page.open(Place::LicenceFolder);
         QCOMPARE(page.notOpened(), Place::LicenceFolder);
         QCOMPARE(changed.count(), 2);
+        page.open(Place::CairnWebsite);
+        QCOMPARE(page.notOpened(), Place::CairnWebsite);
+        QCOMPARE(changed.count(), 3);
+        page.open(Place::CairnWebsite);
+        QCOMPARE(page.notOpened(), Place::CairnWebsite);
+        QCOMPARE(changed.count(), 3);
 
         // A later press that works clears it.
         opens = true;
         page.open(Place::LicenceFolder);
         QCOMPARE(page.notOpened(), Place::None);
-        QCOMPARE(changed.count(), 3);
+        QCOMPARE(changed.count(), 4);
 
         // With nothing to open with, as when a test gives none.
         AboutPage bare(setupOver(kImagesFile, folder));
@@ -228,9 +245,12 @@ private slots:
         bare.open(Place::FedoraWebsite);
         QCOMPARE(bare.notOpened(), Place::FedoraWebsite);
         QCOMPARE(bareChanged.count(), 2);
+        bare.open(Place::CairnWebsite);
+        QCOMPARE(bare.notOpened(), Place::CairnWebsite);
+        QCOMPARE(bareChanged.count(), 3);
         bare.open(Place::None);
-        QCOMPARE(bare.notOpened(), Place::FedoraWebsite);
-        QCOMPARE(bareChanged.count(), 2);
+        QCOMPARE(bare.notOpened(), Place::CairnWebsite);
+        QCOMPARE(bareChanged.count(), 3);
     }
 };
 

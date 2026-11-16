@@ -20,7 +20,8 @@ away the sentence under the rows for the last change once a child it is
 about is no longer as they were); the sentences dated 2026-11-12 under
 "Add a child" there (the form shows levels 3 and 4 as planned, and
 neither can be chosen); the section "The About page" below
-(2026-11-12, P1-14: a fifth page with Fedora's notice)
+(2026-11-12, P1-14: a fifth page with Fedora's notice; 2026-11-15: a
+button for Cairn's own website)
 
 ## Context
 
@@ -320,18 +321,19 @@ this tool's About page, because KDE's own About page can hold no link
 and no translation of Cairn's own, and P1-14 blocks publishing on it.
 Until now Family had no such page.
 
-**Family has a fifth page, About. It says what Cairn Linux is, which
-version the computer runs when the image says, what Cairn Linux is built
-on, with Fedora's notice in full, and where the licences are. It reads
-one file and one folder on the computer, and starts nothing until a
-parent presses a button.**
+**Family has a fifth page, About. It says what Cairn Linux is, with a
+button for Cairn's website, which version the computer runs when the
+image says, what Cairn Linux is built on, with Fedora's notice in full,
+and where the licences are. It reads one file and one folder on the
+computer, and starts nothing until a parent presses a button.**
 
 ### What the page shows
 
 In this order, under three headings:
 
 - **About Cairn Linux.** Two sentences on what it is: the system on this
-  computer, made for children, with a grown-up in charge. Then the
+  computer, made for children, with a grown-up in charge. A button,
+  "Open cairnlinux.com in your web browser" (since 2026-11-15). Then the
   version.
 - **What it is built on.** The lineage sentence, with ® after the first
   "Fedora", and the not-affiliated sentence, both as the README has
@@ -349,9 +351,9 @@ Every block is plain text, never rich text. The version, Fedora's
 release, the address and the folder's path are put into their sentences
 by the program. So nothing read from a file is ever markup, and a
 translation cannot change the notice's address or the folder's path.
-The web button's label and the last sentence name `fedoraproject.org`
-and `/usr/share/licenses` in their own words, with a note that asks the
-translator to keep each as it is.
+The two web buttons' labels and the last sentence name `cairnlinux.com`,
+`fedoraproject.org` and `/usr/share/licenses` in their own words, with a
+note that asks the translator to keep each as it is.
 
 Not on the page: any other address, a support address, the maintainer's
 name, the Linux trademark sentences, Bazzite's build number and a logo.
@@ -380,30 +382,36 @@ only when `ID` is `cairn` and the value is 1 to 4 digits. On a computer
 that does not run Cairn's image, such as the dev PC, the page says it
 does not say which version it is, and leaves the Fedora line out.
 
-### Fedora's address, and the two buttons
+### The web addresses, and the three buttons
 
-The address is written out inside the notice, so the notice is whole on
-a computer with no web browser and no network. The guidelines also say
-"linking to", and a page of plain text has no link. So one button under
-the notice asks the desktop to open https://fedoraproject.org/ in the
-parent's own browser. It is the only thing in Family that starts a web
-browser. The second button asks the desktop to open the licence folder
-in the parent's file manager. It shows only when the folder holds all
-four files as plain files; otherwise the page says "The full texts could
-not be found on this computer."
+Fedora's address is written out inside the notice, so the notice is
+whole on a computer with no web browser and no network. The guidelines
+also say "linking to", and a page of plain text has no link. So one
+button under the notice asks the desktop to open
+https://fedoraproject.org/ in the parent's own browser. Another button,
+under the sentences on what Cairn Linux is, asks the desktop to open
+Cairn's own website, https://cairnlinux.com/, the same way. These two
+are the only things in Family that start a web browser. The third button
+asks the desktop to open the licence folder in the parent's file
+manager. It shows only when the folder holds all four files as plain
+files; otherwise the page says "The full texts could not be found on
+this computer."
 
 This is not phoning home (DESIGN §2, principle 6). Family makes no
 network call itself. Nothing is looked up, fetched or checked when
 Family starts or when the page is shown, not even whether a browser is
-installed. The address is fixed in the program, and the page can ask
-for no other. A browser starts only when the parent presses the button,
-as with `HOME_URL` in `os-release`: "A link a person clicks; nothing
-fetches it" (ADR-0038).
+installed. Both addresses are fixed in the program, not in a sentence a
+translation could change, and the page can ask for no other. A browser
+starts only when the parent presses one of the two buttons, as with
+`HOME_URL` in `os-release`: "A link a person clicks; nothing fetches it"
+(ADR-0038).
 
 When Qt answers that it could start nothing, one sentence appears under
 that button and the window scrolls to it: "No web browser opened. The
 address above works in any browser, on this computer or on a phone.", or
-"The folder did not open. Its path is written above."
+"The folder did not open. Its path is written above." Both web buttons
+use the first sentence. Under Cairn's button, the address above is the
+one in the button's own words, `cairnlinux.com`.
 
 Qt's answer does not always say what happened. Under Wayland, which the
 image uses, Qt 6.11 answers yes at once, whatever happens next. On the
@@ -413,9 +421,14 @@ launcher to find, and yes with the one that failed. None of this was
 tried on an image. So on the image neither sentence is expected to show,
 and a press that opens nothing leaves the page as it was.
 
-The maintainer has not yet said yes to the web button. It is one block
-in `guardian/qml/AboutView.qml`, and the notice reads the same without
-it.
+The pull request for this page asked the maintainer whether a web
+button was all right. On 2026-11-15 the maintainer answered that the
+page should have a link to Cairn's own site too, and that the site needs
+a documentation section. So the Fedora button stays, and the button for
+Cairn's site was added. The site has no documentation section yet, so
+the button opens its home page. Each web button is one block in
+`guardian/qml/AboutView.qml`, and the notice reads the same without
+Fedora's button.
 
 ### The fifth button
 
@@ -464,12 +477,17 @@ page from any of them.
   taken from, and the sentences match.
 - Nothing in the repository shows that a web browser is on the image,
   and under Wayland Qt answers that an address opened whatever happened.
-  So the button may do nothing useful, and on the image its sentence is
-  not expected to show. The written-out address is the part that always
-  works.
-- The two buttons are the first place Cairn's own code asks the desktop
-  to open an address or a folder. The Guardian audit (#86) should have
-  them on its list.
+  So the two web buttons may do nothing useful, and on the image their
+  sentence is not expected to show. The written-out addresses, Fedora's
+  in the notice and `cairnlinux.com` in its button's words, are the part
+  that always works.
+- The three buttons are the first place Cairn's own code asks the
+  desktop to open an address or a folder. The Guardian audit (#86) should
+  have them on its list.
+- The button for Cairn's site opens a page that is not in the image, so
+  what the parent sees there changes whenever the site does. The address
+  is one line in `guardian/src/AboutPage.cpp`, should the button later
+  open a documentation section instead.
 - After Page Down, the ring around the block that has the keyboard can
   be out of sight until the next Tab. That Tab goes to the block after
   the one that had the keyboard, and the window scrolls back up to it.
