@@ -19,7 +19,23 @@ Only a file the image needs and provisioning does not belongs here:
   (ADR-0046), `/var/lib/faillock`, setgid so every count stays in group
   root (ADR-0053), and the folder for the family's menu entries.
 - `usr/lib/systemd/system-preset/40-cairn.preset`: SDDM, not Plasma Login
-  Manager, after a first boot's presets.
+  Manager, after a first boot's presets, and the Flatpak unit below
+  enabled.
+- `etc/homebrew/brew.env`: Homebrew's usage reports off, also in the
+  nightly updater's runs, and this file read after the owner's own, so
+  it wins (#36).
+  A Guardian's switch can change it later.
+- `usr/lib/systemd/system/cairn-flatpak-os-report-off.service`: sets
+  Flatpak's `report-os-info` to false once, at the first start, so app
+  downloads stop naming the system (#36).
+  The setting is in `/var/lib/flatpak`, which an image cannot ship.
+  A file in `/var/lib/cairn` keeps it from running again, so a later
+  change is never undone.
+  `build_files/build.sh` enables it.
+- `usr/lib/systemd/system/tailscaled.service.d/cairn-no-logs.conf`:
+  Tailscale's logs stay on the computer if anyone starts it (#36).
+  `TS_NO_LOGS_NO_SUPPORT=false` in `/etc/default/tailscaled` wins over
+  it.
 - `etc/xdg/kcm-about-distrorc`: empty, so System Settings' About page
   takes the name, logo and website from `os-release` instead of
   Bazzite's copy of this file.
@@ -32,6 +48,13 @@ Only a file the image needs and provisioning does not belongs here:
   (the Guardian's and an L3 or L4 child's), so its `start-here` is the
   Cairn mark (#166). `build_files/guardian-desktop.sh`
   fills the folder.
+
+`build_files/check-reports-off.sh` stops the build if the Homebrew,
+Flatpak or Tailscale file above is missing or loses its line, or the
+unit is no longer enabled.
+A computer set up by hand with `provision/` gets none of those three, so
+its Homebrew reports, Flatpak's line and Tailscale's logs stay on, as in
+Bazzite, until it moves to the image.
 
 Packages, fonts among them, are installed by dnf in
 `build_files/packages.sh`, not copied here.

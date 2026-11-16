@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: Apache-2.0
+# Flatpak names the system in every app download, as the header
+# "Flatpak-Os-Info: cairn;45;x86_64", unless the system installation's
+# report-os-info setting is false (DESIGN §9.3: no telemetry; #36). The
+# setting lives in /var/lib/flatpak/repo/config, which an image cannot
+# ship, so this sets it on the computer, once.
+#
+# This is a default, not a lock. The file in /var/lib/cairn says it was
+# done, so a Guardian's later change to the setting is never undone.
+[Unit]
+Description=Stop Flatpak naming this system in app downloads
+ConditionPathExists=!/var/lib/cairn/flatpak-os-report-off.done
+# After the base image's Flathub set-up, so the base still makes the
+# repository its own way and the two never write its settings at once.
+# Before Bazzite's Flatpak set-up, for the same reason, and before
+# everything that downloads apps: the updater, timed or from the menu,
+# and the helper that installs them for Bazaar.
+After=flatpak-add-fedora-repos.service
+Before=bazzite-flatpak-manager.service flatpak-system-helper.service
+Before=uupd.service uupd-manual.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/flatpak config --system --set report-os-info false
+ExecStartPost=/usr/bin/touch /var/lib/cairn/flatpak-os-report-off.done
+
+[Install]
+WantedBy=multi-user.target

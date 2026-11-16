@@ -12,8 +12,11 @@ cairn_install_file(SOURCE bin/cairn-steam-visit DESTINATION "${CAIRN_LIBEXECDIR}
 cairn_install_file(SOURCE labwc/rc.xml DESTINATION "${CAIRN_DATADIR}/labwc" MODE 644)
 cairn_install_file(SOURCE labwc/environment DESTINATION "${CAIRN_DATADIR}/labwc" MODE 644)
 # Read by an L3 or L4 child's Plasma only, through the XDG_CONFIG_DIRS
-# cairn-session gives them (ADR-0058).
+# cairn-session gives them (ADR-0058). UserFeedback.conf turns KDE's usage
+# reports off there (#36).
 cairn_install_file(SOURCE child-xdg/kdeglobals DESTINATION "${CAIRN_DATADIR}/child-xdg" MODE 644)
+cairn_install_file(SOURCE child-xdg/KDE/UserFeedback.conf DESTINATION "${CAIRN_DATADIR}/child-xdg/KDE"
+    MODE 644)
 # Only Cairn's own session folder, which SDDM's SessionDir names (ADR-0012).
 cairn_install_file(SOURCE sessions/cairn.desktop DESTINATION "${CAIRN_DATADIR}/sessions" MODE 644)
 cairn_install_file(SOURCE polkit/rules.d/10-cairn-levels.rules DESTINATION "${CAIRN_POLKITDIR}/rules.d"

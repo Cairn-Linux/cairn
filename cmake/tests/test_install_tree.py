@@ -56,6 +56,7 @@ EXPECTED = {
     "usr/libexec/cairn/cairn-steam-for": 0o750,
     "usr/libexec/cairn/cairn-steam-visit": 0o755,
     "usr/libexec/cairn/kidscan.py": 0o644,
+    "usr/share/cairn/child-xdg/KDE/UserFeedback.conf": 0o644,
     "usr/share/cairn/child-xdg/kdeglobals": 0o644,
     "usr/share/cairn/labwc/environment": 0o644,
     "usr/share/cairn/labwc/rc.xml": 0o644,
@@ -275,6 +276,8 @@ class InstallTree(unittest.TestCase):
             "usr/libexec/cairn/kidscan.py": "tools/kidscan/kidscan.py",
             "usr/share/polkit-1/rules.d/10-cairn-levels.rules": "session/polkit/rules.d/10-cairn-levels.rules",
             "usr/share/cairn/child-xdg/kdeglobals": "session/child-xdg/kdeglobals",
+            "usr/share/cairn/child-xdg/KDE/UserFeedback.conf":
+                "session/child-xdg/KDE/UserFeedback.conf",
         }
         for installed, source in pairs.items():
             with self.subTest(name=installed):

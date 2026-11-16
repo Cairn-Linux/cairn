@@ -53,8 +53,17 @@ What is here:
   Plasma only, installed in `/usr/share/cairn/child-xdg`. Each is locked
   on its own with `[$i]`, so the base image's locked group in
   `/etc/xdg/kdeglobals` still applies: no Region & Language page, and no
-  Configure Language in the menus of KDE's apps. It is a hide, not a
-  wall (ADR-0058, Known limits).
+  Configure Language in the menus of KDE's apps. It also hides System
+  Settings' User Feedback page (#36), and Family's entry there, since a
+  Guardian's tools are invisible to children (DESIGN §3.2). It is a
+  hide, not a wall (ADR-0058, Known limits).
+- `child-xdg/KDE/UserFeedback.conf`: KDE's usage reports off in the same
+  logins, for Plasma, Dolphin, Kate and every other KDE program (#36).
+  Qt takes the first file with the switch: the child's own file of that
+  name, then `/etc/xdg`, then KDE's profile folder, then this one. So a
+  child's own file can turn the reports back on, and
+  `build_files/check-reports-off.sh` stops the build if either system
+  folder gets a file that sets it.
 - `bin/cairn-give-up`: the grown-up's way out of a stuck program
   (ADR-0018, #41). Ctrl-Alt-Home in the kiosk runs it; it SIGCONTs, then
   SIGTERMs, then SIGKILLs the launcher's app scopes (`cairn-app-*.scope`,

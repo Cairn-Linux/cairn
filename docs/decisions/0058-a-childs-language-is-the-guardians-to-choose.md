@@ -598,3 +598,32 @@ shown. Little of the run was about language.
 - A game shown in another language, since Steam gave the one game tried
   `LC_ALL=C`.
 - Login time beyond one sample per case.
+
+## The same folder turns KDE's usage reports off (2026-11-15, #36)
+
+`child-xdg` now also keeps KDE's usage reports off in an L3 or L4
+child's login, since DESIGN §9.3 says the system collects nothing.
+`KDE/UserFeedback.conf` sets `[UserFeedback] Enabled=false`, the switch
+KDE's feedback library reads before every report, for Plasma, Dolphin
+and Kate alike.
+Qt takes the first file that has the switch: the child's own
+`~/.config/KDE/UserFeedback.conf`, then the folders of
+`XDG_CONFIG_DIRS` in order, so `/etc/xdg` and KDE's profile folder come
+before this one, which is last for the locks above.
+So a child's own file with `true` wins: a hide, as above.
+Neither system folder has the file, and the build check stops if one
+sets the switch.
+`kdeglobals` also hides System Settings' User Feedback page
+(`kcm_feedback`).
+Not a report, but in the same file: it hides Family's entry
+(`cairn-guardian-settings`) too.
+Without that line, `systemsettings --list` in a container listed the
+entry for an account that cannot run Family, and a Guardian's tools are
+invisible to children (DESIGN §3.2).
+Dolphin's and Kate's own User Feedback settings stay, and look as if
+they work.
+Checked in a container of the image on 2026-11-15, not on a running
+system: with this folder in the list, Qt read `Enabled` as false and
+`systemsettings --list` left out both entries.
+A test file in `/etc/xdg/KDE` or KDE's profile folder with
+`Enabled=true` won over this folder's, as the order says.

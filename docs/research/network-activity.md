@@ -5,9 +5,11 @@
 activity) and ROADMAP P1-1
 **Result:** A first pass, read from the image's files. The image switches
 on several things that contact outside machines by themselves (listed
-under "In short"), and Cairn's build changes none of them. Nothing has
-been captured on the wire yet, so this list says what is switched on and
-where its settings point, not what is sent.
+under "In short"), and Cairn's build changes none of them, except that
+from 2026-11-15 it keeps Homebrew's usage reports and Flatpak's line
+naming the system off (1.4, 1.9). Nothing has been captured on the wire
+yet, so this list says what is switched on and where its settings
+point, not what is sent.
 The proposals at the end are for the maintainer to decide.
 
 ## What this is and how it was made
@@ -118,6 +120,9 @@ Cairn has turned off Bazzite's first-login step, login notices and
 terminal banner, and stopped the welcome window opening for new
 accounts.
 Older accounts still open it, and it is still in the menu.
+Since 2026-11-15 the build also keeps four reports off: Homebrew's usage
+reports, Flatpak's line naming the system, Tailscale's logs, and KDE's
+usage reports in an older child's login.
 Nothing here was measured on the wire yet.
 
 ## The inventory
@@ -143,11 +148,12 @@ level 3 or 4, or a child at level 1 or 2.
 | 1.1 | The count of computers: `rpm-ostree-countme.timer`, `rpm-ostree-countme.service` | Fedora's preset asks for it (`90-default.preset`). 5 minutes after start plus a random wait of up to a day, then 3 days after its last run plus the same wait. Runs only where `/run/ostree-booted` exists, which is true on an installed computer. | The mirror lists of the five enabled package sources that ask to be counted: `mirrors.fedoraproject.org` (Fedora's two) and `tetsudou.fyralabs.com` (Terra's three) | The words "Cairn Linux 45", the kind of processor, and an age group from 1 to 4 | Image files; test VM, 2026-11-12; upstream's pages |
 | 1.2 | The updater, system part: `uupd.timer`, `uupd.service` | A link in the image that no package owns and no preset asks for (the presets say disable). How the base image came to have it is not known. Daily at 04:00 plus up to 15 minutes; a missed run is made up after the next start. | The place the installed system came from. For an install from today's ISO that is `localhost/cairn:dev` as a registry (ADR-0038): the computer itself, so no outside machine. | Not known | Image files; ADR-0038; test VM, several dates |
 | 1.3 | The updater, apps part (Flatpak) | The same run as 1.2 | Flathub, `https://dl.flathub.org/repo/` | Not known | Image files; test VM, 2026-11-04 and 2026-11-06 |
-| 1.4 | The updater, Homebrew part | The same run as 1.2 | `github.com` (`Homebrew/brew`, by its git settings) and, by Homebrew's manual, `formulae.brew.sh` for its package list; perhaps a usage report | Not known. If a usage report goes: command names, processor type, system and Homebrew version, by upstream's page. | Image files; test VM, 2026-11-04 and 2026-11-06; upstream's pages and source |
+| 1.4 | The updater, Homebrew part | The same run as 1.2 | `github.com` (`Homebrew/brew`, by its git settings) and, by Homebrew's manual, `formulae.brew.sh` for its package list; perhaps a usage report | Not known. If a usage report goes: command names, processor type, system and Homebrew version, by upstream's page. From 2026-11-15 the image keeps the usage reports off (`/etc/homebrew/brew.env`). | Image files; test VM, 2026-11-04 and 2026-11-06; upstream's pages and source |
 | 1.5 | The clock: `chronyd.service` | Fedora's preset asks for it. Every start, then it keeps asking. | Time servers of `2.fedora.pool.ntp.org`, and any the router names | No line in its settings names an identifier | Image files |
 | 1.6 | A daily key check: `unbound-anchor.timer`, `unbound-anchor.service` | Fedora's preset asks for it. Once each day, at a time systemd picks within that day (`AccuracySec=24h`); a missed run is made up; no condition stops it. | By upstream's page: the name servers the network gives, then the root name servers, then `data.iana.org` if those fail | No line in its settings names an identifier | Image files; upstream's page. What a run does here: not known |
 | 1.7 | Flatpak set-up: `flatpak-add-fedora-repos.service`, `bazzite-flatpak-manager.service` | Both enabled. The first runs once. The second runs in full at the first start; after that, only when an image update changes its script or the image name in `image-info.json`. | Flathub, if these commands contact it at that moment | Not known | Image files. Whether they contact Flathub: not known |
 | 1.8 | Homebrew set-up: `brew-setup.service` | A Bazzite preset asks for it (`01-homebrew.preset`). First start only. | Nowhere: it unpacks a file that is in the image | Nothing | Image files |
+| 1.9 | Flatpak's line naming the system: the `Flatpak-Os-Info` header | Every app download from Flathub: the updater's Flatpak part (1.3), Bazaar's installs (2.8) and the family's setup. Flatpak adds it unless the installation's setting `report-os-info` is false, and the image set nothing. From 2026-11-15 the image keeps it off: a Cairn unit sets the setting once, at the first start. | Flathub, `https://dl.flathub.org/repo/` | `cairn;45;x86_64`: the system's name and release from `os-release`, and the kind of processor | Image files; upstream's source |
 
 **1.1, the count.**
 The unit calls itself "Weekly rpm-ostree Count Me reporting".
@@ -269,6 +275,13 @@ and nobody will see the notice.
 Upstream's page says a report holds no user identifier.
 The nightly `brew update` and `brew upgrade` may each send one; not
 seen.
+From 2026-11-15 the image sets `HOMEBREW_NO_ANALYTICS=1` in
+`/etc/homebrew/brew.env`.
+`bin/brew` reads that file itself, so it reaches the updater's run too.
+It reads it again after the owner's own file, so the owner's file
+cannot turn the reports back on (`HOMEBREW_SYSTEM_ENV_TAKES_PRIORITY`).
+In a container of the image, `brew analytics state` read "enabled"
+without the file and "disabled" with it.
 
 A child could start the updater in the image read here.
 The package's polkit file `/usr/share/polkit-1/rules.d/uupd.rules`
@@ -313,6 +326,30 @@ It switches Flathub on, blocks the Flatpak builds of Steam and Lutris,
 removes two old leftovers, sets permissions, copies Firefox defaults
 and removes unused runtimes.
 It has no line that installs an app.
+
+**1.9, Flatpak's line naming the system.**
+Added on 2026-11-15.
+Flatpak 1.18.4 adds `Flatpak-Os-Info` to each app download, built from
+`ID` and `VERSION_ID` in `os-release` and the kind of processor
+(upstream's source, `common/flatpak-dir.c`).
+Flatpak's notes for 1.17.0 say it "helps repository administrators
+understand their user base".
+The image's `libflatpak` and `flatpak-system-helper` hold the header's
+name.
+An unset setting means send, and the image has no `/var/lib/flatpak`,
+so nothing set it.
+From 2026-11-15 `cairn-flatpak-os-report-off.service` runs
+`flatpak config --system --set report-os-info false` once, at the first
+start, after the base's Flathub set-up and before Bazzite's Flatpak
+set-up, the updater and the helper that installs apps.
+A file in `/var/lib/cairn` keeps it from running again, so a later
+change to the setting is not undone.
+In a container of the image with no network, systemd ran the three units
+in that order, and the system installation's settings then said
+`xa.report-os-info=false`.
+Each account's own Flatpak installation has its own setting, which this
+does not change.
+By upstream's source, none has Flathub until someone adds it.
 
 ### 2. When somebody logs in
 
@@ -531,16 +568,18 @@ Each row says what keeps it off or what it waits for.
 | 5.3 | Firmware lists: `fwupd-refresh.timer`, `fwupd.service`, `passim.service` | The timer reads disabled. The two services are static: they start only when a program asks. No autostart file or account unit names them. | `https://cdn.fwupd.org/downloads/firmware.xml.zst`. `AutomaticReports=false` and `AutomaticSecurityReports=false`. | Image files. Whether a Plasma page asks: not known |
 | 5.4 | The location service: `geoclue.service` | Not off: at every Plasma login the helper in `/etc/xdg/autostart` registers with it, which starts it through D-Bus. By upstream, it looks up a location only when a program asks for one. | `https://api.beacondb.net/v1/geolocate`, with the Wi-Fi access points nearby, or with the internet address alone (`[ip] enable=true`), by upstream's pages. `submit-data=false`. | Image files; upstream's pages. Whether it looks anything up with no program asking: not known |
 | 5.5 | Automatic time zone (Plasma module `geotimezoned`) | Not loaded unless a person turns it on | `https://geoip.kde.org/v1/timezone` | Image files; upstream's source |
-| 5.6 | KDE's usage feedback | The default level is "NoTelemetry" and no file in `/etc/xdg` sets another | KDE, when a person turns it on | Image files; upstream's page |
+| 5.6 | KDE's usage feedback | The default level is "NoTelemetry" and no file in `/etc/xdg` sets another. From 2026-11-15 an L3 or L4 child's login also has KDE's switch for every program off, and the User Feedback page hidden (`session/child-xdg/`). | KDE, when a person turns it on | Image files; upstream's page |
 | 5.7 | Weather, comic strip and picture-of-the-day widgets; online accounts | None is on the default desktop or panel; no account exists | Each service's own servers, when a person adds one | Image files |
 | 5.8 | Automatic proxy search (Plasma module `wpad_detector`) | Loads at login, but acts only when the proxy setting is "detect automatically". The image sets no proxy. | The local network | Image files; upstream's source |
 | 5.9 | Remote desktop: `krdpserver`, `krfb` | `krdpserver`: its per-account unit is off by a per-account preset (`00-krdp.preset`). `krfb`: no unit and no preset; nothing starts it. Neither has an autostart file. | Would listen on the network | Image files |
-| 5.10 | `tailscaled.service` | Reads disabled. Its package source is switched off for `dnf` by the override file, though the source's own file says enabled. It carries no `countme` line. | Tailscale | Image files; issue #36's comment |
+| 5.10 | `tailscaled.service` | Reads disabled. Its package source is switched off for `dnf` by the override file, though the source's own file says enabled. It carries no `countme` line. Once someone starts it, it sends its logs, because `/etc/default/tailscaled` sets no flag that stops them. From 2026-11-15 the image keeps the logs off (`TS_NO_LOGS_NO_SUPPORT=true` in a drop-in). | Tailscale; its logs to `log.tailscale.com` | Image files; issue #36's comment; in a container with no network, `tailscaled` tried `log.tailscale.com` without the setting and not with it |
 | 5.11 | `sshd.service`, `sshd.socket` | Read disabled | Would listen on the network | Image files |
 | 5.12 | `waydroid-container.service`, `brew-update.timer`, `brew-upgrade.timer` | A preset says enable, but no link exists and presets are not applied again at first start | Homebrew's servers for the two timers | Image files. A fresh ISO install: not checked |
 | 5.13 | `rpm-ostreed-automatic.timer`, `bootc-fetch-apply-updates.timer`, `podman-auto-update.timer`, `systemd-sysupdate-update.timer` (also called `systemd-sysupdate.timer`), `systemd-sysupdate-reboot.timer` | Read disabled. `/etc/rpm-ostreed.conf` has `AutomaticUpdatePolicy=none`. The image has no `sysupdate.d` files, so `systemd-sysupdate` would have nothing to fetch. | The image's source | Image files; test VM, 2026-11-12 |
 | 5.14 | `fedora-atomic-desktop-appstream-cache-refresh.service` | Masked by the base image | Fedora | Image files |
 | 5.15 | File sharing and servers: `wsdd`, `smb`, `nmb`, `rpcbind`, `nfs-server`, `cockpit`, `mariadb`, `cups-browsed`; `podman.socket` for the system. Also a container unit for Cockpit's web console, `/usr/share/containers/systemd/cockpit-container.container`, which no package owns. | Read disabled. The Cockpit container has no install line, so nothing starts it. | Would listen on the network. The Cockpit container would fetch `quay.io/cockpit/ws:latest` and run it with the whole disk. | Image files |
+| 5.22 | Dolphin's usage feedback | Its own User Feedback page in Dolphin's settings. KDE's feedback library defaults to sending nothing, and Dolphin sets no other level. Added on 2026-11-15. From that day an L3 or L4 child's login has KDE's switch for every program off. | KDE, `https://telemetry.kde.org/`, every 7 days once a person turns it on | Image files (`/usr/bin/dolphin` links the library and holds the address); upstream's source |
+| 5.23 | Kate's usage feedback | The same, on its own User Feedback page in Kate's settings (`libkateprivate.so`). Added on 2026-11-15, as 5.22. | As 5.22 | Image files; upstream's source |
 
 **Waits for a person to press something.**
 
@@ -582,7 +621,7 @@ Issue #36 named Discover's notifier; it is not here.
 program that reads it is installed.
 It would start to matter if Discover were ever added.
 
-**Already taken out by Cairn's build.**
+**Already taken out or kept off by Cairn's build.**
 Each has a check script that stops the build if it comes back.
 
 | What | Build file | Check |
@@ -591,6 +630,11 @@ Each has a check script that stops the build if it comes back.
 | The autostart file that showed Bazzite's notices at login | `build_files/name-and-logos.sh` | `build_files/check-name-and-logos.sh` |
 | Bazzite Portal's autostart file in the template for new accounts | the same | the same |
 | The terminal banner and the menu's link to Bazzite's documents | the same | the same |
+| Homebrew's usage reports (1.4), from 2026-11-15 | `system_files/etc/homebrew/brew.env` | `build_files/check-reports-off.sh` |
+| Flatpak's line naming the system (1.9), from 2026-11-15 | `system_files/usr/lib/systemd/system/cairn-flatpak-os-report-off.service`, enabled by `build_files/build.sh` | the same |
+| Tailscale's logs (5.10), from 2026-11-15 | `system_files/usr/lib/systemd/system/tailscaled.service.d/cairn-no-logs.conf` | the same |
+| KDE's usage reports and its User Feedback page in an L3 or L4 child's login (5.6, 5.22, 5.23), from 2026-11-15 | `session/child-xdg/` | the same |
+| Firmware reports (5.3) and the location service's upload (5.4): already off in the base; checked from 2026-11-15 | none | the same |
 
 **Looked at and found local.**
 `fstrim.timer`, `logrotate.timer`, `raid-check.timer` and
@@ -620,8 +664,9 @@ Each row that runs gets one proposal: keep and tell parents, turn off
 in the image, or remove from the image.
 Where the choice hangs on something not yet decided, the proposal is
 only "decide with that".
-None of this is done.
-No build file was written for this document.
+None of this was done when this document was written.
+On 2026-11-15 the build began to keep four reports off, with one check
+(the table "Already taken out or kept off by Cairn's build", above).
 
 **How the build would do any of these.**
 The build already has the pattern.
@@ -640,6 +685,7 @@ read.
 | 1.3 | The updater, apps part | Decide with the update decision |
 | 1.4 | The updater, Homebrew part | Turn off in the image |
 | 1.8 | Homebrew set-up | Keep for now; taking Homebrew out is for the maintainer to weigh |
+| 1.9 | Flatpak's line naming the system | Added on 2026-11-15 and turned off in the image that day |
 | 1.5, 3.3 | The clock | Keep and tell parents |
 | 1.6 | The daily key check | Turn off in the image |
 | 1.7 | Flatpak set-up | Keep and tell parents |
@@ -659,7 +705,7 @@ read.
 | 4.7 | `rpc-statd-notify.service` | Decide after the capture |
 | 4.8 | Bluetooth | Keep and tell parents |
 | 5.4 | The location service | Decide after the capture |
-| 5.1 to 5.15, except 5.4 | Everything switched off | Keep off, and add a check that it stays off |
+| 5.1 to 5.15, 5.22, 5.23, except 5.4 | Everything switched off | Keep off, and add a check that it stays off |
 | 5.16 | "Bazzite Updater" in the menu | Decide with the update decision |
 | 5.17, 5.18 | The drive notice and KDE's donation notice | Decide with P1-14's list of what shows Bazzite's or KDE's name |
 | 5.19, 5.20, 5.21 | The debugging address, the account's `podman` socket, the unit converter | Keep; none does anything on the network by itself |
@@ -696,6 +742,10 @@ Homebrew's copy when the image is built.
 Check: `uupd config-dump` shows the Homebrew part disabled, the line is
 in `/etc/environment`, and Homebrew's git settings say
 `analyticsdisabled = true`.
+On 2026-11-15 the reports alone were turned off another way:
+`/etc/homebrew/brew.env`, which `bin/brew` reads itself, so it reaches
+the updater's run without `/etc/environment`.
+Homebrew in the updater is still a proposal.
 
 **1.8, Homebrew set-up: keep for now.**
 Its unit only unpacks a file; no line in it contacts anything.
@@ -915,6 +965,9 @@ It says `static` for services D-Bus starts (`fwupd`, `passim`), and it
 called a per-account unit "disabled" while it ran (2.5).
 For 5.12, whether a fresh ISO install applies the presets at its first
 start is a check on an installed computer.
+On 2026-11-15 `build_files/check-reports-off.sh` began this for the
+`fwupd` report settings and the location upload, and for 5.6, 5.22 and
+5.23 in an older child's login; the rest is still to do.
 
 ## Sentences in the project's documents this changes
 
