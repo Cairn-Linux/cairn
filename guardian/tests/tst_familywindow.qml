@@ -40,7 +40,7 @@ TestCase {
             "gamesPage": standIns.gamesPage(given.withChildren !== false, given.withGames !== false, given.steamStarts !== false, given.gamesScenario === undefined ? "" : given.gamesScenario, given.loggedIn === undefined ? [] : given.loggedIn, given.withOwnSteamGames === true),
             "accountPage": standIns.accountPage(given.wallet === true),
             "noticesPage": standIns.noticesPage(given.journal === undefined ? "none" : given.journal),
-            "height": 1400
+            "height": 1700
         };
         const window = createTemporaryObject(windowComponent, testCase, properties);
         // As small as the window may be made.
@@ -140,8 +140,8 @@ TestCase {
         tryCompare(findChild(nameField(window), "input"), "activeFocus", true);
     }
 
-    // The keyboard alone: type, Tab to level 2, Space, then Enter in the
-    // name field adds the child.
+    // The keyboard alone: type, Tab to level 2, Space, Tab past the two
+    // planned levels to Add, and Return adds the child.
     function test_addWithTheKeyboard() {
         const window = makeWindow("done");
         const input = findChild(nameField(window), "input");
@@ -156,13 +156,156 @@ TestCase {
         keyClick(Qt.Key_Space);
         compare(findChild(window, "addChildForm").level, 2);
         keyClick(Qt.Key_Tab);
+        tryCompare(findChild(window, "level3"), "activeFocus", true);
+        keyClick(Qt.Key_Tab);
+        tryCompare(findChild(window, "level4"), "activeFocus", true);
+        keyClick(Qt.Key_Tab);
         tryCompare(findChild(window, "addButton"), "activeFocus", true);
+        compare(findChild(window, "addChildForm").level, 2);
         keyClick(Qt.Key_Return);
         tryCompare(window.page, "step", ChildrenPage.Added);
         compare(outcome(window), "Cy can log in now, at level 2. Cy starts with no games: choose them on the Games page.");
         // Done, so the form is empty for the next child.
         compare(nameField(window).text, "");
         compare(findChild(window, "addChildForm").level, 1);
+    }
+
+    // Levels 3 and 4 show under the two to pick, as planned: words to
+    // read, not faded, which a screen reader does not call a radio button
+    // and offers nothing to check or press on.
+    function test_plannedLevelsAreShown() {
+        const window = makeWindow("done");
+        const form = findChild(window, "addChildForm");
+        const read = [];
+        let above = null;
+        for (const name of ["level1", "level2", "level3", "level4"]) {
+            const entry = findChild(form, name);
+            verify(entry.visible);
+            verify(above === null || entry.y >= above.y + above.height);
+            above = entry;
+            read.push(entry.Accessible.name + ": " + entry.Accessible.description);
+        }
+        compare(read, ["Level 1: The launcher only. Opens apps and games, and nothing else.", "Level 2: The launcher, and their own files too.", "Level 3, planned: A desktop with limits, and a real terminal.", "Level 4, planned: The full desktop and terminal, with a grown-up's controls still in place."]);
+        compare(findChild(form, "level2").Accessible.role, Accessible.RadioButton);
+        verify(screenReader.actions(findChild(form, "level2")).includes("Press"));
+        for (const name of ["level3", "level4"]) {
+            const planned = findChild(form, name);
+            compare(planned.Accessible.role, Accessible.StaticText);
+            compare(planned.Accessible.checkable, false);
+            // Qt lets a screen reader put the keyboard on text, and no more.
+            const offered = screenReader.actions(planned);
+            verify(!offered.includes("Press"));
+            verify(!offered.includes("Toggle"));
+            const word = findChild(planned, "plannedWord");
+            const sentence = findChild(planned, "plannedDescription");
+            compare(word.text, "Planned");
+            compare(sentence.text, planned.Accessible.description);
+            // On the screen and in full colour, so the words can be read.
+            verify(word.visible);
+            verify(sentence.visible);
+            compare(planned.opacity, 1);
+            compare(word.opacity, 1);
+            compare(sentence.opacity, 1);
+            verify(Qt.colorEqual(word.color, Tokens.text));
+            verify(Qt.colorEqual(sentence.color, Tokens.sandLabel));
+        }
+    }
+
+    // A planned level is not a choice. A click, a touch, the keys that
+    // pick a level and a screen reader's press and toggle all leave the
+    // level as it was and add nobody, and Add then adds at the level picked.
+    function test_aPlannedLevelCannotBeChosen_data() {
+        return [
+            {
+                tag: "level 3, with level 1 picked",
+                planned: "level3",
+                picked: 1
+            },
+            {
+                tag: "level 3, with level 2 picked",
+                planned: "level3",
+                picked: 2
+            },
+            {
+                tag: "level 4, with level 1 picked",
+                planned: "level4",
+                picked: 1
+            },
+            {
+                tag: "level 4, with level 2 picked",
+                planned: "level4",
+                picked: 2
+            }
+        ];
+    }
+
+    function test_aPlannedLevelCannotBeChosen(data) {
+        const window = makeWindow("done");
+        const form = findChild(window, "addChildForm");
+        const picked = findChild(form, "level" + data.picked);
+        const planned = findChild(form, data.planned);
+        nameField(window).text = "Cy";
+        mouseClick(picked);
+        compare(form.level, data.picked);
+        mouseClick(planned);
+        compare(form.level, data.picked);
+        // The keyboard stays where it was.
+        verify(picked.activeFocus);
+        const touch = touchEvent(planned);
+        touch.press(0, planned).commit();
+        touch.release(0, planned).commit();
+        compare(form.level, data.picked);
+        // With the keyboard on it, it shows where the keyboard is, and
+        // the keys do nothing.
+        verify(!findChild(planned, "plannedFocusRing").visible);
+        planned.forceActiveFocus();
+        verify(findChild(planned, "plannedFocusRing").visible);
+        for (const key of [Qt.Key_Space, Qt.Key_Enter, Qt.Key_Return]) {
+            keyClick(key);
+            compare(form.level, data.picked);
+        }
+        // The same press picks a level that can be picked.
+        const other = findChild(form, "level" + (3 - data.picked));
+        screenReader.press(other);
+        compare(form.level, 3 - data.picked);
+        screenReader.press(picked);
+        compare(form.level, data.picked);
+        screenReader.press(planned);
+        compare(form.level, data.picked);
+        screenReader.toggle(planned);
+        compare(form.level, data.picked);
+        verify(picked.checked);
+        verify(!other.checked);
+        compare(window.page.step, ChildrenPage.Ready);
+        compare(rows(window), ["Ada, Level 1", "Ben, Level 2"]);
+        mouseClick(findChild(window, "addButton"));
+        tryCompare(window.page, "step", ChildrenPage.Added);
+        compare(outcome(window), "Cy can log in now, at level " + data.picked + ". Cy starts with no games: choose them on the Games page.");
+    }
+
+    // Tab stops on each planned level on the way from level 2 to Add, and
+    // Shift+Tab on the way back: a screen reader speaks what Tab lands on,
+    // so this is how a parent who moves with Tab hears of them. The level
+    // stays as it was all the way.
+    function test_tabStopsOnPlannedLevels() {
+        const window = makeWindow("done");
+        const form = findChild(window, "addChildForm");
+        const stops = ["level1", "level2", "level3", "level4"].map(name => findChild(form, name));
+        const add = findChild(window, "addButton");
+        stops[0].forceActiveFocus();
+        tryCompare(stops[0], "activeFocus", true);
+        for (const stop of stops.slice(1).concat([add])) {
+            keyClick(Qt.Key_Tab);
+            tryCompare(stop, "activeFocus", true);
+        }
+        verify(!findChild(stops[3], "plannedFocusRing").visible);
+        for (const stop of stops.slice().reverse()) {
+            keyClick(Qt.Key_Backtab, Qt.ShiftModifier);
+            tryCompare(stop, "activeFocus", true);
+            if (stop === stops[2] || stop === stops[3])
+                verify(findChild(stop, "plannedFocusRing").visible);
+        }
+        compare(form.level, 1);
     }
 
     // Up or down, the same words.
@@ -282,6 +425,13 @@ TestCase {
         verify(!inSight(window, add));
         keyClick(Qt.Key_Tab);
         keyClick(Qt.Key_Tab);
+        // A planned level is a stop too, and is brought into sight.
+        for (const name of ["level3", "level4"]) {
+            const planned = findChild(window, name);
+            keyClick(Qt.Key_Tab);
+            tryCompare(planned, "activeFocus", true);
+            verify(inSight(window, planned));
+        }
         keyClick(Qt.Key_Tab);
         tryCompare(add, "activeFocus", true);
         verify(inSight(window, add));
