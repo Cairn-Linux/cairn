@@ -63,6 +63,10 @@ semanage fcontext -a -t etc_t '/run/cairn(/.*)?'
 # ran a root step in every account, a child's included (#261).
 /ctx/bazzite-extras.sh
 
+# rpm-ostree's "count me" report to Fedora's and Terra's servers is off,
+# because nothing phones home (DESIGN §9.3).
+/ctx/no-countme.sh
+
 # The Guardian's desktop in Cairn's frame (#166): so far, the mark on the
 # start-menu button.
 /ctx/guardian-desktop.sh
