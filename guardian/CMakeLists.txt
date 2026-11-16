@@ -141,6 +141,7 @@ set(family_window_sources
     src/UnfinishedAdd.h src/UnfinishedAdd.cpp
     src/ChildrenPage.h src/ChildrenPage.cpp
     src/ChildrenRefusals.h src/ChildrenRefusals.cpp
+    src/OutcomeChildren.h src/OutcomeChildren.cpp
     src/GameCatalogue.h src/GameCatalogue.cpp
     src/GamePicture.h src/GamePicture.cpp
     src/GameShelf.h src/GameShelf.cpp
@@ -168,6 +169,8 @@ set(family_window_sources
     src/WalletPassword.h src/WalletPassword.cpp
     src/AccountPage.h src/AccountPage.cpp
     ${notices_sources}
+    src/OsRelease.h src/OsRelease.cpp
+    src/AboutPage.h src/AboutPage.cpp
 )
 set(family_window_qml_files
     qml/FamilyWindow.qml
@@ -182,11 +185,13 @@ set(family_window_qml_files
     qml/SaveProgress.qml
     qml/LoggedInCover.qml
     qml/ChildRow.qml
+    qml/RowKeyboard.qml
     qml/NameChange.qml
     qml/LanguageChange.qml
     qml/AddChildForm.qml
     qml/LabelledField.qml
     qml/LevelChoice.qml
+    qml/PlannedLevel.qml
     qml/TextButton.qml
     qml/ScrollMark.qml
     qml/ScrollKeys.qml
@@ -198,6 +203,9 @@ set(family_window_qml_files
     qml/OutcomeBox.qml
     qml/WalletOffer.qml
     qml/NoticesView.qml
+    qml/AboutView.qml
+    qml/AboutHeading.qml
+    qml/AboutWords.qml
 )
 foreach(file IN LISTS family_window_qml_files)
     cmake_path(GET file FILENAME name)
@@ -450,6 +458,15 @@ target_include_directories(tst_unfinishedadd PRIVATE src)
 target_link_libraries(tst_unfinishedadd PRIVATE Qt6::Core Qt6::Test cairn-accounts)
 add_test(NAME unfinishedadd COMMAND tst_unfinishedadd)
 
+# Which children the Children page's last sentence is about, and when one
+# of them is no longer as the sentence found them (ADR-0040).
+qt_add_executable(tst_outcomechildren tests/tst_outcomechildren.cpp src/OutcomeChildren.h
+    src/OutcomeChildren.cpp src/ChildList.h src/ChildList.cpp src/ChildLanguage.h
+    src/ChildLanguage.cpp)
+target_include_directories(tst_outcomechildren PRIVATE src)
+target_link_libraries(tst_outcomechildren PRIVATE Qt6::Core Qt6::Test cairn-accounts)
+add_test(NAME outcomechildren COMMAND tst_outcomechildren)
+
 qt_add_executable(tst_childrenpage tests/tst_childrenpage.cpp ${family_window_sources})
 target_include_directories(tst_childrenpage PRIVATE src)
 target_link_libraries(tst_childrenpage PRIVATE Qt6::Qml Qt6::Gui Qt6::DBus Qt6::Test cairn-accounts)
@@ -585,6 +602,22 @@ target_include_directories(tst_tryreader PRIVATE src)
 target_link_libraries(tst_tryreader PRIVATE Qt6::Core Qt6::Test cairn-accounts)
 add_test(NAME tryreader COMMAND tst_tryreader)
 
+# The About page (ADR-0040): os-release as the image build writes it, read
+# from a fixture, and what the page shows and opens, with a stand-in for
+# the desktop so that no test starts a web browser.
+qt_add_executable(tst_osrelease tests/tst_osrelease.cpp src/OsRelease.h src/OsRelease.cpp)
+target_include_directories(tst_osrelease PRIVATE src)
+target_link_libraries(tst_osrelease PRIVATE Qt6::Core Qt6::Test)
+target_compile_definitions(tst_osrelease PRIVATE FIXTURES="${guardian_fixtures}")
+add_test(NAME osrelease COMMAND tst_osrelease)
+
+qt_add_executable(tst_aboutpage tests/tst_aboutpage.cpp src/AboutPage.h src/AboutPage.cpp
+    src/OsRelease.h src/OsRelease.cpp)
+target_include_directories(tst_aboutpage PRIVATE src)
+target_link_libraries(tst_aboutpage PRIVATE Qt6::Core Qt6::Qml Qt6::Test)
+target_compile_definitions(tst_aboutpage PRIVATE FIXTURES="${guardian_fixtures}")
+add_test(NAME aboutpage COMMAND tst_aboutpage)
+
 # The image's Kiosk line that hides Plasma's Users page, and its step that
 # leaves only KDE's own pictures in Plasma's picture folder (ADR-0043).
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
@@ -598,9 +631,9 @@ set_tests_properties(steamvisit ownsteam screenlockwatch steamforchild steamwind
     logoutcommand gamessave
     steamentry
     loginname childlist familychange saverun savereport loginsessions loginwatch childlogout
-    gamechoices childrenpage
+    gamechoices outcomechildren childrenpage
     gamepicture gameshelf keyvalues steammanifest ownsteamgames gamespage familywindow
     newpassword ownpasswordcommand picturefile accountpage walletpassword
-    journaltries trynotices noticewords tryreader PROPERTIES
+    journaltries trynotices noticewords tryreader osrelease aboutpage PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QML_IMPORT_PATH=${QT_QML_OUTPUT_DIRECTORY}"
 )

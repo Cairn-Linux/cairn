@@ -80,6 +80,11 @@ QVariantList loginsNamesAndLevels(const std::vector<ListedChild>& children) {
     return maps;
 }
 
+bool sameOnTheList(const ListedChild& one, const ListedChild& other) {
+    return one.login == other.login && one.name == other.name && one.level == other.level &&
+           ChildLanguage::find(one.language) == ChildLanguage::find(other.language);
+}
+
 bool sameLoginsAndNames(const std::vector<ListedChild>& one,
                         const std::vector<ListedChild>& other) {
     return std::ranges::equal(one, other, [](const ListedChild& first, const ListedChild& second) {

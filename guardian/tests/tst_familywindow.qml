@@ -40,7 +40,8 @@ TestCase {
             "gamesPage": standIns.gamesPage(given.withChildren !== false, given.withGames !== false, given.steamStarts !== false, given.gamesScenario === undefined ? "" : given.gamesScenario, given.loggedIn === undefined ? [] : given.loggedIn, given.withOwnSteamGames === true),
             "accountPage": standIns.accountPage(given.wallet === true),
             "noticesPage": standIns.noticesPage(given.journal === undefined ? "none" : given.journal),
-            "height": 1400
+            "aboutPage": standIns.aboutPage(given.about === undefined ? "image" : given.about),
+            "height": 1700
         };
         const window = createTemporaryObject(windowComponent, testCase, properties);
         // As small as the window may be made.
@@ -140,8 +141,8 @@ TestCase {
         tryCompare(findChild(nameField(window), "input"), "activeFocus", true);
     }
 
-    // The keyboard alone: type, Tab to level 2, Space, then Enter in the
-    // name field adds the child.
+    // The keyboard alone: type, Tab to level 2, Space, Tab past the two
+    // planned levels to Add, and Return adds the child.
     function test_addWithTheKeyboard() {
         const window = makeWindow("done");
         const input = findChild(nameField(window), "input");
@@ -156,13 +157,156 @@ TestCase {
         keyClick(Qt.Key_Space);
         compare(findChild(window, "addChildForm").level, 2);
         keyClick(Qt.Key_Tab);
+        tryCompare(findChild(window, "level3"), "activeFocus", true);
+        keyClick(Qt.Key_Tab);
+        tryCompare(findChild(window, "level4"), "activeFocus", true);
+        keyClick(Qt.Key_Tab);
         tryCompare(findChild(window, "addButton"), "activeFocus", true);
+        compare(findChild(window, "addChildForm").level, 2);
         keyClick(Qt.Key_Return);
         tryCompare(window.page, "step", ChildrenPage.Added);
         compare(outcome(window), "Cy can log in now, at level 2. Cy starts with no games: choose them on the Games page.");
         // Done, so the form is empty for the next child.
         compare(nameField(window).text, "");
         compare(findChild(window, "addChildForm").level, 1);
+    }
+
+    // Levels 3 and 4 show under the two to pick, as planned: words to
+    // read, not faded, which a screen reader does not call a radio button
+    // and offers nothing to check or press on.
+    function test_plannedLevelsAreShown() {
+        const window = makeWindow("done");
+        const form = findChild(window, "addChildForm");
+        const read = [];
+        let above = null;
+        for (const name of ["level1", "level2", "level3", "level4"]) {
+            const entry = findChild(form, name);
+            verify(entry.visible);
+            verify(above === null || entry.y >= above.y + above.height);
+            above = entry;
+            read.push(entry.Accessible.name + ": " + entry.Accessible.description);
+        }
+        compare(read, ["Level 1: The launcher only. Opens apps and games, and nothing else.", "Level 2: The launcher, and their own files too.", "Level 3, planned: A desktop with limits, and a real terminal.", "Level 4, planned: The full desktop and terminal, with a grown-up's controls still in place."]);
+        compare(findChild(form, "level2").Accessible.role, Accessible.RadioButton);
+        verify(screenReader.actions(findChild(form, "level2")).includes("Press"));
+        for (const name of ["level3", "level4"]) {
+            const planned = findChild(form, name);
+            compare(planned.Accessible.role, Accessible.StaticText);
+            compare(planned.Accessible.checkable, false);
+            // Qt lets a screen reader put the keyboard on text, and no more.
+            const offered = screenReader.actions(planned);
+            verify(!offered.includes("Press"));
+            verify(!offered.includes("Toggle"));
+            const word = findChild(planned, "plannedWord");
+            const sentence = findChild(planned, "plannedDescription");
+            compare(word.text, "Planned");
+            compare(sentence.text, planned.Accessible.description);
+            // On the screen and in full colour, so the words can be read.
+            verify(word.visible);
+            verify(sentence.visible);
+            compare(planned.opacity, 1);
+            compare(word.opacity, 1);
+            compare(sentence.opacity, 1);
+            verify(Qt.colorEqual(word.color, Tokens.text));
+            verify(Qt.colorEqual(sentence.color, Tokens.sandLabel));
+        }
+    }
+
+    // A planned level is not a choice. A click, a touch, the keys that
+    // pick a level and a screen reader's press and toggle all leave the
+    // level as it was and add nobody, and Add then adds at the level picked.
+    function test_aPlannedLevelCannotBeChosen_data() {
+        return [
+            {
+                tag: "level 3, with level 1 picked",
+                planned: "level3",
+                picked: 1
+            },
+            {
+                tag: "level 3, with level 2 picked",
+                planned: "level3",
+                picked: 2
+            },
+            {
+                tag: "level 4, with level 1 picked",
+                planned: "level4",
+                picked: 1
+            },
+            {
+                tag: "level 4, with level 2 picked",
+                planned: "level4",
+                picked: 2
+            }
+        ];
+    }
+
+    function test_aPlannedLevelCannotBeChosen(data) {
+        const window = makeWindow("done");
+        const form = findChild(window, "addChildForm");
+        const picked = findChild(form, "level" + data.picked);
+        const planned = findChild(form, data.planned);
+        nameField(window).text = "Cy";
+        mouseClick(picked);
+        compare(form.level, data.picked);
+        mouseClick(planned);
+        compare(form.level, data.picked);
+        // The keyboard stays where it was.
+        verify(picked.activeFocus);
+        const touch = touchEvent(planned);
+        touch.press(0, planned).commit();
+        touch.release(0, planned).commit();
+        compare(form.level, data.picked);
+        // With the keyboard on it, it shows where the keyboard is, and
+        // the keys do nothing.
+        verify(!findChild(planned, "plannedFocusRing").visible);
+        planned.forceActiveFocus();
+        verify(findChild(planned, "plannedFocusRing").visible);
+        for (const key of [Qt.Key_Space, Qt.Key_Enter, Qt.Key_Return]) {
+            keyClick(key);
+            compare(form.level, data.picked);
+        }
+        // The same press picks a level that can be picked.
+        const other = findChild(form, "level" + (3 - data.picked));
+        screenReader.press(other);
+        compare(form.level, 3 - data.picked);
+        screenReader.press(picked);
+        compare(form.level, data.picked);
+        screenReader.press(planned);
+        compare(form.level, data.picked);
+        screenReader.toggle(planned);
+        compare(form.level, data.picked);
+        verify(picked.checked);
+        verify(!other.checked);
+        compare(window.page.step, ChildrenPage.Ready);
+        compare(rows(window), ["Ada, Level 1", "Ben, Level 2"]);
+        mouseClick(findChild(window, "addButton"));
+        tryCompare(window.page, "step", ChildrenPage.Added);
+        compare(outcome(window), "Cy can log in now, at level " + data.picked + ". Cy starts with no games: choose them on the Games page.");
+    }
+
+    // Tab stops on each planned level on the way from level 2 to Add, and
+    // Shift+Tab on the way back: a screen reader speaks what Tab lands on,
+    // so this is how a parent who moves with Tab hears of them. The level
+    // stays as it was all the way.
+    function test_tabStopsOnPlannedLevels() {
+        const window = makeWindow("done");
+        const form = findChild(window, "addChildForm");
+        const stops = ["level1", "level2", "level3", "level4"].map(name => findChild(form, name));
+        const add = findChild(window, "addButton");
+        stops[0].forceActiveFocus();
+        tryCompare(stops[0], "activeFocus", true);
+        for (const stop of stops.slice(1).concat([add])) {
+            keyClick(Qt.Key_Tab);
+            tryCompare(stop, "activeFocus", true);
+        }
+        verify(!findChild(stops[3], "plannedFocusRing").visible);
+        for (const stop of stops.slice().reverse()) {
+            keyClick(Qt.Key_Backtab, Qt.ShiftModifier);
+            tryCompare(stop, "activeFocus", true);
+            if (stop === stops[2] || stop === stops[3])
+                verify(findChild(stop, "plannedFocusRing").visible);
+        }
+        compare(form.level, 1);
     }
 
     // Up or down, the same words.
@@ -282,6 +426,13 @@ TestCase {
         verify(!inSight(window, add));
         keyClick(Qt.Key_Tab);
         keyClick(Qt.Key_Tab);
+        // A planned level is a stop too, and is brought into sight.
+        for (const name of ["level3", "level4"]) {
+            const planned = findChild(window, name);
+            keyClick(Qt.Key_Tab);
+            tryCompare(planned, "activeFocus", true);
+            verify(inSight(window, planned));
+        }
         keyClick(Qt.Key_Tab);
         tryCompare(add, "activeFocus", true);
         verify(inSight(window, add));
@@ -394,6 +545,507 @@ TestCase {
         form.enabled = true;
         verify(input.activeFocus);
         verify(inSightOnThePage(window, input));
+    }
+
+    // ---- the family changed outside Family ----
+
+    // Family comes back to the front with nothing known to have the
+    // keyboard yet.
+    function backToTheFront(window) {
+        window.requestActivate();
+        tryCompare(window, "active", true);
+    }
+
+    // A child removed in a terminal while Family is open. When Family
+    // comes back to the front their row is gone, and Add a child takes
+    // their name, where it used to say the name was taken.
+    function test_aChildRemovedOutsideIsGoneWhenFamilyComesBack() {
+        const window = makeWindow("done");
+        const input = findChild(nameField(window), "input");
+        input.forceActiveFocus();
+        tryCompare(input, "activeFocus", true);
+        toTheBack(window);
+        standIns.removeAccount("ben");
+        compare(rows(window), ["Ada, Level 1", "Ben, Level 2"]);
+        toTheFront(window, input);
+        compare(rows(window), ["Ada, Level 1"]);
+        nameField(window).text = "Ben";
+        mouseClick(findChild(window, "addButton"));
+        tryCompare(window.page, "step", ChildrenPage.Added);
+        compare(outcome(window), "Ben can log in now, at level 1. Ben starts with no games: choose them on the Games page.");
+    }
+
+    // The page switch shows the Children page too.
+    function test_aChildRemovedOutsideIsGoneWhenThePageIsShown() {
+        const window = makeWindow("done");
+        showGames(window);
+        standIns.removeAccount("ben");
+        mouseClick(findChild(window, "childrenTab"));
+        compare(window.showing, "children");
+        compare(rows(window), ["Ada, Level 1"]);
+    }
+
+    // With Family in front all along, nothing told the page. Add a child
+    // looks at the accounts itself, so the name is still free, and the
+    // row goes as the password is asked for.
+    function test_addTakesANameFreedOutside() {
+        const window = makeWindow("asking");
+        standIns.removeAccount("ben");
+        compare(rows(window), ["Ada, Level 1", "Ben, Level 2"]);
+        nameField(window).text = "Ben";
+        mouseClick(findChild(window, "addButton"));
+        compare(window.page.busy, true);
+        compare(rows(window), ["Ada, Level 1"]);
+    }
+
+    // A button on the row of a child who is gone asks for no password. It
+    // says so, by the name the row showed, the row goes, and the keyboard
+    // goes to the form, as for any row that is no longer there.
+    function test_aButtonOnARowOfAChildRemovedOutside() {
+        const window = makeWindow("asking");
+        standIns.removeAccount("ben");
+        mouseClick(findChild(childRow(window, 1), "moveTo1"));
+        compare(window.page.reason, ChildrenPage.NotAChild);
+        verify(!window.page.busy);
+        compare(outcome(window), "Ben is not a child's account on this computer. The list shows the children there are now.");
+        compare(rows(window), ["Ada, Level 1"]);
+        tryCompare(findChild(nameField(window), "input"), "activeFocus", true);
+    }
+
+    // The family as it was: when Family comes back to the front, every
+    // row is the one it was, with the keyboard on the same button, and
+    // the page has not moved.
+    function test_nothingMovesWhenTheFamilyIsAsItWas() {
+        const window = makeWindow("done", {
+            "smallest": true
+        });
+        const row = childRow(window, 1);
+        const button = findChild(row, "changeName");
+        button.forceActiveFocus();
+        tryCompare(button, "activeFocus", true);
+        const scroller = findChild(window, "scroller");
+        const before = scroller.contentY;
+        toTheBack(window);
+        toTheFront(window, button);
+        verify(childRow(window, 1) === row);
+        compare(scroller.contentY, before);
+    }
+
+    // A name half typed, when the family changed outside meanwhile: the
+    // rows are made again, the field is still open with what was typed and
+    // the keyboard in it, and Save name saves it.
+    function test_anOpenNameStaysWhenTheFamilyChangedOutside() {
+        const window = makeWindow("done");
+        mouseClick(findChild(childRow(window, 0), "changeName"));
+        tryCompare(newNameInput(window, 0), "activeFocus", true);
+        typeOver(newNameInput(window, 0), "Ada L");
+        toTheBack(window);
+        standIns.removeAccount("ben");
+        backToTheFront(window);
+        compare(rows(window), ["Ada, Level 1"]);
+        verify(findChild(childRow(window, 0), "nameChange").visible);
+        compare(newNameInput(window, 0).text, "Ada L");
+        tryCompare(newNameInput(window, 0), "activeFocus", true);
+        mouseClick(findChild(childRow(window, 0), "saveName"));
+        tryCompare(window.page, "step", ChildrenPage.NameChanged);
+        compare(outcome(window), "Ada is called Ada L now, on the login screen and in Family.");
+    }
+
+    // Open languages stay open too, with the keyboard on the first.
+    function test_openLanguagesStayWhenTheFamilyChangedOutside() {
+        const window = makeWindow("done");
+        openLanguages(window, 1);
+        tryCompare(languageButton(window, 1, "en_US.UTF-8"), "activeFocus", true);
+        toTheBack(window);
+        standIns.removeAccount("ada");
+        backToTheFront(window);
+        compare(rows(window), ["Ben, Level 2"]);
+        verify(findChild(childRow(window, 0), "languageChange").visible);
+        tryCompare(languageButton(window, 0, "en_US.UTF-8"), "activeFocus", true);
+    }
+
+    // The keyboard stays with its child when the rows are made again, and
+    // with the window when that child is the one who is gone. What the
+    // last change did for Ben stays said while Ben is as he was, and goes
+    // with him.
+    function test_theKeyboardStaysWithItsChildWhenTheFamilyChangedOutside() {
+        const window = makeWindow("done", {
+            "withOlderChild": true
+        });
+        mouseClick(findChild(childRow(window, 1), "moveTo1"));
+        tryCompare(window.page, "step", ChildrenPage.LevelChanged);
+        const said = outcome(window);
+        tryCompare(findChild(childRow(window, 1), "moveTo1"), "activeFocus", true);
+        toTheBack(window);
+        standIns.removeAccount("ada");
+        backToTheFront(window);
+        compare(rows(window), ["Ben, Level 2", "A child with a long name, Level 3"]);
+        tryCompare(findChild(childRow(window, 0), "moveTo1"), "activeFocus", true);
+        compare(outcome(window), said);
+        toTheBack(window);
+        standIns.removeAccount("ben");
+        backToTheFront(window);
+        compare(rows(window), ["A child with a long name, Level 3"]);
+        // Once the view has looked for the row to give the keyboard to.
+        tryCompare(findChild(window, "childrenView").keyboard, "login", "");
+        verify(window.activeFocusItem === window.contentItem);
+        compare(outcome(window), "");
+    }
+
+    // The password box takes the front and gives it back. Nothing is read
+    // while the change waits, so the rows stay until its answer comes.
+    function test_aWaitingChangeStaysWhenFamilyComesBack() {
+        const window = makeWindow("asking");
+        mouseClick(findChild(childRow(window, 0), "moveTo2"));
+        compare(window.page.busy, true);
+        const row = childRow(window, 0);
+        toTheBack(window);
+        standIns.removeAccount("ben");
+        backToTheFront(window);
+        compare(window.page.busy, true);
+        verify(childRow(window, 0) === row);
+        compare(rows(window), ["Ada, Level 1", "Ben, Level 2"]);
+        compare(outcome(window), "Confirm with your password, or your fingerprint, in the box that opened.");
+    }
+
+    // The keyboard goes back to the control it was on. The row's first
+    // button would send another change at the next Space or Enter.
+    function test_theKeyboardStaysOnItsControl_data() {
+        return [
+            {
+                "tag": "Change name",
+                "open": "",
+                "control": "changeName"
+            },
+            {
+                "tag": "Change language",
+                "open": "",
+                "control": "changeLanguage"
+            },
+            {
+                "tag": "Save name",
+                "open": "changeName",
+                "control": "saveName"
+            },
+            {
+                "tag": "Cancel beside a name",
+                "open": "changeName",
+                "control": "cancelName"
+            },
+            {
+                "tag": "Cancel beside the languages",
+                "open": "changeLanguage",
+                "control": "cancelLanguage"
+            }
+        ];
+    }
+
+    function test_theKeyboardStaysOnItsControl(data) {
+        const window = makeWindow("done");
+        if (data.open === "changeName") {
+            mouseClick(findChild(childRow(window, 1), "changeName"));
+            tryCompare(newNameInput(window, 1), "activeFocus", true);
+            typeOver(newNameInput(window, 1), "Benny");
+        }
+        if (data.open === "changeLanguage") {
+            openLanguages(window, 1);
+            tryCompare(languageButton(window, 1, "en_US.UTF-8"), "activeFocus", true);
+        }
+        const control = findChild(childRow(window, 1), data.control);
+        control.forceActiveFocus();
+        tryCompare(control, "activeFocus", true);
+        toTheBack(window);
+        standIns.removeAccount("ada");
+        backToTheFront(window);
+        compare(rows(window), ["Ben, Level 2"]);
+        tryCompare(findChild(childRow(window, 0), data.control), "activeFocus", true);
+        if (data.open === "changeName")
+            compare(newNameInput(window, 0).text, "Benny");
+    }
+
+    // A child moved to another level outside has other buttons. The one
+    // the keyboard was on is gone, so the keyboard stays with the window.
+    function test_theKeyboardStaysWithTheWindowWhenItsButtonIsGone() {
+        const window = makeWindow("done");
+        const button = findChild(childRow(window, 1), "moveTo1");
+        button.forceActiveFocus();
+        tryCompare(button, "activeFocus", true);
+        toTheBack(window);
+        standIns.putAccount("ben", "Ben", 1);
+        backToTheFront(window);
+        compare(rows(window), ["Ada, Level 1", "Ben, Level 1"]);
+        tryCompare(findChild(window, "childrenView").keyboard, "login", "");
+        verify(window.activeFocusItem === window.contentItem);
+    }
+
+    // In a short window, with the keyboard low on the page, a row above
+    // goes. What has the keyboard is still in sight, and the page has
+    // moved no further than the rows did.
+    function test_theKeyboardsControlStaysInSight_data() {
+        return [
+            {
+                "tag": "a button",
+                "nameOpen": false
+            },
+            {
+                "tag": "an open name",
+                "nameOpen": true
+            }
+        ];
+    }
+
+    function test_theKeyboardsControlStaysInSight(data) {
+        const window = makeWindow("done", {
+            "withOlderChild": true,
+            "smallest": true
+        });
+        let control = findChild(childRow(window, 2), "changeName");
+        control.forceActiveFocus();
+        tryCompare(control, "activeFocus", true);
+        if (data.nameOpen) {
+            keyClick(Qt.Key_Space);
+            control = newNameInput(window, 2);
+            tryCompare(control, "activeFocus", true);
+            typeOver(control, "Cy L");
+        }
+        verify(inSightOnThePage(window, control));
+        const scroller = findChild(window, "scroller");
+        const before = scroller.contentY;
+        const moved = childRow(window, 0).height + Tokens.bodySize * 2;
+        toTheBack(window);
+        standIns.removeAccount("ada");
+        backToTheFront(window);
+        compare(rows(window), ["Ben, Level 2", "A child with a long name, Level 3"]);
+        const again = data.nameOpen ? newNameInput(window, 1) : findChild(childRow(window, 1), "changeName");
+        tryCompare(again, "activeFocus", true);
+        verify(inSightOnThePage(window, again));
+        verify(Math.abs(scroller.contentY - before) <= moved, scroller.contentY + " from " + before);
+        if (data.nameOpen)
+            compare(again.text, "Cy L");
+    }
+
+    // The keyboard in Add a child, under the rows. When rows above it go
+    // or come, the field is still in sight, with what was typed.
+    function test_theAddFormStaysInSight_data() {
+        return [
+            {
+                "tag": "a child removed",
+                "removed": true
+            },
+            {
+                "tag": "two children made",
+                "removed": false
+            }
+        ];
+    }
+
+    function test_theAddFormStaysInSight(data) {
+        const window = makeWindow("done", {
+            "smallest": true
+        });
+        const input = findChild(nameField(window), "input");
+        input.forceActiveFocus();
+        tryCompare(input, "activeFocus", true);
+        keyClick("C");
+        keyClick("y");
+        verify(inSightOnThePage(window, input));
+        toTheBack(window);
+        if (data.removed) {
+            standIns.removeAccount("ada");
+        } else {
+            standIns.putAccount("di", "Di", 1);
+            standIns.putAccount("ed", "Ed", 2);
+        }
+        toTheFront(window, input);
+        compare(rows(window).length, data.removed ? 1 : 4);
+        // Once the rows are in their places: until then the field is
+        // where it was.
+        waitForPolish(window);
+        tryVerify(() => inSightOnThePage(window, input));
+        compare(nameField(window).text, "Cy");
+    }
+
+    // Clicks Add a child's button where it is now. The rows above it are
+    // put in their places first; an open name field or open languages
+    // push it under a window this tall, so it is scrolled into sight.
+    function clickAdd(window) {
+        const add = findChild(window, "addButton");
+        waitForPolish(window);
+        window.showItem(add);
+        mouseClick(add);
+    }
+
+    // An open name field, or open languages, go with their child. A child
+    // added afterwards with that login is another child: their row is
+    // closed, and Change name starts from their own name.
+    function test_anOpenFormGoesWithItsChild_data() {
+        return [
+            {
+                "tag": "a name",
+                "name": true
+            },
+            {
+                "tag": "languages",
+                "name": false
+            }
+        ];
+    }
+
+    function test_anOpenFormGoesWithItsChild(data) {
+        const window = makeWindow("done");
+        if (data.name) {
+            mouseClick(findChild(childRow(window, 1), "changeName"));
+            tryCompare(newNameInput(window, 1), "activeFocus", true);
+            typeOver(newNameInput(window, 1), "Benny");
+        } else {
+            openLanguages(window, 1);
+            tryCompare(languageButton(window, 1, "en_US.UTF-8"), "activeFocus", true);
+        }
+        toTheBack(window);
+        standIns.removeAccount("ben");
+        backToTheFront(window);
+        compare(rows(window), ["Ada, Level 1"]);
+        // The stand-in command makes no account, so the test puts it in
+        // the table before the answer comes.
+        nameField(window).text = "Ben";
+        clickAdd(window);
+        standIns.putAccount("ben", "Ben", 1);
+        tryCompare(window.page, "step", ChildrenPage.Added);
+        compare(rows(window), ["Ada, Level 1", "Ben, Level 1"]);
+        waitForPolish(window);
+        verify(!findChild(childRow(window, 1), "nameChange").visible);
+        verify(!findChild(childRow(window, 1), "languageChange").visible);
+        mouseClick(findChild(childRow(window, 1), "changeName"));
+        tryCompare(newNameInput(window, 1), "text", "Ben");
+    }
+
+    // A refusal about a name being typed goes with its child as well: its
+    // sentence asks for a Cancel that is no longer there.
+    function test_aRefusalGoesWithItsChild() {
+        const window = makeWindow("asking");
+        mouseClick(findChild(childRow(window, 1), "changeName"));
+        tryCompare(newNameInput(window, 1), "activeFocus", true);
+        mouseClick(findChild(childRow(window, 1), "saveName"));
+        compare(outcome(window), "Ben is the name already. Type a different one, or press Cancel.");
+        tryCompare(newNameInput(window, 1), "activeFocus", true);
+        toTheBack(window);
+        standIns.removeAccount("ben");
+        backToTheFront(window);
+        compare(rows(window), ["Ada, Level 1"]);
+        compare(window.page.step, ChildrenPage.Ready);
+        compare(outcome(window), "");
+    }
+
+    // "Cy can log in now" is under the rows, and then Cy's account is
+    // removed in a terminal. When Family comes back to the front Cy's row
+    // is gone and so is the box with the sentence. The keyboard stays on
+    // the button it was on.
+    function test_theSentenceGoesWithTheChildItNames() {
+        const window = makeWindow("done");
+        nameField(window).text = "Cy";
+        clickAdd(window);
+        standIns.putAccount("cy", "Cy", 1);
+        tryCompare(window.page, "step", ChildrenPage.Added);
+        const box = findChild(window, "childrenView").outcomeBox;
+        compare(outcome(window), "Cy can log in now, at level 1. Cy starts with no games: choose them on the Games page.");
+        verify(box.visible);
+        compare(rows(window), ["Ada, Level 1", "Ben, Level 2", "Cy, Level 1"]);
+        tryCompare(findChild(nameField(window), "input"), "activeFocus", true);
+        const button = findChild(childRow(window, 0), "changeName");
+        button.forceActiveFocus();
+        tryCompare(button, "activeFocus", true);
+
+        // The family as it was: the sentence is still so, and stays.
+        toTheBack(window);
+        toTheFront(window, button);
+        compare(outcome(window), "Cy can log in now, at level 1. Cy starts with no games: choose them on the Games page.");
+        verify(box.visible);
+
+        toTheBack(window);
+        standIns.removeAccount("cy");
+        backToTheFront(window);
+        compare(rows(window), ["Ada, Level 1", "Ben, Level 2"]);
+        compare(window.page.step, ChildrenPage.Ready);
+        compare(outcome(window), "");
+        verify(!box.visible);
+        tryCompare(findChild(childRow(window, 0), "changeName"), "activeFocus", true);
+        // Once anything the sentence's going left for later has run.
+        wait(0);
+        verify(findChild(childRow(window, 0), "changeName").activeFocus);
+    }
+
+    // "Ben is not a child's account on this computer" is under the rows,
+    // and then Ben is added again in a terminal. When Family comes back
+    // to the front Ben's row is there again and the box is gone.
+    function test_theSentenceGoesWhenTheChildItNamesIsBack() {
+        const window = makeWindow("asking");
+        standIns.removeAccount("ben");
+        mouseClick(findChild(childRow(window, 1), "moveTo1"));
+        const box = findChild(window, "childrenView").outcomeBox;
+        const said = "Ben is not a child's account on this computer. The list shows the children there are now.";
+        compare(outcome(window), said);
+        verify(box.visible);
+        const input = findChild(nameField(window), "input");
+        tryCompare(input, "activeFocus", true);
+
+        // Ben still away: the sentence is still so, and stays.
+        toTheBack(window);
+        toTheFront(window, input);
+        compare(outcome(window), said);
+        verify(box.visible);
+
+        toTheBack(window);
+        standIns.putAccount("ben", "Ben", 2);
+        toTheFront(window, input);
+        compare(rows(window), ["Ada, Level 1", "Ben, Level 2"]);
+        compare(window.page.step, ChildrenPage.Ready);
+        compare(outcome(window), "");
+        verify(!box.visible);
+    }
+
+    // A sentence about something else stays: a refused Add, and the one
+    // for a button pressed in the open languages of a child who is gone.
+    function test_aSentenceAboutSomethingElseStays() {
+        const window = makeWindow("asking");
+        mouseClick(findChild(childRow(window, 1), "changeName"));
+        tryCompare(newNameInput(window, 1), "activeFocus", true);
+        clickAdd(window);
+        compare(outcome(window), "Type the child's name first.");
+        tryCompare(findChild(nameField(window), "input"), "activeFocus", true);
+        toTheBack(window);
+        standIns.removeAccount("ben");
+        backToTheFront(window);
+        compare(rows(window), ["Ada, Level 1"]);
+        compare(outcome(window), "Type the child's name first.");
+
+        openLanguages(window, 0);
+        tryCompare(languageButton(window, 0, "en_US.UTF-8"), "activeFocus", true);
+        standIns.removeAccount("ada");
+        mouseClick(languageButton(window, 0, "en_US.UTF-8"));
+        compare(rows(window), []);
+        tryCompare(findChild(nameField(window), "input"), "activeFocus", true);
+        compare(outcome(window), "Ada is not a child's account on this computer. The list shows the children there are now.");
+    }
+
+    // Only the Children page in front reads the accounts: not Family
+    // going to the back, and not Family coming back with another page
+    // showing. That page's button reads them when it is pressed.
+    function test_onlyTheChildrenPageInFrontReads() {
+        const window = makeWindow("done");
+        const atFirst = standIns.accountReads();
+        toTheBack(window);
+        compare(standIns.accountReads(), atFirst);
+        backToTheFront(window);
+        compare(standIns.accountReads(), atFirst + 1);
+        showGames(window);
+        toTheBack(window);
+        standIns.removeAccount("ben");
+        backToTheFront(window);
+        compare(standIns.accountReads(), atFirst + 1);
+        compare(window.page.listedChildren.length, 2);
+        mouseClick(findChild(window, "childrenTab"));
+        compare(standIns.accountReads(), atFirst + 2);
+        compare(rows(window), ["Ada, Level 1"]);
     }
 
     // After a refusal, focus is back in the name field to try again.
@@ -1410,7 +2062,8 @@ TestCase {
         const repeater = findChild(window, "noticeRows");
         compare(repeater.count, 30);
         verify(scroller.contentHeight > scroller.height * 2);
-        findChild(window, "noticesTab").forceActiveFocus();
+        // About is the last page button, so the page comes after it.
+        findChild(window, "aboutTab").forceActiveFocus();
         keyClick(Qt.Key_Tab);
         tryVerify(() => repeater.itemAt(0).activeFocus);
         compare(repeater.itemAt(0).Accessible.name, findChild(repeater.itemAt(0), "noticeText").text);
@@ -1592,6 +2245,576 @@ TestCase {
         compare(window.showing, "notices");
     }
 
+    // ---- the About page (ADR-0040) ----
+
+    function showAbout(window) {
+        mouseClick(findChild(window, "aboutTab"));
+        compare(window.showing, "about");
+        waitForPolish(window);
+    }
+
+    // The names of the About page's headings, blocks of words and buttons
+    // that show, top to bottom.
+    function aboutParts(window) {
+        const names = [];
+        const view = findChild(window, "aboutView");
+        for (let i = 0; i < view.children.length; ++i) {
+            if (view.children[i].visible)
+                names.push(view.children[i].objectName);
+        }
+        return names;
+    }
+
+    // Every Text in an item, a button's word too, shown or not.
+    function textsIn(item) {
+        let texts = item.textFormat === undefined ? [] : [item];
+        for (let i = 0; i < item.children.length; ++i)
+            texts = texts.concat(textsIn(item.children[i]));
+        return texts;
+    }
+
+    // Everything the About page says that shows, top to bottom, as one
+    // run of words.
+    function aboutWords(window) {
+        return aboutParts(window).map(name => findChild(window, name).text).join(" ");
+    }
+
+    // The fifth page (ADR-0040): what Cairn Linux is, what it is built on
+    // with Fedora's notice whole, and where the licences are, in plain
+    // text. This is the image as it is built today, which does not say
+    // which version it is.
+    function test_theAboutPage() {
+        const window = makeWindow("done");
+        const about = findChild(window, "aboutTab");
+        compare(about.text, "About");
+        compare(about.Accessible.role, Accessible.PageTab);
+        compare(about.Accessible.checked, false);
+        showAbout(window);
+        compare(findChild(window, "scroller").contentY, 0);
+        const view = findChild(window, "aboutView");
+        verify(view.visible);
+        verify(!findChild(window, "childrenView").visible);
+        compare(about.Accessible.checked, true);
+        for (const other of ["childrenTab", "gamesTab", "accountTab", "noticesTab"])
+            compare(findChild(window, other).Accessible.checked, false);
+        const folder = window.aboutPage.licenceFolder;
+        verify(folder !== "");
+        const page = [
+            {
+                name: "aboutHeading",
+                role: Accessible.Heading,
+                text: "About Cairn Linux"
+            },
+            {
+                name: "aboutWhatItIs",
+                role: Accessible.StaticText,
+                text: "Cairn Linux is the system on this computer. It is made for children, with a grown-up in charge."
+            },
+            {
+                name: "openCairn",
+                role: Accessible.Button,
+                text: "Open cairnlinux.com in your web browser"
+            },
+            {
+                name: "aboutVersion",
+                role: Accessible.StaticText,
+                text: "This copy of Cairn Linux does not say which version it is."
+            },
+            {
+                name: "builtOnHeading",
+                role: Accessible.Heading,
+                text: "What it is built on"
+            },
+            {
+                name: "aboutLineage",
+                role: Accessible.StaticText,
+                text: "Cairn Linux is built on Bazzite, a Universal Blue image derived from Fedora® Linux. Cairn Linux is not affiliated with, endorsed by, or supported by Bazzite, Universal Blue, Red Hat or the Fedora Project."
+            },
+            {
+                name: "aboutNotice",
+                role: Accessible.StaticText,
+                text: "The software Cairn Linux provides is not provided or supported by the Fedora Project. Official Fedora Materials are available through the Fedora Project website at https://fedoraproject.org/."
+            },
+            {
+                name: "openFedora",
+                role: Accessible.Button,
+                text: "Open fedoraproject.org in your web browser"
+            },
+            {
+                name: "aboutFedoraRelease",
+                role: Accessible.StaticText,
+                text: "This copy is derived from Fedora Linux 45."
+            },
+            {
+                name: "aboutAttribution",
+                role: Accessible.StaticText,
+                text: "Fedora is a trademark or registered trademark of Red Hat, Inc., or its subsidiaries in the United States and other countries."
+            },
+            {
+                name: "licencesHeading",
+                role: Accessible.Heading,
+                text: "Licences"
+            },
+            {
+                name: "aboutLicences",
+                role: Accessible.StaticText,
+                text: "Cairn Linux's own code is licensed under the Apache License 2.0. Its documentation and brand assets, including the stacked-stones artwork, are licensed under CC BY-SA 4.0. Those copyright licences do not grant trademark rights in the name \"Cairn Linux\" or the stacked-stones mark."
+            },
+            {
+                name: "aboutFullTexts",
+                role: Accessible.StaticText,
+                text: "The full texts are on this computer, in the folder " + folder + ". LICENSE is the Apache License 2.0. LICENSE-CC-BY-SA-4.0 is the CC BY-SA 4.0 licence. NOTICE says whose work Cairn Linux is built on. TRADEMARKS.md says how the name and the mark may be used."
+            },
+            {
+                name: "openFolder",
+                role: Accessible.Button,
+                text: "Open the folder with the full texts"
+            },
+            {
+                name: "aboutOtherSoftware",
+                role: Accessible.StaticText,
+                text: "The rest of the system is software from other projects, each under its own licence. The licences of its packages are in the folder /usr/share/licenses."
+            }
+        ];
+        compare(aboutParts(window), page.map(part => part.name));
+        let above = -1;
+        for (const part of page) {
+            const item = findChild(window, part.name);
+            compare(item.text, part.text);
+            compare(item.Accessible.name, part.text);
+            compare(item.Accessible.role, part.role, part.name);
+            verify(item.y > above, part.name + " is not under the part before it");
+            above = item.y;
+        }
+        // Each block of words, the three that show only after a press that
+        // opened nothing as well, is plain text whose name for a screen
+        // reader is all of its words.
+        let blocks = 0;
+        for (let i = 0; i < view.children.length; ++i) {
+            const block = view.children[i];
+            if (block.textFormat === undefined)
+                continue;
+            ++blocks;
+            compare(block.textFormat, Text.PlainText, block.objectName);
+            compare(block.Accessible.name, block.text);
+            verify(block.text !== "", block.objectName);
+        }
+        compare(blocks, 15);
+        verify(!findChild(window, "cairnNotOpened").visible);
+        verify(!findChild(window, "fedoraNotOpened").visible);
+        verify(!findChild(window, "folderNotOpened").visible);
+        if (standIns.screenshotPath() !== "") {
+            wait(200);
+            grabImage(window.contentItem).save(standIns.screenshotPath().replace(".png", "-about.png"));
+        }
+    }
+
+    // Fedora's trademark guidelines ask for the ® on the first place the
+    // page names Fedora, whatever else the page shows.
+    function test_theAboutPageNamesFedoraFirstWithItsMark_data() {
+        return [
+            {
+                tag: "the image",
+                about: "image"
+            },
+            {
+                tag: "with its version",
+                about: "with-version"
+            },
+            {
+                tag: "another system's file",
+                about: "not-cairn"
+            },
+            {
+                tag: "no full texts",
+                about: "no-licences"
+            }
+        ];
+    }
+
+    function test_theAboutPageNamesFedoraFirstWithItsMark(data) {
+        const window = makeWindow("done", {
+            "about": data.about
+        });
+        showAbout(window);
+        const words = aboutWords(window);
+        const first = words.indexOf("Fedora");
+        verify(first >= 0);
+        compare(words.substring(first, first + 7), "Fedora®");
+    }
+
+    // The notice is said as large and as dark as the rest of the page,
+    // never as small print, and nothing on the page is smaller than a
+    // grown-up's smallest text.
+    function test_theAboutPageSaysTheNoticeAtFullSize() {
+        const window = makeWindow("done");
+        showAbout(window);
+        const first = findChild(window, "aboutWhatItIs");
+        compare(first.font.pixelSize, Tokens.bodySize);
+        compare(first.color, Tokens.text);
+        for (const name of ["aboutLineage", "aboutNotice", "aboutAttribution", "aboutFedoraRelease"]) {
+            const words = findChild(window, name);
+            compare(words.font.pixelSize, first.font.pixelSize, name);
+            compare(words.font.weight, first.font.weight, name);
+            compare(words.color, first.color, name);
+        }
+        const texts = textsIn(findChild(window, "aboutView"));
+        // The fifteen blocks of words and the three buttons' words.
+        compare(texts.length, 18);
+        for (const text of texts)
+            verify(text.font.pixelSize >= Tokens.minGuardian, text.text);
+    }
+
+    // The version is Cairn's own, from the image, and only when the image
+    // says. Fedora's release number is only ever said as Fedora's, and a
+    // file that is not Cairn's gives neither.
+    function test_theAboutPageVersion_data() {
+        return [
+            {
+                tag: "the image as it is built",
+                about: "image",
+                version: "This copy of Cairn Linux does not say which version it is.",
+                fedoraRelease: true
+            },
+            {
+                tag: "an image that says its version",
+                about: "with-version",
+                version: "Version: dev.20261112-0a1b2c3",
+                fedoraRelease: true
+            },
+            {
+                tag: "another system's file",
+                about: "not-cairn",
+                version: "This copy of Cairn Linux does not say which version it is.",
+                fedoraRelease: false
+            }
+        ];
+    }
+
+    function test_theAboutPageVersion(data) {
+        const window = makeWindow("done", {
+            "about": data.about
+        });
+        showAbout(window);
+        compare(findChild(window, "aboutVersion").text, data.version);
+        const words = aboutWords(window);
+        compare(words.includes("Version:"), data.version.startsWith("Version:"));
+        compare(words.includes("does not say which version"), !data.version.startsWith("Version:"));
+        const fedoraRelease = findChild(window, "aboutFedoraRelease");
+        compare(fedoraRelease.visible, data.fedoraRelease);
+        compare(words.includes("This copy is derived from Fedora Linux"), data.fedoraRelease);
+        if (data.fedoraRelease)
+            compare(fedoraRelease.text, "This copy is derived from Fedora Linux 45.");
+        // Fedora's number is in that one sentence and nowhere else. The
+        // folder's path is the test's own, so it is left out of the look.
+        const others = aboutParts(window).filter(name => name !== "aboutFedoraRelease" && name !== "aboutFullTexts");
+        for (const name of others)
+            verify(!findChild(window, name).text.includes("45"), name);
+        // Everything that does not come from the file still shows.
+        const fixed = ["aboutHeading", "aboutWhatItIs", "openCairn", "aboutVersion", "builtOnHeading", "aboutLineage", "aboutNotice", "openFedora", "aboutAttribution", "licencesHeading", "aboutLicences", "aboutFullTexts", "openFolder", "aboutOtherSoftware"];
+        compare(aboutParts(window).filter(name => name !== "aboutFedoraRelease"), fixed);
+    }
+
+    // Nothing phones home: showing the page opens nothing. Each button
+    // asks the desktop for its one address, once for each press, and a
+    // held key is one press.
+    function test_theAboutButtonsOpenOnlyWhenPressed() {
+        const window = makeWindow("done");
+        compare(standIns.opened(), []);
+        showAbout(window);
+        wait(200);
+        compare(standIns.opened(), []);
+        const buttons = [
+            {
+                name: "openCairn",
+                address: "https://cairnlinux.com/"
+            },
+            {
+                name: "openFedora",
+                address: "https://fedoraproject.org/"
+            },
+            {
+                name: "openFolder",
+                address: "file://" + window.aboutPage.licenceFolder
+            }
+        ];
+        const asked = [];
+        for (const each of buttons) {
+            const button = findChild(window, each.name);
+            mouseClick(button);
+            asked.push(each.address);
+            compare(standIns.opened(), asked);
+            verify(button.activeFocus);
+            for (const key of [Qt.Key_Return, Qt.Key_Enter, Qt.Key_Space]) {
+                keyClick(key);
+                asked.push(each.address);
+                compare(standIns.opened(), asked);
+            }
+            keyPress(Qt.Key_Return);
+            for (let i = 0; i < 5; ++i)
+                heldKey.repeat(window, Qt.Key_Return);
+            keyRelease(Qt.Key_Return);
+            asked.push(each.address);
+            compare(standIns.opened(), asked);
+            // Tab only moves on.
+            keyClick(Qt.Key_Tab);
+            compare(standIns.opened(), asked);
+        }
+        compare(asked.length, 15);
+        compare(window.aboutPage.notOpened, AboutPage.None);
+        verify(!findChild(window, "cairnNotOpened").visible);
+        verify(!findChild(window, "fedoraNotOpened").visible);
+        verify(!findChild(window, "folderNotOpened").visible);
+    }
+
+    // When the desktop answers that nothing opened, the page says so
+    // under the button that was pressed, in sight, and says where the
+    // address or the path is written.
+    function test_theAboutPageWhenNothingOpens_data() {
+        return [
+            {
+                tag: "Cairn's website",
+                button: "openCairn",
+                sentence: "cairnNotOpened",
+                words: "No web browser opened. The address above works in any browser, on this computer or on a phone.",
+                other: "folderNotOpened",
+                otherButton: "openFolder"
+            },
+            {
+                tag: "Fedora's website",
+                button: "openFedora",
+                sentence: "fedoraNotOpened",
+                words: "No web browser opened. The address above works in any browser, on this computer or on a phone.",
+                other: "folderNotOpened",
+                otherButton: "openFolder"
+            },
+            {
+                tag: "the folder",
+                button: "openFolder",
+                sentence: "folderNotOpened",
+                words: "The folder did not open. Its path is written above.",
+                other: "fedoraNotOpened",
+                otherButton: "openFedora"
+            }
+        ];
+    }
+
+    function test_theAboutPageWhenNothingOpens(data) {
+        const window = makeWindow("done", {
+            "about": "nothing-opens",
+            "smallest": true
+        });
+        showAbout(window);
+        const button = findChild(window, data.button);
+        const sentence = findChild(window, data.sentence);
+        const sentences = ["cairnNotOpened", "fedoraNotOpened", "folderNotOpened"];
+        for (const name of sentences)
+            verify(!findChild(window, name).visible, name);
+        // The keyboard brings the button into sight, with no room left
+        // under it for the sentence. A hidden sentence has no place on
+        // the page yet, so the room is measured from the button.
+        button.forceActiveFocus();
+        tryVerify(() => inSightOnThePage(window, button));
+        const scroller = findChild(window, "scroller");
+        const view = findChild(window, "aboutView");
+        verify(sentence.height > 0);
+        const buttonTop = button.mapToItem(scroller, 0, 0).y;
+        verify(buttonTop + button.height + view.spacing + sentence.height > scroller.height);
+        const scrolledTo = scroller.contentY;
+        keyClick(Qt.Key_Return);
+        compare(standIns.opened().length, 1);
+        verify(sentence.visible);
+        // Only the pressed button's sentence shows.
+        for (const name of sentences)
+            compare(findChild(window, name).visible, name === data.sentence, name);
+        compare(sentence.text, data.words);
+        compare(sentence.Accessible.name, data.words);
+        compare(sentence.Accessible.role, Accessible.AlertMessage);
+        // Laid out under its button at once, so the window scrolls to
+        // where the sentence is.
+        fuzzyCompare(sentence.y, button.y + button.height + view.spacing, 1);
+        tryVerify(() => inSightOnThePage(window, sentence));
+        verify(scroller.contentY > scrolledTo);
+        verify(button.activeFocus);
+        // The other button's press moves the sentence to under it.
+        const otherButton = findChild(window, data.otherButton);
+        otherButton.forceActiveFocus();
+        keyClick(Qt.Key_Space);
+        verify(!sentence.visible);
+        verify(findChild(window, data.other).visible);
+        tryVerify(() => inSightOnThePage(window, findChild(window, data.other)));
+    }
+
+    // A computer without the four full texts, such as a developer's own:
+    // the page says they could not be found, and offers no folder.
+    function test_theAboutPageWithoutTheFullTexts() {
+        const window = makeWindow("done", {
+            "about": "no-licences"
+        });
+        showAbout(window);
+        compare(window.aboutPage.licenceFolder, "");
+        compare(findChild(window, "aboutFullTexts").text, "The full texts could not be found on this computer.");
+        verify(!findChild(window, "openFolder").visible);
+        verify(!findChild(window, "folderNotOpened").visible);
+        const words = aboutWords(window);
+        verify(!words.includes("The full texts are on this computer"));
+        verify(!words.includes("Open the folder"));
+        compare(aboutParts(window), ["aboutHeading", "aboutWhatItIs", "openCairn", "aboutVersion", "builtOnHeading", "aboutLineage", "aboutNotice", "openFedora", "aboutFedoraRelease", "aboutAttribution", "licencesHeading", "aboutLicences", "aboutFullTexts", "aboutOtherSoftware"]);
+        // Tab passes over the button that does not show.
+        findChild(window, "aboutFullTexts").forceActiveFocus();
+        keyClick(Qt.Key_Tab);
+        tryCompare(findChild(window, "aboutOtherSoftware"), "activeFocus", true);
+        compare(standIns.opened(), []);
+    }
+
+    // The keyboard alone, in the smallest window: Right reaches the fifth
+    // button, Tab stops on each block of words and each button from top to
+    // bottom, with its top in sight, and Page Down and Page Up read the
+    // page from end to end.
+    function test_theAboutPageByKeyboard() {
+        const window = makeWindow("done", {
+            "smallest": true
+        });
+        const notices = findChild(window, "noticesTab");
+        const about = findChild(window, "aboutTab");
+        notices.forceActiveFocus();
+        keyClick(Qt.Key_Right);
+        verify(about.activeFocus);
+        keyClick(Qt.Key_Left);
+        verify(notices.activeFocus);
+        keyClick(Qt.Key_Right);
+        // About is the last button: Right goes no further.
+        keyClick(Qt.Key_Right);
+        verify(about.activeFocus);
+        keyClick(Qt.Key_Return);
+        compare(window.showing, "about");
+        waitForPolish(window);
+        const scroller = findChild(window, "scroller");
+        compare(scroller.contentY, 0);
+        verify(scroller.contentHeight > scroller.height * 2);
+        const ring = Tokens.focusOffset + Tokens.focusWidth;
+        const stops = ["aboutWhatItIs", "openCairn", "aboutVersion", "aboutLineage", "aboutNotice", "openFedora", "aboutFedoraRelease", "aboutAttribution", "aboutLicences", "aboutFullTexts", "openFolder", "aboutOtherSoftware"];
+        for (const name of stops) {
+            const stop = findChild(window, name);
+            keyClick(Qt.Key_Tab);
+            tryCompare(stop, "activeFocus", true);
+            compare(stop.Accessible.focusable, true);
+            const top = stop.mapToItem(scroller, 0, 0).y;
+            verify(top >= ring && top < scroller.height, name + " starts at " + top + " in a page " + scroller.height + " tall");
+            // One that fits shows whole, with its ring. How many fit
+            // depends on the font, so a paragraph taller than so small a
+            // page is only read on with Down or Page Down.
+            if (stop.height + ring * 2 <= scroller.height)
+                verify(top + stop.height + ring <= scroller.height + 1, name + " is cut off at the bottom");
+        }
+        keyClick(Qt.Key_Tab);
+        tryCompare(findChild(window, "childrenTab"), "activeFocus", true);
+        // Back from the first block of words is the page's own button.
+        const first = findChild(window, "aboutWhatItIs");
+        first.forceActiveFocus();
+        keyClick(Qt.Key_Backtab, Qt.ShiftModifier);
+        tryCompare(about, "activeFocus", true);
+        keyClick(Qt.Key_Tab);
+        tryCompare(first, "activeFocus", true);
+        // Down and Up move a line, from a block of words or a button.
+        const start = scroller.contentY;
+        keyClick(Qt.Key_Down);
+        verify(scroller.contentY > start);
+        keyClick(Qt.Key_Up);
+        compare(scroller.contentY, start);
+        // Page Down reads to the end of the last paragraph and stops.
+        const end = scroller.contentHeight - scroller.height;
+        let presses = 0;
+        while (scroller.contentY < end && presses < 40) {
+            const before = scroller.contentY;
+            keyClick(Qt.Key_PageDown);
+            verify(scroller.contentY > before);
+            // Less than a page each time, so no line is passed over.
+            verify(scroller.contentY - before < scroller.height);
+            ++presses;
+        }
+        compare(scroller.contentY, end);
+        verify(presses > 2);
+        const last = findChild(window, "aboutOtherSoftware");
+        verify(last.mapToItem(scroller, 0, 0).y + last.height <= scroller.height, "The end of the last paragraph is out of sight");
+        keyClick(Qt.Key_PageDown);
+        compare(scroller.contentY, end);
+        // The keys work from a button as well.
+        findChild(window, "openFolder").forceActiveFocus();
+        tryVerify(() => inSightOnThePage(window, findChild(window, "openFolder")));
+        presses = 0;
+        while (scroller.contentY > 0 && presses < 40) {
+            const before = scroller.contentY;
+            keyClick(Qt.Key_PageUp);
+            verify(scroller.contentY < before);
+            ++presses;
+        }
+        compare(scroller.contentY, 0);
+        keyClick(Qt.Key_PageUp);
+        compare(scroller.contentY, 0);
+        verify(inSightOnThePage(window, findChild(window, "aboutHeading")));
+        compare(standIns.opened(), []);
+        // Another page and back: About starts at its top again.
+        scroller.contentY = end;
+        mouseClick(findChild(window, "childrenTab"));
+        compare(window.showing, "children");
+        mouseClick(about);
+        compare(window.showing, "about");
+        compare(scroller.contentY, 0);
+    }
+
+    // The window at its narrowest has room for four page buttons on a
+    // line. About goes on to a second line under them, the page starts
+    // under both lines, and nothing on the About page runs out of the
+    // window.
+    function test_fiveButtonsInANarrowWindow() {
+        const window = makeWindow("done", {
+            "smallest": true
+        });
+        const places = [];
+        for (const name of ["childrenTab", "gamesTab", "accountTab", "noticesTab", "aboutTab"]) {
+            const tab = findChild(window, name);
+            const corner = tab.mapToItem(window.contentItem, 0, 0);
+            verify(corner.x >= 0 && corner.x + tab.width <= window.width, name + " runs out of the window");
+            places.push({
+                "name": name,
+                "left": corner.x,
+                "right": corner.x + tab.width,
+                "top": corner.y,
+                "bottom": corner.y + tab.height
+            });
+        }
+        for (let i = 0; i < places.length; ++i) {
+            for (let j = i + 1; j < places.length; ++j) {
+                const a = places[i];
+                const b = places[j];
+                verify(a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top, a.name + " and " + b.name + " overlap");
+            }
+        }
+        // The first four share a line, and About is under it.
+        for (let i = 1; i < 4; ++i)
+            compare(places[i].top, places[0].top, places[i].name);
+        verify(places[4].top >= places[0].bottom, "About is not on a line of its own");
+        const bar = findChild(window, "pageSwitch").parent;
+        const scroller = findChild(window, "scroller");
+        verify(bar.height >= places[4].bottom);
+        compare(scroller.y, bar.height);
+        compare(scroller.height, window.height - bar.height);
+        showAbout(window);
+        const view = findChild(window, "aboutView");
+        const left = view.mapToItem(window.contentItem, 0, 0).x;
+        compare(view.width, window.width - left * 2);
+        for (let i = 0; i < view.children.length; ++i) {
+            const part = view.children[i];
+            if (!part.visible)
+                continue;
+            verify(part.x >= 0 && part.x + part.width <= view.width, part.objectName + " is wider than the page");
+            // Its words break rather than run past its own edge.
+            if (part.textFormat !== undefined)
+                verify(part.contentWidth <= part.width + 1, part.objectName + " has a line wider than the page");
+        }
+    }
+
     // The first child is picked, every shared game shows, and the games on
     // their list are highlighted, with a word as well as a colour.
     function test_theGamesPageShowsTheChildsList() {
@@ -1694,6 +2917,8 @@ TestCase {
         tryCompare(findChild(window, "accountTab"), "activeFocus", true);
         keyClick(Qt.Key_Tab);
         tryCompare(findChild(window, "noticesTab"), "activeFocus", true);
+        keyClick(Qt.Key_Tab);
+        tryCompare(findChild(window, "aboutTab"), "activeFocus", true);
         keyClick(Qt.Key_Tab);
         tryCompare(choice(window, "ada"), "activeFocus", true);
         keyClick(Qt.Key_Tab);
@@ -1800,7 +3025,7 @@ TestCase {
         verify(findChild(window, "scrollIndicator").visible);
         scroller.contentY = scroller.contentHeight - scroller.height;
         verify(inSight(window, findChild(window, "gamesTab")));
-        findChild(window, "noticesTab").forceActiveFocus();
+        findChild(window, "aboutTab").forceActiveFocus();
         keyClick(Qt.Key_Tab);
         tryCompare(choice(window, "ada"), "activeFocus", true);
         verify(inSight(window, choice(window, "ada")));
@@ -2026,15 +3251,38 @@ TestCase {
     }
 
     // The keyboard's focus turns nothing, so it still scrolls a card cut
-    // off at the page's edge into full view, with room around it.
-    function test_theKeyboardBringsACardIntoFullView() {
+    // off at the page's edge into full view, with room around it. In the
+    // smallest window About is on a second line, and the page under the
+    // buttons is a few pixels too short for a card with that room above
+    // it and below it: there the card and its ring show whole, with the
+    // room above.
+    function test_theKeyboardBringsACardIntoFullView_data() {
+        return [
+            {
+                tag: "the smallest window",
+                taller: 0,
+                room: Tokens.focusOffset + Tokens.focusWidth
+            },
+            {
+                tag: "a little taller",
+                taller: Tokens.bodySize,
+                room: Tokens.bodySize
+            }
+        ];
+    }
+
+    function test_theKeyboardBringsACardIntoFullView(data) {
         const window = makeWindow("done", {
             "smallest": true
         });
         showGames(window);
         waitForPolish(window);
         const scroller = findChild(window, "scroller");
+        const smallest = scroller.height;
+        window.height += data.taller;
+        tryCompare(scroller, "height", smallest + data.taller);
         const pajama = card(window, 2);
+        compare(pajama.height + Tokens.bodySize * 2 <= scroller.height, data.taller > 0);
         card(window, 1).forceActiveFocus();
         // Pajama Sam starts the next row, a third of it under the page's
         // bottom edge.
@@ -2046,7 +3294,9 @@ TestCase {
         compare(pajama.onList, true);
         verify(!findChild(window, "unsavedSentence").visible);
         waitForPolish(window);
-        verify(shownWhole(window, pajama, Tokens.bodySize), "The card with the focus is not in full view");
+        verify(shownWhole(window, pajama, data.room), "The card with the focus is not in full view");
+        if (data.taller === 0)
+            fuzzyCompare(pajama.mapToItem(scroller, 0, 0).y, Tokens.bodySize, 1);
     }
 
     // A card turned, then another page opened before the window draws

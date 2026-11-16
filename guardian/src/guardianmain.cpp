@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
+#include "AboutPage.h"
 #include "AccountPage.h"
 #include "ChildrenPage.h"
 #include "GamesPage.h"
 #include "NoticesPage.h"
 
 #include <QDBusConnection>
+#include <QDesktopServices>
 #include <QDir>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
@@ -41,12 +43,22 @@ int main(int argc, char* argv[]) {
     noticesSetup.uid = getuid();
     NoticesPage noticesPage(noticesSetup);
 
+    // The desktop opens an address in the grown-up's own web browser or
+    // file manager, and only when a button on the About page is pressed.
+    // Family itself makes no network call. Under Wayland Qt answers yes at
+    // once, whatever happens next, so there the page never learns that
+    // nothing opened.
+    AboutPage::Setup aboutSetup;
+    aboutSetup.open = [](const QUrl& address) { return QDesktopServices::openUrl(address); };
+    AboutPage aboutPage(aboutSetup);
+
     QQmlApplicationEngine engine;
     engine.setInitialProperties({
         {QStringLiteral("page"), QVariant::fromValue(&page)},
         {QStringLiteral("gamesPage"), QVariant::fromValue(&gamesPage)},
         {QStringLiteral("accountPage"), QVariant::fromValue(&accountPage)},
         {QStringLiteral("noticesPage"), QVariant::fromValue(&noticesPage)},
+        {QStringLiteral("aboutPage"), QVariant::fromValue(&aboutPage)},
     });
     engine.loadFromModule("Cairn.Family", "FamilyWindow");
     if (engine.rootObjects().isEmpty()) {

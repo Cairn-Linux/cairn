@@ -10,7 +10,9 @@ The Guardian's side of Cairn (ROADMAP P1-5). So far it has three pieces:
   child's own list (ADR-0041). Its Your account page changes the
   Guardian's own password and picture (ADR-0043). Its Notices page says
   when wrong passwords were typed, and whether an account locked
-  (ADR-0054).
+  (ADR-0054). Its About page says what Cairn Linux is, with a button
+  for Cairn's website, what it is built on, with Fedora's notice, and
+  where the licences are (ADR-0040).
 - **`cairn-family`**, the root command under it that makes a child's
   account, sets a child's level (ADR-0039), name (ADR-0056) and language
   (ADR-0058) and gives
@@ -25,14 +27,18 @@ The Guardian's side of Cairn (ROADMAP P1-5). So far it has three pieces:
 Steam window, only the `cairn-guardian` group may run it, and the entry
 names it as its `TryExec`, so no one else's menu shows it. It is on the
 image only: hand provisioning installs neither it nor `cairn-family`.
-The entry's words name every page, "Children, games, your account and
-notices",
+The entry's words name every page, "Children, games, your account,
+notices and about",
 and its keywords include games and Steam, so a search in the menu for
 either finds it.
 
-Four buttons above the page, **Children**, **Games**, **Your
-account** and **Notices**, move between its pages; in a narrow window
-the last ones go on to a second line. The window opens on Children, with
+Five buttons above the page, **Children**, **Games**, **Your
+account**, **Notices** and **About**, move between its pages. The
+window as it opens has room for the five on one line: in the brand font
+they need about 645 px of its 672 px row, measured from the font's file
+and not yet seen on an image. In a narrower window, the smallest one
+too, About goes on to a second line, and the page below has that much
+less room. The window opens on Children, with
 the keyboard on its button, so Tab and Shift+Tab start there (#242).
 
 System Settings lists it too, as "Family" under System, where Plasma's
@@ -48,7 +54,35 @@ The Children page:
 1. Lists every child Cairn made, in the order their accounts were made,
    with their name, level and language. A child at level 3 or 4 shows
    that level. A child no language was chosen for shows "Language: the
-   computer's own".
+   computer's own". The page reads the accounts again each time it is
+   shown, each time Family comes back to the front, and before each
+   change, so a child removed in a terminal while Family was open is
+   off the list and no longer holds their name. That read leaves an
+   open name field, open languages and the Add a child form as they
+   were, puts the keyboard back on the control it was on and keeps
+   that control in sight, and does not happen while a change waits
+   for its password. A child who is gone from the list takes their
+   open name field or languages with them.
+   The sentence under the rows, for the last change, stays while each
+   child it is about is as the list showed them when it was written,
+   whatever else changed in the family. It goes, and the box with it,
+   once a read finds one of them gone from the list, back on it, or
+   there with another name, level or language. So "Cy can log in now"
+   goes when Cy's account is removed in a terminal, and "Cy is not a
+   child's account on this computer" goes when Cy is added again. A
+   sentence is about the child whose row's button was pressed, or the
+   child Add a child made or asked the password to make, and about a
+   child it names as having the name already. The read that follows a
+   change's answer writes that change's sentence and never takes it
+   away. A sentence about no child is taken away by no read: "Type the
+   child's name first.", or a name Add a child refuses before any
+   password because it holds a colon. A grown-up's name refused, for a
+   new child or for a child's new name, stays even when that grown-up's
+   account is removed or renamed in a terminal meanwhile; pressing Add
+   or Save name again reads the accounts and answers for the family as
+   it is. When a terminal has given two children one name, a refusal
+   of that name follows the first of them on the list, and goes when
+   that one changes, though the other still has the name.
 2. **Move to level N** beside each child, for each level the page can
    give, 1 or 2. Up or down, the button and the sentence after it read
    the same (DESIGN §3). The new level starts the next time the child
@@ -79,7 +113,15 @@ The Children page:
    language is English (UK) now. It starts the next time Ada logs in."
    A refusal, such as a closed password box, leaves the buttons open
    to try again.
-5. **Add a child:** the name for the login tile, and level 1 or 2. A
+5. **Add a child:** the name for the login tile, and level 1 or 2.
+   Levels 3 and 4 show under them with the word "Planned" and a
+   sentence each on what they will be: "A desktop with limits, and a
+   real terminal." and "The full desktop and terminal, with a
+   grown-up's controls still in place." They are words on the page,
+   with no card or ring, and cannot be chosen by a tap, a key or a
+   screen reader. Tab stops on each, so that a screen reader speaks
+   them, and the keyboard's outline shows round one only then; this is
+   not yet tried with a real screen reader. A
    name a child on the list already has, whatever the case of its
    letters, is refused before any password: "Cy already has an account
    on this computer. To add another child, give them a different name,
@@ -301,6 +343,56 @@ cannot write, and faillock's line from the lock screen, believed only
 from the lock screen's program running as root or as the account it
 names. Family keeps no copy, and nothing leaves the computer. Children
 never see the page.
+
+The About page (ADR-0040, "The About page"):
+
+1. Says what Cairn Linux is, in two sentences: the system on this
+   computer, made for children, with a grown-up in charge. Under them,
+   a button, "Open cairnlinux.com in your web browser".
+2. Shows "Version: " and Cairn's own version when the image's
+   `/usr/lib/os-release` has `IMAGE_VERSION` and its `ID` is `cairn`.
+   No image writes that key yet, so today every computer reads "This
+   copy of Cairn Linux does not say which version it is." Fedora's
+   number is never shown as Cairn's version.
+3. Under "What it is built on": that Cairn Linux is built on Bazzite, a
+   Universal Blue image derived from Fedora® Linux, and is not
+   affiliated with, endorsed by, or supported by Bazzite, Universal
+   Blue, Red Hat or the Fedora Project. Then Fedora's notice in the
+   README's words, with https://fedoraproject.org/ written out. Then
+   "This copy is derived from Fedora Linux 45.", with `VERSION_ID` from
+   the same file, when `ID` is `cairn` and the value is 1 to 4 digits.
+   Then Fedora's attribution statement.
+4. Under "Licences": the licence sentences, after the README's. Then
+   the folder with the full texts, `/usr/share/licenses/cairn`, and what
+   each of its four files is, when all four are there as plain files;
+   otherwise "The full texts could not be found on this computer." Then
+   that the rest of the system is other projects' software, with its
+   packages' licences in `/usr/share/licenses`.
+5. Has three buttons. "Open cairnlinux.com in your web browser" asks
+   the desktop to open https://cairnlinux.com/, Cairn's own website, in
+   the parent's own browser; the site has no documentation section yet,
+   so it is the home page. "Open fedoraproject.org in your web browser"
+   asks it to open Fedora's address the same way. "Open the folder with
+   the full texts" asks it to open the licence folder, and shows only
+   when the folder was found. Each does so only when a parent presses
+   it, and the two web addresses are fixed in the program. When Qt answers
+   that it could start nothing, one sentence under that button says so,
+   and the window scrolls to it. Under Wayland, which the image uses,
+   Qt answers yes whatever happened, so on the image that sentence is
+   not expected to show (ADR-0040, "The web addresses, and the three
+   buttons").
+6. The keyboard reads it: Tab stops on each block of words and each
+   button from top to bottom, scrolling each into sight, and Up, Down,
+   Page Up and Page Down scroll the page from any of them.
+
+It reads `os-release` and looks at the licence folder once, when Family
+starts; neither changes until the computer starts another image. Nothing
+is looked up, fetched or checked before a button is pressed, not even
+whether a web browser is installed, and Family itself makes no network
+call. Every block is plain text, and the version, the number, Fedora's
+address and the path are put into their sentences by the program, so
+nothing read from a file is ever markup. Children never see the page.
+It is tested, and not yet seen on the VM or on an image.
 
 The window's notes and the error output of `cairn-family`'s tools go to
 the journal:
@@ -531,10 +623,11 @@ QML draws, C++ decides (ADR-0002):
 | `qml/Main.qml` | The Steam window. |
 | `qml/SteamForWords.qml` | The Steam window's words for each step. |
 | `src/LoginName` | The account's login name, made from the name a parent types, and the first free one when it is taken. |
-| `src/ChildList` | The family's children among the accounts, in the order they were made, each with their name and level, as maps for the pages' QML; and the rule for when two names are one, whatever the case of their letters. |
+| `src/ChildList` | The family's children among the accounts, in the order they were made, each with their name and level, as maps for the pages' QML; the rule for when two names are one, whatever the case of their letters; and when the Children page shows two children the same. |
 | `src/FamilyChange` | Runs `pkexec` with `cairn-family`, one change at a time, and reads its one-line answer, or pkexec's own exit code. |
-| `src/ChildrenPage` | What the Children page shows and what its buttons do: the list, the checks before a change, and why a change was refused. Its account database is in its `Setup`, so a test can replace it. |
+| `src/ChildrenPage` | What the Children page shows and what its buttons do: the list and when it is read again, the checks before a change, and why a change was refused. Its account database is in its `Setup`, so a test can replace it. |
 | `src/UnfinishedAdd` | The Children page's memory of an add that may have made the account before it stopped, so adding that name again finishes it. |
+| `src/OutcomeChildren` | The children the Children page's sentence for the last change is about, each as the list showed them when it was written, and whether a later read finds one of them gone, back or changed, which is when the page takes the sentence away. |
 | `src/GamesPage` | What the Games page shows and does: the children, the one picked, the games with each marked when it is on that child's list as saved and as wanted, turning a game, Save, a logged-in child's greyed games, and opening a child's Steam window. Its files, accounts, commands, program start and logind reader are in its `Setup`, so a test can replace them. |
 | `src/LoginSessions` | Who is logged in, from systemd-logind's `ListSessions` on the system bus through Qt D-Bus, without root, counted by the visit helper's own rule. |
 | `src/LoginWatch` | Keeps who is logged in up to date, reading again on logind's `SessionNew` and `SessionRemoved`. |
@@ -566,11 +659,14 @@ QML draws, C++ decides (ADR-0002):
 | `src/TryReader` | Checks that this account can read the system journal, then runs journalctl three times: the oldest entry, the lock screen's locks from every file (each user's own too, which `wheel` reads through systemd's default ACL), the audit records of password checks and locks. |
 | `src/NoticesPage` | What the Notices page shows: its state, the sentences, how far back the record goes, and the words under the list. Its journalctl, folders, accounts, time zone and clock are in its `Setup`, so a test can replace them. |
 | `qml/NoticesView.qml` | The Notices page. |
+| `src/OsRelease` | The `KEY=value` lines of an os-release file as plain values: bare, single-quoted and double-quoted values, nothing expanded, and the last line for a key wins. Nothing for a file that is missing, not a plain file or over 64 KiB, and no value with a control character, a quote that never closes or more than 200 characters, because values go on screen. It knows nothing about Cairn. |
+| `src/AboutPage` | What the About page shows: Cairn's version from `IMAGE_VERSION` and Fedora's release from `VERSION_ID`, each only when `ID` is `cairn` and the value is plain; the licence folder when it holds all four files; Cairn's and Fedora's fixed web addresses; what each button asks the desktop to open, and which press the opener answered opened nothing. Its os-release, folder and opener are in its `Setup`, so a test can replace them, and with no opener nothing opens. |
+| `qml/AboutView.qml`, `qml/AboutHeading.qml`, `qml/AboutWords.qml` | The About page; one of its headings, which is marked as a heading for a screen reader; and one of its blocks of words, plain text that Tab stops on. |
 | `src/GamePicture` | A game's picture by its app id, with the launcher's rule: `<folder>/<appid>.jpg` when it is a plain file, not a link. The Games page and `cairn-family` both use it. |
 | `qml/FamilyWindow.qml`, `qml/ChildrenView.qml`, `qml/ChildrenOutcome.qml`, `qml/GamesView.qml` | The Guardian tool's window with its switch between pages, its Children page, the box there with the sentence for every answer, and its Games page. |
 | `qml/ChildChoice.qml`, `qml/GameCard.qml`, `qml/SaveOutcome.qml`, `qml/SaveResultWords.qml` | A child to pick on the Games page, one game in its grid, the sentences for a Save, and its words for what each child got. |
 | `qml/ChildGames.qml`, `qml/LoggedInCover.qml`, `qml/SaveProgress.qml` | The picked child's Steam, list and games, greyed and blurred while they are logged in; the card over them; and the Save's progress window, with the lid warning and Close. |
-| `qml/ChildRow.qml`, `qml/NameChange.qml`, `qml/AddChildForm.qml`, `qml/LabelledField.qml`, `qml/LevelChoice.qml` | A child on the list, the field for a child's new name, the Add form, a text field with its label, and one level to pick. |
+| `qml/ChildRow.qml`, `qml/RowKeyboard.qml`, `qml/NameChange.qml`, `qml/AddChildForm.qml`, `qml/LabelledField.qml`, `qml/LevelChoice.qml`, `qml/PlannedLevel.qml` | A child on the list, where the keyboard was among the rows while the list is made again, the field for a child's new name, the Add form, a text field with its label, one level to pick, and one level shown as planned, which cannot be picked. |
 | `qml/TextButton.qml`, `qml/ScrollMark.qml`, `qml/ScrollKeys.qml` | The button both windows use; the thin bar beside a part that scrolls, which shows where it is; and the arrow and page keys a button under that part passes on to it. |
 | `src/FamilyCommand` | `cairn-family create-child` and `set-level`: which accounts it may change, and the steps for each. Everything it reads from or does to the machine is in its `Setup`, so a test can replace it. |
 | `src/Caller` | Who started `cairn-family`: root, and through pkexec an administrator, with their home from the account database. |
@@ -607,14 +703,14 @@ journalctl -t cairn-steam-for -t cairn-steam-visit --since today
 
 ## Tests
 
-CTest runs forty-four here, among them `steamvisit`, `ownsteam`,
+CTest runs fifty here, among them `steamvisit`, `ownsteam`,
 `screenlockwatch`,
 `steamforchild`, `steamwindow` (the real window in Qt Quick Test),
 `familycommand`, `steamentry`, and for the Guardian tool `loginname`,
 `childlist`, `familychange`, `saverun`, `savereport`, `loginwatch`,
-`childlogout`, `gamechoices`,
+`childlogout`, `gamechoices`, `outcomechildren`,
 `childrenpage`, `gamepicture`, `gameshelf`, `gamespage` and
-`familywindow` (the real window in Qt Quick Test, all four pages and
+`familywindow` (the real window in Qt Quick Test, all five pages and
 the switch), and for a grown-up's own password and picture
 `newpassword`, `ownpasswordcommand`, `picturefile`, `accountpage`,
 `walletpassword`, `hideuserspage` and `kdepictures`, and for the
@@ -626,7 +722,13 @@ down, `faillock --reset` out of sight, a lock-screen file not read, a
 flood of 100,000 tries),
 `noticewords` and `tryreader`, with a stand-in journalctl each test
 writes, a journal or a user's file this account cannot read and a flood with an
-over-long line. They use stand-ins
+over-long line, and for the About page `osrelease` (the fourteen lines
+the image writes, quotes and comments, a file that is missing, a folder
+or too large, and values that cannot go on screen) and `aboutpage`
+(Cairn's version only from Cairn's own file, Fedora's number only as
+Fedora's, the four licence files, and an opener that is called only
+when a button asks, with the one address that button has: Cairn's
+website, Fedora's or the folder). They use stand-ins
 in `tests/fixtures/` for `pkexec` with the helper behind it, which takes
 a scenario where the helper's path goes, and for the Guardian's Steam
 client, over a stand-in process list. `pkexec-family` stands in for
@@ -671,6 +773,29 @@ into full view. `heldKey` sends the repeats of a key held down, which
 TestCase cannot, so the tests check that a game card, a button, a child,
 a level and a picture each count it once, and that a held Down goes on
 scrolling the Save's words.
+`screenReader` asks a control what a screen reader may do with it, and
+presses or toggles it that way, which no key or tap in a test does. The
+tests check that Add a child shows four levels, that a planned one is
+on the screen and not faded, that it offers a screen reader nothing to
+press, that no click, touch, key or such press or toggle picks it, and
+that Tab stops on it on the way from level 2 to Add.
+The About page's tests give the page an os-release and a licence
+folder in the test's temporary folder, and an opener that writes down
+the address it was asked for and opens nothing. They check every
+sentence against its English words, the lineage, Fedora's notice and
+the attribution character for character; that the first "Fedora" on the
+page has its ®; that the notice is as large and as dark as the first
+paragraph; the version line with and without `IMAGE_VERSION`, and
+neither it nor Fedora's number from a file that is not Cairn's; that
+showing the page asks for nothing, that a click, Return, Enter and
+Space on each of the three buttons each ask for its one address once,
+and a held key once; the sentence under a button whose press opened
+nothing, in sight in the smallest window; the page without the licence
+folder; every Tab stop from top to bottom in the smallest window, the
+button for Cairn's website second; and that at the smallest width all
+five page buttons are inside the window, with About on a second line,
+and every part of the About page, its three buttons too, is inside the
+page.
 `loginsessions` checks the rule for a login, and asks the test machine's
 own logind when it has one;
 `loginwatch` sends logind's signals on a bus of its own.

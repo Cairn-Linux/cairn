@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: Apache-2.0
+NAME="Cairn Linux"
+ID=cairn
+ID_LIKE="fedora"
+VERSION_ID=45
+VERSION="45"
+PRETTY_NAME="Cairn Linux"
+ANSI_COLOR="0;38;2;165;200;214"
+LOGO=cairn-logo-on-ink
+DEFAULT_HOSTNAME="cairn"
+HOME_URL="https://cairnlinux.com/"
+BUG_REPORT_URL="https://github.com/Cairn-Linux/cairn/issues"
+SUPPORT_END=2027-12-08
+OSTREE_VERSION='45.20261104'
+IMAGE_ID=cairn

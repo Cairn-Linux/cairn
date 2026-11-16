@@ -23,8 +23,8 @@ struct Taken {
 
 // Whether `name` is taken: by `other`, a child found by the caller, with
 // `childs` as the reason, or else by one of `grownUps` (#212, #292). The
-// list is as last read, so a name given meanwhile from another window
-// goes through, as in Add a child.
+// page reads the accounts just before it asks, so only a name given while
+// the password is asked for goes through, as in Add a child.
 std::optional<Taken> takenBy(const ListedChild* other, ChildrenPage::Reason childs,
                              const QStringList& grownUps, const QString& name);
 

@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
+#include "AboutPage.h"
 #include "AccountPage.h"
 #include "ChildrenPage.h"
 #include "GamesPage.h"
 #include "NoticesPage.h"
 #include "StandInWallet.h"
 
+#include <QAccessible>
 #include <QColor>
 #include <QCoreApplication>
 #include <QDBusConnection>
@@ -22,6 +24,7 @@
 #include <QSet>
 #include <QTemporaryDir>
 #include <QTimeZone>
+#include <QUrl>
 #include <QtQuickTest/quicktest.h>
 
 #include <algorithm>
@@ -74,31 +77,37 @@ public:
     Q_INVOKABLE ChildrenPage* page(const QString& scenario, bool withChildren,
                                    bool withOlderChild = false) {
         qputenv("CAIRN_TEST_SCENARIO", scenario.toLocal8Bit());
-        std::vector<Account> accounts{
+        m_accounts = {
             {.uid = 1000,
              .groups = {"guardian", "wheel", "cairn-guardian"},
              .login = "guardian",
              .fullName = "Guardian"},
         };
         if (withChildren) {
-            accounts.push_back(
+            m_accounts.push_back(
                 {.uid = 1001, .groups = {"ada", "cairn-l1"}, .login = "ada", .fullName = "Ada"});
-            accounts.push_back(
+            m_accounts.push_back(
                 {.uid = 1002, .groups = {"ben", "cairn-l2"}, .login = "ben", .fullName = "Ben"});
         }
         if (withOlderChild) {
-            accounts.push_back({.uid = 1003,
-                                .groups = {"child", "cairn-l3"},
-                                .login = "child",
-                                .fullName = "A child with a long name"});
+            m_accounts.push_back({.uid = 1003,
+                                  .groups = {"child", "cairn-l3"},
+                                  .login = "child",
+                                  .fullName = "A child with a long name"});
         }
         ChildrenPage::Setup setup;
         setup.pkexec = QStringLiteral(FIXTURES "/pkexec-family");
         setup.command = QStringLiteral(FIXTURES "/cairn-family");
-        setup.accounts = [accounts] { return accounts; };
-        setup.nameInUse = [accounts](const QString& name) {
+        // The table is this object's, which outlives every window, so a
+        // test can change the family behind an open window's back.
+        m_reads = 0;
+        setup.accounts = [this] {
+            ++m_reads;
+            return m_accounts;
+        };
+        setup.nameInUse = [this](const QString& name) {
             return std::ranges::any_of(
-                accounts, [&name](const Account& account) { return account.login == name; });
+                m_accounts, [&name](const Account& account) { return account.login == name; });
         };
         // Ben has British English, chosen in Family; Ada has none chosen.
         setup.languageOf = [](const QString& login) -> std::optional<QString> {
@@ -110,6 +119,28 @@ public:
         auto* page = new ChildrenPage(setup);
         QQmlEngine::setObjectOwnership(page, QQmlEngine::JavaScriptOwnership);
         return page;
+    }
+
+    // The account is gone from the Children page's table, as after
+    // `userdel` in a terminal while the window is open.
+    Q_INVOKABLE void removeAccount(const QString& login) {
+        std::erase_if(m_accounts,
+                      [&login](const Account& account) { return account.login == login; });
+    }
+
+    // A child's account with this login is in the table, last, at this
+    // level, as after `cairn-family` in a terminal made or changed it.
+    Q_INVOKABLE void putAccount(const QString& login, const QString& name, int level) {
+        removeAccount(login);
+        m_accounts.push_back({.uid = 1010,
+                              .groups = {login, QStringLiteral("cairn-l%1").arg(level)},
+                              .login = login,
+                              .fullName = name});
+    }
+
+    // How many times the Children page has read the accounts.
+    Q_INVOKABLE int accountReads() const {
+        return m_reads;
     }
 
     // The window's GamesPage over files of its own: eight shared games,
@@ -355,6 +386,54 @@ public:
         return page;
     }
 
+    // The window's AboutPage, over an os-release and a folder of licence
+    // texts of its own. "image" is the image as it is built today: Cairn's
+    // file with no version of Cairn's in it, and the four full texts.
+    // "with-version" has the image's version too; "not-cairn" is another
+    // system's file; "no-licences" has no folder of full texts;
+    // "nothing-opens" is "image" with an opener that answers no. A press
+    // only adds its address to opened(): no test starts a web browser.
+    Q_INVOKABLE AboutPage* aboutPage(const QString& kind = QStringLiteral("image")) {
+        const QDir files(m_files.path());
+        QFile image(QStringLiteral(FIXTURES "/os-release/cairn"));
+        QByteArray osRelease = image.open(QIODevice::ReadOnly) ? image.readAll() : QByteArray();
+        if (kind == "with-version") {
+            osRelease += "IMAGE_VERSION=dev.20261112-0a1b2c3\n";
+        }
+        if (kind == "not-cairn") {
+            osRelease = "NAME=\"Fedora Linux\"\nID=fedora\nVERSION_ID=45\n"
+                        "IMAGE_VERSION=45.20261104\n";
+        }
+        QDir(files.filePath("about")).removeRecursively();
+        files.mkpath("about");
+        writeFile(files.filePath("about/os-release"), osRelease);
+        if (kind != "no-licences") {
+            files.mkpath("about/licenses/cairn");
+            for (const char* text :
+                 {"LICENSE", "LICENSE-CC-BY-SA-4.0", "NOTICE", "TRADEMARKS.md"}) {
+                writeFile(files.filePath("about/licenses/cairn/" + QString::fromLatin1(text)),
+                          "words\n");
+            }
+        }
+        m_opened.clear();
+        AboutPage::Setup setup;
+        setup.osRelease = files.filePath("about/os-release");
+        setup.licenceFolder = files.filePath("about/licenses/cairn");
+        const bool opens = kind != "nothing-opens";
+        setup.open = [this, opens](const QUrl& address) {
+            m_opened.append(address.toString());
+            return opens;
+        };
+        auto* page = new AboutPage(setup);
+        QQmlEngine::setObjectOwnership(page, QQmlEngine::JavaScriptOwnership);
+        return page;
+    }
+
+    // Each address a press on the About page asked the desktop to open.
+    Q_INVOKABLE QStringList opened() const {
+        return m_opened;
+    }
+
     Q_INVOKABLE QStringList startedSteam() const {
         return m_startedSteam;
     }
@@ -420,9 +499,13 @@ private:
     }
 
     QTemporaryDir m_files;
+    // The accounts the Children page that page() last made reads.
+    std::vector<Account> m_accounts;
+    int m_reads = 0;
     // The shared games gamesPage() last wrote into the full list.
     QJsonArray m_shared;
     QStringList m_startedSteam;
+    QStringList m_opened;
     StandInWallet m_kwalletd;
 };
 
@@ -444,6 +527,44 @@ public:
     }
 };
 
+// What a screen reader is offered on one control, and its press and
+// toggle: the same calls an assistive tool makes, which no key or tap in a
+// test reaches. The tests get it as `screenReader`.
+class ScreenReader : public QObject {
+    Q_OBJECT
+
+public:
+    using QObject::QObject;
+
+    // The names of the actions the control offers, such as "Press".
+    Q_INVOKABLE QStringList actions(QObject* control) const {
+        QAccessibleInterface* seen = QAccessible::queryAccessibleInterface(control);
+        if (seen == nullptr || seen->actionInterface() == nullptr) {
+            return {};
+        }
+        return seen->actionInterface()->actionNames();
+    }
+
+    // Asks the control to be pressed, whether or not it offers that.
+    Q_INVOKABLE void press(QObject* control) const {
+        ask(control, QAccessibleActionInterface::pressAction());
+    }
+
+    // Asks the control to be checked or unchecked, whether or not it
+    // offers that.
+    Q_INVOKABLE void toggle(QObject* control) const {
+        ask(control, QAccessibleActionInterface::toggleAction());
+    }
+
+private:
+    static void ask(QObject* control, const QString& action) {
+        QAccessibleInterface* seen = QAccessible::queryAccessibleInterface(control);
+        if (seen != nullptr && seen->actionInterface() != nullptr) {
+            seen->actionInterface()->doAction(action);
+        }
+    }
+};
+
 class Setup : public QObject {
     Q_OBJECT
 
@@ -461,6 +582,8 @@ public slots:
         }
         engine->rootContext()->setContextProperty(QStringLiteral("standIns"), standIns);
         engine->rootContext()->setContextProperty(QStringLiteral("heldKey"), new HeldKey(engine));
+        engine->rootContext()->setContextProperty(QStringLiteral("screenReader"),
+                                                  new ScreenReader(engine));
     }
 };
 
