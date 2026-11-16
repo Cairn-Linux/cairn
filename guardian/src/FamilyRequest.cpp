@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "FamilyRequest.h"
 
+#include "ChildLanguage.h"
 #include "FamilyRole.h"
 
 #include <QRegularExpression>
@@ -41,7 +42,8 @@ bool followsTheUsage(const QStringList& arguments) {
     if (arguments.size() == 3) {
         return arguments.constFirst() == QStringLiteral("create-child") ||
                arguments.constFirst() == QStringLiteral("set-level") ||
-               arguments.constFirst() == QStringLiteral("set-name");
+               arguments.constFirst() == QStringLiteral("set-name") ||
+               arguments.constFirst() == QStringLiteral("set-language");
     }
     return arguments.size() == 5 && arguments.constFirst() == QStringLiteral("create-child") &&
            arguments.at(3) == QStringLiteral("--full-name");
@@ -53,6 +55,9 @@ FamilyRequest::Action actionFrom(const QString& subcommand) {
     }
     if (subcommand == QStringLiteral("set-name")) {
         return FamilyRequest::Action::SetName;
+    }
+    if (subcommand == QStringLiteral("set-language")) {
+        return FamilyRequest::Action::SetLanguage;
     }
     return FamilyRequest::Action::CreateChild;
 }
@@ -82,6 +87,15 @@ FamilyRequest FamilyRequest::fromArguments(const QStringList& arguments) {
             return refused(Refusal::BadFullName);
         }
         request.fullName = arguments.at(2);
+        return request;
+    }
+    // Only a language Family offers, so the file it goes into is always
+    // one Family wrote (ADR-0058).
+    if (request.action == Action::SetLanguage) {
+        if (ChildLanguage::find(arguments.at(2)) == nullptr) {
+            return refused(Refusal::BadLanguage);
+        }
+        request.locale = arguments.at(2);
         return request;
     }
     const std::optional<int> level = levelFrom(arguments.at(2));

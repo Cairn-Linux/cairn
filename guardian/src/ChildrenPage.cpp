@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "ChildrenPage.h"
 
+#include "ChildLanguage.h"
+#include "ChildrenRefusals.h"
 #include "FamilyChange.h"
 #include "FamilyRequest.h"
 #include "LoginName.h"
-
-#include <QHash>
 
 #include <utility>
 
@@ -34,6 +34,10 @@ QString ChildrenPage::subject() const {
 
 QString ChildrenPage::newName() const {
     return m_newName;
+}
+
+QString ChildrenPage::newLanguage() const {
+    return m_newLanguage;
 }
 
 QString ChildrenPage::clash() const {
@@ -117,8 +121,7 @@ void ChildrenPage::changeLevel(const QString& login, int level) {
 
 // A child's new name, at any level, refused before any password when it is
 // empty, is the child's full name already, or is another child's or a
-// grown-up's (#212, #292). The same name in other capitals is a change, and
-// so is a child's login given as the full name they never had.
+// grown-up's (#212, #292).
 void ChildrenPage::changeName(const QString& login, const QString& name) {
     if (busy()) {
         return;
@@ -128,33 +131,43 @@ void ChildrenPage::changeName(const QString& login, const QString& name) {
     m_newName = name.trimmed();
     m_level = child == nullptr ? 0 : child->level;
     m_clash.clear();
-    if (child == nullptr) {
-        setStep(Step::NotChanged, Reason::NotAChild);
-    } else if (m_newName.isEmpty()) {
-        setStep(Step::NotChanged, Reason::NoName);
-    } else if (m_newName == child->fullName) {
-        setStep(Step::NotChanged, Reason::NameAsBefore);
+    if (const std::optional<Reason> refusal = ChildrenRefusals::nameRefusal(child, m_newName)) {
+        setStep(Step::NotChanged, *refusal);
     } else if (!refusedAsTaken(childNamed(m_children, m_newName, login), Reason::AnotherChilds,
                                m_newName)) {
         run({QStringLiteral("set-name"), login, m_newName}, Step::NameChanged);
     }
 }
 
+// A child's language, at any level, refused before any password when it is
+// the one chosen for them already. A language Family does not offer is
+// refused by cairn-family's own rule in run() (ADR-0058).
+void ChildrenPage::changeLanguage(const QString& login, const QString& locale) {
+    if (busy()) {
+        return;
+    }
+    const ListedChild* child = childWithLogin(m_children, login);
+    const ChildLanguage::Language* language = ChildLanguage::find(locale);
+    m_subject = child == nullptr ? login : child->name;
+    m_level = child == nullptr ? 0 : child->level;
+    m_newLanguage = language == nullptr ? locale : ChildLanguage::nameOf(*language);
+    if (const std::optional<Reason> refusal = ChildrenRefusals::languageRefusal(child, locale)) {
+        setStep(Step::NotChanged, *refusal);
+    } else {
+        run({QStringLiteral("set-language"), login, locale}, Step::LanguageChanged);
+    }
+}
+
 // Refuses a name another child, given as `other`, or a grown-up has
-// already, and says whether it did. The list is as last read, so a name
-// given meanwhile from another window goes through, as in Add a child.
+// already, and says whether it did.
 bool ChildrenPage::refusedAsTaken(const ListedChild* other, Reason childs, const QString& name) {
-    if (other != nullptr) {
-        m_clash = other->name;
-        setStep(Step::NotChanged, childs);
-        return true;
+    const std::optional<ChildrenRefusals::Taken> taken =
+        ChildrenRefusals::takenBy(other, childs, m_grownUps, name);
+    if (taken) {
+        m_clash = taken->clash;
+        setStep(Step::NotChanged, taken->reason);
     }
-    if (const std::optional<QString> grownUp = nameAmong(m_grownUps, name)) {
-        m_clash = *grownUp;
-        setStep(Step::NotChanged, Reason::AGrownUpsName);
-        return true;
-    }
-    return false;
+    return taken.has_value();
 }
 
 void ChildrenPage::forgetRefusal() {
@@ -166,26 +179,11 @@ void ChildrenPage::forgetRefusal() {
 void ChildrenPage::reload() {
     const std::vector<Account> accounts = m_setup.accounts();
     m_children = childrenAmong(accounts);
+    for (ListedChild& child : m_children) {
+        child.language = m_setup.languageOf(child.login).value_or(QString());
+    }
     m_grownUps = grownUpNamesAmong(accounts);
     emit listedChildrenChanged();
-}
-
-ChildrenPage::Reason ChildrenPage::reasonFor(const QString& answer) {
-    static const QHash<QString, Reason> reasons = {
-        {QStringLiteral("not-root"), Reason::NotRoot},
-        {QStringLiteral("not-a-grown-up"), Reason::NotAGrownUp},
-        {QStringLiteral("usage"), Reason::Usage},
-        {QStringLiteral("bad-name"), Reason::BadName},
-        {QStringLiteral("bad-full-name"), Reason::BadFullName},
-        {QStringLiteral("bad-level"), Reason::BadLevel},
-        {QStringLiteral("taken"), Reason::Taken},
-        {QStringLiteral("not-a-child"), Reason::NotAChild},
-        {QStringLiteral("failed"), Reason::Failed},
-        {QStringLiteral("busy"), Reason::Busy},
-        {QStringLiteral("dismissed"), Reason::Dismissed},
-        {QStringLiteral("not-authorized"), Reason::NotAuthorized},
-    };
-    return reasons.value(answer, Reason::Unknown);
 }
 
 // The window checks every value with cairn-family's own rule before it
@@ -194,7 +192,7 @@ ChildrenPage::Reason ChildrenPage::reasonFor(const QString& answer) {
 void ChildrenPage::run(const QStringList& arguments, Step onDone) {
     const FamilyRequest request = FamilyRequest::fromArguments(arguments);
     if (request.refusal) {
-        setStep(Step::NotChanged, reasonFor(refusalWord(*request.refusal)));
+        setStep(Step::NotChanged, ChildrenRefusals::reasonFor(refusalWord(*request.refusal)));
         return;
     }
     // Asking comes first: when the process cannot start at all, its answer
@@ -213,12 +211,12 @@ void ChildrenPage::run(const QStringList& arguments, Step onDone) {
 void ChildrenPage::finished(const QString& answer) {
     reload();
     if (m_onDone == Step::Added) {
-        m_unfinished.answered(answer, reasonFor(answer) != Reason::Unknown);
+        m_unfinished.answered(answer, ChildrenRefusals::reasonFor(answer) != Reason::Unknown);
     }
     if (answer == QLatin1String("done")) {
         setStep(m_onDone);
     } else {
-        setStep(Step::NotChanged, reasonFor(answer));
+        setStep(Step::NotChanged, ChildrenRefusals::reasonFor(answer));
     }
 }
 

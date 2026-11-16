@@ -35,6 +35,8 @@ enum class Refusal : std::uint8_t {
     // set-own-password: no new password on standard input, or one the
     // rule in NewPassword does not take (ADR-0043).
     BadPassword,
+    // set-language: a locale Family does not offer (ADR-0058).
+    BadLanguage,
 };
 
 QString refusalWord(Refusal refusal);

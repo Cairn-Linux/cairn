@@ -4,6 +4,7 @@
 #include "Account.h"
 #include "Caller.h"
 #include "FamilyRequest.h"
+#include "LanguageFile.h"
 #include "PasswordLock.h"
 #include "Refusal.h"
 
@@ -14,7 +15,7 @@
 #include <optional>
 
 // cairn-family: the root command that makes a child's account, changes a
-// child's level (ADR-0039) and changes a child's name (ADR-0056). A
+// child's level (ADR-0039), name (ADR-0056) and language (ADR-0058). A
 // Guardian's window runs it through pkexec; the family's setup runs it as
 // root with sudo. Either way it checks the caller and every value itself,
 // and changes only accounts Cairn made.
@@ -42,6 +43,10 @@ public:
         // same name.
         QString gamesFolder = QStringLiteral("/var/lib/cairn/games");
         unsigned int gamesOwner = 0;
+        // Each child's language file (ADR-0058), in a folder of their own
+        // in this one, which belongs to `localeOwner`.
+        QString localeFolder = QString::fromLatin1(LanguageFile::folder);
+        unsigned int localeOwner = 0;
         // Held from before the account is read until the change is made,
         // so two changes at once never work from one old reading (#255).
         QString lock = QStringLiteral("/run/lock/cairn-family-accounts");
@@ -70,10 +75,11 @@ public:
 
 private:
     std::optional<Refusal> makeChild(const FamilyRequest& request) const;
-    bool removeOldGames(const QString& login) const;
+    bool removeOldFiles(const QString& login) const;
     std::optional<Refusal> changeChild(const Account& child, const FamilyRequest& request) const;
     std::optional<Refusal> setLevel(const Account& child, int level) const;
     std::optional<Refusal> setName(const Account& child, const QString& fullName) const;
+    std::optional<Refusal> setLanguage(const Account& child, const QString& locale) const;
     std::optional<Refusal> writeEntry(const QString& login, const QString& name) const;
 
     Setup m_setup;
