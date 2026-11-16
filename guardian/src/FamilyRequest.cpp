@@ -40,10 +40,21 @@ bool isPlainFullName(const QString& name) {
 bool followsTheUsage(const QStringList& arguments) {
     if (arguments.size() == 3) {
         return arguments.constFirst() == QStringLiteral("create-child") ||
-               arguments.constFirst() == QStringLiteral("set-level");
+               arguments.constFirst() == QStringLiteral("set-level") ||
+               arguments.constFirst() == QStringLiteral("set-name");
     }
     return arguments.size() == 5 && arguments.constFirst() == QStringLiteral("create-child") &&
            arguments.at(3) == QStringLiteral("--full-name");
+}
+
+FamilyRequest::Action actionFrom(const QString& subcommand) {
+    if (subcommand == QStringLiteral("set-level")) {
+        return FamilyRequest::Action::SetLevel;
+    }
+    if (subcommand == QStringLiteral("set-name")) {
+        return FamilyRequest::Action::SetName;
+    }
+    return FamilyRequest::Action::CreateChild;
 }
 
 FamilyRequest refused(Refusal refusal) {
@@ -60,11 +71,18 @@ FamilyRequest FamilyRequest::fromArguments(const QStringList& arguments) {
     }
 
     FamilyRequest request;
-    request.action = arguments.constFirst() == QStringLiteral("set-level") ? Action::SetLevel
-                                                                           : Action::CreateChild;
+    request.action = actionFrom(arguments.constFirst());
     request.login = arguments.at(1);
     if (!isPlainLogin(request.login)) {
         return refused(Refusal::BadName);
+    }
+    // The full name is the whole change, and the level stays as it is.
+    if (request.action == Action::SetName) {
+        if (!isPlainFullName(arguments.at(2))) {
+            return refused(Refusal::BadFullName);
+        }
+        request.fullName = arguments.at(2);
+        return request;
     }
     const std::optional<int> level = levelFrom(arguments.at(2));
     if (!level) {

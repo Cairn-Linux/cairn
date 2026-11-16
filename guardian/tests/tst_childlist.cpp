@@ -29,6 +29,8 @@ private slots:
         QCOMPARE(children.at(1).level, 2);
         // No full name: the login name, as on the login screen.
         QCOMPARE(children.at(2).name, QStringLiteral("cy"));
+        QCOMPARE(children.at(0).fullName, QStringLiteral("Ada"));
+        QVERIFY(children.at(2).fullName.isEmpty());
     }
 
     // Only accounts cairn-family would change.
@@ -96,6 +98,41 @@ private slots:
         QCOMPARE(cy->login, QStringLiteral("cy"));
         QVERIFY(childNamed(children, QStringLiteral("Ben")) == nullptr);
         QVERIFY(childNamed(children, QStringLiteral("cy2")) == nullptr);
+    }
+
+    // The child being renamed does not count against their own new name.
+    void theChildWithANamePassesOneOver() {
+        const std::vector<ListedChild> children = childrenAmong({
+            account(1001, "ada", {"ada", "cairn-l1"}, "Ada"),
+            account(1002, "cy", {"cy", "cairn-l1"}),
+            account(1003, "cy2", {"cy2", "cairn-l2"}, "Cy"),
+        });
+        QVERIFY(childNamed(children, QStringLiteral("ada"), QStringLiteral("ada")) == nullptr);
+        const ListedChild* cy = childNamed(children, QStringLiteral("Cy"), QStringLiteral("cy"));
+        QVERIFY(cy != nullptr);
+        QCOMPARE(cy->login, QStringLiteral("cy2"));
+    }
+
+    // Administrators only, by the name the login screen shows; no child,
+    // plain account or system account.
+    void theGrownUpsNames() {
+        const QStringList names = grownUpNamesAmong({
+            account(1000, "guardian", {"guardian", "wheel", "cairn-guardian"}, "Mum"),
+            account(1001, "ada", {"ada", "cairn-l1"}, "Ada"),
+            account(1005, "helper", {"helper", "wheel"}),
+            account(1006, "guest", {"guest"}, "Guest"),
+            account(1007, "parent", {"parent", "cairn-guardian", "cairn-l1"}, "Dad"),
+            account(0, "root", {"root", "wheel"}, "root"),
+        });
+        QCOMPARE(names, QStringList({"Mum", "helper", "Dad"}));
+    }
+
+    void aNameAmongThem() {
+        const QStringList names{"Mum", "Dad"};
+        QCOMPARE(nameAmong(names, QStringLiteral(" mum ")).value_or(QString()),
+                 QStringLiteral("Mum"));
+        QVERIFY(!nameAmong(names, QStringLiteral("Mummy")).has_value());
+        QVERIFY(!nameAmong({}, QStringLiteral("Mum")).has_value());
     }
 };
 

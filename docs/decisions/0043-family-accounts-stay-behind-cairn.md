@@ -16,7 +16,9 @@ ADR-0040 (a third page, and a second way in) and narrows the gap
 ADR-0023 left open at its rank 4. Adds a step to ADR-0038's image
 (only KDE's pictures, part of #166).
 **Amended by:** the section "KDE Wallet's password" below (2026-10-31,
-#198), which also records the maintainer's other answers from #198.
+#198), which also records the maintainer's other answers from #198;
+ADR-0056 (2026-11-07, #292), under which a child may no longer change
+their own name, picture or language.
 
 ## Context
 
@@ -105,7 +107,10 @@ then calls `SetIconFile` on the Guardian's own
   over a megabyte; a 256-pixel PNG is far under.
 - polkit's `org.freedesktop.accounts.change-own-user-data` is `yes` for
   an account at the machine, so no password is asked. The call allows a
-  polkit box, in case a rule ever asks for one.
+  polkit box, in case a rule ever asks for one. (Since ADR-0056 Cairn's
+  levels rule refuses this action to every child; a Guardian is let
+  through first, so this page works as before. Fedora's `yes` holds for
+  an account anywhere, not only at the machine.)
 - Qt's D-Bus module is part of Qt and already a dependency of the Family
   app (ADR-0041, for logind). No new dependency.
 

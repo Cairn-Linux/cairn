@@ -280,6 +280,27 @@ private slots:
             << Refusal::BadFullName;
         QTest::newRow("an empty full name")
             << QStringList{"create-child", "ben", "1", "--full-name", " "} << Refusal::BadFullName;
+        QTest::newRow("set-name with no name") << QStringList{"set-name", "ada"} << Refusal::Usage;
+        QTest::newRow("set-name with two names")
+            << QStringList{"set-name", "ada", "Ada", "Jones"} << Refusal::Usage;
+        QTest::newRow("set-name with an option")
+            << QStringList{"set-name", "ada", "--full-name", "Ada"} << Refusal::Usage;
+        QTest::newRow("set-name with capitals in the login")
+            << QStringList{"set-name", "Ada", "Ada"} << Refusal::BadName;
+        QTest::newRow("set-name with an option as the login")
+            << QStringList{"set-name", "-ada", "Ada"} << Refusal::BadName;
+        QTest::newRow("set-name with a colon")
+            << QStringList{"set-name", "ada", "Ada:0:0"} << Refusal::BadFullName;
+        QTest::newRow("set-name with a comma")
+            << QStringList{"set-name", "ada", "Ada,Room 2"} << Refusal::BadFullName;
+        QTest::newRow("set-name with a newline")
+            << QStringList{"set-name", "ada", "Ada\nName=x"} << Refusal::BadFullName;
+        QTest::newRow("set-name with a backslash")
+            << QStringList{"set-name", "ada", "Ada\\n"} << Refusal::BadFullName;
+        QTest::newRow("set-name with spaces at an end")
+            << QStringList{"set-name", "ada", "Ada "} << Refusal::BadFullName;
+        QTest::newRow("set-name with an empty name")
+            << QStringList{"set-name", "ada", ""} << Refusal::BadFullName;
     }
 
     void argumentsItDoesNotTake() {
@@ -422,6 +443,58 @@ private slots:
         QCOMPARE(standIns.calls(),
                  QStringList({"usermod --comment Ada Jones ada", standIns.restorecon("ada")}));
         QVERIFY(standIns.entry("ada").contains("\nName=Steam for Ada Jones\n"));
+    }
+
+    // A new name, and the child's "Steam for" entry with it. The level and
+    // the password stay as they are (ADR-0056).
+    void setName() {
+        const StandIns standIns;
+        QCOMPARE(standIns.run({"set-name", "ada", "Ada Jones"}), std::nullopt);
+        QCOMPARE(standIns.calls(),
+                 QStringList({"usermod --comment Ada Jones ada", standIns.restorecon("ada")}));
+        QVERIFY(standIns.entry("ada").contains("\nName=Steam for Ada Jones\n"));
+    }
+
+    // At level 3 or 4 too: a name is not a level.
+    void setNameAtAnyLevel_data() {
+        QTest::addColumn<QString>("group");
+        QTest::newRow("level 3") << "cairn-l3";
+        QTest::newRow("level 4") << "cairn-l4";
+    }
+
+    void setNameAtAnyLevel() {
+        QFETCH(const QString, group);
+        StandIns standIns;
+        standIns.setAccounts(familyWith("ben", {"ben", group}));
+        standIns.writeEntry("ben", SteamEntry::text("ben", "ben", steamFor));
+        QCOMPARE(standIns.run({"set-name", "ben", "Ben"}), std::nullopt);
+        QCOMPARE(standIns.calls(),
+                 QStringList({"usermod --comment Ben ben", standIns.restorecon("ben")}));
+    }
+
+    // The name the child has already: only a missing entry is written.
+    void setNameToTheSameChangesNothing() {
+        const StandIns standIns;
+        standIns.writeEntry("ada", SteamEntry::text("ada", "Ada", steamFor));
+        QCOMPARE(standIns.run({"set-name", "ada", "Ada"}), std::nullopt);
+        QCOMPARE(standIns.calls(), QStringList());
+    }
+
+    // Other capitals are another name.
+    void setNameInOtherCapitals() {
+        const StandIns standIns;
+        standIns.writeEntry("ada", SteamEntry::text("ada", "Ada", steamFor));
+        QCOMPARE(standIns.run({"set-name", "ada", "ADA"}), std::nullopt);
+        QCOMPARE(standIns.calls(),
+                 QStringList({"usermod --comment ADA ada", standIns.restorecon("ada")}));
+    }
+
+    void setNameNeedsAChildThatIsThere() {
+        StandIns standIns;
+        standIns.setAccounts({});
+        QCOMPARE(standIns.run({"set-name", "ada", "Ada"}), std::optional(Refusal::NotAChild));
+        QCOMPARE(standIns.calls(), QStringList());
+        QVERIFY(!QDir(standIns.applications()).exists());
     }
 
     // Added before removed, whichever subcommand asks.
@@ -578,6 +651,7 @@ private slots:
         QCOMPARE(standIns.run({"create-child", login, "2", "--full-name", "Ada"}),
                  std::optional(Refusal::Taken));
         QCOMPARE(standIns.run({"set-level", login, "1"}), std::optional(Refusal::NotAChild));
+        QCOMPARE(standIns.run({"set-name", login, "Mum"}), std::optional(Refusal::NotAChild));
         QCOMPARE(standIns.calls(), QStringList());
         QVERIFY(!QDir(standIns.applications()).exists());
     }
@@ -603,6 +677,8 @@ private slots:
         QTest::newRow("usermod") << "usermod"
                                  << QStringList{"create-child", "ada", "2", "--full-name", "A"}
                                  << QStringList{"usermod --comment A ada"};
+        QTest::newRow("usermod for set-name") << "usermod" << QStringList{"set-name", "ada", "A"}
+                                              << QStringList{"usermod --comment A ada"};
     }
 
     void aToolThatFailsStopsTheRest() {
@@ -635,6 +711,9 @@ private slots:
                  QStringLiteral("create-child ada at level 1"));
         QCOMPARE(FamilyCommand(standIns.setup()).run({"create-child", "x;id", "1"}).asked,
                  QString());
+        // A name is the family's own words, so the journal gets only whose.
+        QCOMPARE(FamilyCommand(standIns.setup()).run({"set-name", "ada", "Ada Jones"}).asked,
+                 QStringLiteral("set-name ada"));
     }
 };
 

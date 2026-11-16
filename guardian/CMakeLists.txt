@@ -45,8 +45,9 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/bin/cairn-steam-for" DESTINATION "${C
     PERMISSIONS ${guardian_only})
 
 # cairn-family: no window, only Qt Core, run as root by pkexec or sudo.
-# create-child and set-level change accounts (ADR-0039); save-games gives
-# children their games, and log-out logs a child out first (ADR-0041).
+# create-child and set-level change accounts (ADR-0039), and set-name a
+# child's name (ADR-0056); save-games gives children their games, and
+# log-out logs a child out first (ADR-0041).
 # set-own-password changes the grown-up's own password (ADR-0043).
 set(family_sources
     src/Refusal.h src/Refusal.cpp
@@ -133,6 +134,7 @@ set(family_window_sources
     src/ChildList.h src/ChildList.cpp
     src/PkexecAnswer.h src/PkexecAnswer.cpp
     src/FamilyChange.h src/FamilyChange.cpp
+    src/UnfinishedAdd.h src/UnfinishedAdd.cpp
     src/ChildrenPage.h src/ChildrenPage.cpp
     src/GameCatalogue.h src/GameCatalogue.cpp
     src/GamePicture.h src/GamePicture.cpp
@@ -164,6 +166,7 @@ set(family_window_sources
 set(family_window_qml_files
     qml/FamilyWindow.qml
     qml/ChildrenView.qml
+    qml/ChildrenOutcome.qml
     qml/GamesView.qml
     qml/ChildGames.qml
     qml/ChildChoice.qml
@@ -173,6 +176,7 @@ set(family_window_qml_files
     qml/SaveProgress.qml
     qml/LoggedInCover.qml
     qml/ChildRow.qml
+    qml/NameChange.qml
     qml/AddChildForm.qml
     qml/LabelledField.qml
     qml/LevelChoice.qml
@@ -421,6 +425,12 @@ qt_add_executable(tst_gamechoices tests/tst_gamechoices.cpp src/GameChoices.h
 target_include_directories(tst_gamechoices PRIVATE src)
 target_link_libraries(tst_gamechoices PRIVATE Qt6::Core Qt6::Test)
 add_test(NAME gamechoices COMMAND tst_gamechoices)
+
+qt_add_executable(tst_unfinishedadd tests/tst_unfinishedadd.cpp src/UnfinishedAdd.h
+    src/UnfinishedAdd.cpp src/ChildList.h src/ChildList.cpp)
+target_include_directories(tst_unfinishedadd PRIVATE src)
+target_link_libraries(tst_unfinishedadd PRIVATE Qt6::Core Qt6::Test cairn-accounts)
+add_test(NAME unfinishedadd COMMAND tst_unfinishedadd)
 
 qt_add_executable(tst_childrenpage tests/tst_childrenpage.cpp ${family_window_sources})
 target_include_directories(tst_childrenpage PRIVATE src)

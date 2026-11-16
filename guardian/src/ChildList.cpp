@@ -17,6 +17,7 @@ std::vector<ListedChild> childrenAmong(std::vector<Account> accounts) {
     for (const Account& account : accounts) {
         children.push_back({.login = account.login,
                             .name = account.displayName(),
+                            .fullName = account.fullName,
                             .level = FamilyRole::fromGroups(account.groups).level.value_or(0)});
     }
     return children;
@@ -78,10 +79,29 @@ bool sameName(const QString& one, const QString& other) {
     return one.trimmed().compare(other.trimmed(), Qt::CaseInsensitive) == 0;
 }
 
-const ListedChild* childNamed(const std::vector<ListedChild>& children, const QString& name) {
-    const auto found = std::ranges::find_if(
-        children, [&name](const ListedChild& child) { return sameName(child.name, name); });
+const ListedChild* childNamed(const std::vector<ListedChild>& children, const QString& name,
+                              const QString& except) {
+    const auto found = std::ranges::find_if(children, [&](const ListedChild& child) {
+        return child.login != except && sameName(child.name, name);
+    });
     return found == children.end() ? nullptr : &*found;
+}
+
+QStringList grownUpNamesAmong(const std::vector<Account>& accounts) {
+    QStringList names;
+    for (const Account& account : accounts) {
+        if (account.uid >= Account::firstPersonUid &&
+            FamilyRole::fromGroups(account.groups).isAdministrator()) {
+            names.append(account.displayName());
+        }
+    }
+    return names;
+}
+
+std::optional<QString> nameAmong(const QStringList& names, const QString& name) {
+    const auto found =
+        std::ranges::find_if(names, [&name](const QString& one) { return sameName(one, name); });
+    return found == names.end() ? std::nullopt : std::optional<QString>(*found);
 }
 
 QString namesInWords(const std::vector<ListedChild>& children, const QStringList& logins) {
