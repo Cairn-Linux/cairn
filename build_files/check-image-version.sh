@@ -1,10 +1,13 @@
 #!/bin/bash
 # SPDX-License-Identifier: Apache-2.0
 # Checks that os-release names the version the build was given, once,
-# in the form os-release(5) allows, and names none when the build was
-# given none. Runs in the Containerfile's check step with the same
-# CAIRN_VERSION as image-version.sh, so an older build's version that
-# podman kept from its cache stops the build too.
+# in the form os-release(5) allows and no longer than Family's About
+# page (#308) shows, and names none when the build was given none. So
+# a doubled line, a bad value or a line written with no version given
+# stops the build. Runs in the Containerfile's check step with the same
+# CAIRN_VERSION as image-version.sh. It cannot catch an older version
+# podman kept from its cache, because then this step comes from the
+# cache too; docs/DEVELOPMENT.md says how to look after the build.
 
 set -ouex pipefail
 
@@ -29,10 +32,11 @@ if [[ "${lines}" != 1 ]]; then
 fi
 
 # The line as written. image-version.sh writes the value bare, and
-# os-release(5) allows no other characters in it.
+# os-release(5) allows no other characters in it. 64 is the most
+# Family's About page shows.
 found=$(sed -n 's/^IMAGE_VERSION=//p' /usr/lib/os-release)
-if [[ ! "${found}" =~ ^[a-z0-9._-]+$ ]]; then
-    echo "os-release has IMAGE_VERSION=${found}, but only lower-case letters, digits, '.', '_' and '-' may follow the '='." >&2
+if [[ ! "${found}" =~ ^[a-z0-9._-]{1,64}$ ]]; then
+    echo "os-release has IMAGE_VERSION=${found}, but only lower-case letters, digits, '.', '_' and '-', at most 64 of them, may follow the '='." >&2
     exit 1
 fi
 if [[ "${found}" != "${version}" ]]; then

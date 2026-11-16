@@ -99,15 +99,17 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     /ctx/build.sh
 
 # Cairn's version in os-release as IMAGE_VERSION, which Family's About
-# page and `hostnamectl` show, when whoever builds the image gives one
-# with `--build-arg CAIRN_VERSION=...`, the same value as the version
+# page (#308) and `hostnamectl` show, when whoever builds the image gives
+# one with `--build-arg CAIRN_VERSION=...`, the same value as the version
 # label (docs/DEVELOPMENT.md). With none, os-release names no version.
 # Its own step, as late as it can be, so the packages and the compiled
 # tree stay cached when only the version changes. Unlike the LABEL step
-# above, a RUN step that uses an argument ran again when only the
-# argument's value changed (tried 2026-11-15), and the check step below
-# stops the build if it ever does not. The initramfs build.sh made keeps
-# its copy of os-release as it was, with no version.
+# above, this step ran again when only the argument's value changed
+# (podman 5.8.9, 2026-11-15). If podman ever kept an older version's
+# step instead, the check step below would not catch it: it has the same
+# inputs, so it would come from the cache too. Only a look after the
+# build can (docs/DEVELOPMENT.md). The initramfs build.sh made keeps its
+# copy of os-release as it was, with no version.
 ARG CAIRN_VERSION
 RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=tmpfs,dst=/tmp \

@@ -2,10 +2,10 @@
 # SPDX-License-Identifier: Apache-2.0
 # Names Cairn's version in os-release as IMAGE_VERSION, when whoever
 # builds the image gives one with `--build-arg CAIRN_VERSION=...`
-# (docs/DEVELOPMENT.md, "Building the image"). Family's About page and
-# `hostnamectl` show it. The Containerfile runs it in its own step after
-# build.sh, with the version as its one argument, so only that step and
-# the ones after it run again when the version changes.
+# (docs/DEVELOPMENT.md, "Building the image"). Family's About page
+# (#308) and `hostnamectl` show it. The Containerfile runs it in its own
+# step after build.sh, with the version as its one argument, so only
+# that step and the ones after it run again when the version changes.
 # build_files/check-image-version.sh checks the result.
 
 set -ouex pipefail
@@ -21,9 +21,10 @@ if [[ -z "${version}" ]]; then
     exit 0
 fi
 
-# os-release(5) allows only these in IMAGE_VERSION.
-if [[ ! "${version}" =~ ^[a-z0-9._-]+$ ]]; then
-    echo "CAIRN_VERSION is '${version}', but it may hold only lower-case letters, digits, '.', '_' and '-'." >&2
+# os-release(5) allows only these in IMAGE_VERSION, and Family's About
+# page shows no more than 64 of them.
+if [[ ! "${version}" =~ ^[a-z0-9._-]{1,64}$ ]]; then
+    echo "CAIRN_VERSION is '${version}', but it may hold only lower-case letters, digits, '.', '_' and '-', at most 64 of them." >&2
     exit 1
 fi
 
