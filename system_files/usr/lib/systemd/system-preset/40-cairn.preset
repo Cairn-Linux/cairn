@@ -5,3 +5,8 @@
 # 85-display-manager.preset would: the first file to name a unit wins.
 enable sddm.service
 disable plasmalogin.service
+# Flatpak stops naming the system in app downloads (#36). build.sh
+# enables the unit. This line keeps presets, if they are applied again,
+# from turning it off, which Fedora's 99-default-disable.preset would do
+# to every unit no earlier file names.
+enable cairn-flatpak-os-report-off.service

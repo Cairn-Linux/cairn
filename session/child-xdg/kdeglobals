@@ -14,12 +14,21 @@
 # and under Configure in Dolphin's hamburger menu. The key is action/, as
 # KAuthorized reads it.
 #
+# KDE's usage reports are off for a child (#36; KDE/UserFeedback.conf
+# beside this file), so System Settings' User Feedback page, kcm_feedback,
+# is hidden too: its choices would send nothing. So is Family's entry in
+# System Settings, cairn-guardian-settings. A child cannot run Family, but
+# System Settings may still list an entry whose program the account cannot
+# run, and a Guardian's tools are invisible to children (DESIGN §3.2).
+#
 # This is a hide, not a wall. A start-up script in the child's own home
 # can take this folder out of XDG_CONFIG_DIRS for their session (ADR-0058,
 # Known limits).
 
 [KDE Control Module Restrictions]
 kcm_regionandlang[$i]=false
+kcm_feedback[$i]=false
+cairn-guardian-settings[$i]=false
 
 [KDE Action Restrictions]
 action/switch_application_language[$i]=false

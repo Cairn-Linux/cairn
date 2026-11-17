@@ -380,8 +380,10 @@ install_file() {
 install_session_files() {
     install_file 644 "$REPO/session/labwc/rc.xml" "$SHARE/labwc/rc.xml"
     install_file 644 "$REPO/session/labwc/environment" "$SHARE/labwc/environment"
-    # What an L3 or L4 child's Plasma hides (ADR-0058).
+    # What an L3 or L4 child's Plasma hides (ADR-0058), and KDE's usage
+    # reports off there (#36).
     install_file 644 "$REPO/session/child-xdg/kdeglobals" "$SHARE/child-xdg/kdeglobals"
+    install_file 644 "$REPO/session/child-xdg/KDE/UserFeedback.conf" "$SHARE/child-xdg/KDE/UserFeedback.conf"
     # The one session entry and its dispatcher (ADR-0012).
     install_file 755 "$REPO/session/bin/cairn-session" "$PREFIX/bin/cairn-session"
     # The grown-up's way out of a stuck program (ADR-0018, issue #41).

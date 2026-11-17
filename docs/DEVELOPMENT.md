@@ -332,9 +332,9 @@ The second command says `not-found`.
 
 rpm-ostree's "count me" report is off (#36).
 Fedora's presets turn on `rpm-ostree-countme.timer`.
-Every few days its service sent a request naming the system and its
-release to each repository whose file says `countme=1`, today Fedora's
-and Terra's.
+Its service ran every few days, and once a week it sent a request
+naming the system and its release to each repository whose file says
+`countme=1`, today Fedora's and Terra's.
 `build_files/no-countme.sh` removes the timer's link and masks the timer
 and its service, the opt-out rpm-ostree's own page gives.
 It also sets `countme=0` in every repository file, so neither
@@ -386,6 +386,40 @@ podman run --rm localhost/cairn:dev grep -n CHFN_RESTRICT /etc/login.defs
 
 The first prints the rule's lines for the action, the second only a line
 that starts with `#`.
+
+Reports the image would send without anyone asking are off (#36,
+`docs/research/network-activity.md`).
+Each is a default, not a lock, so a later switch can turn it back on.
+`system_files/etc/homebrew/brew.env` turns Homebrew's usage reports off,
+also in the nightly updater's runs.
+`cairn-flatpak-os-report-off.service` sets Flatpak's `report-os-info` to
+false once, at the first start, so app downloads stop naming the system.
+A drop-in keeps Tailscale's logs on the computer if anyone starts it.
+In an L3 or L4 child's login, `session/child-xdg/` turns KDE's usage
+reports off and hides System Settings' User Feedback page.
+`build_files/check-reports-off.sh` stops the build if any of these goes,
+or if a base update moves a piece they rely on.
+It also keeps the base's firmware reports and the location service's
+upload off.
+Not a report, but checked by the same script:
+`session/child-xdg/kdeglobals` also hides Family's entry in a child's
+System Settings, since a Guardian's tools are invisible to children
+(DESIGN §3.2).
+To look yourself:
+
+```sh
+podman run --rm localhost/cairn:dev cat /etc/homebrew/brew.env
+podman run --rm localhost/cairn:dev systemctl is-enabled cairn-flatpak-os-report-off.service
+podman run --rm localhost/cairn:dev systemctl cat tailscaled.service
+```
+
+The first ends with `HOMEBREW_NO_ANALYTICS=1` and
+`HOMEBREW_SYSTEM_ENV_TAKES_PRIORITY=1`, the second prints `enabled`, and
+the third ends with `Environment=TS_NO_LOGS_NO_SUPPORT=true`.
+After the first start, `flatpak config --system` says
+`report-os-info: false`.
+That was seen in a container of the image that ran systemd, not yet on a
+computer.
 
 The grown-up's start-menu button shows the Cairn mark (#166, first
 step). Valve's look names `distributor-logo-steamdeck`, which slice 5

@@ -124,7 +124,9 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
 # try (#283), a child with su must not be able to write another
 # account's count of wrong passwords (#289), and a child must not be able
 # to change their own name, picture or language (#292). rpm-ostree's
-# "count me" report must stay off (#36).
+# "count me" report and the other reports the image would send without
+# anyone asking must stay off (#36), and Family must not show in a
+# child's System Settings (DESIGN §3.2).
 RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=tmpfs,dst=/tmp \
     /ctx/check-name-and-logos.sh && \
@@ -136,7 +138,8 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     /ctx/check-no-countme.sh && \
     python3 -I /ctx/check-lock-screen-pam.py && \
     python3 -I /ctx/check-faillock-owner.py && \
-    /ctx/check-own-account-data.sh
+    /ctx/check-own-account-data.sh && \
+    /ctx/check-reports-off.sh
 
 # Any lint warning stops the build.
 RUN bootc container lint --fatal-warnings

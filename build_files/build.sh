@@ -22,6 +22,15 @@ find /ctx/system_files -mindepth 1 -maxdepth 1 ! -name README.md \
 systemctl disable plasmalogin.service
 systemctl enable sddm.service
 
+# Reports the image would send without anyone asking are off (#36). The
+# files are in system_files/: Homebrew's in /etc/homebrew, Tailscale's
+# drop-in, and a unit that sets Flatpak's setting at the first start,
+# since an image cannot ship /var/lib/flatpak. The link this makes in
+# /etc should reach a computer already installed at its next update,
+# through bootc's merge of /etc, where a preset alone would not; that is
+# not yet seen in a VM.
+systemctl enable cairn-flatpak-os-report-off.service
+
 # The visit's copy of cage, which a child may run but not read (ADR-0032).
 # Linux then keeps the child's other programs from tracing it or copying
 # its connection to the Guardian's desktop. Made again at every build, so
