@@ -5,9 +5,10 @@
 #
 # Fedora's 90-default.preset switches rpm-ostree-countme.timer on, through
 # a link in timers.target.wants that no package owns. Within a day of
-# start, and every few days after that, the timer's service sent a request
-# to every repository whose file says countme=1, today Fedora's and
-# Terra's, with a user agent naming the computer's system and release.
+# start, and every few days after that, the timer's service ran, and once
+# a week it sent a request to every repository whose file says countme=1,
+# today Fedora's and Terra's, with a user agent naming the computer's
+# system and release.
 #
 # Masking is the opt-out rpm-ostree's own page gives
 # (https://coreos.github.io/rpm-ostree/countme/). The service is masked as

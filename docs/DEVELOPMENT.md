@@ -332,9 +332,9 @@ The second command says `not-found`.
 
 rpm-ostree's "count me" report is off (#36).
 Fedora's presets turn on `rpm-ostree-countme.timer`.
-Every few days its service sent a request naming the system and its
-release to each repository whose file says `countme=1`, today Fedora's
-and Terra's.
+Its service ran every few days, and once a week it sent a request
+naming the system and its release to each repository whose file says
+`countme=1`, today Fedora's and Terra's.
 `build_files/no-countme.sh` removes the timer's link and masks the timer
 and its service, the opt-out rpm-ostree's own page gives.
 It also sets `countme=0` in every repository file, so neither
