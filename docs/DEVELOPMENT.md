@@ -163,9 +163,11 @@ submodule present, since the build reads the checkout and not git:
 
 ```sh
 git submodule update --init
+version="dev.$(date +%Y%m%d)-$(git rev-parse --short HEAD)"
 podman build -t localhost/cairn:dev \
   --label org.opencontainers.image.revision="$(git rev-parse HEAD)" \
-  --label org.opencontainers.image.version="dev.$(date +%Y%m%d)-$(git rev-parse --short HEAD)" \
+  --label org.opencontainers.image.version="${version}" \
+  --build-arg CAIRN_VERSION="${version}" \
   .
 ```
 
@@ -187,6 +189,35 @@ To read them back:
 ```sh
 podman image inspect --format '{{index .Labels "org.opencontainers.image.version"}} {{index .Labels "org.opencontainers.image.revision"}}' localhost/cairn:dev
 ```
+
+`CAIRN_VERSION` puts the same version in `/usr/lib/os-release` as
+`IMAGE_VERSION` (since 2026-11-15).
+Family's About page (#308) shows it, and `hostnamectl` shows it as "OS
+Image Version".
+The command above works the version out once, so the label and the file
+always agree.
+With no `CAIRN_VERSION`, `os-release` has no `IMAGE_VERSION` line.
+The value may hold only lower-case letters, digits, `.`, `_` and `-`, as
+`os-release(5)` asks, and at most 64 of them, the most the About page
+shows.
+Anything else stops the build with a line that says so.
+A new version runs only the last steps again: the one that writes it, the
+checks and the lint.
+The packages and the compiled tree stay cached, and such a build took
+about 20 seconds on the dev PC on 2026-11-15.
+`build_files/check-image-version.sh` stops the build if `os-release` does
+not hold exactly the version given, once, or holds one when none was
+given.
+It cannot catch an older version that podman kept from its cache,
+because then the check comes from the cache too.
+So look after the build:
+
+```sh
+podman run --rm localhost/cairn:dev grep IMAGE_VERSION /usr/lib/os-release
+```
+
+It must print the same version as the label above.
+If it prints an older one, build again with `--no-cache`.
 
 Rootless podman is enough. A build from an already pulled Bazzite
 base takes 3 to 4 minutes on the dev PC, most of it compiling and the
@@ -298,6 +329,39 @@ graphics, which runs as the account and stays, then
 By its build of 2026-11-12 (45.20261112), Bazzite had moved the
 first-login step's link to that folder from `default.target.wants`.
 The second command says `not-found`.
+
+rpm-ostree's "count me" report is off (#36).
+Fedora's presets turn on `rpm-ostree-countme.timer`.
+Every few days its service sent a request naming the system and its
+release to each repository whose file says `countme=1`, today Fedora's
+and Terra's.
+`build_files/no-countme.sh` removes the timer's link and masks the timer
+and its service, the opt-out rpm-ostree's own page gives.
+It also sets `countme=0` in every repository file, so neither
+`rpm-ostree countme` run by hand nor dnf5's metadata downloads ask for
+the count.
+rpm-ostree's own downloads never ask for it: its code turns the count
+off.
+`build_files/check-no-countme.sh` stops the build unless both units are
+masked in `/etc/systemd/system`, the timer's link is gone, and no
+repository file asks for the count.
+To look yourself:
+
+```sh
+podman run --rm localhost/cairn:dev systemctl is-enabled \
+    rpm-ostree-countme.timer rpm-ostree-countme.service
+podman run --rm localhost/cairn:dev grep -r countme /usr/share/dnf5/repos.d
+```
+
+The first prints `masked` twice.
+The second prints only `countme=0` lines.
+An update brings the image's `/etc` wherever a computer did not change
+it, so a computer that already runs the image should get the masks.
+They take effect at the first start after the update; until then the
+timer keeps running.
+The repository files with the count are in `/usr`, which an update
+replaces whole.
+That has not yet been seen on a computer.
 
 A child cannot change their own name, nor their picture or language
 through AccountsService (ADR-0056). Cairn's polkit rule refuses

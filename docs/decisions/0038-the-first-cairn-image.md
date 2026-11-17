@@ -346,6 +346,10 @@ screen yet" says why.
 | `OSTREE_VERSION` | the base's | Bazzite's `custom-resolution-helper` exits when it is empty |
 | `IMAGE_ID` | `cairn` | `hostnamectl` shows it as "OS Image" |
 
+Since 2026-11-15 an `IMAGE_VERSION` line follows when the build is given
+`--build-arg CAIRN_VERSION`, the same value as the version label below;
+a build given none writes no such line (`docs/DEVELOPMENT.md`).
+
 Dropped: `VARIANT`, `VARIANT_ID` and `VERSION_CODENAME`, which said
 Kinoite or bazzite; `DOCUMENTATION_URL` and `SUPPORT_URL`, which pointed
 at Bazzite's docs and Discord; `BUILD_ID` and `BOOTLOADER_NAME`, which a
@@ -857,8 +861,9 @@ pass (ADR-0031).
   built from. A checkout-free way waits for the first-boot wizard.
 - The image calls itself Cairn Linux, with `ID=cairn`, and `os-release`
   still reports Fedora's release as its version. The image's version
-  label is Cairn's own when the build is given one (2026-11-02); how
-  published images are numbered waits for P1-3.
+  label is Cairn's own when the build is given one (2026-11-02), and so
+  is `os-release`'s `IMAGE_VERSION` (2026-11-15); how published images
+  are numbered waits for P1-3.
 - A base update that adds a Bazzite logo, menu entry, autostart or
   terminal file stops the build at the slice-5 check, until it is removed
   or named there.
