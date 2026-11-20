@@ -12,14 +12,18 @@ the Guardian's own Steam, and Save moves a picked game into the shared
 folder before copying it, with new answer lines); ADR-0046, proposed (a
 Save, and a Look, also fill a tools folder from the Guardian's Steam, and
 the copy step copies Steam's tools to a child with their new games, with
-new answer lines and sentences); ADR-0047, proposed (new answer lines,
-picture-missing and picture-refused APPID, the journal gets each step's
-own words, and the Save's window names each game without a picture); the
-section "What Look for new games says" below (2026-10-31, #220, #227);
-ADR-0048, proposed (`update-steam` and `stop-update`, each with its own
-action and lines, and the held word `updating` in the Save's and the
-logout's answers); the section "Steam Cloud's marker in a game back on a
-child's list" below (2026-11-03, #250)
+new answer lines and sentences); ADR-0047, accepted 2026-11-20 (new
+answer lines, picture-missing and picture-refused APPID, the journal
+gets each step's own words, and the Save's window names each game
+without a picture); the section "What Look for new games says" below
+(2026-10-31, #220, #227); ADR-0048, proposed (`update-steam` and
+`stop-update`, each with its own action and lines, and the held word
+`updating` in the Save's and the logout's answers); the section "Steam
+Cloud's marker in a game back on a child's list" below (2026-11-03,
+#250); ADR-0060, proposed (`get-pictures`, `set-store-pictures` and
+`save-games --store-pictures`, each new subcommand with its own action,
+the `store-*` answer lines, the Save window's sentences for them, and
+the question, button and line on the Games page)
 
 ## Context
 

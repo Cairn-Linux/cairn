@@ -76,10 +76,10 @@ with HEAD requests, for the family's 11 games and a few others:
   hosts. `shared.steamstatic.com` answered the same for one of each.
   The newest keep the header one folder down, named by a 40-digit hash.
 - Only Valve's store API names that folder. `IStoreBrowseService/GetItems`
-  on `api.steampowered.com` takes every app id in one request, needs no
-  key and no account, and set no cookie. It answered with no User-Agent.
-  Without a country it answers `{"response":{}}`, so a country must be
-  sent.
+  on `api.steampowered.com` takes many app ids in one request (all 11
+  in the check), needs no key and no account, and set no cookie. It
+  answered with no User-Agent. Without a country it answers
+  `{"response":{}}`, so a country must be sent.
 - The other API, `store.steampowered.com/api/appdetails`, takes one game
   per request and sets a `browserid` cookie that lasts a year.
 - Both hosts also answer plain `http` with 200 and no redirect.
@@ -158,11 +158,39 @@ every child has their list. A new button on the Games page, Get
 pictures from Steam's store, gets them when pressed; unless the answer
 is yes, it first shows what is sent. These presses are the only times
 Cairn reaches the internet for pictures. The Guardian's own Steam's
-picture always comes first, and a store picture only fills a gap. The
-download runs as a throwaway account that systemd makes for the run, in
-a sandbox that sees no home and no other program. Root takes each
-downloaded file only through the picture step's checks and a check of
-the picture's size.**
+picture always comes first, and a store picture only fills a gap.**
+
+How it is fenced: the download runs as a throwaway account that systemd
+makes for the run and drops after, in a sandbox that sees no home and no
+other program. Root puts a downloaded picture in place only after the
+checks the picture step already makes, and a check of its width and
+height.
+
+### Two questions still open
+
+The maintainer has two questions still to answer. The Decision, above
+and below, follows the recommended answers, which stay proposals until
+he answers.
+
+1. **After a yes, do Save and Look also get pictures for new games?**
+   Proposed: yes, so a new game gets its picture with no extra step.
+   The cost: those Saves go online, and their password box says so in
+   only one added sentence, though the line under the buttons and the
+   progress window say it too. On a computer with two Guardians, one
+   grown-up's yes also sends the other's Saves online. The other sees
+   the line under the buttons, the password box's sentence and the
+   progress window, but may never have read the question's words about
+   what is sent and to whom (see "The answer is the computer's"). With
+   no, only the button fetches (see "Only the button, with no
+   remembered yes" under Alternatives), each new game needs a press and
+   a second password, and no Guardian's Save goes online because of
+   another's answer.
+2. **Is the button called "Get pictures from Steam's store"?** The
+   maintainer suggested "Update game icons". Proposed: "Get pictures
+   from Steam's store", so its name says it goes online. A parent who
+   said no could read "Update game icons" as something that stays on
+   the computer. If another name is chosen, every string that names the
+   button changes with it, before slice 5.
 
 ### When Family asks
 
@@ -181,11 +209,11 @@ the picture's size.**
   > internet. Valve, which runs Steam, and the companies that deliver
   > Steam's store over the internet then see four things: this
   > computer's internet address, the time it asked, which of your games
-  > need a picture, and the country in this computer's language setting,
-  > such as United Kingdom for English (UK). Nothing else is sent: no
-  > account, no one's name, nothing about the children. Your own Steam
-  > already signs in to Valve from this address and tells it which games
-  > you own.
+  > need a picture, and the country in this computer's own language
+  > setting, such as United Kingdom for English (UK), or United States
+  > when it names none. Nothing else is sent: no account, no one's
+  > name, nothing about the children. Your own Steam already signs in to
+  > Valve from this address and tells it which games you own.
   >
   > With yes, Cairn asks Steam's store when you save games or look for
   > new games, and only for games that have no picture. With no, Cairn
@@ -215,7 +243,10 @@ the picture's size.**
 - Only `cairn-family` writes it, with `RootFolder::write`
   (`guardian/src/RootFolder.h:27-28`), which makes the folder, mode
   0755, when it is missing (`guardian/src/RootFolder.cpp:39-49`,
-  `:55-69`). No tmpfiles line is needed.
+  `:55-69`). Slice 4 also adds
+  `d /var/lib/cairn/settings 0755 root root -` to
+  `system_files/usr/lib/tmpfiles.d/cairn.conf`, as `games` and `locale`
+  have there, so each boot puts back the folder's owner and mode.
 - The answer is trusted only from a root-owned plain file, not a link,
   not writable by group or others, of at most 16 bytes, in a folder
   `RootFolder::isSafe` accepts (`guardian/src/RootFolder.cpp:30-37`),
@@ -227,7 +258,11 @@ the picture's size.**
 - A household can have several Guardians (DESIGN §3.2). The answer is
   the family's, so each grown-up sees the same, and one grown-up's yes
   makes the others' Saves ask the store too. The line under the buttons
-  and the progress window tell each of them so.
+  and the progress window tell each of them so. The line says that the
+  store is asked, not what is sent or to whom, so another Guardian may
+  never have read the question's words. This ADR counts one Guardian's
+  yes as asking for every Guardian, as one Guardian's Save changes the
+  games of every child. Open question 1 weighs this.
 - One line under the Games page's buttons says what it is, with one
   quiet button:
   - on: "Pictures from Steam's store: on. Saving games and looking for
@@ -254,11 +289,11 @@ the picture's size.**
   games that have none. Valve, which runs Steam, and the companies that
   deliver Steam's store over the internet see this computer's internet
   address, the time, which of your games need a picture, and the
-  country in this computer's language setting. Nothing about the
-  children is sent. This asks the store once, now. It does not turn on
-  asking when you save games." Its buttons are **Get pictures** and
-  **Cancel**. Focus starts on the words. Cancel sends nothing and asks
-  for no password.
+  country in this computer's own language setting, or United States
+  when it names none. Nothing about the children is sent. This asks the
+  store once, now. It does not turn on asking when you save games." Its
+  buttons are **Get pictures** and **Cancel**. Focus starts on the
+  words. Cancel sends nothing and asks for no password.
 - With the answer yes, a press goes straight to the password box: the
   parent has read the words and said yes.
 - It runs its own subcommand, so its password box says what it does:
@@ -348,6 +383,10 @@ one folder.
 - The country is the two capital letters after `_` in `LANG` in
   `/etc/locale.conf`, such as `GB` in `en_GB.UTF-8`, or `US` when it
   names none.
+  That is the computer's own language, which Family's Children page
+  calls "the computer's own" (ADR-0058). A grown-up's own language in
+  System Settings can differ from it, so the parent's words say "this
+  computer's own language setting", not "your language".
 - Then one GET per game to `https://shared.steamstatic.com`, at
   `/store_item_assets/steam/apps/<appid>/` and the header the answer
   names. The address is built from those fixed pieces. The host and
@@ -416,7 +455,7 @@ words and app ids, as the picture step does
   and leaves the empty folder for the next run.
 - Root never fetches and never decodes. Qt decodes a picture in the
   child's launcher and in Family, at the size drawn
-  (`launcher/qml/Tile.qml:77-78`), as ADR-0035 already accepted for
+  (`launcher/qml/Tile.qml:77-78`), as ADR-0035 already allows for
   Steam's own cache. A picture Qt cannot draw shows the game's name.
 
 ### What cairn-family does
@@ -499,25 +538,6 @@ reaches the journal.
   them, ships none in the image and commits none to this repository.
   Tests use stand-in pictures made at run time.
 
-### Two questions still open
-
-The maintainer has two questions still to answer. The Decision above
-follows the recommended answers, which stay proposals until he answers.
-
-1. **After a yes, do Save and Look also get pictures for new games?**
-   Proposed: yes, so a new game gets its picture with no extra step.
-   The cost: those Saves go online, and their password box says so in
-   only one added sentence, though the line under the buttons and the
-   progress window say it too. With no, only the button fetches (see
-   "Only the button, with no remembered yes" under Alternatives), and
-   each new game needs a press and a second password.
-2. **Is the button called "Get pictures from Steam's store"?** The
-   maintainer suggested "Update game icons". Proposed: "Get pictures
-   from Steam's store", so its name says it goes online. A parent who
-   said no could read "Update game icons" as something that stays on
-   the computer. If another name is chosen, every string that names the
-   button changes with it, before slice 5.
-
 ## Slices
 
 Each slice leaves `main` working, with its tests, and carries its own
@@ -528,8 +548,9 @@ bookkeeping.
 2. Root's side: the picture step learns `--from-store`. No network.
 3. The store step, alone, with tests that hand it a stand-in
    connection. Nothing runs it yet.
-4. `cairn-family` keeps the answer and runs the step. The first slice
-   that can reach the internet, and only from `cairn-family`.
+4. `cairn-family` keeps the answer and runs the step, and the settings
+   folder gets its tmpfiles line. The first slice that can reach the
+   internet, and only from `cairn-family`.
 5. Family's window: the question, the button and the line.
 6. The checks on the kids' laptop; then the maintainer decides.
 
@@ -542,12 +563,13 @@ slice 5. No test reaches the internet, and no game art is committed.
 - A parent gets most missing pictures with one yes, without opening
   Steam. A game only another grown-up's Steam has shown gets one too.
   If Steam's cache changes, the store still fills the gap.
-- Cairn now has code that reaches the internet. It is one step, run
-  only on a Guardian's press, behind a password, as a throwaway account,
-  in a sandbox. It is the only Cairn program on the image that itself
-  connects to the internet. The network inventory has row 5.24 for it.
+- Once built, Cairn would have code that reaches the internet. It
+  would be one step, run only on a Guardian's press, behind a password,
+  as a throwaway account, in a sandbox. It would be the only Cairn
+  program on the image that itself connects to the internet. The
+  network inventory already lists it as row 5.24, marked not built.
 - What stays true:
-  - Family's window opens no connection itself. A press in it can now
+  - Family's window opens no connection itself. A press in it would
     make `cairn-family` start the store step, which does.
   - The launcher fetches nothing.
   - The picture step downloads nothing.
@@ -556,6 +578,10 @@ slice 5. No test reaches the internet, and no game art is committed.
 - A Save with a yes reaches the internet. Its password box says so in
   one added sentence, the Games page's line says it is on, and the
   progress window says so at the time.
+- With more than one Guardian, one grown-up's yes counts as asking for
+  each of them. The others' Saves go online too, though they may never
+  have read what is sent and to whom. This is the price of one answer
+  for the computer, and it is part of open question 1.
 - A Save waits for the store only after every child has their list.
   A slow link can hold the progress window for up to about two minutes
   after "Your changes are saved."
@@ -607,6 +633,12 @@ slice 5. No test reaches the internet, and no game art is committed.
   on/off line and no `set-store-pictures`. A new game would then need
   a press and a second password. This is open question 1.
 - **Ask at every Save.** It nags, and the maintainer asked for once.
+- **Ask each Guardian once.** Each grown-up would read the question's
+  words before their own first Save went online. It needs an answer
+  kept for each Guardian, and pictures are shared, so one Guardian's no
+  could not take back what another's yes fetched. Not proposed; it is
+  one way to answer open question 1 if one family-wide yes is not
+  enough.
 - **The button's box stores the answer.** A press with no answer would
   store yes and fetch. Turned down: a one-off press would then turn on
   asking at every later Save, which the parent did not ask for. The
@@ -618,11 +650,29 @@ slice 5. No test reaches the internet, and no game art is committed.
 - **appdetails.** One game per request, and a cookie that lasts a year.
 - **The fixed address only.** No picture for 5 of the family's 11
   games.
+- **Always send one fixed country, such as `US`.** The parent's words
+  would name three things, not four. But the computer's internet
+  address already tells Valve roughly where it is, so a fixed country
+  hides little. A game not sold in that country would get no answer
+  from the API and fall back to the fixed address, where the newest
+  games have no picture. The computer's own country is more often one
+  where the family's games are sold. Many computers are set to `en_US`
+  wherever the family lives, and for them the two send the same. Not
+  confirmed: no game blocked in one country was found to try.
 - **Fetch in Family, with Qt Network.** Family runs as the Guardian with
   the whole home in reach, and systemd cannot sandbox it. Qt keeps and
   sends cookies, sends `Mozilla/5.0` and the system's languages unless
   told not to. Putting the pictures in root's folder would still need a
   password.
+- **A C++ program with Qt, in the same sandbox.** First-party code is
+  C++ with Qt (ADR-0002), and CLAUDE.md keeps Python for glue; a
+  program that reads an untrusted answer from the internet is more than
+  glue. But Qt Network's cookies, User-Agent and languages would each
+  have to be turned off, while Python's `http.client` sends none of them
+  unless told to. The picture, copy and tools steps a Save runs are
+  already standard-library Python (ADR-0033, ADR-0035, ADR-0046), with
+  their tests beside them in `provision/`. The store step shares their
+  ways and adds no dependency.
 - **Fetch as root, inside `cairn-family`.** A network answer would be
   parsed as root.
 - **Run as the Guardian, with no home in reach** (the tools step's
@@ -749,6 +799,6 @@ On an image built from slices 2 to 5:
 - **The capture on the wire** (#36) should include a Get pictures from
   Steam's store press.
 - **The frame-size check for the Guardian's own Steam's pictures.**
-  ADR-0035 accepted those as they are; root could check them the same
-  way later.
+  ADR-0035 takes those as they are; root could check them the same way
+  later.
 - **Pictures for the other tiles** stay ADR-0035's later decision.

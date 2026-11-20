@@ -182,7 +182,7 @@ locked icon, nothing to probe.
 | Permissions | Per-child app allowlist, game allowlist, browser access |
 | Time | Schedules and daily limits |
 | System | OS updates and rollback (§10), Wi-Fi, printers |
-| Games | Run the scanner, choose each child's own games from the Guardian's own Steam (ADR-0041, ADR-0042), get a missing game picture from Steam's store when they say so (ADR-0060, proposed), update a child's Steam while they are logged out (§8.3; ADR-0048, proposed), open a child's own Steam to sign it in or answer it (ADR-0032, proposed), assign categories, manage tiles (§8.7) |
+| Games | Run the scanner, choose each child's own games from the Guardian's own Steam (ADR-0041, ADR-0042), get a missing game picture from Steam's store, only on a Guardian's yes or press (ADR-0060, proposed), update a child's Steam while they are logged out (§8.3; ADR-0048, proposed), open a child's own Steam to sign it in or answer it (ADR-0032, proposed), assign categories, manage tiles (§8.7) |
 | Data | Reset a child account; export creations (§11) |
 | Notices | See in Family each time wrong passwords were typed on the computer in the last 30 days, for every account, where, from whose login, and whether that locked the account, read from the journal and kept nowhere else (ADR-0054) |
 | About | See in Family what Cairn Linux is, which version the computer runs when the image says, that it is not Bazzite's, Universal Blue's, Red Hat's or Fedora's, and where its licences are (ADR-0040, ADR-0038) |
@@ -501,12 +501,11 @@ The launcher **is the product.** Everything else is packaging.
   The Guardian's Family app names each game without a picture and says how
   to add one (ADR-0047).
   A missing picture can also come from Steam's store, but only when a
-  Guardian asks for it with a button on Family's Games page, or has said
-  yes in Family to getting such pictures when games are saved. Family
-  shows what is sent and to whom before the yes, and before each press
-  while the answer is not yes. The store only fills a gap: the Guardian's
-  own Steam's picture comes first, and the launcher still reads only files
-  on the computer (ADR-0060, proposed).
+  Guardian asks for it in Family. Whether a yes also covers later Saves is
+  ADR-0060's open question 1. Family shows what is sent and to whom before
+  the yes, and before each press while the answer is not yes. The store
+  only fills a gap: the Guardian's own Steam's picture comes first, and the
+  launcher still reads only files on the computer (ADR-0060, proposed).
 
 ### 6.2 Visual direction
 
@@ -793,8 +792,9 @@ Exception: Steam and Minecraft require their own accounts. These are the
 family's relationship with those vendors, not this project's, and should be
 documented as such.
 
-Cairn's own programs connect to the internet only when a grown-up presses
-or runs something that says so. Under ADR-0060 (proposed), the one Cairn
+Cairn's own programs open no internet connection by themselves. The Steam
+the launcher starts at the login of a child with a Steam game is the
+family's, the exception above. Under ADR-0060 (proposed), the one Cairn
 program that opens a connection itself is the step that gets missing game
 pictures from Steam's store, and it runs only on a Guardian's press in
 Family. Family shows what is sent and to whom before a Guardian's yes, and

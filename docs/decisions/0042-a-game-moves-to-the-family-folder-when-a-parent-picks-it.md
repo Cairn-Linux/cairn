@@ -10,10 +10,11 @@ ADR-0038 and ADR-0041.
 **Amended by:** ADR-0046, proposed (a Save also fills the tools folder
 from the Guardian's Steam, as the Guardian, after the children's lists
 lose the games taken off and before the first copy, so after any move);
-ADR-0047, proposed (the pictures folder also keeps the picture of a game
-still on a child's list after it leaves the family folder); the section
-"What the move step settled" below (2026-11-01, #167); the section
-"Steam Cloud's marker does not move" below (2026-11-03, #250)
+ADR-0047, accepted 2026-11-20 (the pictures folder also keeps the
+picture of a game still on a child's list after it leaves the family
+folder); the section "What the move step settled" below (2026-11-01,
+#167); the section "Steam Cloud's marker does not move" below
+(2026-11-03, #250)
 
 ## Context
 
