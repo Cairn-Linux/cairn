@@ -6,8 +6,8 @@ next image update.
 **Date:** 2026-11-05
 **Closes:** (none) — issue #284. Amends ADR-0020 (the login screen) and
 ADR-0049 (check 5's words).
-**Amended by:** ADR-0053, proposed (the folder is setgid, so every count
-is in group root, and tmpfiles puts a count back to group root)
+**Amended by:** ADR-0053, proposed (the folder is setgid, so every new
+count is in group root, and the boot reconciler repairs older counts)
 
 ## Context
 
@@ -36,9 +36,10 @@ PAM stays the gate; nothing in any PAM stack changes.
 
 **The read permission.**
 systemd-tmpfiles puts a default ACL on `/var/lib/faillock`:
-`d:u::rw,d:u:sddm:r,d:g::rw,d:m::rw,d:o::-`, and `u:sddm:r` on the
-files already there (`system_files/usr/lib/tmpfiles.d/cairn.conf`).
-Provisioning does the same with `setfacl`.
+`d:u::rw,d:u:sddm:r,d:g::rw,d:m::rw,d:o::-`. The boot reconciliation
+helper gives files already there the exact matching access ACL before
+SDDM starts (`system_files/usr/lib/tmpfiles.d/cairn.conf`, #301).
+Provisioning installs and runs the same helper.
 - Every file faillock makes from then on has a read entry for `sddm`
   and nothing else new.
 - The default entries keep group root's write, which faillock gives each
@@ -179,10 +180,10 @@ On cairn-min after an image update with this change, then on the kids'
 laptop:
 1. `getfacl /var/lib/faillock /var/lib/faillock/*` shows
    `default:user:sddm:r--` and `default:group::rw-` on the folder, and on
-   each file `user:sddm:r--`, `group::rw-` and `mask::rw-`. A count made
-   by three new wrong tries shows the same. `systemd-tmpfiles --create`
-   leaves each file's owner and mode 0660 as they were; since ADR-0053 it
-   puts the group back to root.
+   each file `user:sddm:r--`, `group::rw-` and `mask::rw-`, with no
+   other named entry. A count made by three new wrong tries shows the
+   same. Starting `cairn-reconcile-faillock.service` leaves every tally
+   owned by its current account in group root and mode 0660.
 2. `ps -eZ | grep sddm-greeter` shows `xdm_t`, `ls -Z /var/lib/faillock`
    shows `faillog_t`, and `journalctl -b | grep 'AVC avc'` shows no new
    denial after a locked tile is chosen. (`ausearch` sees no AVCs on the

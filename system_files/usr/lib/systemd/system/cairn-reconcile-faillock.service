@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: Apache-2.0
+[Unit]
+Description=Reconcile faillock tally ownership and access
+After=systemd-sysusers.service systemd-tmpfiles-setup.service
+Before=sddm.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/cairn/cairn-reconcile-faillock
+ExecStart=/usr/sbin/restorecon -R /var/lib/faillock
