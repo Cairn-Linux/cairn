@@ -187,7 +187,7 @@ What decides this ADR:
   prompt for 10 minutes (ADR-0020, `session/security/faillock.conf`), so
   a child who can reach a prompt can lock a Guardian out.
   The image has no fingerprint in its PAM stack (no `with-fingerprint`,
-  no `pam_fprintd`), although ADR-0032 says it has.
+  no `pam_fprintd`), although ADR-0032 said it had.
 
 Three designs were drawn up from these findings.
 Each was reviewed three ways: for safety against a determined child,
@@ -518,6 +518,9 @@ parent docs as a known gap, as Mason chose for #86 on 2026-11-02.
   updater's two services and its timer.
   And the fingerprint is missing from the image, against ADR-0032 and
   the "or your fingerprint" in the Guardian tool's words: #264.
+  Since 2026-11-20 those words ask for the password only, and ADR-0032
+  says the image's password boxes (Family's, the visit's, sudo and su)
+  offer no fingerprint ("The fingerprint, for now").
   Nothing in this ADR relies on a fingerprint.
 
 ### Where it applies
@@ -584,8 +587,10 @@ The Family app's "Open Steam for Ada" is on the image only (ADR-0041).
   ADR-0032's other signed-in checks still stand before it is accepted:
   a game installed in a visit, the overlay and Steam Cloud turned off
   inside cage, and a saved account removed during a visit.
-  So does its text on the fingerprint, which the image does not bear
-  out ("What the research found", #264).
+  Its text on the fingerprint did too, as the image did not bear it out
+  ("What the research found", #264); since 2026-11-20 ADR-0032 says
+  the image's password boxes offer no fingerprint, and its fingerprint
+  check waits for the change that turns the fingerprint on.
 - The grown-up screen now tells a child that grown-ups have logins of
   their own.
   The login screen already shows grown-ups' tiles, and DESIGN §3.2's

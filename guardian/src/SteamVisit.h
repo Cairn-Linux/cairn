@@ -11,9 +11,9 @@
 //
 // The root helper, session/bin/cairn-steam-visit, does the work. It is
 // started once per visit through pkexec, which asks for the Guardian's
-// password or fingerprint, and that one root process lasts until the visit
-// closes. It says how the visit is going one line at a time on its output,
-// and closes the visit when it reads "done" or its input ends.
+// password, and that one root process lasts until the visit closes. It
+// says how the visit is going one line at a time on its output, and
+// closes the visit when it reads "done" or its input ends.
 //
 // polkit judges the process that started pkexec, so this object's process
 // must stay alive for the whole visit: pkexec is started directly, never

@@ -3,8 +3,8 @@
 #
 # Opens a child's own Steam in a window on a Guardian's desktop, and closes
 # it again (ADR-0032). One opening is a visit. The Guardian's window runs
-# this once per visit through pkexec, which asks for the Guardian's password
-# or fingerprint; this one root process then lasts until the visit closes.
+# this once per visit through pkexec, which asks for the Guardian's
+# password; this one root process then lasts until the visit closes.
 #
 #   pkexec /usr/local/libexec/cairn/cairn-steam-visit CHILD
 #

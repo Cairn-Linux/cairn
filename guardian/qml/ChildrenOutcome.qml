@@ -18,7 +18,7 @@ Rectangle {
         const level = box.page.level;
         switch (box.page.step) {
         case ChildrenPage.Asking:
-            return qsTr("Confirm with your password, or your fingerprint, in the box that opened.");
+            return qsTr("Confirm with your password in the box that opened.");
         case ChildrenPage.Added:
             return qsTr("%1 can log in now, at level %2. %1 starts with no games: choose them on the Games page.").arg(name).arg(level);
         case ChildrenPage.LevelChanged:

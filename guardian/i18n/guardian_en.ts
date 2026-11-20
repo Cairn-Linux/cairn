@@ -309,7 +309,7 @@
     <name>ChildrenOutcome</name>
     <message>
         <location filename="../qml/ChildrenOutcome.qml" line="21"/>
-        <source>Confirm with your password, or your fingerprint, in the box that opened.</source>
+        <source>Confirm with your password in the box that opened.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -665,7 +665,7 @@
     </message>
     <message>
         <location filename="../qml/LoggedInCover.qml" line="47"/>
-        <source>Confirm with your password, or your fingerprint, in the box that opened.</source>
+        <source>Confirm with your password in the box that opened.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1250,11 +1250,6 @@
 <context>
     <name>SaveOutcome</name>
     <message>
-        <location filename="../qml/SaveOutcome.qml" line="36"/>
-        <source>Confirm with your password, or your fingerprint, in the box that opened.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <location filename="../qml/SaveOutcome.qml" line="47"/>
         <source>Saving the children&apos;s lists.</source>
         <translation type="unfinished"></translation>
@@ -1308,6 +1303,11 @@
     <message>
         <location filename="../qml/SaveOutcome.qml" line="83"/>
         <source>The game pictures could not all be copied from your own Steam this time, so a game without one shows its name on a child&apos;s screen. Pictures copied before stay. Pressing Look for new games tries again.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/SaveOutcome.qml" line="36"/>
+        <source>Confirm with your password in the box that opened.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1800,7 +1800,7 @@
     </message>
     <message>
         <location filename="../qml/SteamForWords.qml" line="74"/>
-        <source>Confirm with your password, or your fingerprint, in the box that opened.</source>
+        <source>Confirm with your password in the box that opened.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

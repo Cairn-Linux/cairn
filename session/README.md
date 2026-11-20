@@ -94,8 +94,9 @@ What is here:
   Switch User is the grown-up's lock screen (#213).
 - `bin/cairn-steam-visit`: a grown-up's way into a child's own Steam from
   their own Plasma login (ADR-0032, proposed). The Guardian runs it through
-  `pkexec`, which asks for their password or fingerprint each time; one
-  root process then lasts for the whole visit. It checks that an
+  `pkexec`, which asks for their password each time (on a fresh install
+  of the image its box offers no fingerprint yet, #264, ADR-0032); one
+  root process then lasts for the whole visit. The helper checks that an
   administrator asked, from their active session, about a child who is
   logged out, lists the child in `/run/cairn/steam-visits` so PAM refuses
   their login, and starts cage as the child, in a session of the child's

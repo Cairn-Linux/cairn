@@ -71,7 +71,7 @@ QtObject {
         case SteamForChild.ClosingOwnSteam:
             return visit.ownSteamOpen ? [qsTr("It saves first, which can take half a minute.")] : [];
         case SteamForChild.Asking:
-            return [qsTr("Confirm with your password, or your fingerprint, in the box that opened.")];
+            return [qsTr("Confirm with your password in the box that opened.")];
         case SteamForChild.Waiting:
             return [qsTr("%1's last login is still ending. This takes a few seconds.").arg(child)];
         case SteamForChild.Open:

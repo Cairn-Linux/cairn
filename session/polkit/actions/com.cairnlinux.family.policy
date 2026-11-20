@@ -7,8 +7,7 @@
   chooses their games, and a grown-up's own new password. The Guardian's
   tool runs cairn-family through pkexec, which finds the action by the
   command's path and its first argument, and asks for an administrator's
-  password, or a fingerprint, for every change, with the message of that
-  subcommand.
+  password for every change, with the message of that subcommand.
   The Games page's Look for new games is save-games with no child named,
   which changes no child's games, and pkexec looks no further than the
   first argument, so save-games's message speaks of both (#220).

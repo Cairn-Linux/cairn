@@ -580,11 +580,12 @@ password again.
 From all of the above, for ADR-0032's helper:
 
 - [x] Start only from the Guardian's own Plasma session, through a polkit
-  action that asks for the Guardian's password or fingerprint every time:
-  `auth_admin`, never `auth_admin_keep`, and no for inactive or remote
-  sessions. Any account that is not an administrator (ADR-0023, rank 1)
-  gets no, before any prompt: every child at every level, and accounts
-  Cairn did not make.
+  action that asks for the Guardian's password every time (a fingerprint
+  only where authselect's `with-fingerprint` is on; Cairn's image does not
+  turn it on, #264, ADR-0032): `auth_admin`, never `auth_admin_keep`, and
+  no for inactive or remote sessions. Any account that is not an
+  administrator (ADR-0023, rank 1) gets no, before any prompt: every child
+  at every level, and accounts Cairn did not make.
 - [x] Start the helper once per visit, through `pkexec`, and keep that one
   root process for the whole visit, so closing never asks again.
 - [x] Open the visit only on the Wayland socket of the account that
@@ -682,7 +683,9 @@ From all of the above, for ADR-0032's helper:
   hardware.
 - A fingerprint through polkit. The image has `fprintd` and authselect's
   `with-fingerprint`, and polkit's PAM service includes `system-auth`, but
-  the VM has no reader.
+  the VM has no reader. That image was Bazzite's. Cairn's own image,
+  built later, does not turn on `with-fingerprint`, so its polkit boxes
+  take the password only (2026-11-20, #264, ADR-0032).
 - A way to Switch User other than the lock screen.
 - Installing a game, and Steam's Settings window, inside cage.
 - A download stopped by the screen lock, and where Steam carries it on.
