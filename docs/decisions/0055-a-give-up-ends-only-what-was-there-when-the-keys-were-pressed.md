@@ -1,7 +1,10 @@
 # ADR-0055: A give-up ends only what began before the keys were pressed
 
-**Status:** proposed. It becomes accepted when the checks under "Checks
-in the VM" have passed on cairn-min.
+**Status:** accepted 2026-11-20. The condition was the checks under
+"Checks in the VM" passing on cairn-min, and they passed on 2026-11-06
+(Record). The maintainer accepted it without the two things the Record
+left unseen, a real tap and the second look's own case: both are edge
+cases, to be looked at again if a report points to them.
 **Date:** 2026-11-06
 **Closes:** (none) — part of issue #287. Amends ADR-0018 (the give-up
 key) and ADR-0026 (the file that tells the launcher).
@@ -139,3 +142,8 @@ reach the launcher in that boot.
 The old app or game was gone 0.17 to 0.51 s after the keys in every
 round. The ADR stays proposed: the second look's own case, and a real
 tap, are not yet seen.
+
+On 2026-11-20 the maintainer accepted the ADR as it stands. A tap and
+Enter on the focused tile start a launch the same way, and the second
+look's case needs the keys within a fraction of a second of a tap. Both
+stay unseen until a report points to them.
