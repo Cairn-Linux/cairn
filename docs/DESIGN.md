@@ -499,7 +499,7 @@ The launcher **is the product.** Everything else is packaging.
   A game a child still has keeps its picture when the shared folder no
   longer has it.
   The Guardian's Family app names each game without a picture and says how
-  to add one (ADR-0047, proposed).
+  to add one (ADR-0047).
 
 ### 6.2 Visual direction
 

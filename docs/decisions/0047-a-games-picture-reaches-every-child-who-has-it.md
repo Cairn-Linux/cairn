@@ -1,8 +1,11 @@
 # ADR-0047: A game's picture reaches every child who has it
 
-**Status:** proposed. It becomes accepted when the checks under "Checks in
-the VM" have run in the cairn-iso VM and none of them overturns a bullet
-of the Decision.
+**Status:** accepted 2026-11-20. The condition was the checks under
+"Checks in the VM" running in the cairn-iso VM with none of them
+overturning a bullet of the Decision. They ran on 2026-10-31, all but
+check 3, which needs Steam to update a shared game or a game with a beta
+branch, and none overturned a bullet. The maintainer accepted it without
+check 3 (Run on 2026-10-31, at its end).
 **Date:** 2026-10-31
 **Closes:** (none) — issue #205; part of ROADMAP P1-5 and P1-13. Once
 accepted, amends ADR-0035, ADR-0041 and ADR-0042.
@@ -246,6 +249,19 @@ from the Family app itself.
 The games file named no picture after the first Look, and each child's
 list was byte for byte the same before and after. This stays proposed
 until check 3 runs, unless the maintainer accepts it without it.
+
+On 2026-11-20 the maintainer accepted it without check 3. Steam updating
+a shared game, or a game on a beta branch, stays unseen. The picture of
+a game on any child's list is kept by the rule above, whatever Steam's
+manifest says at the time.
+
+### Later: pictures from Steam's store, with the parent's yes
+
+On 2026-11-20 the maintainer asked for a way to fill a missing picture
+from Steam's store, never without the parent's permission: a question
+the first time a parent sets up a child's games, and a button on the
+Games page to fetch pictures at any time. That reaches the internet, so
+it needs an ADR of its own, which amends ADR-0035's "never downloaded".
 
 ## Alternatives considered
 
