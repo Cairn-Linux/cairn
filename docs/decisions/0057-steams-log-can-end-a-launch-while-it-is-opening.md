@@ -272,3 +272,17 @@ tried on a computer with #295: quick quits of several Windows games
 through Proton, a game with a splash, and the kids' first games. Going
 back to the tiles quietly when a game crashes in its first seconds
 stays until feedback says otherwise (#133).
+
+On 2026-11-20 the maintainer named the games: at least one Proton game
+and one ScummVM game, and a second of a kind only where it behaves
+differently. On the kids' laptop, on an image with this change:
+- Arthur's Birthday (Proton): quit with Ctrl+Q as soon as its window
+  shows.
+- Putt-Putt: Pep's Birthday Surprise (Proton): it quits by itself about
+  2 s after its window comes, so the tiles must come back on their own.
+- One Putt-Putt game the children play (ScummVM, started by Steam): a
+  quick quit.
+- Harry and the Haunted House (ScummVM, started by Steam with its own
+  settings file), only if it behaves differently from the Putt-Putt
+  game.
+A game with a splash is not needed unless one of these shows one.

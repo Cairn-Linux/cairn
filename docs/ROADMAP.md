@@ -585,7 +585,10 @@ done, and what could sink it. Decisions that change the design get an ADR in
   sanitizer build (`--preset debug`) does not link on the dev PC, so it
   has not run on this change. The VM check passed on cairn-min on
   2026-11-07 and again on 2026-11-09, with one child and one game; a
-  Proton game is still to try (ADR-0057's Record has both runs).
+  Proton game is still to try (ADR-0057's Record has both runs). It is
+  accepted once these have run on the kids' laptop (the maintainer,
+  2026-11-20): a quick quit of Arthur's Birthday and of a Putt-Putt
+  game, and Pep's Birthday Surprise quitting by itself.
   #133 (a grown-up screen for a game that closes itself) can use
   the same signal, but Steam's line is the same for Ctrl+Q and a crash.
   Left for later: a Steam game that ends before any window still waits
