@@ -398,8 +398,16 @@ Only in Plasma: `dmemcg-booster-user`, `xdg-user-dirs`, `ntfs-nag`
 `uresourced`.
 
 Cairn's own programs at login (the launcher, the session scripts, the
-login screen's module, the Guardian tool) link no Qt network part, and
-no line in their sources names an address.
+login screen's module, the Guardian tool) link no Qt network part.
+At 57bd89a, which the image was built from, no line in their sources
+names an address.
+Main took #308 on 2026-11-15: since then the Guardian tool names two
+addresses, `https://cairnlinux.com/` and
+`https://fedoraproject.org/`, which its About page hands to the
+grown-up's own web browser only when a button is pressed.
+ADR-0060 (proposed 2026-11-20, not built) would add the first Cairn
+program that itself connects to the internet, started only by a
+Guardian's press in Family (row 5.24).
 
 | # | What it is | What starts it, in which session | Where it goes | What it could tell | How we know |
 |---|---|---|---|---|---|
@@ -568,6 +576,8 @@ itself.
 Some of it does start at login and then waits (5.4, 5.8, 5.17, 5.18,
 5.19).
 Each row says what keeps it off or what it waits for.
+Row 5.24 is planned and not on the image: it is here because, once
+built, it would wait for a Guardian's press.
 
 **Switched off by a setting or a condition.**
 
@@ -601,6 +611,7 @@ Each row says what keeps it off or what it waits for.
 | 5.19 | `/etc/profile.d/debuginfod.sh` (every login, both kinds) | Sets an address at `debuginfod.fedoraproject.org` that only a debugging tool uses, when a person runs one | Image files |
 | 5.20 | `podman.socket` for each account | A local socket; no network address | Image files |
 | 5.21 | The start menu's unit converter (search plug-in `unitconverter`) | When a person types an amount of money in the search box, it can fetch exchange rates from `www.ecb.europa.eu`. Nothing in `krunnerrc` turns it off. | Image files |
+| 5.24 | Game pictures from Steam's store: `cairn-store-pictures`. Not on the image: proposed in ADR-0060 on 2026-11-20, and nothing of it is built yet. Cairn's own step, which `cairn-family` would start as a throwaway account (systemd's `DynamicUser=`) in a sandbox that sees no home, no other process and no local socket | It would run only inside a Guardian's press in Family, behind the Guardian's password: the Games page's button for it, after a box that says what is sent unless the family has said yes; turning that yes on; and Save and Look for new games once the family has said yes, after every child has their list. Only for shared games with no picture in place; nothing is sent when every shared game has one. One request for each 50 games to `https://api.steampowered.com/IStoreBrowseService/GetItems/v1/` naming their app ids, then one request for each picture to `https://shared.steamstatic.com`. https only, with no cookie, no User-Agent and no redirect followed. Valve, and the companies that deliver Steam's store over the internet, would see the home's internet address, the time, those app ids and the country from `/etc/locale.conf` (`US` when it names none). From the development computer on 2026-11-20 those companies were Akamai (`api.steampowered.com` resolved to addresses named `*.deploy.static.akamaitechnologies.com`) and Fastly (`shared.steamstatic.com` is `shared.valve.map.fastly.net`); elsewhere they may differ. Nothing in a child's session could start it. | ADR-0060; `getent` and `resolvectl query` on the development computer, 2026-11-20. Not on the image |
 
 **5.3, firmware.**
 Upstream's page says a firmware download is logged with the internet
@@ -719,6 +730,7 @@ read.
 | 5.16 | "Bazzite Updater" in the menu | Decide with the update decision |
 | 5.17, 5.18 | The drive notice and KDE's donation notice | Decide with P1-14's list of what shows Bazzite's or KDE's name |
 | 5.19, 5.20, 5.21 | The debugging address, the account's `podman` socket, the unit converter | Keep; none does anything on the network by itself |
+| 5.24 | Game pictures from Steam's store, not built | Decide with ADR-0060 (proposed). If it is built, keep it: it runs only on a Guardian's press, after Family says what is sent |
 
 ### Turn off or remove
 
@@ -1165,6 +1177,7 @@ Record whether each request leaves over IPv4 or IPv6.
 | ada's level 1 login, then cy's | The same | Steam for ada and none for cy; `systemctl --user list-units --state=running` and `ps -u ada -o pid,cmd`, to confirm nothing from `graphical-session.target` or D-Bus runs in the kiosk that should not |
 | In a Plasma session: type a word in the start menu's search box; type an amount of money; then turn Night Light on | 5 minutes each | Whether Bazaar's background program starts, what it fetches (Flathub, `arewelibadwaitayet.com`) and whether it stays; whether `www.ecb.europa.eu` is contacted; whether the location service starts and what goes to `api.beacondb.net` |
 | The first start after an image update that changes `/usr/libexec/bazzite-flatpak-manager` | 15 minutes | The Flatpak set-up's second kind of run |
+| Once ADR-0060 is built, game pictures from Steam's store (5.24): a Save after "No, thanks"; the button's box, then Cancel; Turn on with one shared game lacking a picture; a Save after that with another game lacking one; then the button with nothing missing | Each run | Nothing during the first Save, the Cancel or the last press; during Turn on and the second Save, only `api.steampowered.com` and `shared.steamstatic.com`, over IPv4 or IPv6, some tens of kilobytes for each picture, and, in the Save, only after its lists are written; nothing after the run ends |
 
 After each proposal that is accepted and built, run the same parts
 again and confirm the thing is gone from the recording.

@@ -8,9 +8,11 @@ which game it is.
 **Closes:** DESIGN §14 Q3, for games only — addresses #138; once
 accepted, amends ADR-0024 (how a games tile looks)
 **Amended by:** ADR-0041, proposed (pictures are also remade when a
-Guardian saves a child's games); ADR-0047, proposed (a tile finds its
-picture by the game's app id and the games file names none, and the
-picture of a game still on a child's list stays)
+Guardian saves a child's games); ADR-0047, accepted 2026-11-20 (a tile
+finds its picture by the game's app id and the games file names none,
+and the picture of a game still on a child's list stays); ADR-0060,
+proposed (a picture the Guardian's Steam lacks can come from Steam's
+store, after a Guardian's yes or press in Family)
 
 ## Context
 
