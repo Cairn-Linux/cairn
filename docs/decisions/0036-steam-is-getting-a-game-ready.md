@@ -1,8 +1,10 @@
 # ADR-0036: Wait while Steam's log says it is getting a game ready
 
-**Status:** proposed. It becomes accepted when a tap on a game that needs
-an update has shown the sentence on the kids' laptop and the game has
-taken over from it.
+**Status:** accepted 2026-11-20. The condition was a tap on a game that
+needs an update showing the sentence on the kids' laptop, and the game
+taking over from it. A tap there on 2026-10-27 did that while Steam
+updated two of its tools for the game, and the maintainer decided that
+counts (Record, at the end).
 **Date:** 2026-10-20
 **Closes:** (none) — amends ADR-0029 and ADR-0030; part of ROADMAP P1-13
 **Amended by:** ADR-0037 (Steam updating itself is work too; a tap lost to
@@ -502,3 +504,30 @@ Steam refused to start the game, or is still working on it; the VM's case, ended
 the cloud question and `No Connection`, names the internet; and a held
 cloud question while Steam is still offline does too, and so does a held
 other question, which names the question alone once Steam signs in again.
+
+## Record: the kids' laptop, 2026-10-27
+
+The laptop ran the launcher from main at 22062c3 (#160 and #162), built
+and installed by hand before it moved to the image. That has this ADR's
+wait and sentence, and none of the sections above dated after 2026-10-20.
+
+One of the children logged in at 17:58. Steam first installed an update
+of its own client and downloaded another 424 MB (#183). At 18:12 the
+child tapped Arthur's Teacher Trouble. Before it could start the game,
+Steam had to update two of its tools, Steam Linux Runtime 2.0 (soldier)
+and 1.0 (scout). At 18:12:29, when the first grace ended, the launcher
+wrote "Steam is getting Arthur's Teacher Trouble ready before it
+starts." to the journal. It writes that line in the same step that puts
+the sentence on the starting screen. By Steam's own log, read that
+evening, the game's process started at 18:14:20, about two minutes
+after the tap, and its window took over. The launcher wrote nothing more
+about the tap, so no grown-up screen came.
+
+Steam updated its tools, not the game itself. The ADR was written from
+such a case (Arthur's Birthday, under Context), and the launcher reads
+both the same way: a step in Steam's log about the game. The maintainer
+decided on 2026-11-20 that this meets the condition.
+
+Not seen on the laptop: an update to a game itself, and the cases the
+later sections handle (#182, #206, #211, #274). The VM runs in those
+sections are their record.
