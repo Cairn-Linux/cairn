@@ -248,3 +248,12 @@ as the fallback.
   window, titled "Progress" and "Steam setup", were hidden and the tiles
   stayed; after the update a window opened on its own brought the grown-up
   screen. Not yet seen on a real Steam update in the kiosk.
+
+## The flash at login is not part of this (2026-11-20, #275)
+
+On the test VM on 2026-11-03 one child login of five showed Steam's
+start-up window for about a second while Steam only checked for an
+update and found none, and the launcher logged a window that "opened on
+its own" (#275). The maintainer decided on 2026-11-20 that this ADR is
+judged on its own two conditions in the Status line, and that #275 is
+fixed if it comes up again.
