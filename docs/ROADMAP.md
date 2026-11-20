@@ -383,12 +383,13 @@ done, and what could sink it. Decisions that change the design get an ADR in
   Guardian picks for them, on the Guardian tool's Games page, with one
   password per Save. A new child starts with none. A game taken off the
   list loses its tile at the next login, and its copy and saves stay.
-  The kids' laptop keeps every game for every child until it is
-  reinstalled from the image. Before levels 3 and 4 ship (#107), a child
-  must be kept from games off their list in the shared folder. Step 1 is
-  in: `cairn-copy-games --only` and `cairn-steam-visit --copy-games
-  CHILD [APPID...]` copy only the listed games, an empty list copies
-  nothing, and provisioning asks for every game with `--all`.
+  The kids' laptop gave every child every game until it moved to the
+  image on 2026-11-04. Since then each child's tiles come from their own
+  list, and their old copies stay. Before levels 3 and 4 ship (#107), a
+  child must be kept from games off their list in the shared folder.
+  Step 1 is in: `cairn-copy-games --only` and `cairn-steam-visit
+  --copy-games CHILD [APPID...]` copy only the listed games, an empty
+  list copies nothing, and provisioning asks for every game with `--all`.
   Step 2 is in: `cairn-family save-games`, the root side of Save.
   Step 3 is in: the Guardian tool has a switch between its Children and
   Games pages, and the Games page shows, for the child picked, every
@@ -496,13 +497,14 @@ done, and what could sink it. Decisions that change the design get an ADR in
   `sudo systemctl enable --now tailscaled`, then sets the operator once
   with `sudo tailscale set --operator=<name>`. Built and checked in a
   container on 2026-11-03; not yet seen in a VM.
-- **ADR-0059 (2026-11-20, proposed): a game ScummVM can run starts in
-  ScummVM.** The maintainer decided on 2026-11-20 that a game the
-  image's ScummVM can run starts in it, as DESIGN §8.2 always said, and
-  that Steam keeps the rest, so Steam's games test Proton. This settles
-  the choice ADR-0033 left open. Of the family's 25 games, the 11
-  Putt-Putt and Big Thinkers games are expected to move. The 13
-  storybook games and Pep's Birthday Surprise stay on Steam for now. A
+- **ADR-0059 (2026-11-20, #215 in part, proposed): a game ScummVM can
+  run starts in ScummVM.** The maintainer decided on 2026-11-20 that a
+  game the image's ScummVM can run starts in it, as DESIGN §8.2 always
+  said, and that Steam keeps the rest, so Steam's games test Proton.
+  This settles the choice ADR-0033 left open. Of the family's 25 games,
+  the nine Putt-Putt games other than Pep's Birthday Surprise, and the
+  two Big Thinkers games, are expected to move. The 13 storybook games
+  and Pep's Birthday Surprise stay on Steam for now. A
   ScummVM game reads the family folder and needs no copy and no Steam.
   Each child's progress in it is kept in their own home, and what they
   saved in their Steam copy is copied over once. The parent's steps stay

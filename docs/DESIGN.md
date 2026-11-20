@@ -603,18 +603,20 @@ Steam. A game that has started in ScummVM stays there: it never goes back to
 Steam because one look at its files failed (ADR-0059, proposed).
 
 The games file keeps each such game's Steam command, so an older image after a
-rollback still shows its tile, and adds the game's ScummVM ID and folder name.
-The launcher builds the ScummVM command itself from those two, which it checks;
-the games file never names a program. Cairn writes ScummVM's settings for each
-start, so nothing a child changes in ScummVM's own windows lasts. When ScummVM
-leaves the game for its own windows, through its menu's Return to Launcher or
-after an error, the launcher ends it (ADR-0059, proposed).
+rollback still shows its tile. It also gives the game's ScummVM ID and folder
+name. The launcher builds the ScummVM command itself from those two, which it
+checks; the games file never names a program. Cairn writes ScummVM's settings
+for each start, so nothing a child changes in ScummVM's own windows lasts. When
+ScummVM leaves the game for its own windows, through its menu's Return to
+Launcher or after an error, the launcher ends it. An error box that comes while
+the game runs stays until the child presses it (ADR-0059, proposed).
 
 A ScummVM game's progress is kept in the child's home, one folder per game,
 and not in Steam Cloud. Progress a child made in their own Steam copy is copied
-there the first time the game starts this way. The Steam copy is never changed
-or deleted. After an image update the children's lists catch up by themselves,
-with nothing for a parent to press (ADR-0059, proposed).
+there the first time the game starts this way. Cairn never changes the Steam
+copy, and only a reset of the child's account (§11) deletes it. After an image
+update the children's lists catch up by themselves, with nothing for a parent
+to press (ADR-0059, proposed).
 
 These games are an unusually good fit for ages 5–8: point-and-click problem
 solving, fully voice-acted, no reading required.
@@ -628,7 +630,7 @@ stretch goal. But the **client UI** is never what a child touches.
 
 Mechanism:
 - Steam starts with `-silent` at session login, without a window, for a child
-  who has a Steam tile. A game that starts in ScummVM is not one (§8.2). The
+  who has a Steam tile. A ScummVM game's tile is not a Steam tile (§8.2). The
   client costs about a gigabyte of memory, so a child without one never starts
   it (ADR-0027). There is no tray in the L1/L2 kiosk, so the compositor keeps
   the client's windows off the screen (mitigation 3 below).
@@ -772,17 +774,19 @@ ScummVM game, its ID and folder name, which it checks, and builds every command
 itself (ADR-0033; ADR-0059, proposed).
 Filters out Proton, Steam Linux Runtimes, and Steamworks Redistributables so
 they don't appear as games.
-On the image the Guardian tool's Games page runs it over the family's shared
-Steam folder for the children's tiles, as a throwaway user with no network and
-no home, so ScummVM's detection never runs as root (ADR-0033; ADR-0059,
-proposed). The page reads the Guardian's own Steam with its own code, without
-ScummVM, so a game the parent installed anywhere can be picked. Save moves a
-picked game into the shared folder, and copies it to each child only when it
-is a Steam game (ADR-0042, ADR-0059, both proposed).
+On the image the Guardian tool's Games page runs it as root over the family's
+shared Steam folder for the children's tiles (ADR-0033). ADR-0042 (proposed)
+has the page also run it as the Guardian over their own Steam, with
+`--no-scummvm`, so a game the parent installed anywhere can be picked, and has
+Save move a picked game into the shared folder before copying it to each
+child. ADR-0059 (proposed) makes the run over the shared folder a throwaway
+user's, with no network and no home, so ScummVM's detection never runs as
+root, and has Save copy only the games that start through Steam.
 
 Not yet built: a GUI for category assignment (a parent should never edit
 appids), pictures for tiles other than games (§14; games have theirs,
-ADR-0035, proposed), and the launch-timeout handling described in §8.3.
+ADR-0035, proposed), the launch-timeout handling described in §8.3, and the
+ScummVM path of §8.2 (ADR-0059, proposed).
 
 ---
 

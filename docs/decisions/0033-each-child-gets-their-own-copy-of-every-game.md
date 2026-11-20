@@ -19,7 +19,7 @@ in a Steam left running); the section "Steam Cloud's marker stays out of
 a child's copy" below (2026-11-03, #250); ADR-0059, proposed (the choice
 between Steam and DESIGN §8.2 below is made for §8.2: a game the
 image's ScummVM can run starts in it, and its games entry carries a
-`scummvm` key beside its Steam command)
+`scummvm_game` key beside its Steam command)
 
 ## Context
 
