@@ -23,7 +23,12 @@ installer image Cairn builds on Fedora's bootc image, with Cairn's art,
 through image-builder's generic ISO type rather than anaconda-iso;
 iso.toml becomes a kickstart that lorax's mkksiso adds to the finished
 ISO, and an Anaconda profile; the kickstart queues Universal Blue's
-Secure Boot key)
+Secure Boot key); ADR-0059, proposed (a build check stops the image
+when its ScummVM is missing, older than 2.9.1 or without the `scumm`
+and `mohawk` engines; the build installs the ScummVM tile's program,
+cairn-scummvm, in /usr/libexec/cairn, and a system unit,
+cairn-games-catch-up.service, that brings each child's list up to date
+at the first start after an image update)
 
 ## Context
 

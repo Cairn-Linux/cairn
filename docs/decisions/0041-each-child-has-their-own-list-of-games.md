@@ -19,7 +19,11 @@ section "What Look for new games says" below (2026-10-31, #220, #227);
 ADR-0048, proposed (`update-steam` and `stop-update`, each with its own
 action and lines, and the held word `updating` in the Save's and the
 logout's answers); the section "Steam Cloud's marker in a game back on a
-child's list" below (2026-11-03, #250)
+child's list" below (2026-11-03, #250); ADR-0059, proposed (a game
+that starts in native ScummVM is given without a copy; every Save,
+every Look and the first start after an image update bring each
+child's list up to date; the known limit about ScummVM's own game list
+is closed for such a game)
 
 ## Context
 

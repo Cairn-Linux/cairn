@@ -582,17 +582,41 @@ Children are pragmatic. If their friends play something and this system doesn't
 run it, it becomes the boring computer. Bundled educational software alone has
 never been enough to drive adoption for any project in this space.
 
-### 8.2 SCUMM-era titles: no Steam client required
+### 8.2 Games ScummVM can run: no Steam client required
 
 The Humongous Entertainment catalogue (Putt-Putt, Freddi Fish, Pajama Sam, Spy
 Fox — 35 games in the Complete Pack) are SCUMM engine titles, and the Steam
 releases are ScummVM builds. Several shipped as native Linux releases in 2014.
+ScummVM's Mohawk engine also knows many Living Books titles.
 
-Therefore: no Proton, and no Steam client on the child's machine for these.
-Install once from an adult account, point native ScummVM at the data directories
-under `steamapps/common/`, and each game becomes a launcher tile that starts
-ScummVM directly with the target ID. The child taps Freddi Fish and Freddi Fish
-starts.
+Therefore: no Proton, and no Steam on the child's side for these. A parent
+installs a game once, from their own Steam in their own login, and picks it for
+a child (ADR-0041, ADR-0042). When the family's games list is made, the image's
+ScummVM looks at each game's files, as a throwaway user. A game ScummVM
+recognises and starts without asking anything becomes a tile that starts
+native ScummVM directly with the game's ID, reading the game from the family
+folder. That is every SCUMM game but the few with network play, and a Living
+Books game once its Steam edition has been seen starting cleanly. The child
+taps Freddi Fish and Freddi Fish starts. Every other game starts through the
+child's own Steam (§8.3). A child whose games all start in ScummVM never starts
+Steam. A game that has started in ScummVM stays there: it never goes back to
+Steam because one look at its files failed (ADR-0059, proposed).
+
+The games file keeps each such game's Steam command, so an older image after a
+rollback still shows its tile. It also gives the game's ScummVM ID and folder
+name. The launcher builds the ScummVM command itself from those two, which it
+checks; the games file never names a program. Cairn writes ScummVM's settings
+for each start, so nothing a child changes in ScummVM's own windows lasts. When
+ScummVM leaves the game for its own windows, through its menu's Return to
+Launcher or after an error, the launcher ends it. An error box that comes while
+the game runs stays until the child presses it (ADR-0059, proposed).
+
+A ScummVM game's progress is kept in the child's home, one folder per game,
+and not in Steam Cloud. Progress a child made in their own Steam copy is copied
+there the first time the game starts this way. Cairn never changes the Steam
+copy, and only a reset of the child's account (§11) deletes it. After an image
+update the children's lists catch up by themselves, with nothing for a parent
+to press (ADR-0059, proposed).
 
 These games are an unusually good fit for ages 5–8: point-and-click problem
 solving, fully voice-acted, no reading required.
@@ -606,11 +630,11 @@ stretch goal. But the **client UI** is never what a child touches.
 
 Mechanism:
 - Steam starts with `-silent` at session login, without a window, for a child
-  who has a Steam tile. The client costs about a gigabyte of memory, so a
-  child without one never starts it (ADR-0027). There is no tray in the L1/L2
-  kiosk, so the compositor keeps the client's windows off the screen
-  (mitigation 3 below).
-- Each game is a tile running `steam -applaunch <appid>`. That command
+  who has a Steam tile. A ScummVM game's tile is not a Steam tile (§8.2). The
+  client costs about a gigabyte of memory, so a child without one never starts
+  it (ADR-0027). There is no tray in the L1/L2 kiosk, so the compositor keeps
+  the client's windows off the screen (mitigation 3 below).
+- Each Steam game is a tile running `steam -applaunch <appid>`. That command
   returns at once while the game loads, so the launcher tracks the game by
   its **window**, not the process: it is "running" while the game's window
   is up and returns to the tiles when the window closes (issue #42). A game
@@ -690,7 +714,9 @@ updates, login expiry, Steam Guard prompts, and cloud save conflicts. Mitigation
    even for a grown-up (ADR-0049).
 
 Combined with a child Steam account in a Steam Family with an explicit game
-allowlist, the exposed surface is small.
+allowlist, the exposed surface is small. A game that starts in ScummVM (§8.2)
+never passes through Steam, so Steam's allowlist does not cover it; Cairn's own
+list for each child is its gate (ADR-0041; ADR-0059, proposed).
 
 ### 8.4 Steam Families
 
@@ -699,6 +725,11 @@ six members share a pooled library, each with their own saves and achievements.
 Adults can allowlist which games a child sees and can launch, set playtime
 schedules, restrict store/community/friends access, and approve purchase
 requests.
+
+None of this reaches a game that starts in ScummVM (§8.2). Steam never sees it
+start, so its allowlist and playtime schedules do not apply. Cairn's list for
+each child is the only gate, and Cairn has no playtime limit of its own yet
+(ADR-0059, proposed).
 
 Caveats to document: developers can opt titles out of Family Sharing at any
 time, and two people cannot play the same title simultaneously unless the family
@@ -734,19 +765,28 @@ Flatpak path, parses `libraryfolders.vdf` for secondary drives, reads every
 `appmanifest_*.acf`, runs `scummvm --detect` per install directory, and emits a
 launcher-agnostic JSON manifest plus optional `.desktop` files. Titles ScummVM
 recognises get native launch commands; everything else routes through Steam.
-Every title is a `games` tile unless a Guardian says otherwise (ADR-0024),
-and the launcher reads kidscan's output as it stands.
+In Cairn's own run, a title ScummVM recognises and starts without asking keeps
+its Steam command and gains its ScummVM ID and folder name (§8.2; ADR-0059,
+proposed).
+Every title is a `games` tile unless a Guardian says otherwise (ADR-0024).
+The launcher takes from kidscan's output only a title, an app id and, for a
+ScummVM game, its ID and folder name, which it checks, and builds every command
+itself (ADR-0033; ADR-0059, proposed).
 Filters out Proton, Steam Linux Runtimes, and Steamworks Redistributables so
 they don't appear as games.
-On the image the Guardian tool's Games page uses it twice: as root over
-the family's shared Steam folder for the children's tiles (ADR-0033), and
-as the Guardian over their own Steam, so a game the parent installed
-anywhere can be picked; Save moves a picked game into the shared folder
-before copying it to each child (ADR-0042, proposed).
+On the image the Guardian tool's Games page runs it as root over the family's
+shared Steam folder for the children's tiles (ADR-0033). ADR-0042 (proposed)
+has the page also run it as the Guardian over their own Steam, with
+`--no-scummvm`, so a game the parent installed anywhere can be picked, and has
+Save move a picked game into the shared folder before copying it to each
+child. ADR-0059 (proposed) makes the run over the shared folder a throwaway
+user's, with no network and no home, so ScummVM's detection never runs as
+root, and has Save copy only the games that start through Steam.
 
 Not yet built: a GUI for category assignment (a parent should never edit
 appids), pictures for tiles other than games (§14; games have theirs,
-ADR-0035, proposed), and the launch-timeout handling described in §8.3.
+ADR-0035, proposed), the launch-timeout handling described in §8.3, and the
+ScummVM path of §8.2 (ADR-0059, proposed).
 
 ---
 
@@ -812,7 +852,9 @@ Two separate reset problems (see §4.6):
 
 **Child account reset** — must be built. Design:
 
-- Everything in a child's home is **disposable except one creations directory**.
+- Everything in a child's home is **disposable except one creations directory**
+  and the progress of the games that start in ScummVM, which Steam Cloud does
+  not keep (§8.2; ADR-0059, proposed). A reset keeps both.
 - Reset wipes the rest and re-copies from a skeleton.
 - Creations sync automatically to a parent-accessible location.
 

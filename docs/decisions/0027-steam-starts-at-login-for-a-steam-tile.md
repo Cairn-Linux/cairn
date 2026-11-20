@@ -5,7 +5,9 @@
 **Closes:** (none) — addresses issue #119
 **Amended by:** ADR-0048, proposed (a grown-up can also start a child's
 Steam while the child is logged out, to update it out of sight, in a
-session of its own and never as `cairn-steam`)
+session of its own and never as `cairn-steam`); ADR-0059, proposed (a
+note only: the rule stands, and the launcher knows a second launch
+form, a ScummVM tile, which is not a Steam tile)
 
 ## Context
 

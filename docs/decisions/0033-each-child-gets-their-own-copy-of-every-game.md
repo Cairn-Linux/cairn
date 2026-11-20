@@ -16,7 +16,10 @@ Steam with their games, so no visit is needed for the first fetch);
 ADR-0048, proposed (on the image a grown-up can have a child's own Steam
 update itself out of sight, and E12 answers check 15 for Steam's tools
 in a Steam left running); the section "Steam Cloud's marker stays out of
-a child's copy" below (2026-11-03, #250)
+a child's copy" below (2026-11-03, #250); ADR-0059, proposed (the choice
+between Steam and DESIGN §8.2 below is made for §8.2: a game the
+image's ScummVM can run starts in it, and its games entry carries a
+`scummvm_game` key beside its Steam command)
 
 ## Context
 
@@ -226,6 +229,9 @@ the child's own home, which no other child can open.**
     own only with one Steam account per child. The maintainer decides
     which before acceptance, and §8.2 is edited in the same change if
     Steam wins.
+    On 2026-11-20 the maintainer chose native ScummVM for every game it
+    can run, and Steam for the rest. ADR-0059 (proposed) carries that
+    choice, and DESIGN §8.2 changes with it in the same change.
 
 This ADR leaves to later ADRs, as ADR-0032 does: tiles that follow what
 each child's Steam can play, and taking a game off a child's tiles for a
