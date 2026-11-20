@@ -44,7 +44,7 @@ Rectangle {
         case ChildLogOut.Warning:
             return qsTr("Log %1 out? Anything %1 has not saved in a game or program is lost. Steam is asked to save first.").arg(name);
         case ChildLogOut.Asking:
-            return qsTr("Confirm with your password, or your fingerprint, in the box that opened.");
+            return qsTr("Confirm with your password in the box that opened.");
         case ChildLogOut.LoggingOut:
             return qsTr("Logging %1 out. Steam gets a moment to save first.").arg(name);
         case ChildLogOut.NotLoggedOut:

@@ -682,7 +682,9 @@ From all of the above, for ADR-0032's helper:
   hardware.
 - A fingerprint through polkit. The image has `fprintd` and authselect's
   `with-fingerprint`, and polkit's PAM service includes `system-auth`, but
-  the VM has no reader.
+  the VM has no reader. That image was Bazzite's. Cairn's own image,
+  built later, does not turn on `with-fingerprint`, so its polkit boxes
+  take the password only (2026-11-20, #264, ADR-0032).
 - A way to Switch User other than the lock screen.
 - Installing a game, and Steam's Settings window, inside cage.
 - A download stopped by the screen lock, and where Steam carries it on.

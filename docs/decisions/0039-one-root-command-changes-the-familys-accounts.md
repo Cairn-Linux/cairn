@@ -132,10 +132,10 @@ to set.
 
 `com.cairnlinux.family` names the command's path. It is `auth_admin`
 for an active session, never `auth_admin_keep`, so the parent types their
-password, or uses a fingerprint, for every change. `allow_any` and
-`allow_inactive` are `no`. The levels rule needs no change: it lets an
-administrator through first and refuses every `com.cairnlinux.` action
-to everyone else, before any prompt.
+password for every change. The image's box offers no fingerprint yet
+(#264, ADR-0032). `allow_any` and `allow_inactive` are `no`. The levels
+rule needs no change: it lets an administrator through first and refuses
+every `com.cairnlinux.` action to everyone else, before any prompt.
 
 ADR-0041 (proposed) gives each subcommand an action of its own, by the
 command's first argument, so a Save of a child's games has its own

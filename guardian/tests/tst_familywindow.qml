@@ -327,7 +327,7 @@ TestCase {
         const repeater = findChild(window, "childRows");
         mouseClick(findChild(repeater.itemAt(0), "moveTo2"));
         compare(window.page.busy, true);
-        compare(outcome(window), "Confirm with your password, or your fingerprint, in the box that opened.");
+        compare(outcome(window), "Confirm with your password in the box that opened.");
         verify(!findChild(repeater.itemAt(0), "moveTo2").enabled);
         verify(!findChild(repeater.itemAt(1), "moveTo1").enabled);
         verify(!findChild(window, "addButton").enabled);
@@ -705,7 +705,7 @@ TestCase {
         compare(window.page.busy, true);
         verify(childRow(window, 0) === row);
         compare(rows(window), ["Ada, Level 1", "Ben, Level 2"]);
-        compare(outcome(window), "Confirm with your password, or your fingerprint, in the box that opened.");
+        compare(outcome(window), "Confirm with your password in the box that opened.");
     }
 
     // The keyboard goes back to the control it was on. The row's first
@@ -3503,7 +3503,7 @@ TestCase {
         mouseClick(card(window, 1));
         mouseClick(findChild(window, "saveButton"));
         compare(window.gamesPage.busy, true);
-        compare(saveOutcome(window), "Confirm with your password, or your fingerprint, in the box that opened.");
+        compare(saveOutcome(window), "Confirm with your password in the box that opened.");
         // The Save's box takes the keyboard, and Tab does not leave it for
         // the page behind.
         const box = findChild(window, "saveProgressBox");

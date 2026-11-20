@@ -65,7 +65,8 @@ On 2026-10-12 the maintainer decided:
   punishment.
 - Showing a child's Steam needs the Guardian's password, or a fingerprint
   on a computer whose reader works on Linux, never the PIN. The fingerprint
-  may be asked before the security key (ADR-0020).
+  may be asked before the security key (ADR-0020). The image does not
+  offer the fingerprint yet ("The fingerprint, for now", below).
 - Until a Guardian can step in inside the child's session (#88), fixing
   what Steam is waiting for means logging the child out. That is
   acceptable if the docs and screens say plainly what to do, and that the
@@ -109,10 +110,11 @@ never reads or writes Steam's files.
   Linux does not let a process trace a program its account cannot read,
   or copy that program's open files, so no other program of the child can
   take cage's connection to KWin. That closes the gap below.
-- **It needs the Guardian's password or fingerprint.** A Cairn polkit
-  action with `auth_admin`, never `auth_admin_keep`, asks through the
-  polkit agent Plasma already runs. PAM's `system-auth` counts wrong tries
-  with faillock (ADR-0020). Inactive and remote sessions get no. Cairn's
+- **It needs the Guardian's password.** A Cairn polkit action with
+  `auth_admin`, never `auth_admin_keep`, asks through the polkit agent
+  Plasma already runs. PAM's `system-auth` counts wrong tries with
+  faillock (ADR-0020). The image's box offers no fingerprint yet ("The
+  fingerprint, for now"). Inactive and remote sessions get no. Cairn's
   polkit rule answers no to a Cairn action, before any prompt, unless the
   asking account is an administrator (ADR-0023, rank 1). That covers every
   child at every level, and accounts Cairn did not make. The helper checks
@@ -255,11 +257,13 @@ steps for parents go in `docs/TRY.md`.
   (ADR-0018) does not power off: Plasma's power manager takes the key and
   offers Sleep, Restart, Shut Down and Log Out, and its Shut Down went the
   same way.
-- In the image's authselect profile, a fingerprint is accepted before the
-  password and before the security key that ADR-0020 offers. A Guardian
-  with both can open a visit with the fingerprint alone, and the same is
-  true for sudo, su and the lock screen. The first-boot wizard and the
-  Guardian tool say so wherever they offer either one.
+- The image's authselect profile does not have `with-fingerprint`, so a
+  visit, sudo and su take the password only ("The fingerprint, for now").
+  Once a change of its own turns it on, a fingerprint is accepted before
+  the password and before the security key that ADR-0020 offers. A
+  Guardian with both can then open a visit with the fingerprint alone,
+  and the same is true for sudo and su. The first-boot wizard and the
+  Guardian tool then say so wherever they offer either one.
 - **The gap, closed by the run-only copy of cage.** Anything the child's
   account can change runs during a visit. `/usr/bin/steam` runs the copy
   of Steam in the child's home, and the visit's session starts the child's
@@ -302,8 +306,9 @@ steps for parents go in `docs/TRY.md`.
   to press Done first; each of them with no process of the child left, a
   detached one included; the window's close button, Exit in Steam's menu and
   killing the Guardian's window each ending with nothing of the child left;
-  the Guardian's own Steam paused and back; the label. The fingerprint needs
-  a reader, so it is checked where one exists or stated as unchecked.
+  the Guardian's own Steam paused and back; the label. The fingerprint is
+  checked in the change that turns it on, not here ("The fingerprint, for
+  now").
 - **Checked so far** (VM, 2026-10-12, `docs/research/steam-visit.md`):
   the child refused at the login screen during a visit, with the sentence
   "A grown-up is setting something up for you. Try again soon.", and let
@@ -320,7 +325,7 @@ steps for parents go in `docs/TRY.md`.
   own Steam paused (2 s) and back; the label; the
   entries in the Guardian's menu and not in a child's. Still to check:
   everything that needs a signed-in Steam, Exit in Steam's menu among
-  them, and a fingerprint where a reader exists.
+  them.
 - **Dependencies.** cage 0.3.1 is part of the Bazzite image
   (`cage-0.3.1-1.fc44`, not a layered package), so the helper adds no
   package, and Cairn's image has to keep it. It is a program the helper
@@ -328,9 +333,10 @@ steps for parents go in `docs/TRY.md`.
   through `pkexec`, run with `QProcess`, which needs no new library.
   polkit-qt6-1 is in the image too, but linking it would be a new
   dependency, which needs its own ADR (CLAUDE.md, "Dependencies"). The
-  login refusal uses upstream `pam_listfile`. The fingerprint comes from
-  upstream: the image's authselect profile has `with-fingerprint`, and
-  polkit's PAM service includes `system-auth`, where `pam_fprintd` sits.
+  login refusal uses upstream `pam_listfile`. A fingerprint would come
+  from upstream too: polkit's PAM service includes `system-auth`, where
+  authselect's `with-fingerprint` puts `pam_fprintd`. The image does not
+  turn that feature on yet ("The fingerprint, for now").
   polkit 127 reads actions from `/etc/polkit-1/actions` too, so the action
   needs no write to the read-only `/usr`. pkexec finds the action by the
   helper's real path, and on Bazzite `/usr/local` is a link to
@@ -341,7 +347,7 @@ steps for parents go in `docs/TRY.md`.
   status becomes "amended by ADR-0026, ADR-0032".
 - When this ADR is accepted, DESIGN §3.2 and §8.3 are edited in the same
   change. In §3.2 that is the Games row, and "Two access paths", which
-  records the second check, password or fingerprint, inside the
+  records the second check, the Guardian's password, inside the
   Guardian's own login. In §8.3 it is a grown-up's way to see a child's
   Steam.
 - systemd counted a memory peak of 1.7 GB for a visit's session scope in
@@ -351,3 +357,41 @@ steps for parents go in `docs/TRY.md`.
   hardware.
 - Nothing phones home. The only network traffic is Steam's own, for an
   account the family chose.
+
+## The fingerprint, for now (2026-11-20, #264)
+
+This ADR said the image's authselect profile has `with-fingerprint`.
+It does not.
+The image's build turns on `with-faillock` and not `with-fingerprint`
+(`build_files/build.sh`), so `/etc/pam.d/system-auth` has no
+`pam_fprintd`.
+On a fresh install, Family's boxes, the visit's box, sudo and su take
+the password only, even on a computer with a reader.
+Family's words said "Confirm with your password, or your fingerprint, in
+the box that opened."
+They now say "Confirm with your password in the box that opened."
+
+- The lock screen is separate.
+  Its own `kde-fingerprint` takes a finger where a reader exists and a
+  finger is enrolled, and never counts a missing reader as a wrong try
+  (ADR-0051).
+- A computer moved to the image from Bazzite keeps its own authselect
+  setting in `/etc`.
+  Bazzite's has `with-fingerprint`, so on such a computer with a reader,
+  these boxes may still offer a finger.
+  The kids' laptop has no reader.
+- On 2026-11-20 the maintainer decided to turn the fingerprint on later,
+  in a change of its own, once a computer with a reader can check it.
+  That change also says what a wrong finger does to the three tries,
+  and how the login screen (ADR-0052) and Family's Notices page
+  (ADR-0054) speak of it.
+  As authselect writes `with-fingerprint`, a wrong finger at sudo or a
+  polkit box is never counted (ADR-0051).
+- The fingerprint check under "Also checked in the VM before
+  acceptance" moves to that change.
+  What still stands before this ADR is accepted are the checks that need
+  a signed-in Steam.
+- DESIGN.md does not say a fingerprint opens these boxes, so it does not
+  change here.
+  The maintainer's decision of 2026-10-12 still names the fingerprint as
+  the aim.

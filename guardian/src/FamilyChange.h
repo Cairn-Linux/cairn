@@ -8,8 +8,8 @@
 #include <QStringList>
 
 // One run of cairn-family (ADR-0039) through pkexec, from the Guardian's
-// window. pkexec asks for the Guardian's password or fingerprint, then
-// runs the command as root, which makes one change and answers in one line.
+// window. pkexec asks for the Guardian's password, then runs the command
+// as root, which makes one change and answers in one line.
 //
 // polkit judges the process that started pkexec, so pkexec is started
 // directly, never through a shell. One change runs at a time.

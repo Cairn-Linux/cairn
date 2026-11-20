@@ -33,7 +33,7 @@ Column {
         const name = box.saving.progressName;
         switch (box.saving.step) {
         case GamesSaving.Asking:
-            return qsTr("Confirm with your password, or your fingerprint, in the box that opened.");
+            return qsTr("Confirm with your password in the box that opened.");
         case GamesSaving.Saving:
             // A Save and a look both take Steam's tools from the parent's
             // own Steam (ADR-0046).

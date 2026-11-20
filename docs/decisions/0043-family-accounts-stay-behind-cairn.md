@@ -341,9 +341,12 @@ that image.
 - Only the image build removes the game art. A computer set up by hand
   with `provision/cairn-provision.sh` keeps Bazzite's `/usr` as it is,
   so Family there still offers the 15 game pictures beside KDE's 37.
-- Where a fingerprint reader is set up, polkit takes the Guardian's
-  fingerprint in place of the current password, as in every other polkit
-  box on the machine.
+- On the image, polkit's box takes the current password only: the image
+  does not turn on authselect's `with-fingerprint` (#264, ADR-0032). A
+  computer moved to the image from Bazzite keeps its own authselect
+  setting, so where that has `with-fingerprint` and a reader is set up,
+  polkit takes the Guardian's fingerprint in place of the current
+  password, as in every other polkit box on that computer.
 - A forgotten Guardian password is not mended here. Another Guardian,
   or the machine's own recovery, is the way, as before. Family letting
   one Guardian set a new password for another is #233, decided on
