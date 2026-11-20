@@ -519,7 +519,8 @@ parent docs as a known gap, as Mason chose for #86 on 2026-11-02.
   And the fingerprint is missing from the image, against ADR-0032 and
   the "or your fingerprint" in the Guardian tool's words: #264.
   Since 2026-11-20 those words ask for the password only, and ADR-0032
-  says the image has no fingerprint ("The fingerprint, for now").
+  says the image's password boxes (Family's, the visit's, sudo and su)
+  offer no fingerprint ("The fingerprint, for now").
   Nothing in this ADR relies on a fingerprint.
 
 ### Where it applies
@@ -586,10 +587,10 @@ The Family app's "Open Steam for Ada" is on the image only (ADR-0041).
   ADR-0032's other signed-in checks still stand before it is accepted:
   a game installed in a visit, the overlay and Steam Cloud turned off
   inside cage, and a saved account removed during a visit.
-  So did its text on the fingerprint, which the image does not bear
-  out ("What the research found", #264); since 2026-11-20 ADR-0032
-  says the image has none, and its fingerprint check waits for the
-  change that turns the fingerprint on.
+  Its text on the fingerprint did too, as the image did not bear it out
+  ("What the research found", #264); since 2026-11-20 ADR-0032 says
+  the image's password boxes offer no fingerprint, and its fingerprint
+  check waits for the change that turns the fingerprint on.
 - The grown-up screen now tells a child that grown-ups have logins of
   their own.
   The login screen already shows grown-ups' tiles, and DESIGN §3.2's

@@ -65,8 +65,8 @@ On 2026-10-12 the maintainer decided:
   punishment.
 - Showing a child's Steam needs the Guardian's password, or a fingerprint
   on a computer whose reader works on Linux, never the PIN. The fingerprint
-  may be asked before the security key (ADR-0020). The image does not
-  offer the fingerprint yet ("The fingerprint, for now", below).
+  may be asked before the security key (ADR-0020). (Since 2026-11-20:
+  the image does not offer it yet, "The fingerprint, for now", below.)
 - Until a Guardian can step in inside the child's session (#88), fixing
   what Steam is waiting for means logging the child out. That is
   acceptable if the docs and screens say plainly what to do, and that the

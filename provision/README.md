@@ -440,6 +440,8 @@ own groups.
    On a computer with a reader, Family's boxes, sudo and su may then
    offer a finger, which a fresh install of the image does not yet
    (#264, ADR-0032).
+   A wrong finger there is never counted toward the three tries
+   (ADR-0051).
    `sudo ostree admin config-diff` lists every `/etc` file that differs
    from the image.
 7. Keep the `semanage fcontext` rules for `/var/lib/faillock` and

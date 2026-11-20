@@ -580,11 +580,12 @@ password again.
 From all of the above, for ADR-0032's helper:
 
 - [x] Start only from the Guardian's own Plasma session, through a polkit
-  action that asks for the Guardian's password or fingerprint every time:
-  `auth_admin`, never `auth_admin_keep`, and no for inactive or remote
-  sessions. Any account that is not an administrator (ADR-0023, rank 1)
-  gets no, before any prompt: every child at every level, and accounts
-  Cairn did not make.
+  action that asks for the Guardian's password every time (a fingerprint
+  only where authselect's `with-fingerprint` is on; Cairn's image does not
+  turn it on, #264, ADR-0032): `auth_admin`, never `auth_admin_keep`, and
+  no for inactive or remote sessions. Any account that is not an
+  administrator (ADR-0023, rank 1) gets no, before any prompt: every child
+  at every level, and accounts Cairn did not make.
 - [x] Start the helper once per visit, through `pkexec`, and keep that one
   root process for the whole visit, so closing never asks again.
 - [x] Open the visit only on the Wayland socket of the account that
