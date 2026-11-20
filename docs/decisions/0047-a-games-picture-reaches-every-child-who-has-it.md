@@ -9,6 +9,9 @@ check 3 (Run on 2026-10-31, at its end).
 **Date:** 2026-10-31
 **Closes:** (none) — issue #205; part of ROADMAP P1-5 and P1-13. Once
 accepted, amends ADR-0035, ADR-0041 and ADR-0042.
+**Amended by:** ADR-0060, proposed (pictures also come from Steam's
+store, after the family's yes or a Guardian's press in Family, and the
+Save window gains sentences for them)
 
 ## Context
 
@@ -262,6 +265,7 @@ from Steam's store, never without the parent's permission: a question
 the first time a parent sets up a child's games, and a button on the
 Games page to fetch pictures at any time. That reaches the internet, so
 it needs an ADR of its own, which amends ADR-0035's "never downloaded".
+ADR-0060 (proposed 2026-11-20) takes this up.
 
 ## Alternatives considered
 

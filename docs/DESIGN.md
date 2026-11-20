@@ -182,7 +182,7 @@ locked icon, nothing to probe.
 | Permissions | Per-child app allowlist, game allowlist, browser access |
 | Time | Schedules and daily limits |
 | System | OS updates and rollback (§10), Wi-Fi, printers |
-| Games | Run the scanner, choose each child's own games from the Guardian's own Steam (ADR-0041, ADR-0042), update a child's Steam while they are logged out (§8.3; ADR-0048, proposed), open a child's own Steam to sign it in or answer it (ADR-0032, proposed), assign categories, manage tiles (§8.7) |
+| Games | Run the scanner, choose each child's own games from the Guardian's own Steam (ADR-0041, ADR-0042), get a missing game picture from Steam's store when they say so (ADR-0060, proposed), update a child's Steam while they are logged out (§8.3; ADR-0048, proposed), open a child's own Steam to sign it in or answer it (ADR-0032, proposed), assign categories, manage tiles (§8.7) |
 | Data | Reset a child account; export creations (§11) |
 | Notices | See in Family each time wrong passwords were typed on the computer in the last 30 days, for every account, where, from whose login, and whether that locked the account, read from the journal and kept nowhere else (ADR-0054) |
 | About | See in Family what Cairn Linux is, which version the computer runs when the image says, that it is not Bazzite's, Universal Blue's, Red Hat's or Fedora's, and where its licences are (ADR-0040, ADR-0038) |
@@ -489,8 +489,8 @@ The launcher **is the product.** Everything else is packaging.
   per app. Games are Paper cards with a hairline edge (ADR-0024).
 - A game's tile shows the game's own picture inside its Paper card, in place
   of its title, so a child who cannot read can find it. The picture is the
-  header art the Guardian's Steam already keeps, copied on the computer and
-  never downloaded; a game with no picture shows its name as a quiet card.
+  header art the Guardian's Steam already keeps, copied on the computer; a
+  game with no picture shows its name as a quiet card.
   ADR-0024 kept the games quiet so that making stays the loudest thing in
   the grid; the pictures make the games louder than making, which the next
   child test checks (ADR-0035, proposed).
@@ -500,6 +500,13 @@ The launcher **is the product.** Everything else is packaging.
   longer has it.
   The Guardian's Family app names each game without a picture and says how
   to add one (ADR-0047).
+  A missing picture can also come from Steam's store, but only when a
+  Guardian asks for it with a button on Family's Games page, or has said
+  yes in Family to getting such pictures when games are saved. Family
+  shows what is sent and to whom before the yes, and before each press
+  while the answer is not yes. The store only fills a gap: the Guardian's
+  own Steam's picture comes first, and the launcher still reads only files
+  on the computer (ADR-0060, proposed).
 
 ### 6.2 Visual direction
 
@@ -786,6 +793,21 @@ Exception: Steam and Minecraft require their own accounts. These are the
 family's relationship with those vendors, not this project's, and should be
 documented as such.
 
+Cairn's own programs connect to the internet only when a grown-up presses
+or runs something that says so. Under ADR-0060 (proposed), the one Cairn
+program that opens a connection itself is the step that gets missing game
+pictures from Steam's store, and it runs only on a Guardian's press in
+Family. Family shows what is sent and to whom before a Guardian's yes, and
+before each press while the answer is not yes. Valve, and the companies
+that deliver Steam's store over the internet, then see the computer's
+internet address, the time, its country setting and which shared games
+need a picture. No account, no one's name and nothing about a child is
+sent, and nothing in a child's session can start a request. Family's About
+page also hands two web addresses to the grown-up's own browser when its
+buttons are pressed, and provisioning a computer by hand installs packages
+from the internet. `docs/research/network-activity.md` is the inventory of
+what the image contacts.
+
 ---
 
 ## 10. Build and release
@@ -925,7 +947,7 @@ parallel workstream.
 |---|---|---|
 | 1 | Launcher implementation | **Decided (ADR-0002):** C++20 with Qt 6 and QML for every first-party surface. |
 | 2 | L1/L2 command vocabulary | Which ~5 and ~12 commands, exactly. Needs testing with an actual child. |
-| 3 | Icon art source | **Partly decided (ADR-0035, proposed):** a game's tile shows the header art the Guardian's Steam keeps under `appcache/librarycache`, copied on the computer and never downloaded, inside Cairn's own Paper card. That brings some of the store's visual language onto the home screen; the next child test (ROADMAP P1-17) checks whether it pulls the children away from making. Still open for every other tile: the app's own icon, a picture a parent chooses, or a first-party icon set (brand v0.2)? |
+| 3 | Icon art source | **Partly decided (ADR-0035, proposed):** a game's tile shows the header art the Guardian's Steam keeps under `appcache/librarycache`, copied on the computer, inside Cairn's own Paper card. A picture the Guardian's Steam does not have can come from Steam's store, only after a Guardian says yes in Family or presses the Games page's button for it (ADR-0060, proposed). That brings some of the store's visual language onto the home screen; the next child test (ROADMAP P1-17) checks whether it pulls the children away from making. Still open for every other tile: the app's own icon, a picture a parent chooses, or a first-party icon set (brand v0.2)? |
 | 4 | Offline-first? | **Decided (ADR-0007):** offline-capable, not offline-first. Everything a child does works without a network; updates and the Steam/Minecraft integrations need one and fail calmly. |
 | 5 | Localization scope | **Decided (ADR-0007):** English-only v1, every first-party string externalised from the first commit so translation later is a translation job. |
 | 6 | Accessibility beyond typography | **Decided (ADR-0008):** high-contrast and large-text modes in v1 as token variants; screen reader and dwell click in Phase 3; `Accessible.name` on every control from the start. |

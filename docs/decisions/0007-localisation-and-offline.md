@@ -5,7 +5,8 @@
 **Closes:** ROADMAP D8 (DESIGN §14 Q4, Q5)
 **Amended by:** ADR-0044, proposed (the boot screen's three Plymouth
 strings are English only until Phase 3; Plymouth's script cannot
-translate)
+translate); ADR-0060, proposed (game pictures from Steam's store need a
+network too, only when a Guardian asks, and fail calmly offline)
 
 ## Context
 
