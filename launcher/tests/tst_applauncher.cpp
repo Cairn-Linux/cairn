@@ -2,6 +2,7 @@
 #include "AppLauncher.h"
 #include "BootClock.h"
 #include "SteamAtLogin.h"
+#include "SteamUpdateWatch.h"
 
 #include <QCoreApplication>
 #include <QDateTime>
@@ -197,6 +198,48 @@ QStringList linesOf(const QString& path) {
     return QString::fromUtf8(file.readAll()).split(QLatin1Char('\n'), Qt::SkipEmptyParts);
 }
 
+// A process list of the test's own with one `steam` of this user in it, so
+// the watch never reads this computer's processes (ADR-0061).
+struct SteamRunning {
+    QTemporaryDir dir;
+    SteamRunning() {
+        QDir(dir.path()).mkpath(QStringLiteral("4242"));
+        QFile comm(dir.filePath(QStringLiteral("4242/comm")));
+        if (comm.open(QIODevice::WriteOnly)) {
+            comm.write("steam\n");
+        }
+    }
+};
+
+// The updater starting the client half a minute ago and installing an
+// update of it first.
+void steamIsUpdating() {
+    const QString bootstrap = QStringLiteral("bootstrap_log.txt");
+    steamLogs(bootstrap, 30, "Startup - updater built Sep  3 2026 01:31:48");
+    steamLogs(bootstrap, 30, "Found pending update");
+    steamLogs(bootstrap, 29, "Installing update...");
+}
+
+// The journal's lines since a case began, for the cases that count them.
+QStringList& journal() {
+    static QStringList lines;
+    return lines;
+}
+
+QtMessageHandler& testHandler() {
+    static QtMessageHandler handler = nullptr;
+    return handler;
+}
+
+void keepJournal(QtMsgType type, const QMessageLogContext& context, const QString& message) {
+    if (type == QtInfoMsg) {
+        journal().append(message);
+    }
+    if (testHandler() != nullptr) {
+        testHandler()(type, context, message);
+    }
+}
+
 // Cases about whose a window is set the steady wait to zero, so the app is
 // open the moment its window is up; the cases about the wait set it short.
 class AppLauncherTest : public QObject {
@@ -207,6 +250,11 @@ private slots:
         QVERIFY(dataHome().isValid());
         qputenv("XDG_DATA_HOME", dataHome().path().toUtf8());
         QVERIFY(QDir(dataHome().path()).mkpath(QStringLiteral("Steam/logs")));
+        testHandler() = qInstallMessageHandler(keepJournal);
+    }
+
+    void cleanupTestCase() {
+        qInstallMessageHandler(testHandler());
     }
 
     void startsIdle() {
@@ -1996,6 +2044,138 @@ private slots:
         // A press after the launch still ends it.
         launcher.giveUp(BootClock::milliseconds());
         QCOMPARE(launcher.state(), AppLauncher::State::Idle);
+    }
+    // While Steam updates itself, a press on a game that starts in Steam
+    // opens nothing and is answered each time; the journal says so once
+    // for the game in this update (ADR-0061).
+    void aPressOnASteamGameWhileSteamUpdatesOpensNothing() {
+        forgetSteamsLogs();
+        steamIsUpdating();
+        const SteamRunning steam;
+        SteamUpdateWatch watch(this);
+        watch.setProcessRoot(steam.dir.path());
+        watch.setActive(true);
+        QVERIFY(watch.updating());
+        AppLauncher launcher(this);
+        launcher.setSteamUpdate(&watch);
+        QCOMPARE(launcher.steamUpdate(), &watch);
+        const QSignalSpy held(&launcher, &AppLauncher::heldForSteam);
+        const QSignalSpy states(&launcher, &AppLauncher::stateChanged);
+        journal().clear();
+        for (int press = 1; press <= 3; ++press) {
+            launcher.press(QStringLiteral("Pajama Sam 2"), pajamaSam2());
+            QCOMPARE(held.count(), press);
+        }
+        QCOMPARE(launcher.state(), AppLauncher::State::Idle);
+        QCOMPARE(states.count(), 0);
+        QVERIFY(launcher.title().isEmpty());
+        QCOMPARE(journal().count(QStringLiteral("Pajama Sam 2 did not open: Steam is updating "
+                                                "itself.")),
+                 1);
+        // Another game gets a line of its own.
+        launcher.press(QStringLiteral("Freddi Fish 2"), freddiFish2());
+        QCOMPARE(held.count(), 4);
+        QCOMPARE(journal().count(QStringLiteral("Freddi Fish 2 did not open: Steam is updating "
+                                                "itself.")),
+                 1);
+        QCOMPARE(launcher.state(), AppLauncher::State::Idle);
+    }
+
+    // A tile that does not start in Steam opens as usual during an update.
+    void aPressOnADrawingAppWhileSteamUpdatesOpensIt() {
+        forgetSteamsLogs();
+        steamIsUpdating();
+        const SteamRunning steam;
+        SteamUpdateWatch watch(this);
+        watch.setProcessRoot(steam.dir.path());
+        watch.setActive(true);
+        QVERIFY(watch.updating());
+        AppLauncher launcher(this);
+        launcher.setSteamUpdate(&watch);
+        const QSignalSpy held(&launcher, &AppLauncher::heldForSteam);
+        launcher.press(QStringLiteral("Draw"),
+                       {shell(), QStringLiteral("-c"), QStringLiteral("exit 0")});
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+        QCOMPARE(launcher.title(), QStringLiteral("Draw"));
+        QCOMPARE(held.count(), 0);
+        QTest::qWait(300); // reap the process before the launcher is destroyed.
+    }
+
+    // With Steam not updating itself, a press on a Steam game is a launch.
+    void aPressOnASteamGameWithSteamReadyOpensIt() {
+        forgetSteamsLogs();
+        const SteamRunning steam;
+        SteamUpdateWatch watch(this);
+        watch.setProcessRoot(steam.dir.path());
+        watch.setActive(true);
+        QVERIFY(!watch.updating());
+        const QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QByteArray path = putSteamStandInOnPath(dir);
+        AppLauncher launcher(this);
+        launcher.setSteamUpdate(&watch);
+        const QSignalSpy held(&launcher, &AppLauncher::heldForSteam);
+        launcher.press(QStringLiteral("Pajama Sam 2"), pajamaSam2());
+        qputenv("PATH", path);
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+        QCOMPARE(held.count(), 0);
+        QTest::qWait(300); // reap the process before the launcher is destroyed.
+    }
+
+    // The tiles still showed Steam updating, but a read at the press says
+    // it has just finished: the wait ends and the game opens.
+    void aPressAsSteamFinishesOpensTheGame() {
+        forgetSteamsLogs();
+        steamIsUpdating();
+        const SteamRunning steam;
+        SteamUpdateWatch watch(this);
+        watch.setProcessRoot(steam.dir.path());
+        watch.setActive(true);
+        QVERIFY(watch.updating());
+        steamLogs(QStringLiteral("console_log.txt"), 0, steamStartsItself());
+        const QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QByteArray path = putSteamStandInOnPath(dir);
+        AppLauncher launcher(this);
+        launcher.setSteamUpdate(&watch);
+        const QSignalSpy held(&launcher, &AppLauncher::heldForSteam);
+        journal().clear();
+        launcher.press(QStringLiteral("Pajama Sam 2"), pajamaSam2());
+        qputenv("PATH", path);
+        QVERIFY(!watch.updating());
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+        QCOMPARE(held.count(), 0);
+        QVERIFY(!journal().isEmpty());
+        QVERIFY(journal().first().startsWith(QStringLiteral("Steam finished updating itself")));
+        QTest::qWait(300); // reap the process before the launcher is destroyed.
+    }
+
+    // The Terminal's `open` calls launch(), which is never refused: a Steam
+    // game opened there during an update waits on the starting screen.
+    void aLaunchWhileSteamUpdatesIsNeverRefused() {
+        forgetSteamsLogs();
+        steamIsUpdating();
+        const SteamRunning steam;
+        SteamUpdateWatch watch(this);
+        watch.setProcessRoot(steam.dir.path());
+        watch.setActive(true);
+        QVERIFY(watch.updating());
+        const QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QByteArray path = putSteamStandInOnPath(dir);
+        AppLauncher launcher(this);
+        launcher.setSteamUpdate(&watch);
+        const QSignalSpy held(&launcher, &AppLauncher::heldForSteam);
+        journal().clear();
+        launcher.launch(QStringLiteral("Pajama Sam 2"), pajamaSam2());
+        qputenv("PATH", path);
+        QCOMPARE(launcher.state(), AppLauncher::State::Starting);
+        QCOMPARE(launcher.title(), QStringLiteral("Pajama Sam 2"));
+        QCOMPARE(held.count(), 0);
+        QCOMPARE(journal().count(QStringLiteral("Pajama Sam 2 did not open: Steam is updating "
+                                                "itself.")),
+                 0);
+        QTest::qWait(300); // reap the process before the launcher is destroyed.
     }
 };
 

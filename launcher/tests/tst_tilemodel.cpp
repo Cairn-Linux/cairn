@@ -62,6 +62,39 @@ private slots:
         QCOMPARE(model.roleNames().value(TileModel::AccessibleNameRole),
                  QByteArray("accessibleName"));
         QCOMPARE(model.roleNames().value(TileModel::PictureRole), QByteArray("picture"));
+        QCOMPARE(model.roleNames().value(TileModel::StartsInSteamRole),
+                 QByteArray("startsInSteam"));
+    }
+
+    // Only a tile whose command starts a game in Steam waits while Steam
+    // updates itself (ADR-0061): never an app, the Terminal or a tile with
+    // nothing set up.
+    void onlySteamGamesStartInSteam() {
+        const QString manifest = write("manifest-steam.json", R"({"version": 1, "entries": [
+            {"title": "Paint", "category": "make", "exec": ["tuxpaint"]},
+            {"title": "Music", "category": "make", "exec": []},
+            {"title": "Steam itself", "category": "practice", "exec": ["steam"]}]})");
+        const QString games = write("games-steam.json", R"({"version": 1, "entries": [
+            {"title": "Game one", "category": "games", "exec": ["steam", "-applaunch", "1001"]}]})");
+        TileModel model(this);
+        QVERIFY(!model.anyStartsInSteam());
+        const QSignalSpy anyChanged(&model, &TileModel::anyStartsInSteamChanged);
+        model.setManifestPath(manifest);
+        QVERIFY(!model.anyStartsInSteam());
+        QCOMPARE(anyChanged.count(), 0);
+        model.setGamesPath(games);
+        QVERIFY(model.anyStartsInSteam());
+        QCOMPARE(anyChanged.count(), 1);
+        QCOMPARE(model.rowCount(), 5);
+        const QList<bool> expected{false, false, false, true, false};
+        for (int row = 0; row < model.rowCount(); ++row) {
+            QCOMPARE(model.data(model.index(row), TileModel::StartsInSteamRole).toBool(),
+                     expected.at(row));
+            QCOMPARE(model.tiles().at(row).startsInSteam, expected.at(row));
+        }
+        model.setGamesPath(QString());
+        QVERIFY(!model.anyStartsInSteam());
+        QCOMPARE(anyChanged.count(), 2);
     }
 
     // The games file's tiles come after the manifest's, and the Terminal is

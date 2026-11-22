@@ -13,7 +13,7 @@ QtObject {
     readonly property color moss: "#7C956A"  // Practice tiles (GCompris, Tux). Large fills only, never text
     readonly property color sand: "#F4EDE0"  // Everyday ground
     readonly property color paper: "#FBF7EF"  // Cards on Sand, and games tiles (ADR-0024)
-    readonly property color pebble: "#E8DFCC"  // Pill and chip fill on Sand (derived tint used in the guide)
+    readonly property color pebble: "#E8DFCC"  // Pill and chip fill on Sand, and the chip on a game tile that waits while Steam updates itself (ADR-0061; derived tint used in the guide)
     readonly property color line: "#E0D5BF"  // Hairline borders on Sand and Paper, and the edge of a games tile (derived tint used in the guide)
 
     // ---- semantic: use these in UI, not the palette names ----
@@ -80,7 +80,8 @@ QtObject {
     // ---- motion (milliseconds) ----
     // Milliseconds. Motion only says something true (ADR-0028): rows of tiles
     // sliding into view, the mark building one stone at a time while a tile
-    // starts. Never to decorate, distract, reward, or hold a child's
+    // starts, and on a Steam game's tile while Steam updates itself
+    // (ADR-0061). Never to decorate, distract, reward, or hold a child's
     // attention; slow and small, and nothing flashes.
     readonly property int motionRow: 160
     readonly property int motionStone: 500

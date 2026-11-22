@@ -57,7 +57,14 @@ Column {
     }
 
     Words {
+        objectName: "gamesIntro"
         text: qsTr("Each child has their own list of the games in the shared folder. A new child starts with none. Tap a game to put it on the list or take it off, then press Save. A child sees their games the next time they log in.")
+    }
+
+    // What a child's tiles do while Steam updates itself (ADR-0061).
+    Words {
+        objectName: "steamUpdateWords"
+        text: qsTr("While Steam updates itself, the games that start in Steam look faded on a child's screen, with small stones building in the middle. They open again when Steam is done, often about a minute after login, and longer the first time a child uses Steam. Other tiles open as usual.")
     }
 
     Words {

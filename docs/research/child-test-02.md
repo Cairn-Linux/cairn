@@ -63,7 +63,7 @@ Holding the **power button** for five seconds turns the laptop off.
 ## What to look for
 
 Each entry is one thing the docs say this test is meant to see.
-Entry 13 is a proposal.
+Entries 13 and 19 are proposals.
 "Not seen" is a fair answer.
 
 ### While a child uses the computer
@@ -262,6 +262,33 @@ When to run them is under "Not decided yet".
   of the two levels, and never as an account with no level.
 - Seen / not seen: __________  Notes: ______________________________
 
+### A staged try
+
+#### 19. Proposal: Steam games that wait while Steam updates itself (ADR-0061, proposed)
+
+- Runs only on a test build of the change, in nested labwc on the dev PC
+  or in the test VM, never on the laptop's own build.
+  The update is made up with `tools/make-steam-update.sh`, for a
+  throwaway account.
+  It ends about 30 to 60 seconds after a child first presses a faded
+  game.
+  Whether it runs at this test is under "Not decided yet".
+- **Try:** start the made-up update while the child is at the tiles.
+  The Steam games fade, with small stones building in the middle of
+  each.
+  Say nothing about them.
+- **Counts as seen:** the child chose a tile while the games were faded.
+- **Write down:** the first tile pressed, and whether it was faded; how
+  many presses went to faded games and how many to other tiles; after a
+  press on a faded game, what the child did next (pressed it again,
+  picked another tile, looked away, fetched you) and how long that took;
+  whether the child could find a game by its faded picture when asked,
+  such as "Show me the Arthur game"; anything said, in the child's own
+  words, such as "broken".
+  Afterwards ask once "What are the little stones doing?" and write the
+  answer as said.
+- Seen / not seen: __________  Notes: ______________________________
+
 ## Notes
 
 One sheet for each child. Copy a sheet for each child after the second.
@@ -457,6 +484,9 @@ Only the maintainer can answer these. None has an answer on this page.
     It is not required (ADR-0031).
 17. **Does entry 13 stay?**
     No doc says this test must see it.
+18. **Does entry 19 run at this test?**
+    It needs a test build of ADR-0061's change, which is not merged.
+    Proposal: on another evening if that build is not ready.
 
 ## Where each line comes from
 
@@ -485,6 +515,7 @@ Only the maintainer can answer these. None has an answer on this page.
 | 16. Every help button and outside link in the allowed apps | P1-17; #8 |
 | 17. A stale or unrelated window cannot trap the child | P1-17; #8; ADR-0026; `kiosk-containment.md`, which opened its test windows from a second terminal |
 | 18. A level change interrupted part-way fails closed | P1-17; #8; ADR-0023; ADR-0039 |
+| 19. Proposal: Steam games that wait while Steam updates itself | ADR-0061, "Checks"; the maintainer's request of 2026-11-20 and his choice of 2026-11-21 |
 
 ### The top part and the steps
 

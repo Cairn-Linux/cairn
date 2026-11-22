@@ -31,6 +31,9 @@ Window {
     // UPower's name on the system bus, set by main.cpp. Empty reads no
     // battery, as in the tests.
     property string batteryService: ""
+    // Where the building stones are on every tile that waits for Steam,
+    // counted by the one clock below, so all of them build in step.
+    property int stoneStep: 0
 
     title: qsTr("Cairn")
     visibility: Window.Windowed
@@ -71,8 +74,41 @@ Window {
         ownAppId: windows.ownAppId
         scoped: window.scopeApps
         steamStartedAtLogin: window.steamStartedAtLogin
+        steamUpdate: steamUpdate
         // Steam's updater's windows are kept out of the child's reach (#183).
         onWindowToHide: identifier => windows.minimize(identifier)
+        // A press on a game that waits for Steam opens nothing. It is
+        // answered at once: every waiting tile's stones start again from
+        // none, together (ADR-0061).
+        onHeldForSteam: {
+            stoneClock.restart();
+            window.stoneStep = -1;
+        }
+    }
+
+    // Whether Steam is updating itself, read only while the tiles are in
+    // front (ADR-0061).
+    SteamUpdateWatch {
+        id: steamUpdate
+
+        objectName: "steamUpdate"
+        active: tileWindow.visible && launcher.state === AppLauncher.Idle
+    }
+
+    // The one clock for the stones on every waiting tile. It runs only while
+    // a tile waits and the tiles are in front.
+    Timer {
+        id: stoneClock
+
+        objectName: "stoneClock"
+        interval: Tokens.motionStone
+        repeat: true
+        running: steamUpdate.active && steamUpdate.updating && tiles.anyStartsInSteam
+        onRunningChanged: {
+            if (running)
+                window.stoneStep = 0;
+        }
+        onTriggered: window.stoneStep += 1
     }
 
     // Footpath, the terminal (ADR-0014). The tiles are its doors; open there
@@ -300,16 +336,19 @@ Window {
                 required property int index
                 required property list<string> exec
                 required property bool opensTerminal
+                required property bool startsInSteam
                 required picture
 
                 width: grid.cellWidth - Tokens.headingSize
                 height: grid.cellHeight - Tokens.headingSize
                 focus: GridView.isCurrentItem
+                waitsForSteam: startsInSteam && steamUpdate.updating
+                stoneStep: window.stoneStep
                 onActiveFocusChanged: {
                     if (activeFocus)
                         grid.currentIndex = index;
                 }
-                onActivated: opensTerminal ? window.openTerminal() : launcher.launch(title, exec)
+                onActivated: opensTerminal ? window.openTerminal() : launcher.press(title, exec)
             }
         }
     }

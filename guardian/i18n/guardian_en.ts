@@ -569,52 +569,57 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="66"/>
+        <location filename="../qml/GamesView.qml" line="67"/>
+        <source>While Steam updates itself, the games that start in Steam look faded on a child&apos;s screen, with small stones building in the middle. They open again when Steam is done, often about a minute after login, and longer the first time a child uses Steam. Other tiles open as usual.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/GamesView.qml" line="73"/>
         <source>No children yet. Add one on the Children page, then come back here for their games.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="60"/>
+        <location filename="../qml/GamesView.qml" line="61"/>
         <source>Each child has their own list of the games in the shared folder. A new child starts with none. Tap a game to put it on the list or take it off, then press Save. A child sees their games the next time they log in.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="72"/>
+        <location filename="../qml/GamesView.qml" line="79"/>
         <source>No games in the shared folder yet. To add one, install it from your own Steam into the folder /var/lib/cairn/steam-library. If Steam&apos;s install dialog does not offer that folder, add it first in Steam&apos;s Settings, under Storage. A game shows here after the next Save, which looks at the shared folder again. With nothing to save, Look for new games does the same.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="81"/>
+        <location filename="../qml/GamesView.qml" line="88"/>
         <source>In your own Steam library, not the shared folder: %1. Children can have only the games in the shared folder. To move them, open Steam&apos;s Settings and choose Storage. If the folder /var/lib/cairn/steam-library is not listed there, add it as a drive. Then pick your own library in the list, tick the games, press Move and choose the shared folder. A moved game shows here after the next Save, or after Look for new games. To send future downloads to the shared folder too, make it the default drive in Storage.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="91"/>
+        <location filename="../qml/GamesView.qml" line="98"/>
         <source>Whose games to show</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="122"/>
+        <location filename="../qml/GamesView.qml" line="129"/>
         <source>Save</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="130"/>
+        <location filename="../qml/GamesView.qml" line="137"/>
         <source>Put back as saved</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="138"/>
+        <location filename="../qml/GamesView.qml" line="145"/>
         <source>Look for new games</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="147"/>
+        <location filename="../qml/GamesView.qml" line="154"/>
         <source>Not saved yet: the changes for %1. Save gives each child their new list, with one password.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/GamesView.qml" line="153"/>
+        <location filename="../qml/GamesView.qml" line="160"/>
         <source>Save waits: changes for a child who is logged in cannot be saved yet. Logged in: %1. Log them out first.</source>
         <translation type="unfinished"></translation>
     </message>

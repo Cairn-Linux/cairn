@@ -5,7 +5,9 @@
 **Closes:** (none) — addresses issue #129; amends ADR-0026
 **Amended by:** ADR-0029 (a Steam game is waited for past the grace while Steam works on it),
 ADR-0030 (a launch that shows nothing ends on the grown-up screen, not the tiles),
-ADR-0057 (a Steam game Steam says has ended ends its launch while it is opening)
+ADR-0057 (a Steam game Steam says has ended ends its launch while it is opening),
+ADR-0061, proposed (a Steam game's tile builds the stones while Steam updates itself, and a press
+on it starts them again instead of showing the starting screen)
 
 ## Context
 

@@ -11,7 +11,9 @@ updater window hidden (#183).
 first Linux game" (2026-10-30, #206): a Steam the launcher started again
 for a tap may be sent that tap again once more, by this ADR's rule, and
 gets a 10-minute work limit and #182's offline minute of its own; it is
-never started again a second time for that tap.
+never started again a second time for that tap. ADR-0061, proposed: the
+launcher also reads whether Steam updates itself while the tiles are in
+front, and a game's tile pressed then opens nothing until Steam is done.
 
 ## Context
 

@@ -45,6 +45,9 @@ struct Logs {
     Now now() const {
         return SteamStartup(bootstrap, console).read(fixedNow());
     }
+    SteamStartup::Reading reading(bool pastLongestStart = false) const {
+        return SteamStartup(bootstrap, console).readWithTimes(fixedNow(), pastLongestStart);
+    }
 };
 
 // Each case is lines the updater and the client wrote on the kids' laptop.
@@ -68,6 +71,10 @@ private slots:
                    line(40, "Found pending update") + line(40, "Installing update...") +
                    line(39, "Extracting package..."));
         QCOMPARE(logs.now(), Now::Updating);
+        // The start command from two hours ago is from an earlier start.
+        QCOMPARE(logs.reading().now, Now::Updating);
+        QCOMPARE(logs.reading().lastStartup, fixedNow().addSecs(-40));
+        QVERIFY(!logs.reading().clientStarted);
         append(logs.bootstrap, line(10, "Installing update...") + line(4, "Cleaning up...") +
                                    line(3, "Update complete, launching Steam..."));
         QCOMPARE(logs.now(), Now::Updating);
@@ -80,6 +87,12 @@ private slots:
         QCOMPARE(logs.now(), Now::Restarting);
         append(logs.console, line(0, ownStart()));
         QCOMPARE(logs.now(), Now::Ready);
+        // The read with times gives the updater's last start and the
+        // client's own start command after it (ADR-0061).
+        const SteamStartup::Reading reading = logs.reading();
+        QCOMPARE(reading.now, Now::Ready);
+        QCOMPARE(reading.lastStartup, fixedNow().addSecs(-3));
+        QCOMPARE(reading.clientStarted, fixedNow());
     }
 
     // A client with no update to install is only starting.
@@ -129,6 +142,26 @@ private slots:
                line(qint64{21} * 60, "Startup - updater built Oct 13 2026 18:44:25") +
                    line(qint64{21} * 60, "Found pending update"));
         QCOMPARE(logs.now(), Now::Ready);
+        // Its start is still given, with no start command after it.
+        QCOMPARE(logs.reading().lastStartup, fixedNow().addSecs(qint64{-21} * 60));
+        QVERIFY(!logs.reading().clientStarted);
+    }
+
+    // A start long ago that finished is Ready too. Its start command is given
+    // only when asked, so a watch paused through it can say when it finished
+    // and every other read of an old start skips the console log.
+    void aStartLongAgoThatFinishedGivesItsStartCommand() {
+        const Logs logs;
+        append(logs.bootstrap,
+               line(qint64{25} * 60, "Startup - updater built Oct 13 2026 18:44:25") +
+                   line(qint64{25} * 60, "Found pending update"));
+        append(logs.console, line(qint64{24} * 60, ownStart()));
+        QCOMPARE(logs.now(), Now::Ready);
+        QCOMPARE(logs.reading().now, Now::Ready);
+        QCOMPARE(logs.reading().lastStartup, fixedNow().addSecs(qint64{-25} * 60));
+        QVERIFY(!logs.reading().clientStarted);
+        QCOMPARE(logs.reading(true).now, Now::Ready);
+        QCOMPARE(logs.reading(true).clientStarted, fixedNow().addSecs(qint64{-24} * 60));
     }
 
     // The dev PC's Steam on 2026-10-27, 23:05 to 23:08: it installed an
@@ -217,6 +250,8 @@ private slots:
     void noLogsIsReady() {
         const Logs logs;
         QCOMPARE(logs.now(), Now::Ready);
+        QVERIFY(!logs.reading().lastStartup);
+        QVERIFY(!logs.reading().clientStarted);
     }
 
     // Only the last part of a long log is read; its first, cut line is not

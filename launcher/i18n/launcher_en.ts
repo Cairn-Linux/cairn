@@ -4,7 +4,7 @@
 <context>
     <name>AppLauncher</name>
     <message>
-        <location filename="../src/AppLauncher.cpp" line="218"/>
+        <location filename="../src/AppLauncher.cpp" line="253"/>
         <source>Another program</source>
         <translation type="unfinished"></translation>
     </message>
@@ -142,13 +142,13 @@
 <context>
     <name>Main</name>
     <message>
-        <location filename="../qml/Main.qml" line="35"/>
+        <location filename="../qml/Main.qml" line="38"/>
         <source>Cairn</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/Main.qml" line="214"/>
-        <location filename="../qml/Main.qml" line="216"/>
+        <location filename="../qml/Main.qml" line="250"/>
+        <location filename="../qml/Main.qml" line="252"/>
         <source>Log out</source>
         <translation type="unfinished"></translation>
     </message>
@@ -156,45 +156,53 @@
 <context>
     <name>StartingScreen</name>
     <message>
-        <location filename="../qml/StartingScreen.qml" line="96"/>
+        <location filename="../qml/StartingScreen.qml" line="68"/>
         <source>%1 is starting.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/StartingScreen.qml" line="112"/>
+        <location filename="../qml/StartingScreen.qml" line="84"/>
         <source>Getting it ready. This can take a few minutes.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>Tile</name>
+    <message>
+        <location filename="../qml/Tile.qml" line="54"/>
+        <source>Waits for a Steam update. It opens when Steam is done.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
     <name>TileModel</name>
     <message>
-        <location filename="../src/TileModel.cpp" line="18"/>
+        <location filename="../src/TileModel.cpp" line="19"/>
         <source>Draw</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/TileModel.cpp" line="19"/>
+        <location filename="../src/TileModel.cpp" line="20"/>
         <source>Music</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/TileModel.cpp" line="20"/>
+        <location filename="../src/TileModel.cpp" line="21"/>
         <source>Build</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/TileModel.cpp" line="21"/>
+        <location filename="../src/TileModel.cpp" line="22"/>
         <source>Story</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/TileModel.cpp" line="22"/>
+        <location filename="../src/TileModel.cpp" line="23"/>
         <source>Practice</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/TileModel.cpp" line="26"/>
+        <location filename="../src/TileModel.cpp" line="27"/>
         <source>Terminal</source>
         <translation type="unfinished"></translation>
     </message>

@@ -21,8 +21,7 @@ Rectangle {
     // Steps through one round of the building: a stone more each step until
     // the mark is whole, the whole mark for a step, no mark for a step.
     property int step: 0
-    readonly property int stoneCount: Tokens.markStones.length
-    readonly property int stonesUp: step < stoneCount ? step + 1 : step === stoneCount ? stoneCount : 0
+    readonly property int stonesUp: mark.stonesUp
 
     color: Tokens.ground
 
@@ -41,7 +40,7 @@ Rectangle {
         interval: Tokens.motionStone
         repeat: true
         running: screen.visible
-        onTriggered: screen.step = (screen.step + 1) % (screen.stoneCount + 2)
+        onTriggered: screen.step = (screen.step + 1) % mark.roundSteps
     }
 
     Column {
@@ -49,40 +48,13 @@ Rectangle {
         spacing: Tokens.headingSize
         width: parent.width - Tokens.headingSize * 2
 
-        Item {
+        BuildingStones {
             id: mark
 
-            // Pixels per unit of the mark's own box.
-            readonly property real unit: Tokens.displaySize * 3 / Tokens.markHeight
-
+            objectName: "startingStones"
             anchors.horizontalCenter: parent.horizontalCenter
-            width: Tokens.markWidth * unit
-            height: Tokens.markHeight * unit
-
-            Repeater {
-                model: screen.stoneCount
-
-                Rectangle {
-                    required property int index
-                    readonly property var stone: Tokens.markStones[index]
-
-                    x: stone[0] * mark.unit
-                    y: stone[1] * mark.unit
-                    width: stone[2] * mark.unit
-                    height: stone[3] * mark.unit
-                    radius: Tokens.markStoneRadius * mark.unit
-                    // The mark is Ink on a light ground, as the text is.
-                    color: Tokens.text
-                    // The stones are listed top first; the bottom one goes up first.
-                    opacity: screen.stoneCount - index <= screen.stonesUp ? 1 : 0
-
-                    Behavior on opacity {
-                        NumberAnimation {
-                            duration: Tokens.motionStone
-                        }
-                    }
-                }
-            }
+            unit: Tokens.displaySize * 3 / Tokens.markHeight
+            step: screen.step
         }
 
         // Plain text, as on the tile: the title may be a game's own name.

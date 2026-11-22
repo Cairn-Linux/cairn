@@ -66,6 +66,14 @@ Colours, type, focus rings and radii come from `Cairn.Brand.Tokens`.
   game's picture is the picture step's copy for its app id, in the folder
   `--pictures` names, so a picture copied later reaches every child who
   has the game, and the games file names none (ADR-0047, #205).
+- **Slice 14 (2026-11-21, ADR-0061, proposed):** while Steam updates
+  itself, the tiles of games that start in Steam wait. `SteamUpdateWatch`
+  reads whether Steam is updating while the tiles are in front;
+  `TileModel`'s `startsInSteam` says which tiles start in Steam; `Tile.qml`
+  fades the picture and builds the mark over the middle of the tile, from
+  `BuildingStones.qml`, which the starting screen draws too. A press on a
+  waiting tile goes to `AppLauncher.press()`, which opens nothing and
+  starts every tile's stones again from none.
 - **Footprint (2026-09-08):** about 145 MB proportional idle in the VM,
   first frame 0.2 s after exec; the table is in
   `../docs/research/launcher-footprint.md`.
@@ -91,7 +99,7 @@ its rpath, and a wrapper made from `bin/cairn-launcher.in` in `/usr/bin/`
 (ADR-0038). The session runs the wrapper, which names the logged-in
 child's own games list (ADR-0041) and the games' pictures folder
 (ADR-0047).
-The launcher has thirty-three CTest tests, run offscreen: the wrapper the
+The launcher has thirty-four CTest tests, run offscreen: the wrapper the
 kiosk session starts, run with stand-ins, the tile model, the
 manifest reader, the manifest and the games file read together (the tile
 files), kidscan's manifest and games file written and read back (two
@@ -101,7 +109,8 @@ game, Steam's reapers, the lines a log gains, Steam's launch log, the
 times in Steam's logs when the clocks change (in Mountain time, set for
 that test alone), Steam's content log, a launch
 Steam stopped part-way, the games Steam holds behind a question, Steam
-starting or updating itself, Steam's sign-in, the give-up watch, Steam at
+starting or updating itself, the watch on Steam updating itself while the
+tiles are in front, Steam's sign-in, the give-up watch, Steam at
 login, starting Steam again (against
 stand-ins for steam, systemctl and systemd-run), the app scope, the grid
 scroller, the close request, Log out, the battery's look, the UPower
@@ -109,8 +118,8 @@ reader (against a stand-in UPower on a bus of its own, under
 `dbus-run-session`), the window list, the compiled brand tokens, the
 Terminal's doors, and the QML navigation, scrolling, starting-screen,
 grown-up-screen, terminal, close-request, Log out, battery,
-tile-picture and plain-text behaviour. Footpath's own six suites run in
-its repository.
+tile-picture, plain-text and Steam-update tile behaviour. Footpath's own
+six suites run in its repository.
 Qt on Fedora sends `qWarning` and `qInfo` lines to the journal when stderr
 is not a terminal; set `QT_FORCE_STDERR_LOGGING=1` to see them in a pipe.
 
@@ -356,6 +365,74 @@ so the grown-up's give-up key can end it and whatever it started
 (ADR-0025). The launcher still watches the program's own process.
 The program's own terminal output goes to the launcher's terminal, never to
 the child's screen.
+
+## While Steam updates itself
+
+Each child's Steam updates itself the first time it runs after Valve ships
+a client update, at the child's login.
+No Steam game can start then, and a tap made while the update installs is
+lost when Steam restarts (ADR-0037).
+So, while it lasts, the tiles of games that start in Steam wait
+(ADR-0061, proposed): their picture, or their title, fades to
+`coveredOpacity`, and the Cairn mark builds itself over the middle of the
+tile, on a Pebble chip, as on the starting screen at half its size.
+A press on a waiting tile opens nothing and changes no screen; every
+waiting tile's stones start again from none, together.
+Other tiles, the Terminal and Log out never wait and open as usual.
+When Steam is done, the chips fade and the pictures come back.
+
+`SteamUpdateWatch` decides.
+Steam is updating itself while `SteamStartup` reads Updating or Restarting
+and a process of the child's called exactly `steam` runs; it reads the
+process list only while the logs say Steam is updating, so a log left
+part-way by a stopped Steam does not hold the tiles.
+A plain start does not count.
+`Main.qml` makes it active only while the tiles are in front, not during
+a launch, behind an app, on the grown-up screen, in the Terminal or at
+the Log out question.
+While active it reads at once and every 5 s; while not, it reads nothing
+and keeps its answer.
+`AppLauncher.press()` asks it again at the press, so a game Steam has just
+finished with opens at once.
+The Terminal's `open` still goes to `launch()` and waits as before.
+The journal says when the wait begins and ends, with Steam's own times,
+and names a game pressed while it waits, once for each update:
+
+```text
+Steam started updating itself at 18:00:03 by its log, so its games wait on the tiles.
+Arthur's Birthday did not open: Steam is updating itself.
+Steam finished updating itself at 18:01:01 by its log, after 58 seconds. Its games open again.
+```
+
+If no Steam runs, Steam's last start is over 20 minutes old, or the logs
+no longer show an update (a later plain start, or a log that is gone), the
+wait ends and the journal says which instead; the 20-minute line may mean
+Steam is still updating.
+
+### Making up an update for a staged try
+
+`../tools/make-steam-update.sh` makes up a Steam self-update for a
+throwaway HOME or a throwaway account, never a child's real one.
+It lives in `tools/`, with the repository's other tools for a developer's
+own computer, and is never installed into the image.
+It writes the updater's and the client's lines into the Steam log folder
+the launcher reads, runs a stand-in called `steam`, waits 45 s or until
+Enter, then writes the restart and the client's start command.
+It refuses a Steam folder that has `steamapps/`, `ubuntu12_32/`,
+`ubuntu12_64/`, `package/` or `steam.sh`.
+On the dev PC, in nested labwc, with a throwaway HOME:
+
+```sh
+export QT_FORCE_STDERR_LOGGING=1
+try=$(mktemp -d)
+HOME=$try XDG_DATA_HOME=$try/.local/share labwc -C session/labwc -S './build/release/launcher/cairn-launcher \
+  --manifest launcher/manifests/dev-pc.json --games launcher/tests/fixtures/games.json' &
+tools/make-steam-update.sh --home "$try" --seconds 60
+```
+
+The three made-up games fade and build their stones within 5 s, and come
+back within 5 s of the end.
+In a test VM, run it as a throwaway child account with no `--home`.
 
 ## Windows that open on their own
 
