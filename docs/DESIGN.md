@@ -482,9 +482,16 @@ The launcher **is the product.** Everything else is packaging.
   whose fill shows how full it is, a plug while it is on the charger, and
   one sentence when UPower says it is low. Nothing shows over a running
   game yet (ADR-0034).
-- A pressed tile answers at once: until the app's window has stayed up for
+- A pressed tile answers at once (a waiting Steam tile, below, answers on
+  the tile itself): until the app's window has stayed up for
   a few seconds, the Cairn mark builds itself stone by stone over one
   sentence, "Putt-Putt Joins the Circus is starting." (ADR-0028).
+- While Steam updates itself, a game that starts in Steam is not ready,
+  and its tile says so: its picture is faded and small stones build in
+  its middle. A press on it opens nothing and starts the stones again
+  from the bottom, so the child stays at the tiles and can pick another.
+  When Steam is done the tile looks and opens as before. Other tiles
+  open as usual (ADR-0061, proposed).
 - Colour groups by *kind* (make / practice / games / machine), not one colour
   per app. Games are Paper cards with a hairline edge (ADR-0024).
 - A game's tile shows the game's own picture inside its Paper card, in place
@@ -517,8 +524,10 @@ The brief is "creative workspace," not "toy." Concretely:
 - **No** sound effects on every interaction, sticker rewards, gamification
   streaks, or mascot characters.
 - **Motion only says something true** (ADR-0028): tiles sliding into view,
-  a tile starting. Never to decorate, distract, reward, or hold a child's
-  attention. Slow and small, nothing flashes, every duration a token.
+  a tile starting, a Steam game's tile waiting while Steam updates itself
+  (ADR-0061, proposed). Never to decorate, distract, reward, or hold a
+  child's attention. Slow and small, nothing flashes, every duration a
+  token.
 
 ### 6.3 The consistency limit (accepted)
 
@@ -628,7 +637,10 @@ Mechanism:
   later, its updater's windows are neither the game's nor windows on their
   own: the launcher asks the compositor to hide them, so the child sees the
   tiles or the starting screen, never Steam's Cancel button (ADR-0037,
-  #183). A Steam that cannot sign in is not getting
+  #183). At the tiles, the games that start in Steam wait meanwhile:
+  faded, with stones building in the middle, and a press opens nothing
+  until Steam is done (§6.1; ADR-0061, proposed). A Steam that cannot
+  sign in is not getting
   the game ready: when its sign-in was turned down the wait ends at the
   next grace, and when it cannot reach its servers after a minute
   (ADR-0036, #182). A new child's first Linux game can stop part-way:

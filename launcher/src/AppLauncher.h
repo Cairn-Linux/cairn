@@ -5,8 +5,10 @@
 #include "SteamGameWait.h"
 #include "SteamRestart.h"
 #include "SteamStartup.h"
+#include "SteamUpdateWatch.h"
 
 #include <QObject>
+#include <QPointer>
 #include <QProcess>
 #include <QQmlEngine>
 #include <QStringList>
@@ -45,7 +47,9 @@
 // ComingSoon: the screen says so, with a Back, and needs no grown-up. When the
 // program the launcher started exits after the settle window, the app is
 // over, and any of its windows still up count as opened on their own. The
-// grown-up's give-up key always brings the tiles back.
+// grown-up's give-up key always brings the tiles back. A tile's press comes
+// through press(): while Steam updates itself, a game that starts in Steam
+// opens nothing, and the tiles show they heard it (ADR-0061).
 class AppLauncher : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -86,6 +90,11 @@ class AppLauncher : public QObject {
     // grace while Steam starts (ADR-0029). Set once, when the launcher starts.
     Q_PROPERTY(bool steamStartedAtLogin READ steamStartedAtLogin WRITE setSteamStartedAtLogin NOTIFY
                    steamStartedAtLoginChanged)
+    // Whether Steam is updating itself, as the tiles show it (ADR-0061). A
+    // press on a tile asks it before anything starts. None means no tile
+    // ever waits.
+    Q_PROPERTY(SteamUpdateWatch* steamUpdate READ steamUpdate WRITE setSteamUpdate NOTIFY
+                   steamUpdateChanged)
 
 public:
     enum class State : std::uint8_t { Idle, Starting, Running, Failed, Interrupted, ComingSoon };
@@ -113,6 +122,8 @@ public:
     void setOwnAppId(const QString& appId);
     bool steamStartedAtLogin() const;
     void setSteamStartedAtLogin(bool started);
+    SteamUpdateWatch* steamUpdate() const;
+    void setSteamUpdate(SteamUpdateWatch* watch);
     // Steam's log is being read again shortly, to see whether a Steam game
     // whose window went while it was opening has ended (ADR-0057). Tests
     // ask this.
@@ -125,6 +136,10 @@ public:
     // (Running), or a window that opened on its own is up (Interrupted). An
     // empty exec is ComingSoon at once: nothing is set up for that tile yet.
     Q_INVOKABLE void launch(const QString& title, const QStringList& exec);
+    // A tile was pressed. A game that starts in Steam while Steam updates
+    // itself opens nothing: the screen stays and heldForSteam says so
+    // (ADR-0061). Anything else is launch().
+    Q_INVOKABLE void press(const QString& title, const QStringList& exec);
     // Leaves Failed or ComingSoon and goes back to Idle. After a launch that put
     // nothing on the screen, its window counts as the app's until then, so a
     // game that comes late takes over from the grown-up screen. Interrupted
@@ -156,6 +171,10 @@ signals:
     void ownAppIdChanged();
     void scopedChanged();
     void steamStartedAtLoginChanged();
+    void steamUpdateChanged();
+    // A press on a game that waits for Steam opened nothing; the tiles show
+    // they heard it (ADR-0061).
+    void heldForSteam();
     // Steam's updater put this window on the screen: the compositor should
     // hide it (#183). Asked again if the window comes back.
     void windowToHide(const QString& identifier);
@@ -223,4 +242,6 @@ private:
     bool m_scoped = false;
     bool m_steamStartedAtLogin = false;
     int m_launches = 0;
+    // Not owned: QPointer becomes null if the watch goes away.
+    QPointer<SteamUpdateWatch> m_steamUpdate;
 };

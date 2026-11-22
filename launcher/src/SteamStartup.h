@@ -41,11 +41,27 @@ public:
         Restarting,
     };
 
+    // Where the client is, and the two times in the logs that said so.
+    struct Reading {
+        Now now = Now::Ready;
+        // The updater's last `Startup -` line, or nothing.
+        std::optional<QDateTime> lastStartup;
+        // The client's own start command at or after that line, or nothing.
+        // After the longest start it is looked for only when asked.
+        std::optional<QDateTime> clientStarted;
+    };
+
     explicit SteamStartup(QString bootstrapLog = defaultPath(),
                           QString consoleLog = SteamLaunchLog::defaultPath());
 
     // Where the client is at `now`, from the last part of both logs.
     Now read(const QDateTime& now) const;
+    // The same read, with the times it found, for the journal's lines about
+    // an update (ADR-0061). With `pastLongestStart` it also looks for the
+    // start command after the longest start, which only a watch that saw an
+    // update needs: one paused through the end of it still finds when it
+    // finished. Without it, an old start costs no read of the console log.
+    Reading readWithTimes(const QDateTime& now, bool pastLongestStart = false) const;
     // Steam is updating itself at `now`: Updating or Restarting. Its
     // updater's windows are up then, and no game's can be (#183).
     bool updatingItself(const QDateTime& now) const;

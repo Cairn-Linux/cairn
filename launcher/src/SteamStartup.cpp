@@ -45,24 +45,31 @@ SteamStartup::SteamStartup(QString bootstrapLog, QString consoleLog)
     : m_bootstrapLog(std::move(bootstrapLog)), m_consoleLog(std::move(consoleLog)) {}
 
 SteamStartup::Now SteamStartup::read(const QDateTime& now) const {
-    std::optional<QDateTime> started;
+    return readWithTimes(now).now;
+}
+
+SteamStartup::Reading SteamStartup::readWithTimes(const QDateTime& now,
+                                                  bool pastLongestStart) const {
+    Reading reading;
     std::optional<QDateTime> updated;
     bool updating = false;
     bool restarting = false;
     for (const QByteArray& line : lastLines(m_bootstrapLog)) {
         if (line.contains("] Startup - ")) {
-            started = SteamLaunchLog::timeOf(line, now);
+            reading.lastStartup = SteamLaunchLog::timeOf(line, now);
             updating = false;
-            restarting = updated && started && *updated <= *started &&
-                         updated->secsTo(*started) <= restartSeconds;
+            restarting = updated && reading.lastStartup && *updated <= *reading.lastStartup &&
+                         updated->secsTo(*reading.lastStartup) <= restartSeconds;
         } else if (line.contains("] Update complete, launching")) {
             updated = SteamLaunchLog::timeOf(line, now);
-        } else if (started && isUpdating(line)) {
+        } else if (reading.lastStartup && isUpdating(line)) {
             updating = true;
         }
     }
-    if (!started || started->secsTo(now) > longestStartSeconds) {
-        return Now::Ready;
+    const std::optional<QDateTime>& started = reading.lastStartup;
+    const bool tooOld = started && started->secsTo(now) > longestStartSeconds;
+    if (!started || (tooOld && !pastLongestStart)) {
+        return reading;
     }
     // The client has started once it runs its own start command, 0 to 21 s
     // after it logs `System startup time:`; a tap it held runs with it.
@@ -70,15 +77,21 @@ SteamStartup::Now SteamStartup::read(const QDateTime& now) const {
         if (line.contains("] ExecCommandLine: ") && line.contains("'-srt-logger-opened'")) {
             const std::optional<QDateTime> ready = SteamLaunchLog::timeOf(line, now);
             if (ready && *ready >= *started) {
-                return Now::Ready;
+                reading.clientStarted = ready;
+                return reading;
             }
             break;
         }
     }
-    if (updating) {
-        return Now::Updating;
+    if (tooOld) {
+        return reading;
     }
-    return restarting ? Now::Restarting : Now::Starting;
+    if (updating) {
+        reading.now = Now::Updating;
+    } else {
+        reading.now = restarting ? Now::Restarting : Now::Starting;
+    }
+    return reading;
 }
 
 bool SteamStartup::updatingItself(const QDateTime& now) const {

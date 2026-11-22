@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "TileModel.h"
 
+#include "SteamLaunchLog.h"
 #include "TileFiles.h"
 
 #include <QDebug>
@@ -49,6 +50,8 @@ QVariant TileModel::data(const QModelIndex& index, int role) const {
         return tile.opensTerminal;
     case PictureRole:
         return tile.picture;
+    case StartsInSteamRole:
+        return tile.startsInSteam;
     default:
         return {};
     }
@@ -60,7 +63,8 @@ QHash<int, QByteArray> TileModel::roleNames() const {
             {AccessibleNameRole, "accessibleName"},
             {ExecRole, "exec"},
             {OpensTerminalRole, "opensTerminal"},
-            {PictureRole, "picture"}};
+            {PictureRole, "picture"},
+            {StartsInSteamRole, "startsInSteam"}};
 }
 
 QString TileModel::manifestPath() const {
@@ -112,6 +116,10 @@ QString TileModel::loadError() const {
     return m_loadError;
 }
 
+bool TileModel::anyStartsInSteam() const {
+    return m_anyStartsInSteam;
+}
+
 void TileModel::classBegin() {
     m_loadsOnChange = false;
 }
@@ -140,5 +148,14 @@ void TileModel::load() {
 void TileModel::replaceTiles(const QList<Tile>& tiles) {
     beginResetModel();
     m_tiles = tiles;
+    bool anyStartsInSteam = false;
+    for (Tile& tile : m_tiles) {
+        tile.startsInSteam = !SteamLaunchLog::appIdOf(tile.exec).isEmpty();
+        anyStartsInSteam = anyStartsInSteam || tile.startsInSteam;
+    }
     endResetModel();
+    if (anyStartsInSteam != m_anyStartsInSteam) {
+        m_anyStartsInSteam = anyStartsInSteam;
+        emit anyStartsInSteamChanged();
+    }
 }

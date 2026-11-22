@@ -13,6 +13,13 @@ Rectangle {
     // child who cannot read yet can tell one game from another (#138,
     // ADR-0035). Empty shows the title instead.
     property url picture
+    // A game that starts in Steam, while Steam updates itself (ADR-0061):
+    // its picture or title fades and the mark builds over the middle of
+    // the tile. A press then opens nothing; the launcher decides that.
+    property bool waitsForSteam: false
+    // Where the building stones are, from the one clock that steps every
+    // waiting tile, so they all build in step.
+    property int stoneStep: 0
 
     // Enter, Space or a click. The launcher decides what happens next.
     signal activated
@@ -44,6 +51,7 @@ Rectangle {
 
     Accessible.role: Accessible.Button
     Accessible.name: accessibleName
+    Accessible.description: waitsForSteam ? qsTr("Waits for a Steam update. It opens when Steam is done.") : ""
     Accessible.focusable: true
     Accessible.onPressAction: tile.activated()
 
@@ -78,7 +86,14 @@ Rectangle {
         sourceSize.height: height
         smooth: true
         mipmap: true
+        opacity: tile.waitsForSteam ? Tokens.coveredOpacity : 1
         Accessible.ignored: true
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: Tokens.motionStone
+            }
+        }
     }
 
     // A game's title is the store's full name, so it wraps inside the tile
@@ -103,6 +118,7 @@ Rectangle {
         font.family: Tokens.fontFamily
         font.pixelSize: Tokens.headingSize
         font.weight: Tokens.weightBold
+        opacity: tile.waitsForSteam ? Tokens.coveredOpacity : 1
         color: {
             switch (tile.kind) {
             case TileModel.Make:
@@ -115,6 +131,50 @@ Rectangle {
                 return Tokens.machineLabel;
             }
             return Tokens.makeLabel;
+        }
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: Tokens.motionStone
+            }
+        }
+    }
+
+    // The mark with its clear space, at half the starting screen's size,
+    // centred on the tile. On the laptop's partly shown row its bottom is
+    // cut off; the faded picture still marks the tile there.
+    Rectangle {
+        id: chip
+
+        objectName: "steamChip"
+        // Pixels per unit of the mark's own box: half the starting screen's.
+        readonly property real unit: Tokens.displaySize * 3 / 2 / Tokens.markHeight
+
+        anchors.centerIn: parent
+        width: (stones.stonesRight - stones.stonesLeft + 2 * stones.clearSpace) * unit
+        height: (stones.stonesBottom - stones.stonesTop + 2 * stones.clearSpace) * unit
+        radius: Tokens.radiusSm
+        color: Tokens.pebble
+        // No edge: on Pebble one would add nothing a child could see.
+        border.width: 0
+        opacity: tile.waitsForSteam ? 1 : 0
+        visible: opacity > 0
+        Accessible.ignored: true
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: Tokens.motionStone
+            }
+        }
+
+        BuildingStones {
+            id: stones
+
+            objectName: "steamChipStones"
+            x: (clearSpace - stonesLeft) * unit
+            y: (clearSpace - stonesTop) * unit
+            unit: chip.unit
+            step: tile.stoneStep
         }
     }
 

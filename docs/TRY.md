@@ -284,10 +284,23 @@ themselves.
   could not be started again" or "Steam is not running as the launcher
   started it", please report it.
 - Right after a child logs in, Steam sometimes updates itself, which can
-  take ten minutes or more on slow Wi-Fi. The child sees the tiles, and
-  Steam's update window is hidden; a game tapped then says "Getting it
-  ready". The journal says "Steam is updating itself" for each window it
-  hid.
+  take ten minutes or more on slow Wi-Fi. On the laptop an update took
+  about a minute twice, a child's first install about 5 minutes, and
+  once 13 minutes. The child sees the tiles, and
+  Steam's update window is hidden. While Steam updates itself, the games
+  that start in Steam look faded, with small stones building in the
+  middle of each. A press on one opens nothing; the stones start again
+  from the bottom. The games open again when Steam is done. Other tiles
+  open as usual. No stones is not a promise: Steam can still update a
+  game, or the tools it runs in, when the game is tapped, and then the
+  child sees "Getting it ready". The journal says "Steam started
+  updating itself at … by its log, so its games wait on the tiles." and
+  "Steam finished updating itself at … by its log, after … Its games
+  open again.", with Steam's own times. A press on a faded game adds
+  "… did not open: Steam is updating itself." If Steam's log shows no
+  start for 20 minutes, Steam is not running, or Steam's log no longer
+  shows an update, the games open again and the journal says which. It
+  also says "Steam is updating itself" for each window it hid.
 - If the set-up command says some of a game's files can be read only by
   your own account, your own Steam made them private. This, in your own
   login, lets every account read them, and the children get their copies

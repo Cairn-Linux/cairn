@@ -46,6 +46,7 @@ set(launcher_model_sources
     src/SteamSignIn.h src/SteamSignIn.cpp
     src/SteamStall.h src/SteamStall.cpp
     src/SteamStartup.h src/SteamStartup.cpp
+    src/SteamUpdateWatch.h src/SteamUpdateWatch.cpp
     src/GridScroller.h src/GridScroller.cpp
     src/CloseRequest.h src/CloseRequest.cpp
     src/LogOut.h src/LogOut.cpp
@@ -59,12 +60,13 @@ set(launcher_terminal_sources src/DoorsFromTiles.h src/DoorsFromTiles.cpp)
 # need Qt DBus.
 set(launcher_battery_sources src/UPowerDevice.h src/UPowerDevice.cpp)
 set(launcher_qml_files qml/Main.qml qml/Tile.qml qml/GrownUpScreen.qml qml/LogOutScreen.qml
-    qml/StartingScreen.qml qml/Battery.qml)
+    qml/StartingScreen.qml qml/BuildingStones.qml qml/Battery.qml)
 set_source_files_properties(qml/Main.qml PROPERTIES QT_RESOURCE_ALIAS Main.qml)
 set_source_files_properties(qml/Tile.qml PROPERTIES QT_RESOURCE_ALIAS Tile.qml)
 set_source_files_properties(qml/GrownUpScreen.qml PROPERTIES QT_RESOURCE_ALIAS GrownUpScreen.qml)
 set_source_files_properties(qml/LogOutScreen.qml PROPERTIES QT_RESOURCE_ALIAS LogOutScreen.qml)
 set_source_files_properties(qml/StartingScreen.qml PROPERTIES QT_RESOURCE_ALIAS StartingScreen.qml)
+set_source_files_properties(qml/BuildingStones.qml PROPERTIES QT_RESOURCE_ALIAS BuildingStones.qml)
 set_source_files_properties(qml/Battery.qml PROPERTIES QT_RESOURCE_ALIAS Battery.qml)
 
 qt_add_executable(cairn-launcher src/main.cpp)
@@ -208,6 +210,13 @@ target_include_directories(tst_steamstartup PRIVATE src)
 target_link_libraries(tst_steamstartup PRIVATE Qt6::Core Qt6::Test)
 add_test(NAME steamstartup COMMAND tst_steamstartup)
 
+# Against logs and a process list in folders of the test's own, so it never
+# reads this computer's Steam or its real processes.
+qt_add_executable(tst_steamupdatewatch tests/tst_steamupdatewatch.cpp ${launcher_model_sources})
+target_include_directories(tst_steamupdatewatch PRIVATE src)
+target_link_libraries(tst_steamupdatewatch PRIVATE Qt6::Qml Qt6::Test)
+add_test(NAME steamupdatewatch COMMAND tst_steamupdatewatch)
+
 qt_add_executable(tst_steamsignin tests/tst_steamsignin.cpp src/SteamSignIn.h src/SteamSignIn.cpp
     src/SteamStartup.h src/SteamStartup.cpp src/SteamLaunchLog.h src/SteamLaunchLog.cpp
     src/LogTail.h src/LogTail.cpp)
@@ -343,8 +352,9 @@ set_tests_properties(tilemodel manifest tilefiles applauncher grownupline appsco
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QML_IMPORT_PATH=${QT_QML_OUTPUT_DIRECTORY}"
 )
 
-# These three write Steam's log lines from the clock, and the code they test
+# These write Steam's log lines from the clock, and the code they test
 # reads the clock itself. In UTC no hour comes twice or is skipped, so they
 # pass at any hour of the year; the hours the clocks change in have a test
 # of their own (steamlogtime, #248). APPEND keeps the settings above.
-set_property(TEST applauncher grownupline steamgamewait APPEND PROPERTY ENVIRONMENT "TZ=UTC")
+set_property(TEST applauncher grownupline steamgamewait steamupdatewatch navigation APPEND PROPERTY
+    ENVIRONMENT "TZ=UTC")

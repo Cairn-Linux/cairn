@@ -32,6 +32,9 @@ class TileModel : public QAbstractListModel, // NOLINT(misc-multiple-inheritance
                    picturesFolderChanged)
     // A plain sentence when the manifest could not be used; empty otherwise.
     Q_PROPERTY(QString loadError READ loadError NOTIFY loadErrorChanged)
+    // At least one tile starts a game in Steam, so one can wait while Steam
+    // updates itself (ADR-0061).
+    Q_PROPERTY(bool anyStartsInSteam READ anyStartsInSteam NOTIFY anyStartsInSteamChanged)
 
 public:
     enum class Kind : std::uint8_t { Make, Practice, Games, Machine };
@@ -43,7 +46,8 @@ public:
         AccessibleNameRole,
         ExecRole,
         OpensTerminalRole,
-        PictureRole
+        PictureRole,
+        StartsInSteamRole
     };
 
     struct Tile {
@@ -56,6 +60,10 @@ public:
         // A picture of what the tile opens, as a file:// URL; empty shows the
         // title instead (ADR-0035).
         QUrl picture = {};
+        // Its command starts a game in Steam, `steam -applaunch <appid>`, so
+        // it waits while Steam updates itself (ADR-0061). Set when the tiles
+        // are read.
+        bool startsInSteam = false;
     };
 
     explicit TileModel(QObject* parent = nullptr);
@@ -71,6 +79,7 @@ public:
     QString picturesFolder() const;
     void setPicturesFolder(const QString& folder);
     QString loadError() const;
+    bool anyStartsInSteam() const;
 
     // A TileModel written in QML gets all its paths before it reads the
     // files, so it reads them once. One made in C++ reads them on each change.
@@ -90,6 +99,7 @@ signals:
     void gamesPathChanged();
     void picturesFolderChanged();
     void loadErrorChanged();
+    void anyStartsInSteamChanged();
 
 private:
     void load();
@@ -101,4 +111,5 @@ private:
     QString m_picturesFolder;
     QString m_loadError;
     bool m_loadsOnChange = true;
+    bool m_anyStartsInSteam = false;
 };

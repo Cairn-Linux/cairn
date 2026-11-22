@@ -153,6 +153,26 @@ void AppLauncher::setSteamStartedAtLogin(bool started) {
     emit steamStartedAtLoginChanged();
 }
 
+SteamUpdateWatch* AppLauncher::steamUpdate() const {
+    return m_steamUpdate;
+}
+
+void AppLauncher::setSteamUpdate(SteamUpdateWatch* watch) {
+    if (watch == m_steamUpdate) {
+        return;
+    }
+    m_steamUpdate = watch;
+    emit steamUpdateChanged();
+}
+
+void AppLauncher::press(const QString& title, const QStringList& exec) {
+    if (m_steamUpdate != nullptr && m_steamUpdate->holdsBack(title, exec)) {
+        emit heldForSteam();
+        return;
+    }
+    launch(title, exec);
+}
+
 void AppLauncher::launch(const QString& title, const QStringList& exec) {
     if (m_state == State::Starting || m_state == State::Running || m_state == State::Interrupted) {
         return;

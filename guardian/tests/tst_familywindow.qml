@@ -1977,6 +1977,15 @@ TestCase {
         verify(findChild(window, "gamesView").visible);
         compare(findChild(window, "gamesHeading").text, "Games");
         compare(findChild(window, "gamesTab").Accessible.checked, true);
+        // After the first paragraph, what a child's game tiles do while
+        // Steam updates itself (ADR-0061).
+        const update = findChild(window, "steamUpdateWords");
+        verify(update.visible);
+        compare(update.text, "While Steam updates itself, the games that start in Steam look faded on a child's screen, with small stones building in the middle. They open again when Steam is done, often about a minute after login, and longer the first time a child uses Steam. Other tiles open as usual.");
+        compare(update.Accessible.name, update.text);
+        compare(update.textFormat, Text.PlainText);
+        verify(update.y > findChild(window, "gamesIntro").y);
+        verify(update.y < findChild(window, "childChoices").y);
         mouseClick(findChild(window, "childrenTab"));
         compare(window.showing, "children");
         verify(findChild(window, "childrenView").visible);
